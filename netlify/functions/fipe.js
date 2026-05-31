@@ -12,8 +12,11 @@ async function fipePost(endpoint, body) {
   const res = await fetch(`${FIPE_BASE}/${endpoint}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json;charset=UTF-8',
+      'Accept': 'application/json, text/plain, */*',
+      'Origin': 'https://veiculos.fipe.org.br',
       'Referer': 'https://veiculos.fipe.org.br/',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     },
     body: JSON.stringify(body),
   });
