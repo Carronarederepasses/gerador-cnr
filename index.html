@@ -669,53 +669,59 @@ function copiar() {
 // ══════════════════════════════════════════════
 // BUSCA FIPE AUTOMÁTICA (modo Coletados)
 // ══════════════════════════════════════════════
+// Pontuação ponderada pelo tamanho da palavra
+// Divide por espaço e traço pois FIPE usa "VW - VolksWagen", "GM - Chevrolet", etc.
+// "volkswagen" (10pts) >> "gen" (3pts) — evita falsos matches
 function scoreMatch(haystack, needle) {
-  // Conta quantas palavras do needle aparecem no haystack
-  const words = needle.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const words = needle.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
   const h = haystack.toLowerCase();
-  return words.filter(w => h.includes(w)).length;
+  return words.reduce((acc, w) => acc + (h.includes(w) ? w.length : 0), 0);
 }
 
 async function buscarFIPEColetados(veiculoTexto, anoTexto) {
   try {
     setParseSt('Buscando FIPE...', '');
 
-    // 1. Marcas
+    // 1. Marcas — acha a que tem mais palavras em comum com o texto do veículo
     const marcas = await fipeGet('/marcas');
     const vLower = veiculoTexto.toLowerCase();
 
-    // Encontra a marca com maior score
     let melhorMarca = null, melhorScore = 0;
     for (const m of marcas) {
       const s = scoreMatch(vLower, m.nome);
-      if (s > melhorScore || (s === melhorScore && vLower.startsWith(m.nome.toLowerCase()))) {
-        melhorScore = s; melhorMarca = m;
-      }
+      if (s > melhorScore) { melhorScore = s; melhorMarca = m; }
     }
-    // fallback: primeira palavra do veiculo como marca
     if (!melhorMarca || melhorScore === 0) {
-      const primeiraPalavra = veiculoTexto.split(' ')[0].toLowerCase();
-      melhorMarca = marcas.find(m => m.nome.toLowerCase().startsWith(primeiraPalavra));
+      setParseSt('✓ Campos preenchidos — marca FIPE não identificada, preencha manualmente.', 'ok');
+      return;
     }
-    if (!melhorMarca) { setParseSt('✓ Campos preenchidos — marca FIPE não encontrada, preencha manualmente.', 'ok'); return; }
 
-    // 2. Modelos
+    // 2. Modelos — remove palavras da marca do texto e faz score
+    const palavrasMarca = melhorMarca.nome.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
+    let semMarca = vLower;
+    palavrasMarca.forEach(p => { semMarca = semMarca.replace(new RegExp(p, 'gi'), ''); });
+    semMarca = semMarca.trim();
+
     const data = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos`);
     const modelos = data.modelos || [];
 
-    // Remove o nome da marca do texto e faz score nos modelos
-    const semMarca = vLower.replace(melhorMarca.nome.toLowerCase(), '').trim();
     let melhorModelo = null, melhorMScore = 0;
     for (const m of modelos) {
       const s = scoreMatch(semMarca, m.nome);
       if (s > melhorMScore) { melhorMScore = s; melhorModelo = m; }
     }
-    if (!melhorModelo || melhorMScore === 0) { setParseSt('✓ Campos preenchidos — modelo FIPE não encontrado, preencha manualmente.', 'ok'); return; }
+    if (!melhorModelo || melhorMScore === 0) {
+      setParseSt(`✓ Campos preenchidos — marca: ${melhorMarca.nome}, modelo não identificado. Preencha FIPE manualmente.`, 'ok');
+      return;
+    }
 
     // 3. Anos
     const anos = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos`);
     const ano = anos.find(a => a.nome.includes(anoTexto) || a.codigo.startsWith(anoTexto));
-    if (!ano) { setParseSt('✓ Campos preenchidos — ano FIPE não encontrado, preencha manualmente.', 'ok'); return; }
+    if (!ano) {
+      setParseSt(`✓ Campos preenchidos — ${melhorMarca.nome} ${melhorModelo.nome}, ano não encontrado. Preencha FIPE manualmente.`, 'ok');
+      return;
+    }
 
     // 4. Valor FIPE
     const fipeData = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos/${ano.codigo}`);
@@ -724,7 +730,7 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto) {
     setParseSt(`✓ Tudo preenchido — FIPE ${fipeData.MesReferencia || 'atual'}: ${fipeData.Valor}`, 'ok');
 
   } catch(e) {
-    setParseSt('✓ Campos preenchidos — FIPE: erro ao buscar, preencha manualmente.', 'ok');
+    setParseSt('✓ Campos preenchidos — erro ao buscar FIPE, preencha manualmente.', 'ok');
     console.error('buscarFIPEColetados:', e);
   }
 }
