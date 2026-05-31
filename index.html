@@ -102,6 +102,19 @@
   .btn-wa:hover{opacity:.88}
   .btn-wa.show{display:flex}
 
+  /* MODE TOGGLE */
+  .mode-toggle{display:flex;border:1px solid var(--border);margin-bottom:2rem}
+  .mode-btn{flex:1;padding:.72rem;background:none;border:none;color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.64rem;font-weight:400;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;transition:all .18s}
+  .mode-btn:first-child{border-right:1px solid var(--border)}
+  .mode-btn.active{background:var(--white);color:var(--black);font-weight:500}
+
+  /* COLETADOS */
+  textarea.paste-area{width:100%;background:var(--gray);border:1px solid var(--border);color:var(--white);font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:300;padding:.75rem .85rem;outline:none;resize:vertical;min-height:160px;transition:border-color .2s;line-height:1.65}
+  textarea.paste-area:focus{border-color:rgba(245,243,238,.35)}
+  textarea.paste-area::placeholder{color:#444}
+  .parse-st{font-size:.68rem;margin-top:.35rem;min-height:1rem;color:var(--mid)}
+  .parse-st.ok{color:var(--green)}
+
   /* MOBILE */
   @media(max-width:768px){
     .app{grid-template-columns:1fr}
@@ -121,6 +134,14 @@
 
 <!-- ══ FORM ══ -->
 <div class="form-side">
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-captacao" onclick="setMode('captacao')">Captação</button>
+    <button class="mode-btn" id="btn-coletados" onclick="setMode('coletados')">Coletados</button>
+  </div>
+
+  <!-- ── CAPTAÇÃO ── -->
+  <div id="modo-captacao">
 
   <!-- VEÍCULO -->
   <div class="fsec">
@@ -160,6 +181,43 @@
       <div class="field"><label>Região</label><input type="text" id="regiao" placeholder="Garopaba-SC"></div>
     </div>
   </div>
+
+  </div><!-- /modo-captacao -->
+
+  <!-- ── COLETADOS ── -->
+  <div id="modo-coletados" style="display:none">
+
+  <div class="fsec">
+    <div class="fsec-title">Texto do anúncio</div>
+    <div class="fsec-hint">Cole qualquer anúncio — OLX, Webmotors, WhatsApp, etc.</div>
+    <div class="field">
+      <textarea class="paste-area" id="texto-colado" placeholder="Cole aqui o texto completo do anúncio..." oninput="processarTexto()"></textarea>
+    </div>
+    <div class="parse-st" id="parse-st"></div>
+  </div>
+
+  <div class="fsec">
+    <div class="fsec-title">Dados do veículo</div>
+    <div class="field" style="margin-bottom:.7rem">
+      <label>Veículo (marca + modelo + versão)</label>
+      <input type="text" id="colet-veiculo" placeholder="ex: Volkswagen Virtus Sense 1.0 Flex">
+    </div>
+    <div class="g3">
+      <div class="field"><label>KM</label><input type="text" id="colet-km" placeholder="5.000 km"></div>
+      <div class="field"><label>Cor</label><input type="text" id="colet-cor" placeholder="Prata"></div>
+      <div class="field"><label>Ano</label><input type="text" id="colet-ano" placeholder="2023"></div>
+    </div>
+    <div class="g2" style="margin-top:.7rem">
+      <div class="field"><label>Região</label><input type="text" id="colet-regiao" placeholder="Garopaba-SC"></div>
+      <div class="field"><label>Valor de venda (R$)</label><input type="text" id="colet-valor" placeholder="88.990,00"></div>
+    </div>
+    <div class="field" style="margin-top:.7rem">
+      <label>FIPE (R$) — opcional</label>
+      <input type="text" id="colet-fipe" placeholder="—">
+    </div>
+  </div>
+
+  </div><!-- /modo-coletados -->
 
   <!-- OPCIONAIS POR CATEGORIA -->
   <div class="fsec">
@@ -482,6 +540,7 @@ function badSel(s) {
 // GERAR
 // ══════════════════════════════════════════════
 function gerar() {
+  if (currentMode === 'coletados') { gerarColetados(); return; }
   const mNome     = getSelTxt('sel-marca');
   const modNome   = getSelTxt('sel-modelo');
   const anoNome   = getSelTxt('sel-ano');
@@ -580,6 +639,129 @@ function copiar() {
     b.textContent = '✓ Copiado!'; b.classList.add('copied');
     setTimeout(() => { b.textContent = 'Copiar texto'; b.classList.remove('copied'); }, 2200);
   });
+}
+
+// ══════════════════════════════════════════════
+// MODE TOGGLE
+// ══════════════════════════════════════════════
+let currentMode = 'captacao';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modo-captacao').style.display = mode === 'captacao' ? '' : 'none';
+  document.getElementById('modo-coletados').style.display = mode === 'coletados' ? '' : 'none';
+  document.getElementById('btn-captacao').classList.toggle('active', mode === 'captacao');
+  document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
+}
+
+// ══════════════════════════════════════════════
+// PARSEAR TEXTO (modo Coletados)
+// ══════════════════════════════════════════════
+function processarTexto() {
+  const txt = document.getElementById('texto-colado').value;
+  if (!txt.trim()) { document.getElementById('parse-st').textContent = ''; return; }
+
+  const found = [];
+
+  const kmMatch = txt.match(/(\d[\d.,]*)\s*(?:km|quilômetros)/i);
+  if (kmMatch) { document.getElementById('colet-km').value = kmMatch[1] + ' km'; found.push('km'); }
+
+  const anoMatch = txt.match(/\b(20\d{2}|19[89]\d)\b/);
+  if (anoMatch) { document.getElementById('colet-ano').value = anoMatch[1]; found.push('ano'); }
+
+  const precoMatch = txt.match(/R\$\s*([\d.,]+)/i);
+  if (precoMatch) { document.getElementById('colet-valor').value = precoMatch[1]; found.push('valor'); }
+
+  const coresPT = ['prata','branca','branco','preta','preto','cinza','azul','vermelha','vermelho','bege','champagne','marrom','vinho','verde','dourada','dourado','laranja','rosa'];
+  for (const cor of coresPT) {
+    if (txt.toLowerCase().includes(cor)) {
+      document.getElementById('colet-cor').value = cor.charAt(0).toUpperCase() + cor.slice(1);
+      found.push('cor'); break;
+    }
+  }
+
+  const st = document.getElementById('parse-st');
+  if (found.length) {
+    st.textContent = '✓ Detectado: ' + found.join(', ');
+    st.className = 'parse-st ok';
+  } else {
+    st.textContent = 'Nenhum dado detectado — preencha manualmente';
+    st.className = 'parse-st';
+  }
+}
+
+// ══════════════════════════════════════════════
+// GERAR — COLETADOS
+// ══════════════════════════════════════════════
+function gerarColetados() {
+  const veiculo   = document.getElementById('colet-veiculo').value.trim();
+  const km        = document.getElementById('colet-km').value.trim();
+  const cor       = document.getElementById('colet-cor').value.trim();
+  const ano       = document.getElementById('colet-ano').value.trim();
+  const regiao    = document.getElementById('colet-regiao').value.trim();
+  const valor     = document.getElementById('colet-valor').value.trim();
+  const fipeVal   = document.getElementById('colet-fipe').value.trim();
+  const obsCustom = document.getElementById('obs-custom').value.trim();
+
+  const onIds  = getAllOnIds();
+  const obsIds = getOnIds('#obs-grid');
+  const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
+
+  let linhas = [];
+
+  let l1 = '🚗';
+  if (veiculo) l1 += `*${veiculo}*`;
+  const det = [ano, km, cor].filter(Boolean);
+  if (det.length) l1 += (veiculo ? ', ' : '') + det.join(', ');
+  if (l1 !== '🚗') linhas.push(l1);
+
+  if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
+
+  const itensOn = onIds.filter(id => id !== 'blindado');
+  if (itensOn.length || onIds.includes('blindado')) {
+    linhas.push('');
+    itensOn.forEach(id => linhas.push(`✅ ${getLblById(id)}`));
+    if (onIds.includes('blindado')) {
+      const bM = document.getElementById('blind-marca').value.trim();
+      const bN = document.getElementById('blind-nivel').value.trim();
+      const bV = document.getElementById('blind-vidro').value.trim();
+      let bl = '🛡️ Blindado';
+      if (bM) bl += ` — ${bM}`;
+      if (bN) bl += `, ${bN}`;
+      if (bV) bl += ` (${bV})`;
+      linhas.push(bl);
+    }
+  }
+
+  if (obsIds.length || obsCustom) {
+    linhas.push('');
+    obsIds.forEach(id => linhas.push(obsMap[id] || id));
+    if (obsCustom) linhas.push(`ℹ️ ${obsCustom}`);
+  }
+
+  linhas.push('');
+  if (valor) linhas.push(` *VALOR: ${fmtR(valor)}*`);
+  if (fipeVal) linhas.push(` *FIPE: ${fmtR(fipeVal)}*`);
+
+  const texto = linhas.join('\n');
+
+  document.getElementById('wa-txt').innerHTML = texto
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*(.*?)\*/g,'<b>$1</b>')
+    .replace(/\n/g,'<br>');
+
+  const now = new Date();
+  document.getElementById('wa-time').textContent =
+    now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('wa-preview').style.display = 'block';
+  document.getElementById('btn-copy').style.display = 'inline-block';
+
+  const wa = document.getElementById('btn-wa');
+  wa.href = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  wa.dataset.texto = texto;
+  wa.classList.add('show');
 }
 
 // ══ INIT ══
