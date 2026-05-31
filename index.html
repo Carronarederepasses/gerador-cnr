@@ -98,9 +98,17 @@
   .wa-txt b{font-weight:600}
   .wa-time{text-align:right;font-size:.62rem;color:#8696a0;margin-top:.35rem}
 
-  .btn-wa{display:none;align-items:center;justify-content:center;gap:.55rem;background:var(--green);color:#fff;border:none;padding:.85rem;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:opacity .2s}
+  /* SHARE ROW */
+  .share-row{display:none;flex-direction:column;gap:.5rem}
+  .share-row.show{display:flex}
+  .share-label{font-size:.55rem;letter-spacing:.3em;text-transform:uppercase;color:var(--mid);text-align:center}
+  .share-btns{display:grid;grid-template-columns:1fr auto auto;gap:.5rem}
+  .btn-wa{display:flex;align-items:center;justify-content:center;gap:.6rem;background:var(--green);color:#fff;border:none;padding:.9rem 1.2rem;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:opacity .2s}
   .btn-wa:hover{opacity:.88}
-  .btn-wa.show{display:flex}
+  .btn-icon{background:var(--gray2);border:1px solid var(--border);color:var(--light);padding:.9rem 1rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;gap:.4rem;white-space:nowrap}
+  .btn-icon:hover{border-color:rgba(245,243,238,.35);color:var(--white)}
+  .btn-icon.copied{border-color:var(--green);color:var(--green)}
+  @media(max-width:768px){.share-btns{grid-template-columns:1fr}}
 
   /* MODE TOGGLE */
   .mode-toggle{display:flex;border:1px solid var(--border);margin-bottom:2rem}
@@ -266,7 +274,6 @@
 <div class="preview-side">
   <div class="prev-header">
     <div class="prev-title">Preview do Anúncio</div>
-    <button class="btn-copy" id="btn-copy" onclick="copiar()">Copiar texto</button>
   </div>
   <div class="wa-wrap">
     <div class="empty" id="empty"><div class="empty-ico">💬</div><div class="empty-txt">Preencha e clique em Gerar</div></div>
@@ -277,10 +284,24 @@
       </div>
     </div>
   </div>
-  <a class="btn-wa" id="btn-wa" href="#" target="_blank">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-    Enviar pelo WhatsApp
-  </a>
+
+  <div class="share-row" id="share-row">
+    <div class="share-label">Compartilhar</div>
+    <div class="share-btns">
+      <a class="btn-wa" id="btn-wa" href="#" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        WhatsApp
+      </a>
+      <button class="btn-icon" id="btn-copy" onclick="copiar()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copiar
+      </button>
+      <button class="btn-icon" id="btn-share" onclick="compartilharNativo()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Compartilhar
+      </button>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -628,23 +649,40 @@ function gerar() {
   document.getElementById('wa-time').textContent =
     now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
 
-  document.getElementById('empty').style.display = 'none';
-  document.getElementById('wa-preview').style.display = 'block';
-  document.getElementById('btn-copy').style.display = 'inline-block';
-
-  const wa = document.getElementById('btn-wa');
-  wa.href = `https://wa.me/?text=${encodeURIComponent(texto)}`;
-  wa.dataset.texto = texto;
-  wa.classList.add('show');
+  mostrarShare(texto);
 }
 
 function copiar() {
   const txt = document.getElementById('btn-wa').dataset.texto || '';
   navigator.clipboard.writeText(txt).then(() => {
     const b = document.getElementById('btn-copy');
-    b.textContent = '✓ Copiado!'; b.classList.add('copied');
-    setTimeout(() => { b.textContent = 'Copiar texto'; b.classList.remove('copied'); }, 2200);
+    b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copiado!';
+    b.classList.add('copied');
+    setTimeout(() => {
+      b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copiar';
+      b.classList.remove('copied');
+    }, 2200);
   });
+}
+
+function compartilharNativo() {
+  const txt = document.getElementById('btn-wa').dataset.texto || '';
+  navigator.share({ text: txt }).catch(() => {});
+}
+
+function mostrarShare(texto) {
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('wa-preview').style.display = 'block';
+
+  const wa = document.getElementById('btn-wa');
+  wa.href = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  wa.dataset.texto = texto;
+
+  document.getElementById('share-row').classList.add('show');
+
+  if (navigator.share) {
+    document.getElementById('btn-share').style.display = 'flex';
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -827,14 +865,7 @@ function gerarColetados() {
   document.getElementById('wa-time').textContent =
     now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
 
-  document.getElementById('empty').style.display = 'none';
-  document.getElementById('wa-preview').style.display = 'block';
-  document.getElementById('btn-copy').style.display = 'inline-block';
-
-  const wa = document.getElementById('btn-wa');
-  wa.href = `https://wa.me/?text=${encodeURIComponent(texto)}`;
-  wa.dataset.texto = texto;
-  wa.classList.add('show');
+  mostrarShare(texto);
 }
 
 // ══ INIT ══
