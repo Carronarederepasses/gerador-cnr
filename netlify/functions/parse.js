@@ -57,7 +57,7 @@ exports.handler = async (event) => {
         'X-Title': 'CRR Gerador de Anúncio',
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'openai/gpt-oss-20b:free',
         messages: [{ role: 'user', content: PROMPT(texto) }],
         temperature: 0,
         max_tokens: 512,
