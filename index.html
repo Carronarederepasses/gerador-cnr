@@ -114,6 +114,11 @@
   textarea.paste-area::placeholder{color:#444}
   .parse-st{font-size:.68rem;margin-top:.35rem;min-height:1rem;color:var(--mid)}
   .parse-st.ok{color:var(--green)}
+  .parse-st.err{color:var(--red)}
+  .btn-parse{width:100%;background:var(--gray2);border:1px solid var(--border);color:var(--light);padding:.72rem;font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:400;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:.5rem}
+  .btn-parse:hover:not(:disabled){border-color:rgba(245,243,238,.35);color:var(--white)}
+  .btn-parse:disabled{opacity:.4;cursor:not-allowed}
+  .btn-parse.loading{color:var(--yellow);border-color:rgba(230,184,0,.4)}
 
   /* MOBILE */
   @media(max-width:768px){
@@ -191,8 +196,9 @@
     <div class="fsec-title">Texto do anúncio</div>
     <div class="fsec-hint">Cole qualquer anúncio — OLX, Webmotors, WhatsApp, etc.</div>
     <div class="field">
-      <textarea class="paste-area" id="texto-colado" placeholder="Cole aqui o texto completo do anúncio..." oninput="processarTexto()"></textarea>
+      <textarea class="paste-area" id="texto-colado" placeholder="Cole aqui o texto completo do anúncio..."></textarea>
     </div>
+    <button class="btn-parse" id="btn-parse" onclick="processarIA()">▶ Processar com IA</button>
     <div class="parse-st" id="parse-st"></div>
   </div>
 
@@ -655,38 +661,105 @@ function setMode(mode) {
 }
 
 // ══════════════════════════════════════════════
-// PARSEAR TEXTO (modo Coletados)
+// PROCESSAR COM IA (modo Coletados)
 // ══════════════════════════════════════════════
-function processarTexto() {
-  const txt = document.getElementById('texto-colado').value;
-  if (!txt.trim()) { document.getElementById('parse-st').textContent = ''; return; }
+const OPCIONAIS_MAP = {
+  'ar-condicionado':       'ar',
+  'ar-condicionado digital':'ar_digital',
+  'direcao-eletrica':      'direcao',
+  'vidros-eletricos':      'vidros',
+  'travas-eletricaas':     'travas',
+  'travas-eletricas':      'travas',
+  'retrovisores-eletricos':'retrovisores',
+  'comandos-no-volante':   'volante',
+  'multimidia':            'multimidia',
+  'android-auto-carplay':  'carplay',
+  'piloto-automatico':     'piloto',
+  'bancos-em-couro':       'couro',
+  'teto-solar':            'teto_solar',
+  'teto-panoramico':       'teto_pan',
+  'keyless':               'keyless',
+  'partida-remota':        'partida_rem',
+  'freio-abs':             'abs',
+  'airbag':                'airbag',
+  'controle-de-tracao':    'controle_tr',
+  'sensor-estacionamento': 'sensor_estac',
+  'camera-re':             'camera_re',
+  'cambio-manual':         'cambio_man',
+  'cambio-automatico':     'cambio_aut',
+  'cambio-cvt':            'cambio_cvt',
+  'tracao-4x4':            'tracao_4x4',
+  'rodas-liga-leve':       'rodas_liga',
+  'farol-led-xenon':       'farol_led',
+  'pneus-zero':            'pneus_zero',
+  'unico-dono':            'unico_dono',
+  'ipva-pago':             'ipva_pago',
+  'sem-multas-debitos':    'sem_debitos',
+  'revisoes-concessionaria':'revisoes',
+  'na-garantia':           'garantia',
+  'blindado':              'blindado',
+};
 
-  const found = [];
-
-  const kmMatch = txt.match(/(\d[\d.,]*)\s*(?:km|quilômetros)/i);
-  if (kmMatch) { document.getElementById('colet-km').value = kmMatch[1] + ' km'; found.push('km'); }
-
-  const anoMatch = txt.match(/\b(20\d{2}|19[89]\d)\b/);
-  if (anoMatch) { document.getElementById('colet-ano').value = anoMatch[1]; found.push('ano'); }
-
-  const precoMatch = txt.match(/R\$\s*([\d.,]+)/i);
-  if (precoMatch) { document.getElementById('colet-valor').value = precoMatch[1]; found.push('valor'); }
-
-  const coresPT = ['prata','branca','branco','preta','preto','cinza','azul','vermelha','vermelho','bege','champagne','marrom','vinho','verde','dourada','dourado','laranja','rosa'];
-  for (const cor of coresPT) {
-    if (txt.toLowerCase().includes(cor)) {
-      document.getElementById('colet-cor').value = cor.charAt(0).toUpperCase() + cor.slice(1);
-      found.push('cor'); break;
+function mapOpcionais(lista) {
+  if (!Array.isArray(lista) || !lista.length) return;
+  const toMark = new Set(lista.map(k => OPCIONAIS_MAP[k]).filter(Boolean));
+  document.querySelectorAll('#opcionais-wrap .tog').forEach(tog => {
+    const isOn = toMark.has(tog.dataset.id);
+    tog.classList.toggle('on', isOn);
+    tog.querySelector('.togbox').textContent = isOn ? '✓' : '';
+    if (tog.dataset.id === 'blindado') {
+      document.getElementById('blind-wrap').classList.toggle('show', isOn);
     }
-  }
+  });
+}
 
-  const st = document.getElementById('parse-st');
-  if (found.length) {
-    st.textContent = '✓ Detectado: ' + found.join(', ');
-    st.className = 'parse-st ok';
-  } else {
-    st.textContent = 'Nenhum dado detectado — preencha manualmente';
-    st.className = 'parse-st';
+function setParseSt(msg, cls) {
+  const el = document.getElementById('parse-st');
+  el.textContent = msg;
+  el.className = 'parse-st' + (cls ? ' ' + cls : '');
+}
+
+async function processarIA() {
+  const texto = document.getElementById('texto-colado').value.trim();
+  if (!texto) { setParseSt('Cole o texto antes de processar.'); return; }
+
+  const btn = document.getElementById('btn-parse');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⏳ Processando...';
+  setParseSt('Consultando IA...', '');
+
+  try {
+    const resp = await fetch('/.netlify/functions/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Erro desconhecido');
+
+    const fill = (id, val) => { if (val) document.getElementById(id).value = val; };
+    fill('colet-veiculo', data.veiculo);
+    fill('colet-ano',     data.ano);
+    fill('colet-km',      data.km ? data.km + ' km' : null);
+    fill('colet-cor',     data.cor);
+    fill('colet-regiao',  data.regiao);
+    fill('colet-valor',   data.valor);
+    fill('colet-fipe',    data.fipe);
+
+    mapOpcionais(data.opcionais);
+
+    const preenchidos = ['veiculo','ano','km','cor','regiao','valor','fipe']
+      .filter(k => data[k]).join(', ');
+    setParseSt('✓ Preenchido: ' + (preenchidos || 'nenhum campo detectado'), 'ok');
+
+  } catch (err) {
+    setParseSt('Erro: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = '▶ Processar com IA';
   }
 }
 
