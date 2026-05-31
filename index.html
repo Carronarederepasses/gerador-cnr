@@ -666,6 +666,69 @@ function copiar() {
   });
 }
 
+// ══════════════════════════════════════════════
+// BUSCA FIPE AUTOMÁTICA (modo Coletados)
+// ══════════════════════════════════════════════
+function scoreMatch(haystack, needle) {
+  // Conta quantas palavras do needle aparecem no haystack
+  const words = needle.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const h = haystack.toLowerCase();
+  return words.filter(w => h.includes(w)).length;
+}
+
+async function buscarFIPEColetados(veiculoTexto, anoTexto) {
+  try {
+    setParseSt('Buscando FIPE...', '');
+
+    // 1. Marcas
+    const marcas = await fipeGet('/marcas');
+    const vLower = veiculoTexto.toLowerCase();
+
+    // Encontra a marca com maior score
+    let melhorMarca = null, melhorScore = 0;
+    for (const m of marcas) {
+      const s = scoreMatch(vLower, m.nome);
+      if (s > melhorScore || (s === melhorScore && vLower.startsWith(m.nome.toLowerCase()))) {
+        melhorScore = s; melhorMarca = m;
+      }
+    }
+    // fallback: primeira palavra do veiculo como marca
+    if (!melhorMarca || melhorScore === 0) {
+      const primeiraPalavra = veiculoTexto.split(' ')[0].toLowerCase();
+      melhorMarca = marcas.find(m => m.nome.toLowerCase().startsWith(primeiraPalavra));
+    }
+    if (!melhorMarca) { setParseSt('✓ Campos preenchidos — marca FIPE não encontrada, preencha manualmente.', 'ok'); return; }
+
+    // 2. Modelos
+    const data = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos`);
+    const modelos = data.modelos || [];
+
+    // Remove o nome da marca do texto e faz score nos modelos
+    const semMarca = vLower.replace(melhorMarca.nome.toLowerCase(), '').trim();
+    let melhorModelo = null, melhorMScore = 0;
+    for (const m of modelos) {
+      const s = scoreMatch(semMarca, m.nome);
+      if (s > melhorMScore) { melhorMScore = s; melhorModelo = m; }
+    }
+    if (!melhorModelo || melhorMScore === 0) { setParseSt('✓ Campos preenchidos — modelo FIPE não encontrado, preencha manualmente.', 'ok'); return; }
+
+    // 3. Anos
+    const anos = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos`);
+    const ano = anos.find(a => a.nome.includes(anoTexto) || a.codigo.startsWith(anoTexto));
+    if (!ano) { setParseSt('✓ Campos preenchidos — ano FIPE não encontrado, preencha manualmente.', 'ok'); return; }
+
+    // 4. Valor FIPE
+    const fipeData = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos/${ano.codigo}`);
+    const limpo = (fipeData.Valor || '').replace('R$', '').trim();
+    document.getElementById('colet-fipe').value = limpo;
+    setParseSt(`✓ Tudo preenchido — FIPE ${fipeData.MesReferencia || 'atual'}: ${fipeData.Valor}`, 'ok');
+
+  } catch(e) {
+    setParseSt('✓ Campos preenchidos — FIPE: erro ao buscar, preencha manualmente.', 'ok');
+    console.error('buscarFIPEColetados:', e);
+  }
+}
+
 function onPreviewEdit() {
   const el = document.getElementById('wa-txt');
   // Extrai texto puro preservando quebras de linha
@@ -798,9 +861,14 @@ async function processarIA() {
 
     mapOpcionais(data.opcionais);
 
-    const preenchidos = ['veiculo','ano','km','cor','regiao','valor','fipe']
+    const preenchidos = ['veiculo','ano','km','cor','regiao','valor']
       .filter(k => data[k]).join(', ');
-    setParseSt('✓ Preenchido: ' + (preenchidos || 'nenhum campo detectado'), 'ok');
+    setParseSt('✓ Preenchido: ' + (preenchidos || 'nenhum campo detectado') + ' — buscando FIPE...', 'ok');
+
+    // Busca FIPE automaticamente se não veio no texto
+    if (!data.fipe && data.veiculo && data.ano) {
+      buscarFIPEColetados(data.veiculo, data.ano);
+    }
 
   } catch (err) {
     setParseSt('Erro: ' + err.message, 'err');
