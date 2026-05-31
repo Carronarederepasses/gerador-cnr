@@ -94,8 +94,9 @@
 
   .wa-bubble{background:#1f2c34;border-radius:0 8px 8px 8px;padding:.9rem 1.1rem;display:inline-block;max-width:100%;position:relative}
   .wa-bubble::before{content:'';position:absolute;top:0;left:-8px;border-width:0 8px 8px 0;border-style:solid;border-color:transparent #1f2c34 transparent transparent}
-  .wa-txt{font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:300;line-height:1.65;color:#e9edef;white-space:pre-wrap;word-break:break-word}
+  .wa-txt{font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:300;line-height:1.65;color:#e9edef;white-space:pre-wrap;word-break:break-word;outline:none;cursor:text}
   .wa-txt b{font-weight:600}
+  .wa-txt:focus{background:rgba(255,255,255,.03);border-radius:4px}
   .wa-time{text-align:right;font-size:.62rem;color:#8696a0;margin-top:.35rem}
 
   /* SHARE ROW */
@@ -279,7 +280,7 @@
     <div class="empty" id="empty"><div class="empty-ico">💬</div><div class="empty-txt">Preencha e clique em Gerar</div></div>
     <div id="wa-preview" style="display:none">
       <div class="wa-bubble">
-        <div class="wa-txt" id="wa-txt"></div>
+        <div class="wa-txt" id="wa-txt" contenteditable="true" spellcheck="false" oninput="onPreviewEdit()"></div>
         <div class="wa-time" id="wa-time"></div>
       </div>
     </div>
@@ -663,6 +664,15 @@ function copiar() {
       b.classList.remove('copied');
     }, 2200);
   });
+}
+
+function onPreviewEdit() {
+  const el = document.getElementById('wa-txt');
+  // Extrai texto puro preservando quebras de linha
+  const txt = el.innerText;
+  const wa = document.getElementById('btn-wa');
+  wa.href = `https://wa.me/?text=${encodeURIComponent(txt)}`;
+  wa.dataset.texto = txt;
 }
 
 function compartilharNativo() {
