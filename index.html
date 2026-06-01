@@ -683,7 +683,8 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto) {
       return;
     }
     document.getElementById('colet-fipe').value = data.valorNumerico;
-    setParseSt(`✓ Tudo preenchido — FIPE ${data.mesReferencia || 'atual'}: ${data.valor}`, 'ok');
+    const avisoAno = data.anoFallback ? ` (ano ${data.ano} — mais recente disponível)` : '';
+    setParseSt(`✓ Tudo preenchido — FIPE ${data.mesReferencia || 'atual'}: ${data.valor}${avisoAno}`, 'ok');
   } catch(e) {
     setParseSt('✓ Campos preenchidos — FIPE indisponível no momento. Preencha manualmente.', 'ok');
     console.error('buscarFIPEColetados:', e);

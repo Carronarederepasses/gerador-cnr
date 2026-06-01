@@ -90,11 +90,19 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ found: false, reason: `marca ${melhorMarca.nome} ok, modelo não identificado` }) };
     }
 
-    // 3. Anos
+    // 3. Anos — tenta ano exato, senão usa o mais recente disponível
     const anos = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos`);
-    const anoObj = anos.find(a => a.nome.includes(ano) || a.codigo.startsWith(ano));
+    let anoObj = anos.find(a => a.nome.includes(ano) || a.codigo.startsWith(ano));
+    let anoFallback = false;
+    if (!anoObj && anos.length > 0) {
+      // Ordena pelos anos mais recentes e pega o primeiro
+      anoObj = anos
+        .filter(a => /\d{4}/.test(a.nome))
+        .sort((a, b) => parseInt(b.nome) - parseInt(a.nome))[0] || anos[0];
+      anoFallback = true;
+    }
     if (!anoObj) {
-      return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ found: false, reason: `${melhorMarca.nome} ${melhorModelo.nome} — ano ${ano} não encontrado` }) };
+      return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ found: false, reason: `${melhorMarca.nome} ${melhorModelo.nome} — sem anos disponíveis` }) };
     }
 
     // 4. Valor FIPE
@@ -111,6 +119,7 @@ exports.handler = async (event) => {
         modelo: melhorModelo.nome,
         ano: anoObj.nome,
         mesReferencia: fipeData.MesReferencia,
+        anoFallback,
       }),
     };
 
