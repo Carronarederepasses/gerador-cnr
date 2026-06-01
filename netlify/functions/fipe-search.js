@@ -25,11 +25,21 @@ async function fipeGet(path, retries = 3) {
   }
 }
 
-// Pontuação ponderada pelo tamanho da palavra (evita falsos matches curtos)
+// Pontuação ponderada:
+// - palavras longas (>2 chars): peso = tamanho da palavra
+// - tokens curtos (1-2 chars, ex: "T", "S", "X"): peso 1 se match de palavra inteira
+// Isso distingue "718 Boxster T" de "718 Boxster" corretamente
 function score(haystack, needle) {
-  const words = needle.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
+  const words = needle.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 0);
   const h = haystack.toLowerCase();
-  return words.reduce((acc, w) => acc + (h.includes(w) ? w.length : 0), 0);
+  return words.reduce((acc, w) => {
+    if (w.length > 2) {
+      return acc + (h.includes(w) ? w.length : 0);
+    }
+    // Token curto: só conta se for palavra inteira (evita "s" matching em "sp" etc.)
+    const matched = new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(h);
+    return acc + (matched ? 1 : 0);
+  }, 0);
 }
 
 exports.handler = async (event) => {
