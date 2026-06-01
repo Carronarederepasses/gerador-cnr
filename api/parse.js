@@ -14,7 +14,7 @@ const PROMPT = (texto) => `Você extrai dados de anúncios de veículos em texto
 Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
 
 {
-  "veiculo": "marca + modelo + versão completa (ex: Volkswagen Basalt Dark Edition 1.0 Turbo)",
+  "veiculo": "marca + modelo + versão completa (ex: Volkswagen Basalt Dark Edition 1.0 Turbo). Se a marca não estiver no texto, infira pelo modelo (ex: Spin = Chevrolet, Onix = Chevrolet, Kicks = Nissan, HB20 = Hyundai, etc.)",
   "ano": "YYYY",
   "km": "número formatado sem 'km' (ex: 8.000)",
   "cor": "cor do veículo (null se não informada)",

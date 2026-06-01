@@ -45,8 +45,26 @@ module.exports = async (req, res) => {
       const s = score(vLower, m.nome);
       if (s > melhorScore) { melhorScore = s; melhorMarca = m; }
     }
+    // Se não encontrou marca, tenta buscar o modelo nas marcas mais populares
     if (!melhorMarca || melhorScore === 0) {
-      return res.status(200).json({ found: false, reason: 'marca não identificada' });
+      const marcasPopulares = marcas.filter(m =>
+        ['fiat','chevrolet','volkswagen','hyundai','toyota','honda','renault','jeep',
+         'ford','nissan','mitsubishi','peugeot','citroen','kia','mercedes','bmw','audi']
+        .some(p => m.nome.toLowerCase().includes(p))
+      );
+      for (const marca of marcasPopulares) {
+        try {
+          const d = await fipeGet(`/marcas/${marca.codigo}/modelos`);
+          const mods = d.modelos || [];
+          let bestMod = null, bestS = 0;
+          for (const m of mods) {
+            const s = score(vLower, m.nome);
+            if (s > bestS) { bestS = s; bestMod = m; }
+          }
+          if (bestMod && bestS >= 4) { melhorMarca = marca; melhorModelo = bestMod; break; }
+        } catch { continue; }
+      }
+      if (!melhorMarca) return res.status(200).json({ found: false, reason: 'marca não identificada' });
     }
 
     const data = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos`);
