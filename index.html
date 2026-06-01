@@ -564,6 +564,11 @@ function badSel(s) {
   return !s || s === '—' || s.startsWith('Selecione') || s.startsWith('Carregando') || s.startsWith('—');
 }
 
+function toTitleCase(str) {
+  if (!str) return str;
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ══════════════════════════════════════════════
 // GERAR
 // ══════════════════════════════════════════════
@@ -596,7 +601,7 @@ function gerar() {
   const nomeVeic = partes.join(' ');
 
   let l1 = '🚗';
-  if (nomeVeic) l1 += `*${nomeVeic}*`;
+  if (nomeVeic) l1 += `*${toTitleCase(nomeVeic)}*`;
   const det = [
     !badSel(anoNome) ? anoNome : '',
     km
@@ -639,7 +644,7 @@ function gerar() {
   if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
 
   linhas.push('');
-  linhas.push('@carronarederepasses');
+  linhas.push('https://instagram.com/carronarederepasses');
 
   const texto = linhas.join('\n');
 
@@ -871,7 +876,7 @@ function gerarColetados() {
   let linhas = [];
 
   let l1 = '🚗';
-  if (veiculo) l1 += `*${veiculo}*`;
+  if (veiculo) l1 += `*${toTitleCase(veiculo)}*`;
   const det = [ano, km].filter(Boolean);
   if (det.length) l1 += (veiculo ? ', ' : '') + det.join(', ');
   if (l1 !== '🚗') linhas.push(l1);
@@ -905,7 +910,7 @@ function gerarColetados() {
   if (fipeVal) linhas.push(`*FIPE: ${fmtR(fipeVal)}*`);
 
   linhas.push('');
-  linhas.push('@carronarederepasses');
+  linhas.push('https://instagram.com/carronarederepasses');
 
   const texto = linhas.join('\n');
 
