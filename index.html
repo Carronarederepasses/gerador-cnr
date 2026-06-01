@@ -649,16 +649,20 @@ function gerar() {
   const texto = linhas.join('\n');
 
   // Render preview
+  renderPreview(texto);
+  mostrarShare(texto);
+}
+
+function renderPreview(texto) {
   document.getElementById('wa-txt').innerHTML = texto
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*(.*?)\*/g,'<b>$1</b>')
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color:#53bdeb;text-decoration:none">$1</a>')
     .replace(/\n/g,'<br>');
 
   const now = new Date();
   document.getElementById('wa-time').textContent =
     now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-
-  mostrarShare(texto);
 }
 
 function copiar() {
@@ -914,15 +918,7 @@ function gerarColetados() {
 
   const texto = linhas.join('\n');
 
-  document.getElementById('wa-txt').innerHTML = texto
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*(.*?)\*/g,'<b>$1</b>')
-    .replace(/\n/g,'<br>');
-
-  const now = new Date();
-  document.getElementById('wa-time').textContent =
-    now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-
+  renderPreview(texto);
   mostrarShare(texto);
 }
 
