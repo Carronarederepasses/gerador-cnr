@@ -635,8 +635,11 @@ function gerar() {
 
   // Valores
   linhas.push('');
-  if (valor) linhas.push(` *VALOR: ${fmtR(valor)}*`);
-  if (fipeDigit) linhas.push(` *FIPE: ${fmtR(fipeDigit)}*`);
+  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
+  if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
+
+  linhas.push('');
+  linhas.push('@carronarederepasses');
 
   const texto = linhas.join('\n');
 
@@ -891,8 +894,11 @@ function gerarColetados() {
   }
 
   linhas.push('');
-  if (valor) linhas.push(` *VALOR: ${fmtR(valor)}*`);
-  if (fipeVal) linhas.push(` *FIPE: ${fmtR(fipeVal)}*`);
+  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
+  if (fipeVal) linhas.push(`*FIPE: ${fmtR(fipeVal)}*`);
+
+  linhas.push('');
+  linhas.push('@carronarederepasses');
 
   const texto = linhas.join('\n');
 
