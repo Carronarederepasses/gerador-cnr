@@ -599,7 +599,7 @@ function gerar() {
   if (nomeVeic) l1 += `*${nomeVeic}*`;
   const det = [
     !badSel(anoNome) ? anoNome : '',
-    km, cor
+    km
   ].filter(Boolean);
   if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
   if (l1 !== '🚗') linhas.push(l1);
@@ -862,7 +862,7 @@ function gerarColetados() {
 
   let l1 = '🚗';
   if (veiculo) l1 += `*${veiculo}*`;
-  const det = [ano, km, cor].filter(Boolean);
+  const det = [ano, km].filter(Boolean);
   if (det.length) l1 += (veiculo ? ', ' : '') + det.join(', ');
   if (l1 !== '🚗') linhas.push(l1);
 
