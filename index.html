@@ -779,12 +779,14 @@ const OPCIONAIS_MAP = {
 function mapOpcionais(lista) {
   if (!Array.isArray(lista) || !lista.length) return;
   const toMark = new Set(lista.map(k => OPCIONAIS_MAP[k]).filter(Boolean));
+  // Só ADICIONA o que a IA encontrou — não toca nos que já estão marcados
   document.querySelectorAll('#opcionais-wrap .tog').forEach(tog => {
-    const isOn = toMark.has(tog.dataset.id);
-    tog.classList.toggle('on', isOn);
-    tog.querySelector('.togbox').textContent = isOn ? '✓' : '';
-    if (tog.dataset.id === 'blindado') {
-      document.getElementById('blind-wrap').classList.toggle('show', isOn);
+    if (toMark.has(tog.dataset.id) && !tog.classList.contains('on')) {
+      tog.classList.add('on');
+      tog.querySelector('.togbox').textContent = '✓';
+      if (tog.dataset.id === 'blindado') {
+        document.getElementById('blind-wrap').classList.add('show');
+      }
     }
   });
 }
