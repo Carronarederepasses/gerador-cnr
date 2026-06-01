@@ -18,14 +18,27 @@ async function fipeGet(path, retries = 3) {
   }
 }
 
+// Palavras que indicam variante específica — penaliza se estão no modelo mas NÃO no texto do usuário
+const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','híb','hybrid','phev'];
+
 function score(haystack, needle) {
   const words = needle.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 0);
   const h = haystack.toLowerCase();
-  return words.reduce((acc, w) => {
+
+  let pts = words.reduce((acc, w) => {
     if (w.length > 2) return acc + (h.includes(w) ? w.length : 0);
     const matched = new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(h);
     return acc + (matched ? 1 : 0);
   }, 0);
+
+  // Penaliza variantes específicas que aparecem no modelo mas não no texto
+  for (const v of PALAVRAS_VARIANTE) {
+    if (needle.toLowerCase().includes(v) && !h.includes(v)) {
+      pts -= 3;
+    }
+  }
+
+  return pts;
 }
 
 module.exports = async (req, res) => {
