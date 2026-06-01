@@ -601,7 +601,7 @@ function gerar() {
   const nomeVeic = partes.join(' ');
 
   let l1 = '🚗';
-  if (nomeVeic) l1 += `*${toTitleCase(nomeVeic)}*`;
+  if (nomeVeic) l1 += `*${nomeVeic}*`;
   const det = [
     !badSel(anoNome) ? anoNome : '',
     km
