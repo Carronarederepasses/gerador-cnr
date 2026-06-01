@@ -436,7 +436,7 @@ function buildObs() {
 // ══════════════════════════════════════════════
 // FIPE — Netlify Function proxy para API oficial (sem CORS, sem chave)
 // ══════════════════════════════════════════════
-const BASE = '/.netlify/functions/fipe?path=';
+const BASE = '/api/fipe?path=';
 
 function setSt(msg, cls) {
   const el = document.getElementById('fipe-st');
@@ -675,7 +675,7 @@ function copiar() {
 async function buscarFIPEColetados(veiculoTexto, anoTexto) {
   try {
     setParseSt('Buscando FIPE...', '');
-    const resp = await fetch('/.netlify/functions/fipe-search', {
+    const resp = await fetch('/api/fipe-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ veiculo: veiculoTexto, ano: anoTexto }),
@@ -808,7 +808,7 @@ async function processarIA() {
   setParseSt('Consultando IA...', '');
 
   try {
-    const resp = await fetch('/.netlify/functions/parse', {
+    const resp = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ texto }),
