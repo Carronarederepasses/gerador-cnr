@@ -1100,57 +1100,33 @@ async function processarFoto() {
   setEditorSt('Carregando IA... (primeira vez ~30s, depois em cache)', 'loading');
 
   try {
-    setEditorSt('Enviando para processamento...', 'loading');
+    setEditorSt('Enviando para o Gemini...', 'loading');
 
     // Reduz para max 1200px antes de enviar
     const base64 = await resizeImg(input.files[0], 1200);
 
-    const resp = await fetch('/api/remove-bg', {
+    setEditorSt('IA gerando composição... (10-20 segundos)', 'loading');
+
+    const resp = await fetch('/api/gemini-edit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64: base64 }),
     });
     const data = await resp.json();
-
-    if (resp.status === 503) {
-      setEditorSt(data.error + ' — aguarde e tente novamente.', 'err');
-      return;
-    }
     if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');
 
-    if (data.type === 'png') {
-      // Retornou PNG transparente direto — usa direto
-      editorCarPng = data.result;
-    } else {
-      // Retornou máscara — aplica na imagem original
-      const maskImg  = await loadImg('data:image/png;base64,' + data.result);
-      const origImg  = await loadImg('data:image/jpeg;base64,' + base64);
+    // Gemini retorna a imagem final composta — mostra direto no canvas
+    const mime = data.mimeType || 'image/png';
+    const resultImg = await loadImg(`data:${mime};base64,${data.result}`);
 
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width  = origImg.naturalWidth;
-      tempCanvas.height = origImg.naturalHeight;
-      const ctx = tempCanvas.getContext('2d');
-      ctx.drawImage(origImg, 0, 0);
+    const canvas = document.getElementById('editor-canvas');
+    canvas.width  = resultImg.naturalWidth;
+    canvas.height = resultImg.naturalHeight;
+    canvas.getContext('2d').drawImage(resultImg, 0, 0);
+    canvas.style.display = 'block';
+    document.getElementById('canvas-empty').style.display = 'none';
 
-      // Desenha máscara escalada num canvas auxiliar
-      const maskCanvas = document.createElement('canvas');
-      maskCanvas.width = tempCanvas.width;
-      maskCanvas.height = tempCanvas.height;
-      const mCtx = maskCanvas.getContext('2d');
-      mCtx.drawImage(maskImg, 0, 0, tempCanvas.width, tempCanvas.height);
-
-      const imgData  = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      const maskData = mCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      for (let i = 0; i < imgData.data.length / 4; i++) {
-        imgData.data[i * 4 + 3] = maskData.data[i * 4]; // canal R da máscara → alpha
-      }
-      ctx.putImageData(imgData, 0, 0);
-      editorCarPng = tempCanvas.toDataURL('image/png').split(',')[1];
-    }
-
-    setEditorSt('✓ Fundo removido — compondo...', 'ok');
-    await renderCanvas();
-    setEditorSt('✓ Pronto! Ajuste a posição e baixe.', 'ok');
+    setEditorSt('✓ Pronto! Baixe a foto.', 'ok');
     document.getElementById('btn-download').style.display = 'block';
 
   } catch (e) {
