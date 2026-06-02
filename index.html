@@ -835,9 +835,27 @@ async function processarIA() {
     fill('colet-valor',   data.valor);
     fill('colet-fipe',    data.fipe);
     // Extras: informações que não têm toggle — vai para Observação personalizada
+    // Filtro defensivo: remove menções a itens que já são opcionais (evita duplicatas)
     if (data.extras) {
-      const obsEl = document.getElementById('obs-custom');
-      obsEl.value = obsEl.value ? obsEl.value + ', ' + data.extras : data.extras;
+      const EXTRAS_BLOQUEADOS = [
+        /ipva\s*pago/i, /único\s*dono/i, /unico\s*dono/i,
+        /sem\s*(multas?|débitos?|debitos?)/i, /na\s*garantia/i, /em\s*garantia/i,
+        /revisões?\s*(em\s*)?(concession[aá]ria|dealer)/i,
+        /pneus?\s*zero/i, /farol\s*(led|xenon)/i, /blindad[oa]/i,
+        /câmbio\s*(manual|automático|cvt)/i, /cambio\s*(manual|automatico|cvt)/i,
+        /ar[- ]condicionado/i, /direção\s*elétrica/i, /direcao\s*eletrica/i,
+        /vidros?\s*elétricos?/i, /travas?\s*elétrica/i, /multimidia/i,
+      ];
+      let extrasLimpo = data.extras;
+      EXTRAS_BLOQUEADOS.forEach(re => {
+        extrasLimpo = extrasLimpo.replace(re, '');
+      });
+      // Remove vírgulas e espaços soltos que sobraram
+      extrasLimpo = extrasLimpo.replace(/^[\s,]+|[\s,]+$/g, '').replace(/,\s*,/g, ',').trim();
+      if (extrasLimpo) {
+        const obsEl = document.getElementById('obs-custom');
+        obsEl.value = obsEl.value ? obsEl.value + ', ' + extrasLimpo : extrasLimpo;
+      }
     }
 
     mapOpcionais(data.opcionais);
