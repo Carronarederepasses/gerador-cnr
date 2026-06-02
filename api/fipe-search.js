@@ -41,6 +41,11 @@ function score(haystack, needle) {
   return pts;
 }
 
+const MARCAS_POPULARES_IDS = [
+  'fiat','chevrolet','volkswagen','hyundai','toyota','honda',
+  'renault','jeep','ford','nissan','kia','mitsubishi','peugeot','citroen',
+];
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
@@ -57,74 +62,65 @@ module.exports = async (req, res) => {
   try {
     const vLower = veiculo.toLowerCase();
 
+    // ── 1. MARCA ──────────────────────────────────────────────────────────────
     const marcas = await fipeGet('/marcas');
     let melhorMarca = null, melhorScore = 0;
     for (const m of marcas) {
       const s = score(vLower, m.nome);
       if (s > melhorScore) { melhorScore = s; melhorMarca = m; }
     }
-    // Se não encontrou marca, tenta buscar o modelo nas marcas mais populares
-    if (!melhorMarca || melhorScore === 0) {
-      const marcasPopulares = marcas.filter(m =>
-        ['fiat','chevrolet','volkswagen','hyundai','toyota','honda','renault','jeep',
-         'ford','nissan','mitsubishi','peugeot','citroen','kia','mercedes','bmw','audi']
-        .some(p => m.nome.toLowerCase().includes(p))
-      );
-      for (const marca of marcasPopulares) {
-        try {
-          const d = await fipeGet(`/marcas/${marca.codigo}/modelos`);
-          const mods = d.modelos || [];
-          let bestMod = null, bestS = 0;
-          for (const m of mods) {
-            const s = score(vLower, m.nome);
-            if (s > bestS) { bestS = s; bestMod = m; }
-          }
-          if (bestMod && bestS >= 4) { melhorMarca = marca; melhorModelo = bestMod; break; }
-        } catch { continue; }
-      }
-      if (!melhorMarca) return res.status(200).json({ found: false, reason: 'marca não identificada' });
-    }
 
-    const data = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos`);
-    const modelos = data.modelos || [];
-    const palavrasMarca = melhorMarca.nome.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
-    let semMarca = vLower;
-    palavrasMarca.forEach(p => { semMarca = semMarca.replace(new RegExp(p, 'gi'), ''); });
-
+    // ── 2. MODELO ─────────────────────────────────────────────────────────────
+    // Declarado aqui para que fique acessível em todos os blocos abaixo
     let melhorModelo = null, melhorMScore = 0;
-    for (const m of modelos) {
-      const s = score(semMarca.trim(), m.nome);
-      if (s > melhorMScore) { melhorMScore = s; melhorModelo = m; }
+
+    // Função auxiliar: encontra o melhor modelo de uma marca contra o texto
+    async function buscaModelo(marca) {
+      const d = await fipeGet(`/marcas/${marca.codigo}/modelos`);
+      const mods = d.modelos || [];
+      const palavras = marca.nome.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
+      let semM = vLower;
+      palavras.forEach(p => { semM = semM.replace(new RegExp(p, 'gi'), ''); });
+      let bestMod = null, bestS = 0;
+      for (const m of mods) {
+        const s = score(semM.trim(), m.nome);
+        if (s > bestS) { bestS = s; bestMod = m; }
+      }
+      return { modelo: bestMod, score: bestS };
     }
 
-    // Se modelo não encontrado na marca detectada, tenta as marcas populares
-    // (cobre casos onde a IA hallucina a marca errada, ex: "Pulse" como Chevrolet)
+    if (melhorMarca && melhorScore > 0) {
+      // Marca encontrada — busca modelo nela
+      const res2 = await buscaModelo(melhorMarca);
+      melhorModelo = res2.modelo;
+      melhorMScore = res2.score;
+    }
+
+    // Se modelo não encontrado (ou score baixo), varre marcas populares
+    // Cobre: (a) marca não detectada, (b) IA hallucinou marca errada
     if (!melhorModelo || melhorMScore < 4) {
-      const MARCAS_POPULARES = ['fiat','chevrolet','volkswagen','hyundai','toyota','honda','renault','jeep','ford','nissan','kia','mitsubishi'];
       const marcasTentativas = marcas.filter(m =>
-        MARCAS_POPULARES.some(p => m.nome.toLowerCase().includes(p)) &&
-        m.codigo !== melhorMarca.codigo // já tentou essa
+        MARCAS_POPULARES_IDS.some(p => m.nome.toLowerCase().includes(p)) &&
+        m.codigo !== melhorMarca?.codigo
       );
       for (const marca of marcasTentativas) {
         try {
-          const d = await fipeGet(`/marcas/${marca.codigo}/modelos`);
-          const mods = d.modelos || [];
-          const palavras = marca.nome.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
-          let semM = vLower;
-          palavras.forEach(p => { semM = semM.replace(new RegExp(p, 'gi'), ''); });
-          for (const m of mods) {
-            const s = score(semM.trim(), m.nome);
-            if (s > melhorMScore) { melhorMScore = s; melhorModelo = m; melhorMarca = marca; }
+          const r = await buscaModelo(marca);
+          if (r.score > melhorMScore) {
+            melhorMScore = r.score;
+            melhorModelo = r.modelo;
+            melhorMarca = marca;
           }
-          if (melhorMScore >= 8) break; // score alto o suficiente, para
+          if (melhorMScore >= 8) break; // score alto — para de procurar
         } catch { continue; }
       }
     }
 
-    if (!melhorModelo || melhorMScore === 0) {
-      return res.status(200).json({ found: false, reason: `modelo não identificado` });
+    if (!melhorMarca || !melhorModelo || melhorMScore === 0) {
+      return res.status(200).json({ found: false, reason: 'modelo não identificado' });
     }
 
+    // ── 3. ANO ────────────────────────────────────────────────────────────────
     const anos = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos`);
     let anoObj = anos.find(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
     let anoFallback = false;
@@ -140,6 +136,7 @@ module.exports = async (req, res) => {
     }
     if (!anoObj) return res.status(200).json({ found: false, reason: 'sem anos disponíveis' });
 
+    // ── 4. VALOR FIPE ─────────────────────────────────────────────────────────
     const fipeData = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos/${anoObj.codigo}`);
 
     return res.status(200).json({
