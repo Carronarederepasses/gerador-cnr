@@ -1092,28 +1092,45 @@ async function processarFoto() {
   if (!input.files[0]) return;
   const btn = document.getElementById('btn-processar');
   btn.disabled = true;
-  btn.textContent = '⏳ Removendo fundo...';
-  setEditorSt('Enviando para remoção de fundo...', 'loading');
+  btn.textContent = '⏳ Processando...';
+  setEditorSt('Carregando IA... (só na primeira vez, ~60MB em cache)', 'loading');
 
   try {
-    // Reduz para max 1500px antes de enviar
-    const base64 = await resizeImg(input.files[0], 1500);
+    // Importa a biblioteca do CDN (fica em cache do browser após primeiro uso)
+    const { removeBackground } = await import(
+      'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/background-removal.js'
+    );
 
-    const resp = await fetch('/api/remove-bg', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64 }),
+    const config = {
+      publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/',
+      model: 'medium',
+      debug: false,
+      progress: (key, current, total) => {
+        if (total > 0) {
+          const pct = Math.round((current / total) * 100);
+          setEditorSt(`Carregando modelo: ${pct}%`, 'loading');
+        }
+      },
+    };
+
+    setEditorSt('Removendo fundo...', 'loading');
+    // removeBackground aceita File diretamente e retorna Blob PNG transparente
+    const blob = await removeBackground(input.files[0], config);
+
+    // Converte Blob para base64
+    editorCarPng = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.readAsDataURL(blob);
     });
-    const data = await resp.json();
-    if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');
 
-    editorCarPng = data.result; // PNG sem fundo, base64
     setEditorSt('✓ Fundo removido — compondo...', 'ok');
     await renderCanvas();
     setEditorSt('✓ Pronto! Ajuste a posição e baixe.', 'ok');
     document.getElementById('btn-download').style.display = 'block';
   } catch (e) {
     setEditorSt('Erro: ' + e.message, 'err');
+    console.error(e);
   } finally {
     btn.disabled = false;
     btn.textContent = '▶ Remover Fundo e Compor';
