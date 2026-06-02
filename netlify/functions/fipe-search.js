@@ -58,6 +58,13 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'veiculo e ano obrigatórios' }) };
   }
 
+  // Garante que o ano seja apenas 4 dígitos numéricos (ex: "2024/2025" → "2024")
+  const anoMatch = String(ano).match(/\d{4}/);
+  if (!anoMatch) {
+    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'ano inválido' }) };
+  }
+  const anoLimpo = anoMatch[0];
+
   try {
     const vLower = veiculo.toLowerCase();
 
@@ -92,13 +99,17 @@ exports.handler = async (event) => {
 
     // 3. Anos — tenta ano exato, senão usa o mais recente disponível
     const anos = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos`);
-    let anoObj = anos.find(a => a.nome.includes(ano) || a.codigo.startsWith(ano));
+    let anoObj = anos.find(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
     let anoFallback = false;
     if (!anoObj && anos.length > 0) {
-      // Ordena pelos anos mais recentes e pega o primeiro
-      anoObj = anos
-        .filter(a => /\d{4}/.test(a.nome))
-        .sort((a, b) => parseInt(b.nome) - parseInt(a.nome))[0] || anos[0];
+      // Tenta o ano mais próximo ao solicitado
+      // Filtra apenas anos reais (1900-2099) — exclui códigos internos FIPE como "32000"
+      const anosComAnno = anos
+        .map(a => ({ obj: a, n: parseInt(a.nome.match(/\b(19|20)\d{2}\b/)?.[0] || '0') }))
+        .filter(a => a.n > 0);
+      const anoInt = parseInt(anoLimpo);
+      anosComAnno.sort((a, b) => Math.abs(a.n - anoInt) - Math.abs(b.n - anoInt));
+      anoObj = anosComAnno[0]?.obj || null;
       anoFallback = true;
     }
     if (!anoObj) {
