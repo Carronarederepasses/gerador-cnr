@@ -315,7 +315,7 @@
     <div class="editor-controls">
       <div class="editor-slider-row">
         <label>Tamanho do carro <span id="scale-val">100%</span></label>
-        <input type="range" id="scale-slider" min="40" max="130" value="85" oninput="onSlider()">
+        <input type="range" id="scale-slider" min="40" max="130" value="100" oninput="onSlider()">
       </div>
       <div class="editor-slider-row">
         <label>Posição vertical <span id="vert-val">0</span></label>
@@ -1192,13 +1192,13 @@ async function renderCanvas() {
   const vertOff  = parseFloat(document.getElementById('vert-slider').value);
   const horizOff = parseFloat(document.getElementById('horiz-slider').value);
 
-  const maxH = canvas.height * 0.58 * scale;
+  const maxH = canvas.height * 0.62 * scale;
   const ratio = car.naturalWidth / car.naturalHeight;
   const carH  = maxH;
   const carW  = carH * ratio;
 
-  // Linha do chão ≈ 76% da altura do fundo (onde o piso começa na imagem CNR)
-  const floorY = canvas.height * 0.76;
+  // Linha do chão ≈ 82% da altura — carro na frente do estúdio (perspectiva)
+  const floorY = canvas.height * 0.82;
   const carX = (canvas.width - carW) / 2 + (canvas.width * horizOff / 100);
   const carY = floorY - carH + (canvas.height * vertOff / 100);
 
