@@ -833,7 +833,7 @@ async function processarIA() {
     fill('colet-cor',     data.cor);
     fill('colet-regiao',  data.regiao);
     fill('colet-valor',   data.valor);
-    fill('colet-fipe',    data.fipe);
+    // Não preenche FIPE do texto — sempre busca o valor oficial na API abaixo
     // Extras: informações que não têm toggle — vai para Observação personalizada
     // Filtro defensivo: remove menções a itens que já são opcionais (evita duplicatas)
     if (data.extras) {
@@ -865,7 +865,8 @@ async function processarIA() {
     setParseSt('✓ Preenchido: ' + (preenchidos || 'nenhum campo detectado') + ' — buscando FIPE...', 'ok');
 
     // Busca FIPE automaticamente se não veio no texto
-    if (!data.fipe && data.veiculo && data.ano) {
+    // Sempre busca FIPE na API — ignora valor do texto (pode estar arredondado)
+    if (data.veiculo && data.ano) {
       buscarFIPEColetados(data.veiculo, data.ano);
     }
 
