@@ -1096,11 +1096,11 @@ async function processarFoto() {
   setEditorSt('Carregando IA... (só na primeira vez, ~60MB em cache)', 'loading');
 
   try {
-    // Importa a biblioteca via esm.sh (CDN recomendado, converte npm → ES module)
-    const { removeBackground } = await import('https://esm.sh/@imgly/background-removal');
+    // Importa a biblioteca via esm.sh — versão fixada igual ao publicPath
+    const { removeBackground } = await import('https://esm.sh/@imgly/background-removal@1.4.4');
 
     const config = {
-      publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal/dist/',
+      publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.4/dist/',
       model: 'medium',
       debug: false,
       progress: (key, current, total) => {
