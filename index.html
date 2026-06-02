@@ -1197,22 +1197,39 @@ async function renderCanvas() {
   const carH  = maxH;
   const carW  = carH * ratio;
 
-  // Linha do chão ≈ 82% da altura — carro na frente do estúdio (perspectiva)
-  const floorY = canvas.height * 0.82;
+  // Detecta o pixel mais baixo visível do carro (ignora transparência embaixo)
+  const tmpC = document.createElement('canvas');
+  tmpC.width = car.naturalWidth; tmpC.height = car.naturalHeight;
+  tmpC.getContext('2d').drawImage(car, 0, 0);
+  const pix = tmpC.getContext('2d').getImageData(0, 0, tmpC.width, tmpC.height).data;
+  let trueBottomRow = tmpC.height - 1;
+  for (let y = tmpC.height - 1; y >= 0; y--) {
+    let found = false;
+    for (let x = 0; x < tmpC.width; x++) {
+      if (pix[(y * tmpC.width + x) * 4 + 3] > 20) { found = true; break; }
+    }
+    if (found) { trueBottomRow = y; break; }
+  }
+  const trueBottomRatio = trueBottomRow / tmpC.height; // ex: 0.92 se há 8% vazio embaixo
+
+  // Linha do chão ≈ 78% — carro encostado no piso
+  const floorY = canvas.height * 0.78;
   const carX = (canvas.width - carW) / 2 + (canvas.width * horizOff / 100);
-  const carY = floorY - carH + (canvas.height * vertOff / 100);
+  // Ajusta carY para que o pixel mais baixo real do carro toque o chão
+  const carY = floorY - carH * trueBottomRatio + (canvas.height * vertOff / 100);
 
   // Sombra suave embaixo do carro
   ctx.save();
+  const shadowY = carY + carH * trueBottomRatio + 6;
   const shadowGrad = ctx.createRadialGradient(
-    carX + carW / 2, floorY + 10, carW * 0.05,
-    carX + carW / 2, floorY + 10, carW * 0.42
+    carX + carW / 2, shadowY, carW * 0.05,
+    carX + carW / 2, shadowY, carW * 0.42
   );
   shadowGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
   shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = shadowGrad;
   ctx.beginPath();
-  ctx.ellipse(carX + carW / 2, floorY + 8, carW * 0.42, 28, 0, 0, Math.PI * 2);
+  ctx.ellipse(carX + carW / 2, shadowY, carW * 0.42, 22, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
