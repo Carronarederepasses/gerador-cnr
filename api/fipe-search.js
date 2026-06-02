@@ -96,8 +96,33 @@ module.exports = async (req, res) => {
       const s = score(semMarca.trim(), m.nome);
       if (s > melhorMScore) { melhorMScore = s; melhorModelo = m; }
     }
+
+    // Se modelo não encontrado na marca detectada, tenta as marcas populares
+    // (cobre casos onde a IA hallucina a marca errada, ex: "Pulse" como Chevrolet)
+    if (!melhorModelo || melhorMScore < 4) {
+      const MARCAS_POPULARES = ['fiat','chevrolet','volkswagen','hyundai','toyota','honda','renault','jeep','ford','nissan','kia','mitsubishi'];
+      const marcasTentativas = marcas.filter(m =>
+        MARCAS_POPULARES.some(p => m.nome.toLowerCase().includes(p)) &&
+        m.codigo !== melhorMarca.codigo // já tentou essa
+      );
+      for (const marca of marcasTentativas) {
+        try {
+          const d = await fipeGet(`/marcas/${marca.codigo}/modelos`);
+          const mods = d.modelos || [];
+          const palavras = marca.nome.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
+          let semM = vLower;
+          palavras.forEach(p => { semM = semM.replace(new RegExp(p, 'gi'), ''); });
+          for (const m of mods) {
+            const s = score(semM.trim(), m.nome);
+            if (s > melhorMScore) { melhorMScore = s; melhorModelo = m; melhorMarca = marca; }
+          }
+          if (melhorMScore >= 8) break; // score alto o suficiente, para
+        } catch { continue; }
+      }
+    }
+
     if (!melhorModelo || melhorMScore === 0) {
-      return res.status(200).json({ found: false, reason: `${melhorMarca.nome} ok, modelo não identificado` });
+      return res.status(200).json({ found: false, reason: `modelo não identificado` });
     }
 
     const anos = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos`);

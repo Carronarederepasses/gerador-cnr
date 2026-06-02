@@ -14,7 +14,7 @@ const PROMPT = (texto) => `Você extrai dados de anúncios de veículos em texto
 Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
 
 {
-  "veiculo": "marca + modelo + versão completa (ex: Volkswagen Basalt Dark Edition 1.0 Turbo). Se a marca não estiver no texto, infira pelo modelo (ex: Spin = Chevrolet, Onix = Chevrolet, Kicks = Nissan, HB20 = Hyundai, etc.)",
+  "veiculo": "marca + modelo + versão completa (ex: Volkswagen Basalt Dark Edition 1.0 Turbo). Se a marca não estiver no texto, infira pelo modelo usando esta lista (não invente): Onix/Onix Plus/Tracker/Equinox/Montana/Spin/S10/Cruze/Prisma/Cobalt/Agile = Chevrolet | Pulse/Pulse Impetus/Pulse Audace/Pulse Drive/Mobi/Uno/Argo/Cronos/Toro/Strada/Fastback/Titano/Doblo = Fiat | Gol/Polo/Virtus/Saveiro/Amarok/T-Cross/Taos/Nivus/Basalt/Fox/Voyage/CrossFox/Fusca = Volkswagen | HB20/HB20S/Creta/Tucson/Santa Fe/ix35 = Hyundai | Kicks/Frontier/Sentra/Versa/March = Nissan | Corolla/Yaris/Hilux/SW4/RAV4/Etios = Toyota | Civic/City/HR-V/CR-V/Fit/WR-V = Honda | Sandero/Logan/Duster/Kwid/Kardian/Captur = Renault | Renegade/Compass/Commander/Gladiator = Jeep | Ka/EcoSport/Ranger/Bronco Sport = Ford | Sportage/Sorento/Stonic = Kia",
   "ano": "YYYY",
   "km": "número formatado sem 'km' (ex: 8.000)",
   "cor": "cor do veículo (null se não informada)",
