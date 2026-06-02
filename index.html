@@ -1103,16 +1103,22 @@ async function processarFoto() {
       'image-segmentation',
       'Xenova/isnet-general-use',
       {
-        progress_callback: ({ status, loaded, total }) => {
+        progress_callback: ({ status, loaded, total, file }) => {
           if (status === 'progress' && total) {
             setEditorSt(`Baixando modelo: ${Math.round(loaded / total * 100)}%`, 'loading');
+          } else if (status === 'done') {
+            setEditorSt('Modelo carregado — inicializando...', 'loading');
           }
         }
       }
     );
 
-    setEditorSt('Removendo fundo...', 'loading');
-    const objUrl = URL.createObjectURL(input.files[0]);
+    setEditorSt('Analisando imagem... (pode levar 1-2 min na primeira vez)', 'loading');
+
+    // Reduz imagem para 768px antes da inferência (muito mais rápido)
+    const smallBase64 = await resizeImg(input.files[0], 768);
+    const smallBlob = await fetch('data:image/jpeg;base64,' + smallBase64).then(r => r.blob());
+    const objUrl = URL.createObjectURL(smallBlob);
     const output = await segmenter(objUrl);
     URL.revokeObjectURL(objUrl);
 
