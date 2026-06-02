@@ -1044,9 +1044,13 @@ function setEditorSt(msg, tipo) {
 function onFotoSelecionada(input) {
   const file = input.files[0];
   if (!file) return;
-  const thumb = document.getElementById('editor-thumb');
-  thumb.src = URL.createObjectURL(file);
-  thumb.style.display = 'block';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const thumb = document.getElementById('editor-thumb');
+    thumb.src = e.target.result;
+    thumb.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
   document.querySelector('.editor-upload-zone .editor-upload-ico').textContent = '✓';
   document.querySelector('.editor-upload-zone .editor-upload-txt').innerHTML =
     file.name + '<span>Clique para trocar</span>';
