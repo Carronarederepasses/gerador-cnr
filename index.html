@@ -1096,60 +1096,53 @@ async function processarFoto() {
   setEditorSt('Carregando IA... (primeira vez ~30s, depois em cache)', 'loading');
 
   try {
-    // @xenova/transformers: biblioteca HuggingFace feita para rodar no browser via CDN
-    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+    setEditorSt('Enviando para processamento...', 'loading');
 
-    const segmenter = await pipeline(
-      'image-segmentation',
-      'Xenova/isnet-general-use',
-      {
-        progress_callback: ({ status, loaded, total, file }) => {
-          if (status === 'progress' && total) {
-            setEditorSt(`Baixando modelo: ${Math.round(loaded / total * 100)}%`, 'loading');
-          } else if (status === 'done') {
-            setEditorSt('Modelo carregado — inicializando...', 'loading');
-          }
-        }
-      }
-    );
+    // Reduz para max 1200px antes de enviar
+    const base64 = await resizeImg(input.files[0], 1200);
 
-    setEditorSt('Analisando imagem... (pode levar 1-2 min na primeira vez)', 'loading');
+    const resp = await fetch('/api/remove-bg', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64 }),
+    });
+    const data = await resp.json();
 
-    // Reduz imagem para 768px antes da inferência (muito mais rápido)
-    const smallBase64 = await resizeImg(input.files[0], 768);
-    const smallBlob = await fetch('data:image/jpeg;base64,' + smallBase64).then(r => r.blob());
-    const objUrl = URL.createObjectURL(smallBlob);
-    const output = await segmenter(objUrl);
-    URL.revokeObjectURL(objUrl);
-
-    // output[0].mask = máscara do objeto principal (carro)
-    const mask = output[0].mask;
-
-    // Aplica máscara como canal alpha na imagem original
-    const origUrl = URL.createObjectURL(input.files[0]);
-    const origImg = await loadImg(origUrl);
-    URL.revokeObjectURL(origUrl);
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width  = origImg.naturalWidth;
-    tempCanvas.height = origImg.naturalHeight;
-    const ctx = tempCanvas.getContext('2d');
-    ctx.drawImage(origImg, 0, 0);
-
-    const imgData   = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    const scaleX    = mask.width  / tempCanvas.width;
-    const scaleY    = mask.height / tempCanvas.height;
-    const pixelCount = imgData.data.length / 4;
-
-    for (let i = 0; i < pixelCount; i++) {
-      const x = i % tempCanvas.width;
-      const y = Math.floor(i / tempCanvas.width);
-      const mIdx = Math.round(y * scaleY) * mask.width + Math.round(x * scaleX);
-      imgData.data[i * 4 + 3] = mask.data[mIdx]; // alpha = valor da máscara
+    if (resp.status === 503) {
+      setEditorSt(data.error + ' — aguarde e tente novamente.', 'err');
+      return;
     }
+    if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');
 
-    ctx.putImageData(imgData, 0, 0);
-    editorCarPng = tempCanvas.toDataURL('image/png').split(',')[1];
+    if (data.type === 'png') {
+      // Retornou PNG transparente direto — usa direto
+      editorCarPng = data.result;
+    } else {
+      // Retornou máscara — aplica na imagem original
+      const maskImg  = await loadImg('data:image/png;base64,' + data.result);
+      const origImg  = await loadImg('data:image/jpeg;base64,' + base64);
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width  = origImg.naturalWidth;
+      tempCanvas.height = origImg.naturalHeight;
+      const ctx = tempCanvas.getContext('2d');
+      ctx.drawImage(origImg, 0, 0);
+
+      // Desenha máscara escalada num canvas auxiliar
+      const maskCanvas = document.createElement('canvas');
+      maskCanvas.width = tempCanvas.width;
+      maskCanvas.height = tempCanvas.height;
+      const mCtx = maskCanvas.getContext('2d');
+      mCtx.drawImage(maskImg, 0, 0, tempCanvas.width, tempCanvas.height);
+
+      const imgData  = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      const maskData = mCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      for (let i = 0; i < imgData.data.length / 4; i++) {
+        imgData.data[i * 4 + 3] = maskData.data[i * 4]; // canal R da máscara → alpha
+      }
+      ctx.putImageData(imgData, 0, 0);
+      editorCarPng = tempCanvas.toDataURL('image/png').split(',')[1];
+    }
 
     setEditorSt('✓ Fundo removido — compondo...', 'ok');
     await renderCanvas();
