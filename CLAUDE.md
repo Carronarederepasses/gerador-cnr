@@ -69,19 +69,21 @@ Intermediação de veículos (repasse), modelo **C2B**:
 ## 4. Stack Técnica
 
 ### Atual (publicado)
-- HTML/CSS/JS puro — single file
+- HTML/CSS/JS puro — single file `index.html`
 - **API FIPE: `parallelum.com.br/fipe/api/v1`** (gratuita, sem chave, com CORS).
   - Trocada da BrasilAPI (que estava fora do ar e travava a marca em "Carregando...") para a Parallelum em mai/2026.
   - Estrutura: marca/modelo/ano usam `codigo`; valor vem no campo `Valor` (V maiúsculo) e `MesReferencia`.
-- IA para parsing/geração: **OpenRouter** (chave NUNCA no código — só em variável de ambiente no backend/Netlify Function)
-- Hospedagem: GitHub Pages (gratuito) + Netlify
+- IA para parsing/geração: **OpenRouter** (chave NUNCA no código — só em variável de ambiente no Vercel)
+- **Hospedagem: Vercel** (migrou do Netlify por excesso de uso)
+  - Funções serverless em `api/` (parse.js, fipe-search.js, fipe.js)
+  - Deploy automático a cada push no GitHub
 
 ### Próxima versão (planejada)
 - **Frontend:** React + Next.js
 - **Backend/DB:** Supabase
-- **Hospedagem:** Netlify (decidido no lugar da Vercel)
+- **Hospedagem:** Vercel (já em uso)
 - **Repositório:** GitHub (`Carronarederepasses/gerador-cnr`)
-- **IA (Colar Anúncio / geração):** OpenRouter via Netlify Function (chave em env var secreta)
+- **IA (Colar Anúncio / geração):** OpenRouter via Vercel API Route (chave em env var secreta)
 
 ---
 
@@ -90,11 +92,11 @@ Intermediação de veículos (repasse), modelo **C2B**:
 | Serviço | Status | Como usar |
 |---|---|---|
 | Supabase | Conectar via MCP (sugerido) | Banco de dados, auth, storage |
-| Netlify | Conectar via MCP (sugerido) | Deploy + Functions (backend serverless) |
-| GitHub | Via git CLI na pasta | Versionamento + GitHub Pages |
+| Vercel | MCP conectado ✅ | Deploy + API Routes (backend serverless) |
+| GitHub | Via git CLI na pasta | Versionamento — push dispara deploy no Vercel |
 | OpenRouter | Chave em env var (NUNCA no código) | IA pra gerar/parsear anúncios |
 
-> **Segurança das chaves:** a chave do OpenRouter (e qualquer outra) NUNCA vai no `index.html` nem em código que sobe pro GitHub/Netlify, porque o código é público. Ela mora só como variável de ambiente secreta numa Netlify Function. Quem digita a chave é o Yuri, no painel do Netlify.
+> **Segurança das chaves:** a chave do OpenRouter (e qualquer outra) NUNCA vai no `index.html` nem em código que sobe pro GitHub, porque o código é público. Ela mora só como variável de ambiente secreta no painel do Vercel. Quem digita a chave é o Yuri.
 
 > Se algum conector cair ou pedir login, o Claude deve sugerir reconectar.
 
