@@ -1093,39 +1093,63 @@ async function processarFoto() {
   const btn = document.getElementById('btn-processar');
   btn.disabled = true;
   btn.textContent = '⏳ Processando...';
-  setEditorSt('Carregando IA... (só na primeira vez, ~60MB em cache)', 'loading');
+  setEditorSt('Carregando IA... (primeira vez ~30s, depois em cache)', 'loading');
 
   try {
-    // Importa direto do jsDelivr — auto-detecta publicPath pelo URL do módulo
-    const { removeBackground } = await import(
-      'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.4/dist/background-removal.js'
+    // @xenova/transformers: biblioteca HuggingFace feita para rodar no browser via CDN
+    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+
+    const segmenter = await pipeline(
+      'image-segmentation',
+      'Xenova/isnet-general-use',
+      {
+        progress_callback: ({ status, loaded, total }) => {
+          if (status === 'progress' && total) {
+            setEditorSt(`Baixando modelo: ${Math.round(loaded / total * 100)}%`, 'loading');
+          }
+        }
+      }
     );
 
-    const config = {
-      debug: false,
-      progress: (key, current, total) => {
-        if (total > 0) {
-          const pct = Math.round((current / total) * 100);
-          setEditorSt(`Carregando modelo: ${pct}%`, 'loading');
-        }
-      },
-    };
-
     setEditorSt('Removendo fundo...', 'loading');
-    // removeBackground aceita File diretamente e retorna Blob PNG transparente
-    const blob = await removeBackground(input.files[0], config);
+    const objUrl = URL.createObjectURL(input.files[0]);
+    const output = await segmenter(objUrl);
+    URL.revokeObjectURL(objUrl);
 
-    // Converte Blob para base64
-    editorCarPng = await new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(blob);
-    });
+    // output[0].mask = máscara do objeto principal (carro)
+    const mask = output[0].mask;
+
+    // Aplica máscara como canal alpha na imagem original
+    const origUrl = URL.createObjectURL(input.files[0]);
+    const origImg = await loadImg(origUrl);
+    URL.revokeObjectURL(origUrl);
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width  = origImg.naturalWidth;
+    tempCanvas.height = origImg.naturalHeight;
+    const ctx = tempCanvas.getContext('2d');
+    ctx.drawImage(origImg, 0, 0);
+
+    const imgData   = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const scaleX    = mask.width  / tempCanvas.width;
+    const scaleY    = mask.height / tempCanvas.height;
+    const pixelCount = imgData.data.length / 4;
+
+    for (let i = 0; i < pixelCount; i++) {
+      const x = i % tempCanvas.width;
+      const y = Math.floor(i / tempCanvas.width);
+      const mIdx = Math.round(y * scaleY) * mask.width + Math.round(x * scaleX);
+      imgData.data[i * 4 + 3] = mask.data[mIdx]; // alpha = valor da máscara
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    editorCarPng = tempCanvas.toDataURL('image/png').split(',')[1];
 
     setEditorSt('✓ Fundo removido — compondo...', 'ok');
     await renderCanvas();
     setEditorSt('✓ Pronto! Ajuste a posição e baixe.', 'ok');
     document.getElementById('btn-download').style.display = 'block';
+
   } catch (e) {
     setEditorSt('Erro: ' + e.message, 'err');
     console.error(e);
