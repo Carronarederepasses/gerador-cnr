@@ -351,6 +351,10 @@
         <label>Sombra <span id="shadow-val">55</span></label>
         <input type="range" id="shadow-slider" min="0" max="100" value="55" oninput="onSlider()">
       </div>
+      <div class="editor-slider-row">
+        <label>Reflexo no piso <span id="refl-val">20</span></label>
+        <input type="range" id="refl-slider" min="0" max="60" value="20" oninput="onSlider()">
+      </div>
     </div>
   </div>
 
@@ -1189,6 +1193,8 @@ function onSlider() {
     document.getElementById('floor-slider').value;
   document.getElementById('shadow-val').textContent =
     document.getElementById('shadow-slider').value;
+  document.getElementById('refl-val').textContent =
+    document.getElementById('refl-slider').value;
   if (editorCarPng) renderCanvas();
 }
 
@@ -1239,19 +1245,59 @@ async function renderCanvas() {
   // Ajusta carY para que o pixel mais baixo real do carro toque o chão
   const carY = floorY - carH * trueBottomRatio + (canvas.height * vertOff / 100);
 
-  // Sombra suave embaixo do carro
-  ctx.save();
-  const shadowY = carY + carH * trueBottomRatio + 6;
-  const shadowGrad = ctx.createRadialGradient(
-    carX + carW / 2, shadowY, carW * 0.05,
-    carX + carW / 2, shadowY, carW * 0.42
-  );
+  const contactY = carY + carH * trueBottomRatio; // linha onde o carro toca o chão
+
+  // Reflexo no piso (efeito showroom) — carro espelhado abaixo do contato, desbotando
+  const reflStr = parseFloat(document.getElementById('refl-slider').value) / 100;
+  if (reflStr > 0.01) {
+    const rC = document.createElement('canvas');
+    rC.width = canvas.width; rC.height = canvas.height;
+    const rctx = rC.getContext('2d');
+    // Espelha o carro verticalmente em torno da linha de contato
+    rctx.save();
+    rctx.translate(0, contactY);
+    rctx.scale(1, -1);
+    rctx.translate(0, -contactY);
+    rctx.drawImage(car, carX, carY, carW, carH);
+    rctx.restore();
+    // Desbota o reflexo conforme se afasta do contato
+    rctx.globalCompositeOperation = 'destination-out';
+    const fade = rctx.createLinearGradient(0, contactY, 0, contactY + carH * 0.55);
+    fade.addColorStop(0, 'rgba(0,0,0,0)');
+    fade.addColorStop(1, 'rgba(0,0,0,1)');
+    rctx.fillStyle = fade;
+    rctx.fillRect(0, contactY, canvas.width, carH);
+    // Compõe com leve desfoque e baixa opacidade
+    ctx.save();
+    ctx.globalAlpha = reflStr;
+    ctx.filter = 'blur(1px)';
+    ctx.drawImage(rC, 0, 0);
+    ctx.restore();
+  }
+
+  // Sombra em duas camadas: halo amplo suave + contato escuro estreito (oclusão)
   const shadowOp = parseFloat(document.getElementById('shadow-slider').value) / 100;
-  shadowGrad.addColorStop(0, 'rgba(0,0,0,' + shadowOp + ')');
-  shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = shadowGrad;
+  const shadowY = contactY + 4;
+  ctx.save();
+  const wideGrad = ctx.createRadialGradient(
+    carX + carW / 2, shadowY, carW * 0.05,
+    carX + carW / 2, shadowY, carW * 0.46
+  );
+  wideGrad.addColorStop(0, 'rgba(0,0,0,' + (shadowOp * 0.8) + ')');
+  wideGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = wideGrad;
   ctx.beginPath();
-  ctx.ellipse(carX + carW / 2, shadowY, carW * 0.42, 22, 0, 0, Math.PI * 2);
+  ctx.ellipse(carX + carW / 2, shadowY, carW * 0.46, 26, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const coreGrad = ctx.createRadialGradient(
+    carX + carW / 2, shadowY, carW * 0.02,
+    carX + carW / 2, shadowY, carW * 0.30
+  );
+  coreGrad.addColorStop(0, 'rgba(0,0,0,' + Math.min(0.9, shadowOp + 0.25) + ')');
+  coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = coreGrad;
+  ctx.beginPath();
+  ctx.ellipse(carX + carW / 2, shadowY, carW * 0.30, 12, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
