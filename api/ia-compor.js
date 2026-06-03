@@ -35,29 +35,30 @@ module.exports = async (req, res) => {
   };
   const modelId = MODELOS[model] || MODELOS['nano-banana'];
 
-  const prompt = `Você é um fotógrafo automotivo. Produza UMA única foto fotorrealista do carro da Imagem 1, como se ele tivesse sido realmente fotografado dentro de um estúdio premium de concessionária.
+  const prompt = `Você é um fotógrafo automotivo profissional e retocador de imagens HIPER-REALISTA. Produza UMA única fotografia de showroom, indistinguível de uma foto real tirada com câmera full-frame profissional.
 
-Imagem 1: o carro — esta é a verdade sobre o veículo, preserve com exatidão.
-Imagem 2: referência da identidade visual da marca "CARRO NA REDE REPASSES" (estúdio escuro, logo na parede, plantas, clima). Use APENAS como referência de estilo e ambiente.
+Imagem 1: a foto de referência do carro (pode estar em QUALQUER ângulo). É a verdade sobre o veículo: marca, modelo, cor, rodas, acabamentos e placa.
+Imagem 2: referência da identidade visual do estúdio "CARRO NA REDE REPASSES" (estúdio escuro premium, logo na parede, plantas, clima). Use APENAS como referência de estilo e ambiente.
 
-NÃO faça uma colagem e NÃO trate a Imagem 2 como uma camada de fundo fixa. Em vez disso, RECRIE toda a cena de forma nativa ao redor do carro — piso, paredes escuras, spots de teto, profundidade e sombras renderizados juntos, como uma fotografia única e real.
+RECRIE toda a cena de forma nativa ao redor do carro — piso, paredes escuras, spots de teto, profundidade, reflexos e sombras renderizados juntos como uma fotografia única e real. NÃO faça colagem nem trate a Imagem 2 como camada de fundo fixa.
 
-PRESERVAR sem alterar (regra mais importante):
-- A identidade exata do carro: marca, modelo, cor, rodas, faróis, para-choques e proporções.
-- A PLACA idêntica e legível, exatamente como na Imagem 1.
+ÂNGULO PADRÃO (sempre, independente do ângulo da Imagem 1):
+- Reposicione o carro em vista 3/4 frontal, levemente a partir da esquerda.
+- Câmera na altura do farol, carro reto e nivelado, pneus tocando o piso, centralizado, ocupando ~70% da largura.
 
-LUZ E SOMBRA (o que tira a cara de montagem):
-- Reacenda o carro com a luz suave e difusa dos spots do teto, coerente com o ambiente recriado.
-- Sombra de contato escura e nítida exatamente onde cada pneu toca o piso, somada a uma sombra ampla e suave ao redor.
-- Piso fosco e limpo, SEM reflexo espelhado do carro no chão.
-- Harmonize exposição, contraste e temperatura de cor do carro com a cena.
-- Bordas naturais, sem halo nem contorno de recorte.
+IDENTIDADE DO CARRO (preservar fielmente):
+- Mantenha marca, modelo, cor exata, desenho das rodas, faróis, para-choques e proporções idênticos aos da Imagem 1.
+- Reproduza a placa exatamente como na Imagem 1; se ela não estiver legível, deixe-a neutra, SEM inventar caracteres.
 
-ENQUADRAMENTO:
-- Carro centralizado, leve ângulo 3/4 frontal, câmera na altura do farol, ocupando ~70% da largura.
-- A parede ao fundo deve exibir a identidade "CARRO NA REDE REPASSES".
+HIPER-REALISMO — PRIORIDADE MÁXIMA (sensação de realidade):
+- Iluminação de estúdio profissional: spots de teto suaves criando reflexos especulares longos e naturais na pintura, capô, teto, vidros e cromados.
+- Sombra de contato escura e bem definida exatamente sob cada pneu (oclusão de ambiente), somada a uma sombra ampla e suave ao redor — totalmente coerentes com a direção da luz.
+- Reflexos sutis do ambiente escuro na lataria; pintura com profundidade, brilho e microrreflexos realistas.
+- Harmonize exposição, contraste, temperatura de cor e granulação como se carro e cenário fossem a mesma foto, da mesma câmera.
+- Leve profundidade de campo no fundo (logo/plantas levemente desfocados). Bordas perfeitas, sem halo, serrilhado ou aparência de recorte.
 
-Resultado: uma única foto realista e coesa, indistinguível de uma foto de estúdio real. Não escreva nenhum texto novo além da identidade da marca no fundo.`;
+A parede ao fundo deve exibir a identidade "CARRO NA REDE REPASSES". Não adicione nenhum outro texto.
+Retorne apenas a imagem final, fotorrealista e perfeitamente integrada.`;
 
   try {
     const body = {
