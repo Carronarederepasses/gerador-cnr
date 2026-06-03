@@ -261,6 +261,22 @@
       <label>FIPE (R$) — opcional</label>
       <input type="text" id="colet-fipe" placeholder="—">
     </div>
+
+    <!-- Cascata FIPE manual (fallback quando a automática erra/não acha) -->
+    <details id="colet-cascata" style="margin-top:.8rem">
+      <summary style="cursor:pointer;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);padding:.3rem 0">🔍 Buscar FIPE manualmente (se veio errada)</summary>
+      <div style="margin-top:.7rem">
+        <div class="g2" style="margin-bottom:.6rem">
+          <div class="field"><label>Marca</label><select id="csel-marca" onchange="onMarcaCol()"><option value="">Carregando...</option></select></div>
+          <div class="field"><label>Modelo</label><select id="csel-modelo" disabled onchange="onModeloCol()"><option value="">— selecione a marca</option></select></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Ano</label><select id="csel-ano" disabled onchange="onAnoCol()"><option value="">— selecione o modelo</option></select></div>
+          <div class="field"><label>Versão</label><select id="csel-versao" disabled onchange="onVersaoCol()"><option value="">— selecione o ano</option></select></div>
+        </div>
+        <div class="fipe-st" id="cfipe-st"></div>
+      </div>
+    </details>
   </div>
 
   </div><!-- /modo-coletados -->
@@ -561,48 +577,59 @@ async function fipeGet(path) {
 }
 
 async function loadMarcas() {
-  const sel = document.getElementById('sel-marca');
   setSt('Carregando marcas...', 'loading');
   try {
     const marcas = await fipeGet('/marcas');
-    sel.innerHTML = '<option value="">Selecione a marca</option>';
-    marcas.forEach(m => {
-      const o = document.createElement('option');
-      o.value = m.codigo; o.textContent = m.nome;
-      sel.appendChild(o);
+    ['sel-marca', 'csel-marca'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Selecione a marca</option>';
+      marcas.forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.codigo; o.textContent = m.nome;
+        sel.appendChild(o);
+      });
     });
     setSt('');
   } catch(e) {
-    sel.innerHTML = '<option value="">Indisponível — recarregue a página</option>';
+    const sel = document.getElementById('sel-marca');
+    if (sel) sel.innerHTML = '<option value="">Indisponível — recarregue a página</option>';
     setSt('API FIPE indisponível — preencha a FIPE manualmente abaixo', 'err');
   }
 }
 
-// Dados da marca+modelo-base selecionados: { base, anos:[...], versoes:[{codigo,nome,anos:[...]}] }
-let versoesData = null;
+// ── Cascata FIPE reutilizável (Captação e Coletados) ──────────────────────────
+// Cada contexto aponta para seus próprios IDs de campos e guarda seus dados.
+const CASCATA = {
+  cap: { marca:'sel-marca',  modelo:'sel-modelo',  ano:'sel-ano',  versao:'sel-versao',  fipe:'fipe-val',   st:'fipe-st',   data:null },
+  col: { marca:'csel-marca', modelo:'csel-modelo', ano:'csel-ano', versao:'csel-versao', fipe:'colet-fipe', st:'cfipe-st', data:null },
+};
 
 function resetSel(id, txt) {
   const s = document.getElementById(id);
-  s.innerHTML = `<option value="">${txt}</option>`;
-  s.disabled = true;
+  if (s) { s.innerHTML = `<option value="">${txt}</option>`; s.disabled = true; }
 }
 
-async function onMarca() {
-  const marca = document.getElementById('sel-marca').value;
-  resetSel('sel-modelo', '— selecione a marca');
-  resetSel('sel-ano', '— selecione o modelo');
-  resetSel('sel-versao', '— selecione o ano');
-  document.getElementById('fipe-val').value = '';
-  versoesData = null;
-  if (!marca) { setSt(''); return; }
-  setSt('Buscando modelos...', 'loading');
+function cSetSt(cfg, msg, cls) {
+  const el = document.getElementById(cfg.st);
+  if (el) { el.textContent = msg; el.className = 'fipe-st ' + (cls || ''); }
+}
+
+async function cascataMarca(cfg) {
+  const marca = document.getElementById(cfg.marca).value;
+  resetSel(cfg.modelo, '— selecione a marca');
+  resetSel(cfg.ano, '— selecione o modelo');
+  resetSel(cfg.versao, '— selecione o ano');
+  document.getElementById(cfg.fipe).value = '';
+  cfg.data = null;
+  if (!marca) { cSetSt(cfg, ''); return; }
+  cSetSt(cfg, 'Buscando modelos...', 'loading');
   try {
     const data = await fipeGet(`/marcas/${marca}/modelos`);
     const modelos = data.modelos || [];
-    // Agrupa por modelo-base (1ª palavra): Renegade, Compass, Commander...
     const bases = [...new Set(modelos.map(m => m.nome.split(/[\s\-\/.]+/)[0]).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    const sM = document.getElementById('sel-modelo');
+    const sM = document.getElementById(cfg.modelo);
     sM.innerHTML = '<option value="">Selecione o modelo</option>';
     bases.forEach(b => {
       const o = document.createElement('option');
@@ -610,25 +637,25 @@ async function onMarca() {
       sM.appendChild(o);
     });
     sM.disabled = false;
-    setSt(`${bases.length} modelos`, 'ok');
-  } catch(e) { setSt('Erro ao buscar modelos', 'err'); }
+    cSetSt(cfg, `${bases.length} modelos`, 'ok');
+  } catch(e) { cSetSt(cfg, 'Erro ao buscar modelos', 'err'); }
 }
 
-async function onModelo() {
-  const marca = document.getElementById('sel-marca').value;
-  const base = document.getElementById('sel-modelo').value;
-  resetSel('sel-ano', '— selecione o modelo');
-  resetSel('sel-versao', '— selecione o ano');
-  document.getElementById('fipe-val').value = '';
-  versoesData = null;
+async function cascataModelo(cfg) {
+  const marca = document.getElementById(cfg.marca).value;
+  const base = document.getElementById(cfg.modelo).value;
+  resetSel(cfg.ano, '— selecione o modelo');
+  resetSel(cfg.versao, '— selecione o ano');
+  document.getElementById(cfg.fipe).value = '';
+  cfg.data = null;
   if (!base) return;
-  setSt('⏳ Buscando anos e versões... (alguns segundos)', 'loading');
+  cSetSt(cfg, '⏳ Buscando anos e versões... (alguns segundos)', 'loading');
   try {
     const r = await fetch(`/api/fipe-anos-versoes?marca=${encodeURIComponent(marca)}&base=${encodeURIComponent(base.toLowerCase())}`);
     const data = await r.json();
     if (!r.ok || data.error) throw new Error(data.error || 'erro');
-    versoesData = data;
-    const sA = document.getElementById('sel-ano');
+    cfg.data = data;
+    const sA = document.getElementById(cfg.ano);
     sA.innerHTML = '<option value="">Selecione o ano</option>';
     (data.anos || []).forEach(a => {
       const o = document.createElement('option');
@@ -636,20 +663,19 @@ async function onModelo() {
       sA.appendChild(o);
     });
     sA.disabled = false;
-    setSt(`${(data.anos || []).length} anos disponíveis`, 'ok');
-  } catch(e) { setSt('Erro ao buscar anos/versões', 'err'); }
+    cSetSt(cfg, `${(data.anos || []).length} anos disponíveis`, 'ok');
+  } catch(e) { cSetSt(cfg, 'Erro ao buscar anos/versões', 'err'); }
 }
 
-function onAno() {
-  const ano = document.getElementById('sel-ano').value;
-  const sV = document.getElementById('sel-versao');
-  resetSel('sel-versao', '— selecione o ano');
-  document.getElementById('fipe-val').value = '';
-  if (!ano || !versoesData) return;
-  // Mostra só as versões que existem naquele ano
+function cascataAno(cfg) {
+  const ano = document.getElementById(cfg.ano).value;
+  const sV = document.getElementById(cfg.versao);
+  resetSel(cfg.versao, '— selecione o ano');
+  document.getElementById(cfg.fipe).value = '';
+  if (!ano || !cfg.data) return;
   sV.innerHTML = '<option value="">Selecione a versão</option>';
   let n = 0;
-  versoesData.versoes.forEach(v => {
+  cfg.data.versoes.forEach(v => {
     const anoObj = (v.anos || []).find(a => a.anoNum === ano);
     if (anoObj) {
       const o = document.createElement('option');
@@ -660,24 +686,40 @@ function onAno() {
     }
   });
   sV.disabled = false;
-  setSt(`${n} versão(ões) em ${ano}`, 'ok');
+  cSetSt(cfg, `${n} versão(ões) em ${ano}`, 'ok');
 }
 
-async function onVersao() {
-  const marca = document.getElementById('sel-marca').value;
-  const v = document.getElementById('sel-versao').value;
-  document.getElementById('fipe-val').value = '';
+async function cascataVersao(cfg) {
+  const marca = document.getElementById(cfg.marca).value;
+  const v = document.getElementById(cfg.versao).value;
+  document.getElementById(cfg.fipe).value = '';
   if (!v) return;
   const [modeloCod, anoCod] = v.split('|');
-  setSt('⏳ Consultando FIPE do mês...', 'loading');
+  cSetSt(cfg, '⏳ Consultando FIPE do mês...', 'loading');
   try {
     const data = await fipeGet(`/marcas/${marca}/modelos/${modeloCod}/anos/${anoCod}`);
     const limpo = (data.Valor || '').replace('R$', '').trim();
-    document.getElementById('fipe-val').value = limpo;
-    setSt(`✓ FIPE ${data.MesReferencia || 'atual'}: ${data.Valor}`, 'ok');
+    document.getElementById(cfg.fipe).value = limpo;
+    cSetSt(cfg, `✓ FIPE ${data.MesReferencia || 'atual'}: ${data.Valor}`, 'ok');
   } catch(e) {
-    setSt('Não encontrado — preencha a FIPE manualmente', 'err');
+    cSetSt(cfg, 'Não encontrado — preencha a FIPE manualmente', 'err');
   }
+}
+
+// Wrappers — Captação
+function onMarca()  { cascataMarca(CASCATA.cap); }
+function onModelo() { cascataModelo(CASCATA.cap); }
+function onAno()    { cascataAno(CASCATA.cap); }
+function onVersao() { cascataVersao(CASCATA.cap); }
+// Wrappers — Coletados (fallback manual)
+function onMarcaCol()  { cascataMarca(CASCATA.col); }
+function onModeloCol() { cascataModelo(CASCATA.col); }
+function onAnoCol()    { cascataAno(CASCATA.col); }
+function onVersaoCol() { cascataVersao(CASCATA.col); }
+
+function abrirCascataColet() {
+  const d = document.getElementById('colet-cascata');
+  if (d) d.open = true;
 }
 
 // ══════════════════════════════════════════════
@@ -844,14 +886,16 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto) {
     });
     const data = await resp.json();
     if (!resp.ok || !data.found) {
-      setParseSt('✓ Campos preenchidos — ' + (data.reason || 'FIPE não encontrada') + '. Preencha manualmente.', 'ok');
+      setParseSt('✓ Campos preenchidos — FIPE não identificada. Use a busca manual abaixo. 👇', 'ok');
+      abrirCascataColet();
       return;
     }
     document.getElementById('colet-fipe').value = data.valorNumerico;
     const avisoAno = data.anoFallback ? ` (ano ${data.ano} — mais recente disponível)` : '';
-    setParseSt(`✓ Tudo preenchido — FIPE ${data.mesReferencia || 'atual'}: ${data.valor}${avisoAno}`, 'ok');
+    setParseSt(`✓ Tudo preenchido — FIPE ${data.mesReferencia || 'atual'}: ${data.valor}${avisoAno}. Se a versão veio errada, ajuste na busca manual abaixo. 👇`, 'ok');
   } catch(e) {
-    setParseSt('✓ Campos preenchidos — FIPE indisponível no momento. Preencha manualmente.', 'ok');
+    setParseSt('✓ Campos preenchidos — FIPE indisponível. Use a busca manual abaixo. 👇', 'ok');
+    abrirCascataColet();
     console.error('buscarFIPEColetados:', e);
   }
 }
