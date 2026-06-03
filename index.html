@@ -1152,7 +1152,9 @@ async function processarFoto() {
     if (editorMode === 'ia') {
       // Composição por IA (Nano Banana) — resultado já vem pronto
       const modelo = document.getElementById('ia-model').value;
-      setEditorSt('IA compondo a foto... (10-20 segundos)', 'loading');
+      const lento = modelo === 'nano-banana-pro';
+      setEditorSt(lento ? 'IA Pro compondo a foto... pode levar até 40s, aguarde'
+                        : 'IA compondo a foto... (10-20 segundos)', 'loading');
       const resp = await fetch('/api/ia-compor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
