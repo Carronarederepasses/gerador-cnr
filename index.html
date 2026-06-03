@@ -145,7 +145,7 @@
   .editor-slider-row{display:flex;flex-direction:column;gap:.3rem}
   .editor-slider-row label{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--light);display:flex;justify-content:space-between}
   input[type=range]{width:100%;accent-color:var(--white);cursor:pointer}
-  .canvas-wrap{width:100%;position:relative;background:#111;display:flex;align-items:center;justify-content:center;min-height:300px}
+  .canvas-wrap{width:100%;max-width:640px;margin:0 auto;position:relative;background:#111;display:flex;align-items:center;justify-content:center;min-height:300px}
   .canvas-wrap canvas{width:100%;height:auto;display:block}
   .canvas-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;color:var(--mid);padding:3rem 0}
   .canvas-empty-ico{font-size:2.5rem;opacity:.25}
@@ -310,8 +310,21 @@
     <div class="editor-st" id="editor-st"></div>
   </div>
 
+  <button class="btn-gen" id="btn-processar" onclick="processarFoto()" disabled>▶ Remover Fundo e Compor</button>
+
+  <!-- Resultado ao vivo -->
+  <div id="editor-canvas-wrap" style="display:flex;flex-direction:column;gap:.8rem;margin-top:1rem">
+    <div class="canvas-wrap" id="canvas-wrap">
+      <div class="canvas-empty" id="canvas-empty">
+        <div class="canvas-empty-ico">📸</div>
+        <div class="canvas-empty-txt">Selecione uma foto e clique em processar</div>
+      </div>
+      <canvas id="editor-canvas" style="display:none"></canvas>
+    </div>
+  </div>
+
   <div class="fsec">
-    <div class="fsec-title">Ajustes</div>
+    <div class="fsec-title">Ajustes — veja o resultado mudar acima</div>
     <div class="editor-controls">
       <div class="editor-slider-row">
         <label>Tamanho do carro <span id="scale-val">100%</span></label>
@@ -336,8 +349,6 @@
     </div>
   </div>
 
-  <button class="btn-gen" id="btn-processar" onclick="processarFoto()" disabled>▶ Remover Fundo e Compor</button>
-  <div style="height:.5rem"></div>
   <button class="btn-download" id="btn-download" onclick="downloadFoto()">⬇ Baixar Foto</button>
 </div>
 
@@ -353,17 +364,6 @@
         <div class="wa-txt" id="wa-txt" contenteditable="true" spellcheck="false" oninput="onPreviewEdit()"></div>
         <div class="wa-time" id="wa-time"></div>
       </div>
-    </div>
-  </div>
-
-  <!-- Editor canvas (visível só no modo editor) -->
-  <div id="editor-canvas-wrap" style="display:none;flex-direction:column;gap:.8rem">
-    <div class="canvas-wrap" id="canvas-wrap">
-      <div class="canvas-empty" id="canvas-empty">
-        <div class="canvas-empty-ico">📸</div>
-        <div class="canvas-empty-txt">Selecione uma foto e processe</div>
-      </div>
-      <canvas id="editor-canvas" style="display:none"></canvas>
     </div>
   </div>
 
@@ -827,18 +827,16 @@ function setMode(mode) {
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
 
-  // Preview-side: troca entre WhatsApp e canvas
-  const waWrap    = document.querySelector('.wa-wrap');
-  const shareRow  = document.getElementById('share-row');
-  const canvasWrap = document.getElementById('editor-canvas-wrap');
+  // No modo Foto o canvas fica junto dos controles (coluna única);
+  // o preview-side (bolha do WhatsApp) só aparece nos outros modos.
+  const previewSide = document.querySelector('.preview-side');
+  const appEl       = document.querySelector('.app');
   if (mode === 'editor') {
-    waWrap.style.display    = 'none';
-    shareRow.style.display  = 'none';
-    canvasWrap.style.display = 'flex';
+    previewSide.style.display = 'none';
+    appEl.style.gridTemplateColumns = '1fr';
   } else {
-    waWrap.style.display    = '';
-    shareRow.style.display  = '';
-    canvasWrap.style.display = 'none';
+    previewSide.style.display = '';
+    appEl.style.gridTemplateColumns = '';
   }
 }
 
