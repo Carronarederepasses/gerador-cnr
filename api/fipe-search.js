@@ -108,10 +108,16 @@ module.exports = async (req, res) => {
     }
 
     // ── 3. MODELO + ANO (desambiguação) ───────────────────────────────────────
-    // Entre os candidatos de score alto, prefere o que TEM o ano pedido de verdade
-    // (ex: "Renegade Longitude Flex 2023" → 1.3 Turbo, não a 1.8 que só vai até 2021)
-    const topScore = candidatos[0].score;
-    const topCands = candidatos.filter(c => c.score >= topScore - 8).slice(0, 6);
+    // Entre as VERSÕES do mesmo modelo/marca do melhor candidato, prefere a que TEM
+    // o ano pedido (ex: "Renegade Longitude Flex 2023" → 1.3 Turbo, não a 1.8 que só
+    // vai até 2021). Trava na mesma marca + mesmo modelo-base para não pular para
+    // outro carro (ex: Commander) só porque ele tem o ano.
+    const top = candidatos[0];
+    const ancora = top.modelo.nome.toLowerCase().split(/[\s\-\/]+/)[0];
+    const topCands = candidatos.filter(c =>
+      c.marca.codigo === top.marca.codigo &&
+      c.modelo.nome.toLowerCase().split(/[\s\-\/]+/)[0] === ancora
+    ).slice(0, 12);
 
     const temAnoExato = (anos) =>
       anos.find(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
