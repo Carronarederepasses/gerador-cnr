@@ -325,6 +325,14 @@
         <label>Posição horizontal <span id="horiz-val">0</span></label>
         <input type="range" id="horiz-slider" min="-30" max="30" value="0" oninput="onSlider()">
       </div>
+      <div class="editor-slider-row">
+        <label>Linha do chão <span id="floor-val">78</span></label>
+        <input type="range" id="floor-slider" min="55" max="95" value="78" oninput="onSlider()">
+      </div>
+      <div class="editor-slider-row">
+        <label>Sombra <span id="shadow-val">55</span></label>
+        <input type="range" id="shadow-slider" min="0" max="100" value="55" oninput="onSlider()">
+      </div>
     </div>
   </div>
 
@@ -1136,6 +1144,10 @@ function onSlider() {
     document.getElementById('vert-slider').value;
   document.getElementById('horiz-val').textContent =
     document.getElementById('horiz-slider').value;
+  document.getElementById('floor-val').textContent =
+    document.getElementById('floor-slider').value;
+  document.getElementById('shadow-val').textContent =
+    document.getElementById('shadow-slider').value;
   if (editorCarPng) renderCanvas();
 }
 
@@ -1179,8 +1191,9 @@ async function renderCanvas() {
   }
   const trueBottomRatio = trueBottomRow / tmpC.height; // ex: 0.92 se há 8% vazio embaixo
 
-  // Linha do chão ≈ 78% — carro encostado no piso
-  const floorY = canvas.height * 0.78;
+  // Linha do chão ajustável — carro encostado no piso
+  const floorPct = parseFloat(document.getElementById('floor-slider').value) / 100;
+  const floorY = canvas.height * floorPct;
   const carX = (canvas.width - carW) / 2 + (canvas.width * horizOff / 100);
   // Ajusta carY para que o pixel mais baixo real do carro toque o chão
   const carY = floorY - carH * trueBottomRatio + (canvas.height * vertOff / 100);
@@ -1192,7 +1205,8 @@ async function renderCanvas() {
     carX + carW / 2, shadowY, carW * 0.05,
     carX + carW / 2, shadowY, carW * 0.42
   );
-  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
+  const shadowOp = parseFloat(document.getElementById('shadow-slider').value) / 100;
+  shadowGrad.addColorStop(0, 'rgba(0,0,0,' + shadowOp + ')');
   shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = shadowGrad;
   ctx.beginPath();
