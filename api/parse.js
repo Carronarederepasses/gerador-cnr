@@ -2,11 +2,12 @@
 // Env var necessária: OPENROUTER_API_KEY
 
 const MODELS = [
-  'openai/gpt-oss-20b:free',
-  'openai/gpt-oss-120b:free',
+  // Pago barato e confiável (principal) — ~R$ 0,001 por anúncio
+  'openai/gpt-4o-mini',
+  'google/gemini-2.5-flash',
+  // Gratuitos como reserva (instáveis: usados só se os pagos falharem)
   'meta-llama/llama-3.3-70b-instruct:free',
-  'meta-llama/llama-3.2-3b-instruct:free',
-  'nousresearch/hermes-3-llama-3.1-405b:free',
+  'openai/gpt-oss-120b:free',
 ];
 
 const PROMPT = (texto) => `Você extrai dados de anúncios de veículos em texto livre (português brasileiro informal, WhatsApp, OLX, etc.).
@@ -83,8 +84,8 @@ module.exports = async (req, res) => {
       return res.status(200).json(parsed);
     } catch (err) {
       lastErr = err.message;
-      if (err.message.startsWith('rate_limit')) { continue; }
-      break;
+      console.error(`parse falhou em ${model}: ${err.message}`);
+      continue; // tenta o próximo modelo em qualquer falha
     }
   }
 
