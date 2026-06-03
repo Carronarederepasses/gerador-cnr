@@ -30,6 +30,8 @@ module.exports = async (req, res) => {
     'nano-banana':     'google/gemini-2.5-flash-image',          // ~US$ 0,04/img
     'nano-banana-2':   'google/gemini-3.1-flash-image-preview',  // mais novo, ~US$ 0,05-0,15/img
     'nano-banana-pro': 'google/gemini-3-pro-image-preview',      // topo, ~US$ 0,13-0,24/img
+    'gpt-image':       'openai/gpt-5-image',                     // GPT Image (ChatGPT)
+    'gpt-image-2':     'openai/gpt-5.4-image-2',                 // GPT Image 2 (mais novo)
   };
   const modelId = MODELOS[model] || MODELOS['nano-banana'];
 
