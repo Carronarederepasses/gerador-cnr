@@ -315,6 +315,14 @@
     <button class="mode-btn" id="btn-modo-ia" onclick="setEditorMode('ia')">✨ IA</button>
   </div>
 
+  <div class="field" id="ia-opts" style="display:none;margin-bottom:1rem">
+    <label>Modelo de IA</label>
+    <select id="ia-model">
+      <option value="nano-banana">Nano Banana (Gemini 2.5) — ~R$0,20/foto</option>
+      <option value="nano-banana-2">Nano Banana 2 (Gemini 3.1) — mais novo, ~R$0,30/foto</option>
+    </select>
+  </div>
+
   <button class="btn-gen" id="btn-processar" onclick="processarFoto()" disabled>▶ Remover Fundo e Compor</button>
 
   <!-- Resultado ao vivo -->
@@ -1057,6 +1065,7 @@ function setEditorMode(m) {
   document.getElementById('btn-modo-ia').classList.toggle('active', m === 'ia');
   // No modo IA o resultado é uma imagem pronta — os sliders de canvas não se aplicam
   document.getElementById('fsec-ajustes').style.display = (m === 'fiel') ? '' : 'none';
+  document.getElementById('ia-opts').style.display      = (m === 'ia')   ? '' : 'none';
   document.getElementById('btn-processar').textContent =
     (m === 'fiel') ? '▶ Remover Fundo e Compor' : '✨ Gerar com IA';
 }
@@ -1141,11 +1150,12 @@ async function processarFoto() {
 
     if (editorMode === 'ia') {
       // Composição por IA (Nano Banana) — resultado já vem pronto
+      const modelo = document.getElementById('ia-model').value;
       setEditorSt('IA compondo a foto... (10-20 segundos)', 'loading');
       const resp = await fetch('/api/ia-compor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64 }),
+        body: JSON.stringify({ imageBase64: base64, model: modelo }),
       });
       const data = await resp.json();
       if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');

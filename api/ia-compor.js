@@ -22,8 +22,15 @@ module.exports = async (req, res) => {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OPENROUTER_API_KEY não configurada no Vercel' });
 
-  const { imageBase64, mimeType = 'image/jpeg' } = req.body || {};
+  const { imageBase64, mimeType = 'image/jpeg', model } = req.body || {};
   if (!imageBase64) return res.status(400).json({ error: 'imageBase64 obrigatório' });
+
+  // Lista fechada de modelos permitidos (evita acionar modelos caros por engano)
+  const MODELOS = {
+    'nano-banana':   'google/gemini-2.5-flash-image',          // ~US$ 0,04/img
+    'nano-banana-2': 'google/gemini-3.1-flash-image-preview',  // mais novo, ~US$ 0,05-0,15/img
+  };
+  const modelId = MODELOS[model] || MODELOS['nano-banana'];
 
   const prompt = `Você é um fotógrafo automotivo. Produza UMA única foto fotorrealista do carro da Imagem 1, como se ele tivesse sido realmente fotografado dentro de um estúdio premium de concessionária.
 
@@ -51,7 +58,7 @@ Resultado: uma única foto realista e coesa, indistinguível de uma foto de est�
 
   try {
     const body = {
-      model: 'google/gemini-2.5-flash-image',
+      model: modelId,
       modalities: ['image', 'text'],
       messages: [{
         role: 'user',
