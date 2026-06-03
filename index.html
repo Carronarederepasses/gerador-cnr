@@ -1147,21 +1147,22 @@ async function processarFoto() {
   btn.disabled = true;
   btn.textContent = '⏳ Processando...';
   try {
-    // Reduz para max 1600px antes de enviar
+    // Reduz antes de enviar — no modo IA usa 1024px (gera mais rápido)
     setEditorSt('Preparando a foto...', 'loading');
-    const base64 = await resizeImg(input.files[0], 1600);
+    const maxPx = (editorMode === 'ia') ? 1024 : 1600;
+    const base64 = await resizeImg(input.files[0], maxPx);
 
     if (editorMode === 'ia') {
       // Composição por IA (Nano Banana) — resultado já vem pronto
       const modelo = document.getElementById('ia-model').value;
       const ehGpt = modelo.indexOf('gpt-') === 0;
       const ehPesado = ehGpt || modelo === 'nano-banana-pro';
-      setEditorSt(ehGpt ? 'ChatGPT compondo a foto... pode levar até 90s, aguarde'
+      setEditorSt(ehGpt ? 'ChatGPT compondo a foto... pode levar 1-2 min, aguarde'
                 : ehPesado ? 'IA Pro compondo a foto... pode levar até 40s, aguarde'
                 : 'IA compondo a foto... (10-20 segundos)', 'loading');
 
       // Rede de segurança: aborta se a IA não responder no tempo limite
-      const timeoutMs = ehGpt ? 180000 : 90000;
+      const timeoutMs = ehGpt ? 240000 : 120000;
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       let resp;
