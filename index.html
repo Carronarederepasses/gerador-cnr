@@ -310,6 +310,11 @@
     <div class="editor-st" id="editor-st"></div>
   </div>
 
+  <div class="mode-toggle" style="margin-bottom:1rem">
+    <button class="mode-btn active" id="btn-modo-fiel" onclick="setEditorMode('fiel')">🎯 Fiel</button>
+    <button class="mode-btn" id="btn-modo-ia" onclick="setEditorMode('ia')">✨ IA</button>
+  </div>
+
   <button class="btn-gen" id="btn-processar" onclick="processarFoto()" disabled>▶ Remover Fundo e Compor</button>
 
   <!-- Resultado ao vivo -->
@@ -323,7 +328,7 @@
     </div>
   </div>
 
-  <div class="fsec">
+  <div class="fsec" id="fsec-ajustes">
     <div class="fsec-title">Ajustes — veja o resultado mudar acima</div>
     <div class="editor-controls">
       <div class="editor-slider-row">
@@ -1040,6 +1045,28 @@ function gerarColetados() {
 // EDITOR DE FOTO
 // ══════════════════════════════════════════════
 let editorCarPng = null; // base64 PNG do carro recortado (sem fundo)
+let editorMode = 'fiel';  // 'fiel' (recorte + canvas) ou 'ia' (Nano Banana)
+
+function setEditorMode(m) {
+  editorMode = m;
+  document.getElementById('btn-modo-fiel').classList.toggle('active', m === 'fiel');
+  document.getElementById('btn-modo-ia').classList.toggle('active', m === 'ia');
+  // No modo IA o resultado é uma imagem pronta — os sliders de canvas não se aplicam
+  document.getElementById('fsec-ajustes').style.display = (m === 'fiel') ? '' : 'none';
+  document.getElementById('btn-processar').textContent =
+    (m === 'fiel') ? '▶ Remover Fundo e Compor' : '✨ Gerar com IA';
+}
+
+// Desenha uma imagem pronta (base64) no canvas do editor
+async function drawResult(mime, b64) {
+  const resultImg = await loadImg(`data:${mime};base64,${b64}`);
+  const canvas = document.getElementById('editor-canvas');
+  canvas.width  = resultImg.naturalWidth;
+  canvas.height = resultImg.naturalHeight;
+  canvas.getContext('2d').drawImage(resultImg, 0, 0);
+  canvas.style.display = 'block';
+  document.getElementById('canvas-empty').style.display = 'none';
+}
 
 function setEditorSt(msg, tipo) {
   const el = document.getElementById('editor-st');
@@ -1104,26 +1131,42 @@ async function processarFoto() {
   btn.disabled = true;
   btn.textContent = '⏳ Processando...';
   try {
-    // Reduz para max 1600px antes de enviar (recorte com boa resolução)
+    // Reduz para max 1600px antes de enviar
     setEditorSt('Preparando a foto...', 'loading');
     const base64 = await resizeImg(input.files[0], 1600);
 
-    // Recorta o carro real (sem alucinação) via remove.bg
-    setEditorSt('Removendo o fundo da foto...', 'loading');
-    const resp = await fetch('/api/remove-bg', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64 }),
-    });
-    const data = await resp.json();
-    if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');
+    if (editorMode === 'ia') {
+      // Composição por IA (Nano Banana) — resultado já vem pronto
+      setEditorSt('IA compondo a foto... (10-20 segundos)', 'loading');
+      const resp = await fetch('/api/ia-compor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64 }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');
 
-    // Guarda o PNG recortado e compõe sobre o fundo CNR no canvas
-    editorCarPng = data.result;
-    setEditorSt('Compondo sobre o fundo CNR...', 'loading');
-    await renderCanvas();
+      editorCarPng = null; // resultado é bitmap pronto; sliders não se aplicam
+      await drawResult(data.mimeType || 'image/png', data.result);
+      setEditorSt('✓ Pronto! (gerado por IA — confira a placa)', 'ok');
 
-    setEditorSt('✓ Pronto! Ajuste com os controles e baixe.', 'ok');
+    } else {
+      // Recorte fiel (remove.bg) + composição no canvas com os sliders
+      setEditorSt('Removendo o fundo da foto...', 'loading');
+      const resp = await fetch('/api/remove-bg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64 }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');
+
+      editorCarPng = data.result;
+      setEditorSt('Compondo sobre o fundo CNR...', 'loading');
+      await renderCanvas();
+      setEditorSt('✓ Pronto! Ajuste com os controles e baixe.', 'ok');
+    }
+
     document.getElementById('btn-download').style.display = 'block';
 
   } catch (e) {
@@ -1131,7 +1174,7 @@ async function processarFoto() {
     console.error(e);
   } finally {
     btn.disabled = false;
-    btn.textContent = '▶ Remover Fundo e Compor';
+    btn.textContent = (editorMode === 'fiel') ? '▶ Remover Fundo e Compor' : '✨ Gerar com IA';
   }
 }
 
