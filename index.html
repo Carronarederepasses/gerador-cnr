@@ -193,20 +193,25 @@
         <select id="sel-marca" onchange="onMarca()"><option value="">Carregando...</option></select>
       </div>
       <div class="field">
-        <label>Modelo / Versão</label>
+        <label>Modelo</label>
         <select id="sel-modelo" disabled onchange="onModelo()"><option value="">— selecione a marca</option></select>
       </div>
     </div>
 
-    <div class="g2" style="margin-bottom:.4rem">
+    <div class="g2" style="margin-bottom:.7rem">
       <div class="field">
         <label>Ano</label>
         <select id="sel-ano" disabled onchange="onAno()"><option value="">— selecione o modelo</option></select>
       </div>
       <div class="field">
-        <label>Complemento (opcional)</label>
-        <input type="text" id="complemento" placeholder="ex: pacote premium, acessórios...">
+        <label>Versão</label>
+        <select id="sel-versao" disabled onchange="onVersao()"><option value="">— selecione o ano</option></select>
       </div>
+    </div>
+
+    <div class="field" style="margin-bottom:.4rem">
+      <label>Complemento (opcional)</label>
+      <input type="text" id="complemento" placeholder="ex: pacote premium, acessórios...">
     </div>
 
     <div class="fipe-st" id="fipe-st"></div>
@@ -569,59 +574,100 @@ async function loadMarcas() {
   }
 }
 
+// Dados da marca+modelo-base selecionados: { base, anos:[...], versoes:[{codigo,nome,anos:[...]}] }
+let versoesData = null;
+
+function resetSel(id, txt) {
+  const s = document.getElementById(id);
+  s.innerHTML = `<option value="">${txt}</option>`;
+  s.disabled = true;
+}
+
 async function onMarca() {
   const marca = document.getElementById('sel-marca').value;
-  const sM = document.getElementById('sel-modelo');
-  const sA = document.getElementById('sel-ano');
-  sM.innerHTML = '<option>—</option>'; sM.disabled = true;
-  sA.innerHTML = '<option>—</option>'; sA.disabled = true;
+  resetSel('sel-modelo', '— selecione a marca');
+  resetSel('sel-ano', '— selecione o modelo');
+  resetSel('sel-versao', '— selecione o ano');
   document.getElementById('fipe-val').value = '';
+  versoesData = null;
   if (!marca) { setSt(''); return; }
   setSt('Buscando modelos...', 'loading');
   try {
     const data = await fipeGet(`/marcas/${marca}/modelos`);
     const modelos = data.modelos || [];
-    sM.innerHTML = '<option value="">Selecione o modelo/versão</option>';
-    modelos.forEach(m => {
+    // Agrupa por modelo-base (1ª palavra): Renegade, Compass, Commander...
+    const bases = [...new Set(modelos.map(m => m.nome.split(/[\s\-\/.]+/)[0]).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const sM = document.getElementById('sel-modelo');
+    sM.innerHTML = '<option value="">Selecione o modelo</option>';
+    bases.forEach(b => {
       const o = document.createElement('option');
-      o.value = m.codigo; o.textContent = m.nome;
+      o.value = b; o.textContent = b;
       sM.appendChild(o);
     });
     sM.disabled = false;
-    setSt(`${modelos.length} modelos encontrados`, 'ok');
+    setSt(`${bases.length} modelos`, 'ok');
   } catch(e) { setSt('Erro ao buscar modelos', 'err'); }
 }
 
 async function onModelo() {
   const marca = document.getElementById('sel-marca').value;
-  const modelo = document.getElementById('sel-modelo').value;
-  const sA = document.getElementById('sel-ano');
-  sA.innerHTML = '<option>—</option>'; sA.disabled = true;
+  const base = document.getElementById('sel-modelo').value;
+  resetSel('sel-ano', '— selecione o modelo');
+  resetSel('sel-versao', '— selecione o ano');
   document.getElementById('fipe-val').value = '';
-  if (!modelo) return;
-  setSt('Buscando anos...', 'loading');
+  versoesData = null;
+  if (!base) return;
+  setSt('⏳ Buscando anos e versões... (alguns segundos)', 'loading');
   try {
-    const anos = await fipeGet(`/marcas/${marca}/modelos/${modelo}/anos`);
+    const r = await fetch(`/api/fipe-anos-versoes?marca=${encodeURIComponent(marca)}&base=${encodeURIComponent(base.toLowerCase())}`);
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || 'erro');
+    versoesData = data;
+    const sA = document.getElementById('sel-ano');
     sA.innerHTML = '<option value="">Selecione o ano</option>';
-    anos.forEach(a => {
+    (data.anos || []).forEach(a => {
       const o = document.createElement('option');
-      o.value = a.codigo; o.textContent = a.nome;
+      o.value = a; o.textContent = a;
       sA.appendChild(o);
     });
     sA.disabled = false;
-    setSt('');
-  } catch(e) { setSt('Erro ao buscar anos', 'err'); }
+    setSt(`${(data.anos || []).length} anos disponíveis`, 'ok');
+  } catch(e) { setSt('Erro ao buscar anos/versões', 'err'); }
 }
 
-async function onAno() {
-  const marca = document.getElementById('sel-marca').value;
-  const modelo = document.getElementById('sel-modelo').value;
+function onAno() {
   const ano = document.getElementById('sel-ano').value;
+  const sV = document.getElementById('sel-versao');
+  resetSel('sel-versao', '— selecione o ano');
   document.getElementById('fipe-val').value = '';
-  if (!ano) return;
+  if (!ano || !versoesData) return;
+  // Mostra só as versões que existem naquele ano
+  sV.innerHTML = '<option value="">Selecione a versão</option>';
+  let n = 0;
+  versoesData.versoes.forEach(v => {
+    const anoObj = (v.anos || []).find(a => a.anoNum === ano);
+    if (anoObj) {
+      const o = document.createElement('option');
+      o.value = `${v.codigo}|${anoObj.codigo}`;
+      o.textContent = v.nome;
+      sV.appendChild(o);
+      n++;
+    }
+  });
+  sV.disabled = false;
+  setSt(`${n} versão(ões) em ${ano}`, 'ok');
+}
+
+async function onVersao() {
+  const marca = document.getElementById('sel-marca').value;
+  const v = document.getElementById('sel-versao').value;
+  document.getElementById('fipe-val').value = '';
+  if (!v) return;
+  const [modeloCod, anoCod] = v.split('|');
   setSt('⏳ Consultando FIPE do mês...', 'loading');
   try {
-    const data = await fipeGet(`/marcas/${marca}/modelos/${modelo}/anos/${ano}`);
+    const data = await fipeGet(`/marcas/${marca}/modelos/${modeloCod}/anos/${anoCod}`);
     const limpo = (data.Valor || '').replace('R$', '').trim();
     document.getElementById('fipe-val').value = limpo;
     setSt(`✓ FIPE ${data.MesReferencia || 'atual'}: ${data.Valor}`, 'ok');
@@ -676,7 +722,9 @@ function toTitleCase(str) {
 function gerar() {
   if (currentMode === 'coletados') { gerarColetados(); return; }
   const mNome     = getSelTxt('sel-marca');
-  const modNome   = getSelTxt('sel-modelo');
+  // Usa a versão completa (FIPE); se não escolhida, cai no modelo-base
+  const versaoTxt = getSelTxt('sel-versao');
+  const modNome   = !badSel(versaoTxt) ? versaoTxt : getSelTxt('sel-modelo');
   const anoNome   = getSelTxt('sel-ano');
   const compl     = document.getElementById('complemento').value.trim();
   const km        = document.getElementById('km').value.trim();
