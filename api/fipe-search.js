@@ -22,7 +22,9 @@ async function fipeGet(path, retries = 3) {
 const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','híb','hybrid','phev'];
 
 function score(haystack, needle) {
-  const words = needle.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 0);
+  // Inclui o ponto como separador: abreviações da FIPE ("Long.", "Lo.", "Lim.", "Edit.")
+  // viram "long"/"lo"/"lim"/"edit" e casam por prefixo com o texto do usuário.
+  const words = needle.toLowerCase().split(/[\s\-\/.]+/).filter(w => w.length > 0);
   const h = haystack.toLowerCase();
 
   let pts = words.reduce((acc, w) => {
