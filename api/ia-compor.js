@@ -27,8 +27,9 @@ module.exports = async (req, res) => {
 
   // Lista fechada de modelos permitidos (evita acionar modelos caros por engano)
   const MODELOS = {
-    'nano-banana':   'google/gemini-2.5-flash-image',          // ~US$ 0,04/img
-    'nano-banana-2': 'google/gemini-3.1-flash-image-preview',  // mais novo, ~US$ 0,05-0,15/img
+    'nano-banana':     'google/gemini-2.5-flash-image',          // ~US$ 0,04/img
+    'nano-banana-2':   'google/gemini-3.1-flash-image-preview',  // mais novo, ~US$ 0,05-0,15/img
+    'nano-banana-pro': 'google/gemini-3-pro-image',              // topo, ~US$ 0,13-0,24/img
   };
   const modelId = MODELOS[model] || MODELOS['nano-banana'];
 
