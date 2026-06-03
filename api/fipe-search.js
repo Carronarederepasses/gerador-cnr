@@ -71,80 +71,85 @@ module.exports = async (req, res) => {
     }
 
     // ── 2. MODELO ─────────────────────────────────────────────────────────────
-    // Declarado aqui para que fique acessível em todos os blocos abaixo
-    let melhorModelo = null, melhorMScore = 0;
-
-    // Função auxiliar: encontra o melhor modelo de uma marca contra o texto
-    async function buscaModelo(marca) {
+    // Função auxiliar: retorna TODOS os modelos de uma marca pontuados (ordenado desc)
+    async function buscaModelos(marca) {
       const d = await fipeGet(`/marcas/${marca.codigo}/modelos`);
       const mods = d.modelos || [];
       const palavras = marca.nome.toLowerCase().split(/[\s\-\/]+/).filter(w => w.length > 2);
       let semM = vLower;
       palavras.forEach(p => { semM = semM.replace(new RegExp(p, 'gi'), ''); });
-      let bestMod = null, bestS = 0;
-      for (const m of mods) {
-        const s = score(semM.trim(), m.nome);
-        if (s > bestS) { bestS = s; bestMod = m; }
-      }
-      return { modelo: bestMod, score: bestS };
+      return mods
+        .map(m => ({ marca, modelo: m, score: score(semM.trim(), m.nome) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score);
     }
 
+    // Acumula candidatos (modelo + marca + score)
+    let candidatos = [];
     if (melhorMarca && melhorScore > 0) {
-      // Marca encontrada — busca modelo nela
-      const res2 = await buscaModelo(melhorMarca);
-      melhorModelo = res2.modelo;
-      melhorMScore = res2.score;
+      candidatos = await buscaModelos(melhorMarca);
     }
 
-    // Se modelo não encontrado (ou score baixo), varre marcas populares
-    // Cobre: (a) marca não detectada, (b) IA hallucinou marca errada
-    if (!melhorModelo || melhorMScore < 4) {
+    // Se nada bom na marca detectada, varre marcas populares (marca não detectada
+    // ou IA inferiu marca errada) e junta tudo
+    if (candidatos.length === 0 || candidatos[0].score < 4) {
       const marcasTentativas = marcas.filter(m =>
         MARCAS_POPULARES_IDS.some(p => m.nome.toLowerCase().includes(p)) &&
         m.codigo !== melhorMarca?.codigo
       );
       for (const marca of marcasTentativas) {
-        try {
-          const r = await buscaModelo(marca);
-          if (r.score > melhorMScore) {
-            melhorMScore = r.score;
-            melhorModelo = r.modelo;
-            melhorMarca = marca;
-          }
-          if (melhorMScore >= 8) break; // score alto — para de procurar
-        } catch { continue; }
+        try { candidatos = candidatos.concat(await buscaModelos(marca)); } catch { continue; }
       }
+      candidatos.sort((a, b) => b.score - a.score);
     }
 
-    if (!melhorMarca || !melhorModelo || melhorMScore === 0) {
+    if (candidatos.length === 0) {
       return res.status(200).json({ found: false, reason: 'modelo não identificado' });
     }
 
-    // ── 3. ANO ────────────────────────────────────────────────────────────────
-    const anos = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos`);
-    let anoObj = anos.find(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
-    let anoFallback = false;
-    if (!anoObj && anos.length > 0) {
-      // Filtra só anos reais (1900-2099) — exclui códigos internos FIPE como "32000"
+    // ── 3. MODELO + ANO (desambiguação) ───────────────────────────────────────
+    // Entre os candidatos de score alto, prefere o que TEM o ano pedido de verdade
+    // (ex: "Renegade Longitude Flex 2023" → 1.3 Turbo, não a 1.8 que só vai até 2021)
+    const topScore = candidatos[0].score;
+    const topCands = candidatos.filter(c => c.score >= topScore - 8).slice(0, 6);
+
+    const temAnoExato = (anos) =>
+      anos.find(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
+
+    let escolhido = null, anoObj = null, anoFallback = false;
+
+    // 1ª passada: maior score que possua o ano exato
+    for (const c of topCands) {
+      try {
+        const anos = await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`);
+        const exato = temAnoExato(anos);
+        if (exato) { escolhido = c; anoObj = exato; break; }
+      } catch { continue; }
+    }
+
+    // 2ª passada: ninguém tem o ano exato → melhor score com ano mais próximo
+    if (!escolhido) {
+      const c = topCands[0];
+      const anos = await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`);
       const anosReais = anos
         .map(a => ({ obj: a, n: parseInt(a.nome.match(/\b(19|20)\d{2}\b/)?.[0] || '0') }))
         .filter(a => a.n > 0);
       const anoInt = parseInt(anoLimpo);
       anosReais.sort((a, b) => Math.abs(a.n - anoInt) - Math.abs(b.n - anoInt));
-      anoObj = anosReais[0]?.obj || null;
-      anoFallback = true;
+      escolhido = c; anoObj = anosReais[0]?.obj || null; anoFallback = true;
     }
+
     if (!anoObj) return res.status(200).json({ found: false, reason: 'sem anos disponíveis' });
 
     // ── 4. VALOR FIPE ─────────────────────────────────────────────────────────
-    const fipeData = await fipeGet(`/marcas/${melhorMarca.codigo}/modelos/${melhorModelo.codigo}/anos/${anoObj.codigo}`);
+    const fipeData = await fipeGet(`/marcas/${escolhido.marca.codigo}/modelos/${escolhido.modelo.codigo}/anos/${anoObj.codigo}`);
 
     return res.status(200).json({
       found: true,
       valor: fipeData.Valor,
       valorNumerico: (fipeData.Valor || '').replace('R$', '').trim(),
-      marca: melhorMarca.nome,
-      modelo: melhorModelo.nome,
+      marca: escolhido.marca.nome,
+      modelo: escolhido.modelo.nome,
       ano: anoObj.nome,
       mesReferencia: fipeData.MesReferencia,
       anoFallback,
