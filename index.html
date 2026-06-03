@@ -265,6 +265,9 @@
 
   </div><!-- /modo-coletados -->
 
+  <!-- Blocos compartilhados por Captação e Coletados (escondidos no modo Foto) -->
+  <div id="blocos-anuncio">
+
   <!-- OPCIONAIS POR CATEGORIA -->
   <div class="fsec">
     <div class="fsec-title">Opcionais</div>
@@ -300,6 +303,7 @@
   </div>
 
   <button class="btn-gen" onclick="gerar()">▶ Gerar Anúncio</button>
+  </div><!-- /blocos-anuncio -->
 </div>
 
 <!-- ── EDITOR DE FOTO ── -->
@@ -891,6 +895,8 @@ function setMode(mode) {
   document.getElementById('modo-captacao').style.display    = mode === 'captacao'  ? '' : 'none';
   document.getElementById('modo-coletados').style.display   = mode === 'coletados' ? '' : 'none';
   document.getElementById('modo-editor').style.display      = mode === 'editor'    ? '' : 'none';
+  // Opcionais/blindagem/obs/valores/Gerar só fazem sentido em Captação e Coletados
+  document.getElementById('blocos-anuncio').style.display   = mode === 'editor'    ? 'none' : '';
   document.getElementById('btn-captacao').classList.toggle('active',  mode === 'captacao');
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
