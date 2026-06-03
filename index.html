@@ -1097,17 +1097,14 @@ async function processarFoto() {
   const btn = document.getElementById('btn-processar');
   btn.disabled = true;
   btn.textContent = '⏳ Processando...';
-  setEditorSt('Carregando IA... (primeira vez ~30s, depois em cache)', 'loading');
-
   try {
-    setEditorSt('Enviando para o Gemini...', 'loading');
+    // Reduz para max 1600px antes de enviar (recorte com boa resolução)
+    setEditorSt('Preparando a foto...', 'loading');
+    const base64 = await resizeImg(input.files[0], 1600);
 
-    // Reduz para max 1200px antes de enviar
-    const base64 = await resizeImg(input.files[0], 1200);
-
-    setEditorSt('IA gerando composição... (10-20 segundos)', 'loading');
-
-    const resp = await fetch('/api/gemini-edit', {
+    // Recorta o carro real (sem alucinação) via remove.bg
+    setEditorSt('Removendo o fundo da foto...', 'loading');
+    const resp = await fetch('/api/remove-bg', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64: base64 }),
@@ -1115,18 +1112,12 @@ async function processarFoto() {
     const data = await resp.json();
     if (!resp.ok || data.error) throw new Error(data.error || 'Erro na API');
 
-    // Gemini retorna a imagem final composta — mostra direto no canvas
-    const mime = data.mimeType || 'image/png';
-    const resultImg = await loadImg(`data:${mime};base64,${data.result}`);
+    // Guarda o PNG recortado e compõe sobre o fundo CNR no canvas
+    editorCarPng = data.result;
+    setEditorSt('Compondo sobre o fundo CNR...', 'loading');
+    await renderCanvas();
 
-    const canvas = document.getElementById('editor-canvas');
-    canvas.width  = resultImg.naturalWidth;
-    canvas.height = resultImg.naturalHeight;
-    canvas.getContext('2d').drawImage(resultImg, 0, 0);
-    canvas.style.display = 'block';
-    document.getElementById('canvas-empty').style.display = 'none';
-
-    setEditorSt('✓ Pronto! Baixe a foto.', 'ok');
+    setEditorSt('✓ Pronto! Ajuste com os controles e baixe.', 'ok');
     document.getElementById('btn-download').style.display = 'block';
 
   } catch (e) {
