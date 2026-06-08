@@ -876,7 +876,8 @@ function copiar() {
 // ══════════════════════════════════════════════
 // BUSCA FIPE AUTOMÁTICA (modo Coletados)
 // ══════════════════════════════════════════════
-async function buscarFIPEColetados(veiculoTexto, anoTexto) {
+async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial) {
+  const avisoP = parcial ? ' ⚠️ Do link vieram só veículo e ano — preencha KM, cor, preço e região.' : '';
   try {
     setParseSt('Buscando FIPE...', '');
     const resp = await fetch('/api/fipe-search', {
@@ -886,15 +887,15 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto) {
     });
     const data = await resp.json();
     if (!resp.ok || !data.found) {
-      setParseSt('✓ Campos preenchidos — FIPE não identificada. Use a busca manual abaixo. 👇', 'ok');
+      setParseSt('✓ Campos preenchidos — FIPE não identificada. Use a busca manual abaixo. 👇' + avisoP, 'ok');
       abrirCascataColet();
       return;
     }
     document.getElementById('colet-fipe').value = data.valorNumerico;
     const avisoAno = data.anoFallback ? ` (ano ${data.ano} — mais recente disponível)` : '';
-    setParseSt(`✓ Tudo preenchido — FIPE ${data.mesReferencia || 'atual'}: ${data.valor}${avisoAno}. Se a versão veio errada, ajuste na busca manual abaixo. 👇`, 'ok');
+    setParseSt(`✓ FIPE ${data.mesReferencia || 'atual'}: ${data.valor}${avisoAno}.${avisoP || ' Se a versão veio errada, ajuste na busca manual abaixo. 👇'}`, 'ok');
   } catch(e) {
-    setParseSt('✓ Campos preenchidos — FIPE indisponível. Use a busca manual abaixo. 👇', 'ok');
+    setParseSt('✓ Campos preenchidos — FIPE indisponível. Use a busca manual abaixo. 👇' + avisoP, 'ok');
     abrirCascataColet();
     console.error('buscarFIPEColetados:', e);
   }
@@ -1031,6 +1032,7 @@ async function processarIA() {
 
   try {
     // Se colou um link (ex: OLX), busca o conteúdo da página antes
+    let linkParcial = false;
     const ehLink = /^https?:\/\/\S+$/i.test(texto);
     if (ehLink) {
       setParseSt('Lendo o anúncio do link...', '');
@@ -1042,6 +1044,7 @@ async function processarIA() {
       const dl = await rl.json();
       if (!rl.ok || !dl.texto) throw new Error(dl.error || 'Não consegui ler o link.');
       texto = dl.texto;
+      linkParcial = !!dl.parcial;
       setParseSt('Link lido — extraindo dados com a IA...', '');
     }
 
@@ -1095,7 +1098,7 @@ async function processarIA() {
     // Busca FIPE automaticamente se não veio no texto
     // Sempre busca FIPE na API — ignora valor do texto (pode estar arredondado)
     if (data.veiculo && data.ano) {
-      buscarFIPEColetados(data.veiculo, data.ano);
+      buscarFIPEColetados(data.veiculo, data.ano, linkParcial);
     }
 
   } catch (err) {

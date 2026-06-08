@@ -44,6 +44,22 @@ function extrairTexto(html) {
   return partes.join('\n').slice(0, 5000);
 }
 
+// Extrai dados do "slug" da URL (ex: .../honda-wr-v-exl-1-5-flexone-16v-5p-aut-2018-1503745454
+// → "honda wr v exl 1.5 flexone 16v 5p aut 2018"). Funciona mesmo quando o site bloqueia a leitura.
+function textoDoSlug(url) {
+  try {
+    const u = new URL(url);
+    let seg = (u.pathname.split('/').filter(Boolean).pop() || '');
+    seg = decodeURIComponent(seg)
+      .replace(/-?\d{6,}$/, '')        // remove o ID numérico longo do anúncio no final
+      .replace(/[-_]+/g, ' ')          // hífens/underscores viram espaços
+      .replace(/\b(\d)\s(\d)\b/g, '$1.$2') // "1 5" → "1.5" (motorização)
+      .replace(/\s+/g, ' ')
+      .trim();
+    return seg;
+  } catch { return ''; }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
@@ -53,6 +69,8 @@ module.exports = async (req, res) => {
   if (!url || !/^https?:\/\//i.test(url)) {
     return res.status(400).json({ error: 'URL inválida' });
   }
+
+  const slug = textoDoSlug(url);
 
   try {
     const r = await fetch(url, {
@@ -64,19 +82,23 @@ module.exports = async (req, res) => {
       redirect: 'follow',
     });
 
-    if (!r.ok) {
-      return res.status(502).json({ error: `O site bloqueou a leitura (HTTP ${r.status}). Copie e cole o texto do anúncio.` });
+    if (r.ok) {
+      const html = await r.text();
+      const texto = extrairTexto(html);
+      if (texto && texto.length >= 40) {
+        return res.status(200).json({ texto: (slug ? slug + '\n' : '') + texto });
+      }
     }
-
-    const html = await r.text();
-    const texto = extrairTexto(html);
-    if (!texto || texto.length < 40) {
-      return res.status(422).json({ error: 'Não consegui ler o conteúdo do link. Copie e cole o texto do anúncio.' });
+    // Site bloqueou ou veio vazio: usa o que dá pra extrair do próprio endereço
+    if (slug && slug.length >= 8) {
+      return res.status(200).json({ texto: slug, parcial: true });
     }
-
-    return res.status(200).json({ texto });
+    return res.status(502).json({ error: `O site bloqueou a leitura (HTTP ${r.status}). Copie e cole o texto do anúncio.` });
   } catch (err) {
     console.error('fetch-anuncio error:', err.message);
+    if (slug && slug.length >= 8) {
+      return res.status(200).json({ texto: slug, parcial: true });
+    }
     return res.status(502).json({ error: 'Não consegui acessar o link. Copie e cole o texto do anúncio.' });
   }
 };
