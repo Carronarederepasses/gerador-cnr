@@ -234,9 +234,9 @@
 
   <div class="fsec">
     <div class="fsec-title">Texto do anúncio</div>
-    <div class="fsec-hint">Cole qualquer anúncio — OLX, Webmotors, WhatsApp, etc.</div>
+    <div class="fsec-hint">Cole o texto do anúncio (OLX, Webmotors, WhatsApp) OU cole o link da OLX.</div>
     <div class="field">
-      <textarea class="paste-area" id="texto-colado" placeholder="Cole aqui o texto completo do anúncio..."></textarea>
+      <textarea class="paste-area" id="texto-colado" placeholder="Cole aqui o texto do anúncio, ou o link da OLX (ex: https://www.olx.com.br/...)"></textarea>
     </div>
     <button class="btn-parse" id="btn-parse" onclick="processarIA()">▶ Processar com IA</button>
     <div class="parse-st" id="parse-st"></div>
@@ -1020,8 +1020,8 @@ function setParseSt(msg, cls) {
 }
 
 async function processarIA() {
-  const texto = document.getElementById('texto-colado').value.trim();
-  if (!texto) { setParseSt('Cole o texto antes de processar.'); return; }
+  let texto = document.getElementById('texto-colado').value.trim();
+  if (!texto) { setParseSt('Cole o texto ou o link antes de processar.'); return; }
 
   const btn = document.getElementById('btn-parse');
   btn.disabled = true;
@@ -1030,6 +1030,21 @@ async function processarIA() {
   setParseSt('Consultando IA...', '');
 
   try {
+    // Se colou um link (ex: OLX), busca o conteúdo da página antes
+    const ehLink = /^https?:\/\/\S+$/i.test(texto);
+    if (ehLink) {
+      setParseSt('Lendo o anúncio do link...', '');
+      const rl = await fetch('/api/fetch-anuncio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: texto }),
+      });
+      const dl = await rl.json();
+      if (!rl.ok || !dl.texto) throw new Error(dl.error || 'Não consegui ler o link.');
+      texto = dl.texto;
+      setParseSt('Link lido — extraindo dados com a IA...', '');
+    }
+
     const resp = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
