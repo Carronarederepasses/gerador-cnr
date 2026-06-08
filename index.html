@@ -34,14 +34,14 @@
   /* FIELDS */
   .field{display:flex;flex-direction:column;gap:.3rem}
   label{font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--light)}
-  input[type="text"],select{
+  input[type="text"],select,textarea{
     background:var(--gray);border:1px solid var(--border);color:var(--white);
     font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:300;
     padding:.65rem .85rem;outline:none;transition:border-color .2s;width:100%;
     -webkit-appearance:none;appearance:none
   }
-  input:focus,select:focus{border-color:rgba(245,243,238,.35)}
-  input::placeholder{color:#444}
+  input:focus,select:focus,textarea:focus{border-color:rgba(245,243,238,.35)}
+  input::placeholder,textarea::placeholder{color:#444}
   select{
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:right .8rem center;padding-right:2rem;cursor:pointer
@@ -305,7 +305,7 @@
     <div class="tog-grid" id="obs-grid"></div>
     <div class="field" style="margin-top:.5rem">
       <label>Observação personalizada</label>
-      <input type="text" id="obs-custom" placeholder="ex: Veículo de leilão, aceita troca...">
+      <textarea id="obs-custom" rows="4" placeholder="ex: Veículo de leilão, aceita troca..." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
     </div>
   </div>
 
@@ -830,7 +830,7 @@ function gerar() {
   if (obsIds.length || obsCustom) {
     linhas.push('');
     obsIds.forEach(id => linhas.push(obsMap[id] || id));
-    if (obsCustom) linhas.push(`ℹ️ ${obsCustom}`);
+    if (obsCustom) linhas.push(`✅ ${obsCustom}`);
   }
 
   // Valores
@@ -1138,7 +1138,7 @@ function gerarColetados() {
   if (obsIds.length || obsCustom) {
     linhas.push('');
     obsIds.forEach(id => linhas.push(obsMap[id] || id));
-    if (obsCustom) linhas.push(`ℹ️ ${obsCustom}`);
+    if (obsCustom) linhas.push(`✅ ${obsCustom}`);
   }
 
   linhas.push('');
