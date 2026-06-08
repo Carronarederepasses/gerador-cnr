@@ -26,11 +26,12 @@ function score(haystack, needle) {
   // viram "long"/"lo"/"lim"/"edit" e casam por prefixo com o texto do usuário.
   const words = needle.toLowerCase().split(/[\s\-\/.]+/).filter(w => w.length > 0);
   const h = haystack.toLowerCase();
+  const hWords = h.split(/[\s\-\/.]+/).filter(Boolean); // palavras isoladas do texto
 
   let pts = words.reduce((acc, w) => {
     if (w.length > 2) return acc + (h.includes(w) ? w.length : 0);
-    const matched = new RegExp(`(?:^|\\s)${w}(?:\\s|$)`).test(h);
-    return acc + (matched ? 1 : 0);
+    // Palavra curta: casa só se for palavra isolada (sem regex, evita erro com '(' ')' etc.)
+    return acc + (hWords.includes(w) ? 1 : 0);
   }, 0);
 
   // Penaliza variantes específicas que aparecem no modelo mas não no texto
