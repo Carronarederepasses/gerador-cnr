@@ -41,6 +41,13 @@ function score(haystack, needle) {
     }
   }
 
+  // Penaliza forte se o modelo-base (1ª palavra do nome FIPE) não aparece no texto.
+  // Evita casar "Fit ... Aut" quando o usuário falou "WR-V ..." (mesmos opcionais no nome).
+  const base = words[0];
+  if (base && base.length >= 2 && !hWords.includes(base) && !h.includes(base)) {
+    pts -= 8;
+  }
+
   return pts;
 }
 
