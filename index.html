@@ -291,6 +291,21 @@
     <div id="opcionais-wrap"></div>
   </div>
 
+  <!-- PNEUS -->
+  <div class="fsec">
+    <div class="fsec-title">Pneus</div>
+    <div class="field">
+      <label>Estado dos pneus</label>
+      <select id="pneus-estado">
+        <option value="">Não informar</option>
+        <option value="novos">4 pneus novos</option>
+        <option value="bons">Pneus em bom estado</option>
+        <option value="meia-vida">Pneus meia-vida</option>
+        <option value="fracos">Pneus a trocar (fracos)</option>
+      </select>
+    </div>
+  </div>
+
   <!-- BLINDAGEM -->
   <div class="blind-wrap" id="blind-wrap">
     <div class="fsec-title" style="border:none;padding:0;margin-bottom:.8rem">Detalhes da Blindagem</div>
@@ -483,7 +498,6 @@ const CATEGORIAS = [
     itens: [
       {id:'rodas_liga',  lbl:'Rodas de liga leve',           on:false},
       {id:'farol_led',   lbl:'Faróis em LED/Xenon',          on:false},
-      {id:'pneus_zero',  lbl:'4 pneus zero',                 on:false},
     ]
   },
   {
@@ -494,6 +508,9 @@ const CATEGORIAS = [
       {id:'sem_debitos', lbl:'Sem multas/débitos',           on:false},
       {id:'revisoes',    lbl:'Revisões na concessionária',   on:false},
       {id:'garantia',    lbl:'Na garantia de fábrica',       on:false},
+      {id:'chave_reserva',lbl:'Chave reserva',               on:false},
+      {id:'manual_veic', lbl:'Manual do veículo',            on:false},
+      {id:'a_confirmar', lbl:'A confirmar',                  on:false},
       {id:'blindado',    lbl:'🛡️ Blindado',                  on:false},
     ]
   },
@@ -741,6 +758,18 @@ function getLblById(id) {
   return id;
 }
 
+// Linha do estado dos pneus para o anúncio (ou null se "não informar")
+function linhaPneus() {
+  const v = (document.getElementById('pneus-estado') || {}).value || '';
+  const MAP = {
+    'novos':     '✅ 4 pneus novos',
+    'bons':      '✅ Pneus em bom estado',
+    'meia-vida': '🛞 Pneus meia-vida',
+    'fracos':    '🛞 Pneus a trocar',
+  };
+  return MAP[v] || null;
+}
+
 function getSelTxt(id) {
   const s = document.getElementById(id);
   return s.options[s.selectedIndex]?.text || '';
@@ -809,9 +838,11 @@ function gerar() {
 
   // Opcionais — tudo que está ON exceto blindado
   const itensOn = onIds.filter(id => id !== 'blindado');
-  if (itensOn.length || onIds.includes('blindado')) {
+  const pneusLinha = linhaPneus();
+  if (itensOn.length || onIds.includes('blindado') || pneusLinha) {
     linhas.push('');
     itensOn.forEach(id => linhas.push(`✅ ${getLblById(id)}`));
+    if (pneusLinha) linhas.push(pneusLinha);
 
     // Blindado com detalhes
     if (onIds.includes('blindado')) {
@@ -992,7 +1023,6 @@ const OPCIONAIS_MAP = {
   'tracao-4x4':            'tracao_4x4',
   'rodas-liga-leve':       'rodas_liga',
   'farol-led-xenon':       'farol_led',
-  'pneus-zero':            'pneus_zero',
   'unico-dono':            'unico_dono',
   'ipva-pago':             'ipva_pago',
   'sem-multas-debitos':    'sem_debitos',
@@ -1140,9 +1170,11 @@ function gerarColetados() {
   if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
 
   const itensOn = onIds.filter(id => id !== 'blindado');
-  if (itensOn.length || onIds.includes('blindado')) {
+  const pneusLinha = linhaPneus();
+  if (itensOn.length || onIds.includes('blindado') || pneusLinha) {
     linhas.push('');
     itensOn.forEach(id => linhas.push(`✅ ${getLblById(id)}`));
+    if (pneusLinha) linhas.push(pneusLinha);
     if (onIds.includes('blindado')) {
       const bM = document.getElementById('blind-marca').value.trim();
       const bN = document.getElementById('blind-nivel').value.trim();
