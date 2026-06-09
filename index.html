@@ -309,8 +309,8 @@
     </div>
   </div>
 
-  <!-- VALORES -->
-  <div class="fsec">
+  <!-- VALORES (Captação tem campos próprios; no Coletados é escondido pois há colet-valor/colet-fipe) -->
+  <div class="fsec" id="bloco-valores">
     <div class="fsec-title">Valores</div>
     <div class="g2">
       <div class="field"><label>Valor de venda (R$)</label><input type="text" id="valor" placeholder="88.990,00"></div>
@@ -942,6 +942,8 @@ function setMode(mode) {
   document.getElementById('modo-editor').style.display      = mode === 'editor'    ? '' : 'none';
   // Opcionais/blindagem/obs/valores/Gerar só fazem sentido em Captação e Coletados
   document.getElementById('blocos-anuncio').style.display   = mode === 'editor'    ? 'none' : '';
+  // O bloco "Valores" duplica os campos do Coletados (colet-valor/colet-fipe) — esconde lá
+  document.getElementById('bloco-valores').style.display    = mode === 'coletados' ? 'none' : '';
   document.getElementById('btn-captacao').classList.toggle('active',  mode === 'captacao');
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
