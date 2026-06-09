@@ -306,6 +306,29 @@
     </div>
   </div>
 
+  <!-- DOCUMENTOS E ITENS -->
+  <div class="fsec">
+    <div class="fsec-title">Documentos e itens</div>
+    <div class="g2">
+      <div class="field">
+        <label>Chave reserva</label>
+        <select id="chave-reserva">
+          <option value="">Não informar</option>
+          <option value="tem">Tem</option>
+          <option value="confirmar">A confirmar</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Manual do veículo</label>
+        <select id="manual-veiculo">
+          <option value="">Não informar</option>
+          <option value="tem">Tem</option>
+          <option value="confirmar">A confirmar</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
   <!-- BLINDAGEM -->
   <div class="blind-wrap" id="blind-wrap">
     <div class="fsec-title" style="border:none;padding:0;margin-bottom:.8rem">Detalhes da Blindagem</div>
@@ -508,9 +531,6 @@ const CATEGORIAS = [
       {id:'sem_debitos', lbl:'Sem multas/débitos',           on:false},
       {id:'revisoes',    lbl:'Revisões na concessionária',   on:false},
       {id:'garantia',    lbl:'Na garantia de fábrica',       on:false},
-      {id:'chave_reserva',lbl:'Chave reserva',               on:false},
-      {id:'manual_veic', lbl:'Manual do veículo',            on:false},
-      {id:'a_confirmar', lbl:'A confirmar',                  on:false},
       {id:'blindado',    lbl:'🛡️ Blindado',                  on:false},
     ]
   },
@@ -770,6 +790,23 @@ function linhaPneus() {
   return MAP[v] || null;
 }
 
+// Item com estado "Tem" / "A confirmar" (chave reserva, manual)
+function linhaItemConfirmavel(selId, label) {
+  const v = (document.getElementById(selId) || {}).value || '';
+  if (v === 'tem')      return `✅ ${label}`;
+  if (v === 'confirmar') return `🔎 ${label} (a confirmar)`;
+  return null;
+}
+
+// Todas as linhas extras (pneus, chave, manual) que entram no anúncio
+function linhasExtras() {
+  return [
+    linhaPneus(),
+    linhaItemConfirmavel('chave-reserva', 'Chave reserva'),
+    linhaItemConfirmavel('manual-veiculo', 'Manual do veículo'),
+  ].filter(Boolean);
+}
+
 function getSelTxt(id) {
   const s = document.getElementById(id);
   return s.options[s.selectedIndex]?.text || '';
@@ -838,11 +875,11 @@ function gerar() {
 
   // Opcionais — tudo que está ON exceto blindado
   const itensOn = onIds.filter(id => id !== 'blindado');
-  const pneusLinha = linhaPneus();
-  if (itensOn.length || onIds.includes('blindado') || pneusLinha) {
+  const extras = linhasExtras();
+  if (itensOn.length || onIds.includes('blindado') || extras.length) {
     linhas.push('');
     itensOn.forEach(id => linhas.push(`✅ ${getLblById(id)}`));
-    if (pneusLinha) linhas.push(pneusLinha);
+    extras.forEach(l => linhas.push(l));
 
     // Blindado com detalhes
     if (onIds.includes('blindado')) {
@@ -1170,11 +1207,11 @@ function gerarColetados() {
   if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
 
   const itensOn = onIds.filter(id => id !== 'blindado');
-  const pneusLinha = linhaPneus();
-  if (itensOn.length || onIds.includes('blindado') || pneusLinha) {
+  const extras = linhasExtras();
+  if (itensOn.length || onIds.includes('blindado') || extras.length) {
     linhas.push('');
     itensOn.forEach(id => linhas.push(`✅ ${getLblById(id)}`));
-    if (pneusLinha) linhas.push(pneusLinha);
+    extras.forEach(l => linhas.push(l));
     if (onIds.includes('blindado')) {
       const bM = document.getElementById('blind-marca').value.trim();
       const bN = document.getElementById('blind-nivel').value.trim();
