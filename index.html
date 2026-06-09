@@ -327,6 +327,10 @@
         </select>
       </div>
     </div>
+    <div class="field" style="margin-top:.7rem">
+      <label>Revisões registradas até (km) — opcional</label>
+      <input type="text" id="revisoes-km" placeholder="ex: 40.000">
+    </div>
   </div>
 
   <!-- BLINDAGEM -->
@@ -798,12 +802,25 @@ function linhaItemConfirmavel(selId, label) {
   return null;
 }
 
-// Todas as linhas extras (pneus, chave, manual) que entram no anúncio
+// Formata km só com dígitos → separador de milhar (ex: "40000" → "40.000")
+function fmtKm(v) {
+  const n = parseInt(String(v).replace(/\D/g, ''), 10);
+  return isNaN(n) ? '' : n.toLocaleString('pt-BR');
+}
+
+// Linha de revisões registradas até X km (ou null)
+function linhaRevisoes() {
+  const km = fmtKm((document.getElementById('revisoes-km') || {}).value || '');
+  return km ? `✅ Revisões até ${km} km` : null;
+}
+
+// Todas as linhas extras (pneus, chave, manual, revisões) que entram no anúncio
 function linhasExtras() {
   return [
     linhaPneus(),
     linhaItemConfirmavel('chave-reserva', 'Chave reserva'),
     linhaItemConfirmavel('manual-veiculo', 'Manual do veículo'),
+    linhaRevisoes(),
   ].filter(Boolean);
 }
 
