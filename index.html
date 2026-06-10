@@ -1666,25 +1666,37 @@ function limparEstado() {
 
 // Zera os campos sem recarregar (usado após gerar o anúncio — o preview continua)
 function limparCampos() {
-  CAMPOS_SIMPLES.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  // Cascata FIPE (Captação)
-  const sm = document.getElementById('sel-marca'); if (sm) sm.value = '';
-  resetSel('sel-modelo', '— selecione a marca');
-  resetSel('sel-ano', '— selecione o modelo');
-  resetSel('sel-versao', '— selecione o ano');
-  // Cascata manual (Coletados)
-  const csm = document.getElementById('csel-marca'); if (csm) csm.value = '';
-  resetSel('csel-modelo', '— selecione a marca');
-  resetSel('csel-ano', '— selecione o modelo');
-  resetSel('csel-versao', '— selecione o ano');
-  // Toggles
-  document.querySelectorAll('#opcionais-wrap .tog.on, #obs-grid .tog.on').forEach(tog => {
+  // 1º: cancela save pendente e apaga o salvamento — garante que NÃO restaura ao recarregar
+  clearTimeout(_saveTimer);
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+
+  // 2º: zera a tela (cada etapa isolada — uma falha não impede as outras)
+  const z = fn => { try { fn(); } catch (e) { console.error('limparCampos:', e); } };
+
+  z(() => CAMPOS_SIMPLES.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
+  }));
+  z(() => {
+    const sm = document.getElementById('sel-marca'); if (sm) sm.selectedIndex = 0;
+    resetSel('sel-modelo', '— selecione a marca');
+    resetSel('sel-ano', '— selecione o modelo');
+    resetSel('sel-versao', '— selecione o ano');
+  });
+  z(() => {
+    const csm = document.getElementById('csel-marca'); if (csm) csm.selectedIndex = 0;
+    resetSel('csel-modelo', '— selecione a marca');
+    resetSel('csel-ano', '— selecione o modelo');
+    resetSel('csel-versao', '— selecione o ano');
+  });
+  z(() => document.querySelectorAll('#opcionais-wrap .tog.on, #obs-grid .tog.on').forEach(tog => {
     tog.classList.remove('on');
     const box = tog.querySelector('.togbox'); if (box) box.textContent = '';
-  });
-  const bw = document.getElementById('blind-wrap'); if (bw) bw.classList.remove('show');
-  setSt('');
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  }));
+  z(() => { const bw = document.getElementById('blind-wrap'); if (bw) bw.classList.remove('show'); });
+  z(() => setSt(''));
+  z(() => setParseSt(''));
 }
 
 // ══ INIT ══
