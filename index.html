@@ -361,7 +361,7 @@
   </div>
 
   <button class="btn-gen" onclick="gerar()">▶ Gerar Anúncio</button>
-  <button onclick="limparEstado()" style="width:100%;margin-top:.5rem;background:none;border:1px solid var(--border);color:var(--mid);padding:.6rem;font-family:'DM Sans',sans-serif;font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer">🗑️ Limpar campos</button>
+  <button onclick="limparEstado()" style="width:100%;margin-top:.5rem;background:none;border:1px solid var(--border);color:var(--mid);padding:.7rem;font-family:'DM Sans',sans-serif;font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer">🗑️ Limpar dados (novo anúncio)</button>
   </div><!-- /blocos-anuncio -->
 </div>
 
@@ -932,7 +932,6 @@ function gerar() {
   // Render preview
   renderPreview(texto);
   mostrarShare(texto);
-  limparCampos(); // pronto para o próximo carro (o preview permanece)
 }
 
 function renderPreview(texto) {
@@ -1260,7 +1259,6 @@ function gerarColetados() {
 
   renderPreview(texto);
   mostrarShare(texto);
-  limparCampos(); // pronto para o próximo carro (o preview permanece)
 }
 
 // ══════════════════════════════════════════════
@@ -1664,40 +1662,6 @@ function limparEstado() {
   location.reload();
 }
 
-// Zera os campos sem recarregar (usado após gerar o anúncio — o preview continua)
-function limparCampos() {
-  // 1º: cancela save pendente e apaga o salvamento — garante que NÃO restaura ao recarregar
-  clearTimeout(_saveTimer);
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
-
-  // 2º: zera a tela (cada etapa isolada — uma falha não impede as outras)
-  const z = fn => { try { fn(); } catch (e) { console.error('limparCampos:', e); } };
-
-  z(() => CAMPOS_SIMPLES.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
-  }));
-  z(() => {
-    const sm = document.getElementById('sel-marca'); if (sm) sm.selectedIndex = 0;
-    resetSel('sel-modelo', '— selecione a marca');
-    resetSel('sel-ano', '— selecione o modelo');
-    resetSel('sel-versao', '— selecione o ano');
-  });
-  z(() => {
-    const csm = document.getElementById('csel-marca'); if (csm) csm.selectedIndex = 0;
-    resetSel('csel-modelo', '— selecione a marca');
-    resetSel('csel-ano', '— selecione o modelo');
-    resetSel('csel-versao', '— selecione o ano');
-  });
-  z(() => document.querySelectorAll('#opcionais-wrap .tog.on, #obs-grid .tog.on').forEach(tog => {
-    tog.classList.remove('on');
-    const box = tog.querySelector('.togbox'); if (box) box.textContent = '';
-  }));
-  z(() => { const bw = document.getElementById('blind-wrap'); if (bw) bw.classList.remove('show'); });
-  z(() => setSt(''));
-  z(() => setParseSt(''));
-}
 
 // ══ INIT ══
 buildOpcionais();
