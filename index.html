@@ -361,6 +361,7 @@
   </div>
 
   <button class="btn-gen" onclick="gerar()">▶ Gerar Anúncio</button>
+  <button onclick="limparEstado()" style="width:100%;margin-top:.5rem;background:none;border:1px solid var(--border);color:var(--mid);padding:.6rem;font-family:'DM Sans',sans-serif;font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer">🗑️ Limpar campos</button>
   </div><!-- /blocos-anuncio -->
 </div>
 
@@ -1582,10 +1583,96 @@ function downloadFoto() {
   link.click();
 }
 
+// ══════════════════════════════════════════════
+// AUTO-SAVE — preserva o preenchimento se a aba recarregar (comum no celular)
+// ══════════════════════════════════════════════
+const SAVE_KEY = 'cnr_form_v1';
+const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','valor','fipe-val',
+  'texto-colado','colet-veiculo','colet-km','colet-cor','colet-ano','colet-regiao','colet-valor','colet-fipe',
+  'obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-estado','chave-reserva','manual-veiculo','revisoes-km'];
+const CAMPOS_CASCATA = ['sel-marca','sel-modelo','sel-ano','sel-versao'];
+let _saveTimer = null;
+
+function salvarEstado() {
+  try {
+    const estado = { mode: currentMode, campos: {}, opcionais: getAllOnIds(), obs: getOnIds('#obs-grid') };
+    [...CAMPOS_SIMPLES, ...CAMPOS_CASCATA].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) estado.campos[id] = el.value;
+    });
+    localStorage.setItem(SAVE_KEY, JSON.stringify(estado));
+  } catch (e) { /* localStorage indisponível — ignora */ }
+}
+function salvarEstadoDebounced() { clearTimeout(_saveTimer); _saveTimer = setTimeout(salvarEstado, 400); }
+
+async function restaurarEstado() {
+  let estado;
+  try { estado = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return; }
+  if (!estado || !estado.campos) return;
+  const c = estado.campos;
+
+  // Toggles (opcionais + observações)
+  const marcarTogs = (sel, ids) => {
+    document.querySelectorAll(sel + ' .tog').forEach(tog => {
+      if ((ids || []).includes(tog.dataset.id)) {
+        tog.classList.add('on');
+        const box = tog.querySelector('.togbox'); if (box) box.textContent = '✓';
+        if (tog.dataset.id === 'blindado') document.getElementById('blind-wrap').classList.add('show');
+      }
+    });
+  };
+  marcarTogs('#opcionais-wrap', estado.opcionais);
+  marcarTogs('#obs-grid', estado.obs);
+
+  if (estado.mode) setMode(estado.mode);
+
+  // Cascata FIPE da Captação — refeita em sequência (depende de chamadas à API)
+  try {
+    if (c['sel-marca']) {
+      const sM = document.getElementById('sel-marca');
+      sM.value = c['sel-marca'];
+      if (sM.value === c['sel-marca']) {
+        await onMarca();
+        if (c['sel-modelo']) {
+          document.getElementById('sel-modelo').value = c['sel-modelo'];
+          await onModelo();
+          if (c['sel-ano']) {
+            document.getElementById('sel-ano').value = c['sel-ano'];
+            onAno();
+            if (c['sel-versao']) {
+              document.getElementById('sel-versao').value = c['sel-versao'];
+              await onVersao();
+            }
+          }
+        }
+      }
+    }
+  } catch (e) { /* se a cascata falhar, os campos abaixo ainda são restaurados */ }
+
+  // Campos simples por último (sobrescreve fipe-val da cascata pelo valor salvo)
+  CAMPOS_SIMPLES.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && c[id] != null && c[id] !== '') el.value = c[id];
+  });
+}
+
+function limparEstado() {
+  if (!confirm('Limpar todos os campos e começar um anúncio novo?')) return;
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  location.reload();
+}
+
 // ══ INIT ══
 buildOpcionais();
 buildObs();
-loadMarcas();
+(async () => {
+  await loadMarcas();
+  await restaurarEstado();
+  // Liga o auto-save só depois de restaurar (não salva durante a restauração)
+  document.addEventListener('input',  salvarEstadoDebounced);
+  document.addEventListener('change', salvarEstadoDebounced);
+  document.addEventListener('click', e => { if (e.target.closest('.tog')) salvarEstadoDebounced(); });
+})();
 </script>
 </body>
 </html>
