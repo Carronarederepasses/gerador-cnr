@@ -389,9 +389,9 @@
     <select id="ia-model">
       <option value="nano-banana">Nano Banana (Gemini 2.5) — ~R$0,20/foto</option>
       <option value="nano-banana-2">Nano Banana 2 (Gemini 3.1) — mais novo, ~R$0,30/foto</option>
-      <option value="nano-banana-pro">Nano Banana Pro (Gemini 3 Pro) — topo, ~R$0,75-1,30/foto</option>
-      <option value="gpt-image" selected>ChatGPT (GPT Image) — ~R$0,50/foto</option>
-      <option value="gpt-image-2">ChatGPT 2 (GPT Image 2) — mais novo, ~R$0,90/foto</option>
+      <option value="nano-banana-pro" selected>Nano Banana Pro (Gemini 3 Pro) — topo, ~R$0,75-1,30/foto</option>
+      <option value="gpt-image">ChatGPT (GPT Image) — ⚠️ lento ~2min, só no PC</option>
+      <option value="gpt-image-2">ChatGPT 2 (GPT Image 2) — ⚠️ lento ~2min, só no PC</option>
     </select>
   </div>
 
@@ -1360,7 +1360,7 @@ async function chamarIA(base64, modelo, timeoutMs) {
     });
   } catch (netErr) {
     if (netErr.name === 'AbortError') { const e = new Error('timeout'); e.timeout = true; throw e; }
-    throw new Error('Falha de conexão com a IA: ' + netErr.message);
+    throw new Error('A conexão caiu antes de terminar. Modelos do ChatGPT são lentos (~2 min) e não funcionam bem no celular — use o Nano Banana Pro, que é rápido.');
   } finally {
     clearTimeout(timer);
   }
