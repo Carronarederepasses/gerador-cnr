@@ -1393,7 +1393,7 @@ async function processarFoto() {
       const modelo = document.getElementById('ia-model').value;
       const ehGpt = modelo.indexOf('gpt-') === 0;
       const ehPesado = ehGpt || modelo === 'nano-banana-pro';
-      setEditorSt(ehGpt ? 'ChatGPT compondo a foto... (~30-60 segundos)'
+      setEditorSt(ehGpt ? 'ChatGPT compondo a foto em alta qualidade... (~1 min)'
                 : ehPesado ? 'IA Pro compondo a foto... pode levar até 40s, aguarde'
                 : 'IA compondo a foto... (10-20 segundos)', 'loading');
 
