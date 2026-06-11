@@ -93,6 +93,10 @@
       <label>Enviar logo (PNG — de preferência fundo transparente e versão clara/branca)</label>
       <input type="file" id="logo-input" accept="image/*" onchange="onLogoUpload(this)">
       <p class="hint" id="logo-hint">Nenhum logo enviado — usando a assinatura em texto. Envie o PNG do logo uma vez e ele fica salvo pra todas as artes.</p>
+      <div id="logo-size-row" style="display:none;margin-bottom:.6rem">
+        <label>Tamanho do logo <span id="logo-size-val">150</span>%</label>
+        <input type="range" id="logo-size" min="60" max="300" value="150" oninput="onLogoSize()">
+      </div>
       <button class="btn" id="btn-remove-logo" onclick="removerLogo()" style="display:none;background:none;border:1px solid var(--border);color:var(--mid);margin-top:0">Remover logo</button>
 
       <button class="btn btn-dl" onclick="baixar()">⬇ Baixar arte (1080×1080)</button>
@@ -171,10 +175,11 @@ function molduraEAssinatura(){
   ctx.textAlign = 'center';
   if (logoImg && logoBox){
     // Logo enviado — usa só o conteúdo (recorta bordas pretas/transparentes)
-    const maxH = 175, maxW = 680;
+    const escala = (parseFloat((document.getElementById('logo-size')||{}).value) || 150) / 100;
+    const maxH = 150 * escala, maxW = 800 * escala;
     const scale = Math.min(maxH / logoBox.sh, maxW / logoBox.sw);
     const dw = logoBox.sw * scale, dh = logoBox.sh * scale;
-    ctx.drawImage(logoImg, logoBox.sx, logoBox.sy, logoBox.sw, logoBox.sh, W/2 - dw/2, H - 84 - dh, dw, dh);
+    ctx.drawImage(logoImg, logoBox.sx, logoBox.sy, logoBox.sw, logoBox.sh, W/2 - dw/2, H - 86 - dh, dw, dh);
     setLS(4);
     ctx.fillStyle = '#25D366';
     ctx.font = '500 22px "DM Sans", sans-serif';
@@ -239,13 +244,18 @@ function onLogoUpload(input){
   r.onload = e => { try { localStorage.setItem(LOGO_KEY, e.target.result); } catch(_){} carregarLogo(e.target.result); };
   r.readAsDataURL(f);
 }
+function onLogoSize(){
+  document.getElementById('logo-size-val').textContent = document.getElementById('logo-size').value;
+  render();
+}
 function carregarLogo(dataUrl){
   const img = new Image();
   img.onload = () => {
     logoImg = img;
     logoBox = computeBBox(img);
-    document.getElementById('logo-hint').textContent = 'Logo carregado — aparece no rodapé de todas as artes.';
+    document.getElementById('logo-hint').textContent = 'Logo carregado — use o slider abaixo pra ajustar o tamanho.';
     document.getElementById('btn-remove-logo').style.display = 'block';
+    document.getElementById('logo-size-row').style.display = 'block';
     render();
   };
   img.src = dataUrl;
@@ -255,6 +265,7 @@ function removerLogo(){
   try { localStorage.removeItem(LOGO_KEY); } catch(_){}
   document.getElementById('logo-hint').textContent = 'Nenhum logo enviado — usando a assinatura em texto.';
   document.getElementById('btn-remove-logo').style.display = 'none';
+  document.getElementById('logo-size-row').style.display = 'none';
   document.getElementById('logo-input').value = '';
   render();
 }
