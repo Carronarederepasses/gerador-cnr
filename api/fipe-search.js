@@ -22,10 +22,15 @@ async function fipeGet(path, retries = 3) {
 const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','híb','hybrid','phev'];
 
 function score(haystack, needle) {
-  // Inclui o ponto como separador: abreviações da FIPE ("Long.", "Lo.", "Lim.", "Edit.")
-  // viram "long"/"lo"/"lim"/"edit" e casam por prefixo com o texto do usuário.
-  const words = needle.toLowerCase().split(/[\s\-\/.]+/).filter(w => w.length > 0);
-  const h = haystack.toLowerCase();
+  const hRaw = haystack.toLowerCase();
+  const nRaw = needle.toLowerCase();
+  // Separa letra grudada de número: "Furgão16V" → "furgão 16v", "T270" → "t 270".
+  // A FIPE às vezes cola o motor no nome (ex: "Grand Furgão16V"), o que impedia o
+  // match de "Furgão". Aplicado igual nos dois lados para ficar justo.
+  // Também trata o ponto como separador (abreviações: "Long.", "Lo.", "Lim.").
+  const sep = s => s.replace(/([a-záàâãéêíóôõúüç])(\d)/g, '$1 $2');
+  const words  = sep(nRaw).split(/[\s\-\/.]+/).filter(w => w.length > 0);
+  const h      = sep(hRaw);
   const hWords = h.split(/[\s\-\/.]+/).filter(Boolean); // palavras isoladas do texto
 
   let pts = words.reduce((acc, w) => {
@@ -35,8 +40,9 @@ function score(haystack, needle) {
   }, 0);
 
   // Penaliza variantes específicas que aparecem no modelo mas não no texto
+  // (usa o texto cru, sem separar dígitos, p/ casar "4x4", "awd" etc.)
   for (const v of PALAVRAS_VARIANTE) {
-    if (needle.toLowerCase().includes(v) && !h.includes(v)) {
+    if (nRaw.includes(v) && !hRaw.includes(v)) {
       pts -= 3;
     }
   }
