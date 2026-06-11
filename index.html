@@ -1360,7 +1360,7 @@ async function chamarIA(base64, modelo, timeoutMs) {
     });
   } catch (netErr) {
     if (netErr.name === 'AbortError') { const e = new Error('timeout'); e.timeout = true; throw e; }
-    throw new Error('A conexão caiu antes de terminar. Modelos do ChatGPT são lentos (~2 min) e não funcionam bem no celular — use o Nano Banana Pro, que é rápido.');
+    throw new Error('Falha de conexão com a IA. Confira a internet e tente de novo.');
   } finally {
     clearTimeout(timer);
   }
@@ -1393,12 +1393,12 @@ async function processarFoto() {
       const modelo = document.getElementById('ia-model').value;
       const ehGpt = modelo.indexOf('gpt-') === 0;
       const ehPesado = ehGpt || modelo === 'nano-banana-pro';
-      setEditorSt(ehGpt ? 'ChatGPT compondo a foto... pode levar 1-2 min, aguarde'
+      setEditorSt(ehGpt ? 'ChatGPT compondo a foto... (~30-60 segundos)'
                 : ehPesado ? 'IA Pro compondo a foto... pode levar até 40s, aguarde'
                 : 'IA compondo a foto... (10-20 segundos)', 'loading');
 
       // Rede de segurança: aborta se a IA não responder no tempo limite
-      const timeoutMs = ehGpt ? 240000 : 120000;
+      const timeoutMs = ehGpt ? 150000 : 120000;
       const erroTempo = 'A IA demorou demais. Tente novamente ou use um modelo mais rápido (Nano Banana 2.5).';
 
       let data;
