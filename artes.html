@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Artes — Carro na Rede Repasses</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --black:#0a0a0a;--white:#f5f3ee;--gray:#141414;--gray2:#1c1c1c;
+    --border:rgba(245,243,238,0.1);--mid:#666;--light:#c8c4bb;--green:#25D366;
+  }
+  body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;padding-bottom:3rem}
+  header{border-bottom:1px solid var(--border);padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+  .logo{font-family:'Playfair Display',serif;font-weight:900;font-size:1.1rem;letter-spacing:.02em}
+  .logo span{font-family:'DM Sans',sans-serif;font-weight:300;font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--mid);display:block;margin-top:2px}
+  .nav-link{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem}
+  .wrap{max-width:1100px;margin:0 auto;padding:1.5rem 1.4rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  label{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--light);display:block;margin-bottom:.35rem}
+  input,select,textarea{
+    width:100%;background:var(--gray);border:1px solid var(--border);color:var(--white);
+    font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:300;padding:.7rem .85rem;outline:none;
+    -webkit-appearance:none;appearance:none;margin-bottom:1rem;transition:border-color .2s
+  }
+  input:focus,select:focus,textarea:focus{border-color:rgba(245,243,238,.35)}
+  textarea{resize:vertical;min-height:80px}
+  .sec-title{font-size:.6rem;letter-spacing:.32em;text-transform:uppercase;color:var(--mid);margin:.2rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+  .modelo-tabs{display:flex;gap:.5rem;margin-bottom:1.4rem;flex-wrap:wrap}
+  .mtab{flex:1;min-width:90px;border:1px solid var(--border);background:none;color:var(--light);padding:.7rem .4rem;font-family:'DM Sans',sans-serif;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;text-align:center}
+  .mtab.active{background:var(--white);color:var(--black);font-weight:500}
+  .grupo{display:none}
+  .grupo.show{display:block}
+  .preview-col{position:sticky;top:1.5rem;align-self:start}
+  .canvas-box{width:100%;background:#000;border:1px solid var(--border)}
+  canvas{width:100%;height:auto;display:block}
+  .btn{width:100%;border:none;padding:.95rem;font-family:'DM Sans',sans-serif;font-size:.74rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;margin-top:1rem}
+  .btn-dl{background:var(--white);color:var(--black)}
+  .btn-dl:hover{background:var(--light)}
+  .hint{font-size:.7rem;color:var(--mid);margin-top:-.5rem;margin-bottom:1rem;line-height:1.4}
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">Carro na Rede<span>Gerador de Artes</span></div>
+    <a class="nav-link" href="/index.html">← Gerador de Anúncio</a>
+  </header>
+
+  <div class="wrap">
+    <!-- CONTROLES -->
+    <div>
+      <div class="sec-title">Modelo da arte</div>
+      <div class="modelo-tabs">
+        <button class="mtab active" data-m="vendido" onclick="setModelo('vendido')">✅ Vendido</button>
+        <button class="mtab" data-m="dica" onclick="setModelo('dica')">💡 Dica</button>
+        <button class="mtab" data-m="oportunidade" onclick="setModelo('oportunidade')">🔥 Oportunidade</button>
+      </div>
+
+      <!-- VENDIDO -->
+      <div class="grupo show" id="g-vendido">
+        <label>Tempo até a venda</label>
+        <input type="text" id="v-tempo" value="48 HORAS" oninput="render()">
+        <label>Veículo vendido</label>
+        <input type="text" id="v-carro" value="Honda Civic EXL 2020" oninput="render()">
+        <label>Frase de apoio (opcional)</label>
+        <input type="text" id="v-frase" value="Direto pra nossa rede de +200 compradores" oninput="render()">
+      </div>
+
+      <!-- DICA -->
+      <div class="grupo" id="g-dica">
+        <label>Dica pronta (preenche abaixo)</label>
+        <select id="d-preset" onchange="aplicarDica()">
+          <option value="">— escolher uma dica —</option>
+        </select>
+        <label>Título da dica</label>
+        <input type="text" id="d-titulo" value="Por que o repasse vende mais rápido?" oninput="render()">
+        <label>Texto</label>
+        <textarea id="d-texto" oninput="render()">Seu carro vai direto pra uma rede de +200 compradores ativos. Sem vitrine pública, sem espera. Média de venda: 48h.</textarea>
+      </div>
+
+      <!-- OPORTUNIDADE -->
+      <div class="grupo" id="g-oportunidade">
+        <label>Veículo</label>
+        <input type="text" id="o-carro" value="Jeep Renegade Longitude" oninput="render()">
+        <label>Detalhes (ano · km · destaque)</label>
+        <input type="text" id="o-detalhe" value="2023 · 38.000 km · Único dono" oninput="render()">
+        <label>Chamada</label>
+        <input type="text" id="o-chamada" value="VALORES NA DM" oninput="render()">
+      </div>
+
+      <button class="btn btn-dl" onclick="baixar()">⬇ Baixar arte (1080×1080)</button>
+      <p class="hint">A arte sai em 1080×1080 (formato de post). É só baixar e publicar. Dica: troque os textos e vá vendo o resultado ao lado em tempo real.</p>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-col">
+      <div class="sec-title">Pré-visualização</div>
+      <div class="canvas-box"><canvas id="art" width="1080" height="1080"></canvas></div>
+    </div>
+  </div>
+
+<script>
+// ── Dicas prontas (conteúdo da marca) ─────────────────────────────────────────
+const DICAS = [
+  { t:'Por que o repasse vende mais rápido?', x:'Seu carro vai direto pra uma rede de +200 compradores ativos. Sem vitrine pública, sem espera. Média de venda: 48h.' },
+  { t:'OLX x Repasse', x:'No anúncio público você espera semanas e atende curioso. No repasse, o carro vai direto pra quem realmente compra.' },
+  { t:'Quanto vale o seu carro?', x:'A gente avalia pela tabela FIPE e pelo mercado real do litoral de SC. Avaliação honesta, sem enrolação.' },
+  { t:'Negócio discreto e rápido', x:'Seu carro não fica exposto publicamente. A venda acontece dentro da nossa rede, com segurança e agilidade.' },
+  { t:'Você só paga quando vende', x:'A taxa de intermediação só existe quando o negócio fecha. Simples, transparente e sem risco pra você.' },
+  { t:'Tem carro parado pra vender?', x:'Garopaba, Praia da Rosa e Imbituba: traz o carro pra nossa rede e venda sem dor de cabeça.' },
+];
+
+// ── Estado ────────────────────────────────────────────────────────────────────
+let modelo = 'vendido';
+const cv = document.getElementById('art');
+const ctx = cv.getContext('2d');
+const W = 1080, H = 1080;
+
+function setModelo(m){
+  modelo = m;
+  document.querySelectorAll('.mtab').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  ['vendido','dica','oportunidade'].forEach(g =>
+    document.getElementById('g-'+g).classList.toggle('show', g === m));
+  render();
+}
+
+function aplicarDica(){
+  const i = document.getElementById('d-preset').value;
+  if (i === '') return;
+  document.getElementById('d-titulo').value = DICAS[i].t;
+  document.getElementById('d-texto').value  = DICAS[i].x;
+  render();
+}
+
+// ── Helpers de desenho ──────────────────────────────────────────────────────
+function setLS(px){ try { ctx.letterSpacing = px + 'px'; } catch(e){} }
+function val(id){ return (document.getElementById(id).value || '').trim(); }
+
+function wrap(text, font, maxW){
+  ctx.font = font;
+  const words = text.split(/\s+/);
+  const lines = []; let line = '';
+  for (const w of words){
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line){ lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawLines(lines, font, x, y, lh, color, align){
+  ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || 'center';
+  lines.forEach((l, i) => ctx.fillText(l, x, y + i * lh));
+  return y + lines.length * lh;
+}
+
+// Moldura + assinatura comuns a todas as artes
+function molduraEAssinatura(){
+  ctx.strokeStyle = 'rgba(245,243,238,0.18)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(56, 56, W - 112, H - 112);
+
+  // Assinatura no rodapé
+  ctx.textAlign = 'center';
+  setLS(0);
+  ctx.fillStyle = '#f5f3ee';
+  ctx.font = '900 40px "Playfair Display", serif';
+  ctx.fillText('Carro na Rede', W/2, H - 120);
+  setLS(8);
+  ctx.fillStyle = '#8a857c';
+  ctx.font = '400 20px "DM Sans", sans-serif';
+  ctx.fillText('R E P A S S E S', W/2, H - 88);
+  setLS(4);
+  ctx.fillStyle = '#25D366';
+  ctx.font = '500 22px "DM Sans", sans-serif';
+  ctx.fillText('@carronarederepasses  ·  CHAMA NO WHATSAPP', W/2, H - 56);
+  setLS(0);
+}
+
+function tagTopo(txt, cor){
+  ctx.textAlign = 'center';
+  setLS(10);
+  ctx.fillStyle = cor || '#8a857c';
+  ctx.font = '500 26px "DM Sans", sans-serif';
+  ctx.fillText(txt, W/2, 150);
+  setLS(0);
+}
+
+// ── Render por modelo ─────────────────────────────────────────────────────────
+function render(){
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0,0,W,H);
+
+  if (modelo === 'vendido') renderVendido();
+  else if (modelo === 'dica') renderDica();
+  else renderOportunidade();
+
+  molduraEAssinatura();
+}
+
+function renderVendido(){
+  tagTopo('● VENDIDO PELA CARRO NA REDE', '#25D366');
+
+  // "VENDIDO EM"
+  ctx.textAlign = 'center';
+  setLS(6);
+  ctx.fillStyle = '#c8c4bb';
+  ctx.font = '400 44px "DM Sans", sans-serif';
+  ctx.fillText('VENDIDO EM', W/2, 360);
+  setLS(0);
+
+  // Tempo (gigante)
+  const tempo = val('v-tempo') || '48 HORAS';
+  let fs = 168;
+  ctx.font = `900 ${fs}px "Playfair Display", serif`;
+  while (ctx.measureText(tempo).width > W - 200 && fs > 70){ fs -= 6; ctx.font = `900 ${fs}px "Playfair Display", serif`; }
+  ctx.fillStyle = '#f5f3ee';
+  ctx.fillText(tempo, W/2, 510);
+
+  // Linha divisória
+  ctx.strokeStyle = 'rgba(245,243,238,0.25)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W/2 - 120, 580); ctx.lineTo(W/2 + 120, 580); ctx.stroke();
+
+  // Carro
+  const carro = val('v-carro');
+  if (carro){
+    const linhas = wrap(carro, '700 56px "DM Sans", sans-serif', W - 240);
+    drawLines(linhas, '700 56px "DM Sans", sans-serif', W/2, 660, 66, '#f5f3ee', 'center');
+  }
+  // Frase
+  const frase = val('v-frase');
+  if (frase){
+    const ly = 660 + (carro ? wrap(carro,'700 56px "DM Sans", sans-serif', W-240).length*66 : 0) + 20;
+    const fl = wrap(frase, '300 32px "DM Sans", sans-serif', W - 320);
+    drawLines(fl, '300 32px "DM Sans", sans-serif', W/2, ly, 42, '#9a958c', 'center');
+  }
+}
+
+function renderDica(){
+  tagTopo('💡 DICA DA SEMANA', '#e6b800');
+
+  const titulo = val('d-titulo') || 'Dica';
+  const tl = wrap(titulo, '900 78px "Playfair Display", serif', W - 200);
+  let y = 330;
+  // ajusta fonte do título se muitas linhas
+  let tfs = 78; if (tl.length > 3) tfs = 62;
+  const tlF = wrap(titulo, `900 ${tfs}px "Playfair Display", serif`, W - 200);
+  y = drawLines(tlF, `900 ${tfs}px "Playfair Display", serif`, W/2, y, tfs*1.12, '#f5f3ee', 'center');
+
+  // Linha
+  ctx.strokeStyle = 'rgba(245,243,238,0.25)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W/2 - 100, y + 16); ctx.lineTo(W/2 + 100, y + 16); ctx.stroke();
+  y += 80;
+
+  const texto = val('d-texto');
+  if (texto){
+    const xl = wrap(texto, '300 38px "DM Sans", sans-serif', W - 280);
+    drawLines(xl, '300 38px "DM Sans", sans-serif', W/2, y, 52, '#c8c4bb', 'center');
+  }
+}
+
+function renderOportunidade(){
+  tagTopo('🔥 OPORTUNIDADE', '#e6b800');
+
+  const carro = val('o-carro') || 'Veículo';
+  const cl = wrap(carro, '900 92px "Playfair Display", serif', W - 200);
+  let cfs = 92; if (cl.length > 2) cfs = 70;
+  const clF = wrap(carro, `900 ${cfs}px "Playfair Display", serif`, W - 200);
+  let y = drawLines(clF, `900 ${cfs}px "Playfair Display", serif`, W/2, 380, cfs*1.1, '#f5f3ee', 'center');
+
+  const det = val('o-detalhe');
+  if (det){
+    setLS(2);
+    drawLines([det], '400 40px "DM Sans", sans-serif', W/2, y + 30, 50, '#c8c4bb', 'center');
+    setLS(0);
+    y += 30;
+  }
+
+  const chamada = val('o-chamada');
+  if (chamada){
+    // bloco destaque
+    ctx.font = '700 48px "DM Sans", sans-serif';
+    setLS(4);
+    const cw = ctx.measureText(chamada).width;
+    ctx.fillStyle = '#f5f3ee';
+    ctx.fillRect(W/2 - cw/2 - 40, y + 90, cw + 80, 96);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.textAlign = 'center';
+    ctx.fillText(chamada, W/2, y + 154);
+    setLS(0);
+  }
+}
+
+// ── Download ────────────────────────────────────────────────────────────────
+function baixar(){
+  const a = document.createElement('a');
+  a.download = 'cnr-arte-' + modelo + '.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init(){
+  const sel = document.getElementById('d-preset');
+  DICAS.forEach((d, i) => { const o = document.createElement('option'); o.value = i; o.textContent = d.t; sel.appendChild(o); });
+  // espera as fontes carregarem antes do 1º render (senão sai com fonte errada)
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+  setTimeout(render, 400); // fallback
+  render();
+})();
+</script>
+</body>
+</html>
