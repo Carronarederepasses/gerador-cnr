@@ -89,6 +89,12 @@
         <input type="text" id="o-chamada" value="VALORES NA DM" oninput="render()">
       </div>
 
+      <div class="sec-title" style="margin-top:1.6rem">Logo da marca</div>
+      <label>Enviar logo (PNG — de preferência fundo transparente e versão clara/branca)</label>
+      <input type="file" id="logo-input" accept="image/*" onchange="onLogoUpload(this)">
+      <p class="hint" id="logo-hint">Nenhum logo enviado — usando a assinatura em texto. Envie o PNG do logo uma vez e ele fica salvo pra todas as artes.</p>
+      <button class="btn" id="btn-remove-logo" onclick="removerLogo()" style="display:none;background:none;border:1px solid var(--border);color:var(--mid);margin-top:0">Remover logo</button>
+
       <button class="btn btn-dl" onclick="baixar()">⬇ Baixar arte (1080×1080)</button>
       <p class="hint">A arte sai em 1080×1080 (formato de post). É só baixar e publicar. Dica: troque os textos e vá vendo o resultado ao lado em tempo real.</p>
     </div>
@@ -162,21 +168,63 @@ function molduraEAssinatura(){
   ctx.lineWidth = 2;
   ctx.strokeRect(56, 56, W - 112, H - 112);
 
-  // Assinatura no rodapé
   ctx.textAlign = 'center';
-  setLS(0);
-  ctx.fillStyle = '#f5f3ee';
-  ctx.font = '900 40px "Playfair Display", serif';
-  ctx.fillText('Carro na Rede', W/2, H - 120);
-  setLS(8);
-  ctx.fillStyle = '#8a857c';
-  ctx.font = '400 20px "DM Sans", sans-serif';
-  ctx.fillText('R E P A S S E S', W/2, H - 88);
-  setLS(4);
-  ctx.fillStyle = '#25D366';
-  ctx.font = '500 22px "DM Sans", sans-serif';
-  ctx.fillText('@carronarederepasses  ·  CHAMA NO WHATSAPP', W/2, H - 56);
-  setLS(0);
+  if (logoImg){
+    // Logo enviado pelo usuário, centralizado no rodapé
+    const maxH = 120, maxW = 660;
+    const scale = Math.min(maxH / logoImg.naturalHeight, maxW / logoImg.naturalWidth);
+    const dw = logoImg.naturalWidth * scale, dh = logoImg.naturalHeight * scale;
+    ctx.drawImage(logoImg, W/2 - dw/2, H - 86 - dh, dw, dh);
+    setLS(4);
+    ctx.fillStyle = '#25D366';
+    ctx.font = '500 22px "DM Sans", sans-serif';
+    ctx.fillText('@carronarederepasses  ·  CHAMA NO WHATSAPP', W/2, H - 52);
+    setLS(0);
+  } else {
+    // Assinatura tipográfica (reserva)
+    setLS(0);
+    ctx.fillStyle = '#f5f3ee';
+    ctx.font = '900 40px "Playfair Display", serif';
+    ctx.fillText('Carro na Rede', W/2, H - 120);
+    setLS(8);
+    ctx.fillStyle = '#8a857c';
+    ctx.font = '400 20px "DM Sans", sans-serif';
+    ctx.fillText('R E P A S S E S', W/2, H - 88);
+    setLS(4);
+    ctx.fillStyle = '#25D366';
+    ctx.font = '500 22px "DM Sans", sans-serif';
+    ctx.fillText('@carronarederepasses  ·  CHAMA NO WHATSAPP', W/2, H - 56);
+    setLS(0);
+  }
+}
+
+// ── Logo (upload + persistência) ──────────────────────────────────────────────
+let logoImg = null;
+const LOGO_KEY = 'cnr_logo';
+
+function onLogoUpload(input){
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => { try { localStorage.setItem(LOGO_KEY, e.target.result); } catch(_){} carregarLogo(e.target.result); };
+  r.readAsDataURL(f);
+}
+function carregarLogo(dataUrl){
+  const img = new Image();
+  img.onload = () => {
+    logoImg = img;
+    document.getElementById('logo-hint').textContent = 'Logo carregado — aparece no rodapé de todas as artes.';
+    document.getElementById('btn-remove-logo').style.display = 'block';
+    render();
+  };
+  img.src = dataUrl;
+}
+function removerLogo(){
+  logoImg = null;
+  try { localStorage.removeItem(LOGO_KEY); } catch(_){}
+  document.getElementById('logo-hint').textContent = 'Nenhum logo enviado — usando a assinatura em texto.';
+  document.getElementById('btn-remove-logo').style.display = 'none';
+  document.getElementById('logo-input').value = '';
+  render();
 }
 
 function tagTopo(txt, cor){
@@ -305,6 +353,8 @@ function baixar(){
 (function init(){
   const sel = document.getElementById('d-preset');
   DICAS.forEach((d, i) => { const o = document.createElement('option'); o.value = i; o.textContent = d.t; sel.appendChild(o); });
+  // Restaura logo salvo (se houver)
+  try { const saved = localStorage.getItem(LOGO_KEY); if (saved) carregarLogo(saved); } catch(_){}
   // espera as fontes carregarem antes do 1º render (senão sai com fonte errada)
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
   setTimeout(render, 400); // fallback
