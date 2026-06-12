@@ -296,15 +296,47 @@
   <!-- PNEUS -->
   <div class="fsec">
     <div class="fsec-title">Pneus</div>
-    <div class="field">
-      <label>Estado dos pneus</label>
-      <select id="pneus-estado">
-        <option value="">Não informar</option>
-        <option value="novos">4 pneus novos</option>
-        <option value="bons">Pneus em bom estado</option>
-        <option value="meia-vida">Pneus meia-vida</option>
-        <option value="fracos">Pneus a trocar (fracos)</option>
-      </select>
+    <div class="fsec-hint">Se forem mistos, use a 2ª linha (ex: 2 novos + 2 meia-vida).</div>
+    <div class="g2">
+      <div class="field">
+        <label>Quantidade</label>
+        <select id="pneus-qtd-1">
+          <option value="4">4 pneus</option>
+          <option value="3">3 pneus</option>
+          <option value="2">2 pneus</option>
+          <option value="1">1 pneu</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="pneus-estado-1">
+          <option value="">Não informar</option>
+          <option value="novos">Novos</option>
+          <option value="bons">Bons</option>
+          <option value="meia-vida">Meia-vida</option>
+          <option value="fracos">A trocar (fracos)</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2" style="margin-top:.6rem">
+      <div class="field">
+        <label>+ Quantidade (se misto)</label>
+        <select id="pneus-qtd-2">
+          <option value="2">2 pneus</option>
+          <option value="1">1 pneu</option>
+          <option value="3">3 pneus</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>+ Estado (se misto)</label>
+        <select id="pneus-estado-2">
+          <option value="">—</option>
+          <option value="novos">Novos</option>
+          <option value="bons">Bons</option>
+          <option value="meia-vida">Meia-vida</option>
+          <option value="fracos">A trocar (fracos)</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -784,16 +816,21 @@ function getLblById(id) {
   return id;
 }
 
-// Linha do estado dos pneus para o anúncio (ou null se "não informar")
+// Linha dos pneus para o anúncio — aceita até 2 combinações (ex: 2 novos + 2 meia-vida)
 function linhaPneus() {
-  const v = (document.getElementById('pneus-estado') || {}).value || '';
-  const MAP = {
-    'novos':     '✅ 4 pneus novos',
-    'bons':      '✅ Pneus em bom estado',
-    'meia-vida': '🛞 Pneus meia-vida',
-    'fracos':    '🛞 Pneus a trocar',
-  };
-  return MAP[v] || null;
+  const ESTADOS = { 'novos':'novos', 'bons':'bons', 'meia-vida':'meia-vida', 'fracos':'a trocar' };
+  const get = id => (document.getElementById(id) || {}).value || '';
+  const grupos = [];
+  if (get('pneus-estado-1')) grupos.push({ q: get('pneus-qtd-1') || '4', e: get('pneus-estado-1') });
+  if (get('pneus-estado-2')) grupos.push({ q: get('pneus-qtd-2') || '2', e: get('pneus-estado-2') });
+  if (!grupos.length) return null;
+
+  const icone = grupos.every(g => g.e === 'novos' || g.e === 'bons') ? '✅' : '🛞';
+  if (grupos.length === 1) {
+    const g = grupos[0];
+    return `${icone} ${g.q} ${g.q === '1' ? 'pneu' : 'pneus'} ${ESTADOS[g.e]}`;
+  }
+  return `${icone} Pneus: ${grupos.map(g => `${g.q} ${ESTADOS[g.e]}`).join(' + ')}`;
 }
 
 // Item com estado "Tem" / "A confirmar" (chave reserva, manual)
@@ -1590,7 +1627,7 @@ function downloadFoto() {
 const SAVE_KEY = 'cnr_form_v1';
 const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','valor','fipe-val',
   'texto-colado','colet-veiculo','colet-km','colet-cor','colet-ano','colet-regiao','colet-valor','colet-fipe',
-  'obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-estado','chave-reserva','manual-veiculo','revisoes-km'];
+  'obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km'];
 const CAMPOS_CASCATA = ['sel-marca','sel-modelo','sel-ano','sel-versao'];
 let _saveTimer = null;
 
