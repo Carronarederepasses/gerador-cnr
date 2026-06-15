@@ -358,7 +358,6 @@ function toggleSelMode(id, btn) {
     del.style.display = 'inline';
     atualizaContagem(id);
   } else {
-    box.classList.remove('pkgmode');
     box.querySelectorAll('.thumb.sel').forEach(t => t.classList.remove('sel'));
     del.style.display = 'none';
     const wa = $('wa-' + id);
@@ -372,12 +371,7 @@ function atualizaContagem(id) {
   del.textContent = `Apagar selecionadas (${n})`;
   del.disabled = n === 0;
   const wa = $('wa-' + id);
-  if (wa) {
-    if ($('fotos-' + id).classList.contains('pkgmode'))
-      wa.textContent = n ? `📤 Enviar ${n} foto(s)` : '📤 Enviar todas';
-    else
-      wa.textContent = n ? `📦 Enviar ${n} foto(s)` : '📦 Pacote WhatsApp';
-  }
+  if (wa) wa.textContent = n ? `📦 Enviar ${n} foto(s)` : '📦 Pacote WhatsApp';
 }
 
 async function apagarSelecionadas(id) {
@@ -397,43 +391,9 @@ async function apagarSelecionadas(id) {
   } catch (e) { alert('Falha ao apagar: ' + e.message); }
 }
 
-// ── Pacote WhatsApp: 1º clique abre a seleção de fotos; 2º clique envia ──
+// ── Pacote WhatsApp: texto + fotos ─────────────────────────────
+// A seleção de fotos é feita pelo link "Selecionar fotos". Este botão só envia.
 async function pacoteWhatsApp(id) {
-  const v = CACHE[id];
-  if (!v) return;
-  const box = $('fotos-' + id);
-  const todas = Array.isArray(v.fotos) ? v.fotos : [];
-
-  // Tem mais de uma foto e ainda não abriu a seleção: abre agora e espera o 2º clique.
-  if (todas.length > 1 && box && !box.classList.contains('pkgmode')) {
-    box.classList.add('selmode', 'pkgmode');
-    const selBtn = $('selbtn-' + id);
-    if (selBtn) selBtn.textContent = 'Cancelar';
-    const del = $('del-' + id);
-    if (del) del.style.display = 'none';
-    atualizaContagem(id); // botão vira "📤 Enviar todas"
-    return;
-  }
-
-  // Envia e desarma a seleção.
-  try { await enviarPacote(id); }
-  finally { fecharSelPacote(id); }
-}
-
-function fecharSelPacote(id) {
-  const box = $('fotos-' + id);
-  if (!box) return;
-  box.classList.remove('selmode', 'pkgmode');
-  box.querySelectorAll('.thumb.sel').forEach(t => t.classList.remove('sel'));
-  const selBtn = $('selbtn-' + id);
-  if (selBtn) selBtn.textContent = 'Selecionar fotos';
-  const del = $('del-' + id);
-  if (del) del.style.display = 'none';
-  const wa = $('wa-' + id);
-  if (wa) wa.textContent = '📦 Pacote WhatsApp';
-}
-
-async function enviarPacote(id) {
   const v = CACHE[id];
   if (!v) return;
   const texto = v.anuncio_texto || nomeVeiculo(v);
