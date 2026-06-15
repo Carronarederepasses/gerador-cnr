@@ -47,12 +47,22 @@
 
   /* Fotos */
   .fotos{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.2rem}
-  .fotos .thumb{position:relative;flex:0 0 auto}
-  .fotos img{height:72px;width:96px;object-fit:cover;border-radius:8px;border:1px solid #e2e2e2;cursor:pointer;display:block}
-  .fotos .rm{position:absolute;top:3px;right:3px;width:18px;height:18px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:.7rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .fotos .thumb{position:relative;flex:0 0 auto;cursor:pointer}
+  .fotos img{height:72px;width:96px;object-fit:cover;border-radius:8px;border:1px solid #e2e2e2;display:block}
   .fotos .add{flex:0 0 auto;height:72px;width:72px;border:1px dashed #bbb;border-radius:8px;background:#fafafa;color:#888;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .fotos .add:hover{border-color:#111;color:#111}
-  .sem-foto{display:flex;gap:.4rem}
+
+  /* Modo seleção de fotos */
+  .thumb .check{position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;border:1.5px solid #bbb;color:transparent;display:none;align-items:center;justify-content:center;font-size:.72rem;font-weight:700}
+  .fotos.selmode .thumb .check{display:flex}
+  .fotos.selmode .thumb img{opacity:.55}
+  .thumb.sel img{opacity:1!important;outline:3px solid #111;outline-offset:-1px}
+  .thumb.sel .check{background:#111;color:#fff;border-color:#111}
+  .foto-acoes{display:flex;gap:1rem;margin-top:-.15rem}
+  .foto-acoes button{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:.76rem;color:#666;cursor:pointer;padding:0;text-decoration:underline}
+  .foto-acoes button:hover{color:#111}
+  .foto-acoes .link-del{color:#c0392b}
+  .foto-acoes .link-del:disabled{color:#bbb;cursor:default;text-decoration:none}
 
   /* Lightbox */
   .lb{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:50;padding:2rem}
@@ -178,9 +188,11 @@ function card(v) {
   ].filter(Boolean).map(d => `<span>${esc(String(d))}</span>`).join('');
 
   const fotos = Array.isArray(v.fotos) ? v.fotos : [];
-  const thumbs = fotos.map((u, i) =>
-    `<div class="thumb"><img src="${esc(u)}" loading="lazy" onclick="abrirFoto('${esc(u)}')">
-       <button class="rm" title="Remover" onclick="removerFoto('${v.id}',${i})">&times;</button></div>`
+  const thumbs = fotos.map((u) =>
+    `<div class="thumb" data-url="${esc(u)}" onclick="thumbClick(this,'${v.id}')">
+       <img src="${esc(u)}" loading="lazy">
+       <span class="check">✓</span>
+     </div>`
   ).join('');
 
   return `
@@ -190,10 +202,14 @@ function card(v) {
       <span class="badge ${v.status}">${v.status}</span>
     </div>
     <div class="dados">${dados}</div>
-    <div class="fotos">
+    <div class="fotos" id="fotos-${v.id}">
       ${thumbs}
       <button class="add" title="Adicionar fotos" onclick="adicionarFotos('${v.id}')">+</button>
     </div>
+    ${fotos.length ? `<div class="foto-acoes">
+      <button class="link-sel" onclick="toggleSelMode('${v.id}',this)">Selecionar fotos</button>
+      <button class="link-del" id="del-${v.id}" style="display:none" disabled onclick="apagarSelecionadas('${v.id}')">Apagar selecionadas (0)</button>
+    </div>` : ''}
     <div class="precos">
       <div><div style="font-size:.68rem;color:#999;text-transform:uppercase;letter-spacing:.05em">Repasse</div><span class="v">${fmtR(v.valor)}</span></div>
       ${v.fipe != null ? `<div><div style="font-size:.68rem;color:#999;text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span></div>` : ''}
@@ -298,20 +314,53 @@ $('file-input').addEventListener('change', async (e) => {
   }
 });
 
-async function removerFoto(id, idx) {
-  const v = CACHE[id];
-  if (!v || !Array.isArray(v.fotos)) return;
-  const url = v.fotos[idx];
-  if (!url || !confirm('Remover esta foto?')) return;
+// Clique na foto: no modo seleção marca/desmarca; senão amplia.
+function thumbClick(el, id) {
+  const box = $('fotos-' + id);
+  if (box.classList.contains('selmode')) {
+    el.classList.toggle('sel');
+    atualizaContagem(id);
+  } else {
+    abrirFoto(el.dataset.url);
+  }
+}
+
+function toggleSelMode(id, btn) {
+  const box = $('fotos-' + id);
+  const del = $('del-' + id);
+  const on = box.classList.toggle('selmode');
+  btn.textContent = on ? 'Cancelar' : 'Selecionar fotos';
+  if (on) {
+    del.style.display = 'inline';
+    atualizaContagem(id);
+  } else {
+    box.querySelectorAll('.thumb.sel').forEach(t => t.classList.remove('sel'));
+    del.style.display = 'none';
+  }
+}
+
+function atualizaContagem(id) {
+  const n = $('fotos-' + id).querySelectorAll('.thumb.sel').length;
+  const del = $('del-' + id);
+  del.textContent = `Apagar selecionadas (${n})`;
+  del.disabled = n === 0;
+}
+
+async function apagarSelecionadas(id) {
+  const sel = [...$('fotos-' + id).querySelectorAll('.thumb.sel')];
+  if (!sel.length) return;
+  if (!confirm(`Apagar ${sel.length} foto(s)?`)) return;
   try {
-    const r = await fetch('/api/catalogo-foto', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ veiculoId: id, url }),
-    });
-    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    for (const t of sel) {
+      const r = await fetch('/api/catalogo-foto', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ veiculoId: id, url: t.dataset.url }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    }
     carregar();
-  } catch (e) { alert('Falha ao remover: ' + e.message); }
+  } catch (e) { alert('Falha ao apagar: ' + e.message); }
 }
 
 // ── Pacote WhatsApp: texto + fotos ─────────────────────────────
