@@ -409,11 +409,14 @@ async function pacoteWhatsApp(id) {
   // se mandasse o texto junto, o WhatsApp repetia a mesma legenda em cada foto.
   if (fotos.length && navigator.canShare) {
     try {
-      const arquivos = await Promise.all(fotos.map(async (u, i) => {
-        const blob = await (await fetch(u)).blob();
-        return new File([blob], `foto-${i + 1}.jpg`, { type: blob.type || 'image/jpeg' });
+      const resultados = await Promise.all(fotos.map(async (u, i) => {
+        try {
+          const blob = await (await fetch(u)).blob();
+          return new File([blob], `foto-${i + 1}.jpg`, { type: blob.type || 'image/jpeg' });
+        } catch (e) { return null; } // foto que falhar é ignorada, não derruba o resto
       }));
-      if (navigator.canShare({ files: arquivos })) {
+      const arquivos = resultados.filter(Boolean);
+      if (arquivos.length && navigator.canShare({ files: arquivos })) {
         try { await navigator.clipboard.writeText(texto); } catch (e) {}
         // Manda texto + fotos juntos (vira álbum com legenda única no WhatsApp).
         await navigator.share({ text: texto, files: arquivos });
@@ -425,10 +428,21 @@ async function pacoteWhatsApp(id) {
     }
   }
 
-  // Fallback (desktop): copia o texto, baixa as fotos pra pasta Downloads e abre o WhatsApp.
-  // (WhatsApp Web não deixa anexar imagens por script — por isso baixamos pra você arrastar.)
   try { await navigator.clipboard.writeText(texto); } catch (e) {}
 
+  // Celular: se o compartilhamento de fotos falhou, abre o APP do WhatsApp com o texto
+  // (NUNCA o WhatsApp Web — no celular ele só mostra a tela "use no computador").
+  const ehCelular = !!navigator.share;
+  if (ehCelular) {
+    window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+    if (fotos.length) {
+      alert('Não consegui anexar as fotos desta vez (tenta de novo). O texto foi pro WhatsApp; as fotos você manda pela galeria.');
+    }
+    return;
+  }
+
+  // Fallback (computador): baixa as fotos pra pasta Downloads e abre o WhatsApp Web.
+  // (WhatsApp Web não deixa anexar imagens por script — por isso baixamos pra você arrastar.)
   const slug = nomeVeiculo(v)
     .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'veiculo';
 
