@@ -415,7 +415,8 @@ async function pacoteWhatsApp(id) {
       }));
       if (navigator.canShare({ files: arquivos })) {
         try { await navigator.clipboard.writeText(texto); } catch (e) {}
-        await navigator.share({ files: arquivos });
+        // Opção 1: manda texto + fotos juntos (vira álbum com legenda única no WhatsApp).
+        await navigator.share({ text: texto, files: arquivos });
         return;
       }
     } catch (e) {
