@@ -415,9 +415,8 @@ async function pacoteWhatsApp(id) {
       }));
       if (navigator.canShare({ files: arquivos })) {
         try { await navigator.clipboard.writeText(texto); } catch (e) {}
-        // Compartilha SÓ as fotos (texto fica copiado pra colar uma vez como legenda).
-        // Mandar texto junto fazia o WhatsApp repetir a legenda em cada foto.
-        await navigator.share({ files: arquivos });
+        // Manda texto + fotos juntos (vira álbum com legenda única no WhatsApp).
+        await navigator.share({ text: texto, files: arquivos });
         return;
       }
     } catch (e) {
