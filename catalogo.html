@@ -411,12 +411,34 @@ async function pacoteWhatsApp(id) {
     }
   }
 
-  // Fallback (desktop): copia o texto e abre o WhatsApp; fotos abrem em abas.
+  // Fallback (desktop): copia o texto, baixa as fotos pra pasta Downloads e abre o WhatsApp.
+  // (WhatsApp Web não deixa anexar imagens por script — por isso baixamos pra você arrastar.)
   try { await navigator.clipboard.writeText(texto); } catch (e) {}
-  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+
+  const slug = nomeVeiculo(v)
+    .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'veiculo';
+
+  let baixadas = 0;
+  for (let i = 0; i < fotos.length; i++) {
+    try {
+      const blob = await (await fetch(fotos[i])).blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${slug}-${i + 1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      baixadas++;
+    } catch (e) { /* ignora foto que falhar */ }
+  }
+
+  window.open('https://web.whatsapp.com/', '_blank');
   if (fotos.length) {
-    alert('Texto copiado! As fotos vão abrir em abas — baixe e anexe no WhatsApp.');
-    fotos.forEach(u => window.open(u, '_blank'));
+    alert(`Texto copiado e ${baixadas} foto(s) baixada(s) pra sua pasta Downloads.\n\nNo WhatsApp Web: cole o texto e arraste as fotos pra conversa.`);
+  } else {
+    alert('Texto copiado! Cole no WhatsApp Web.');
   }
 }
 

@@ -33,7 +33,8 @@ Intermediação de veículos (repasse), modelo **C2B**:
 
 ## 3. Aplicação Principal — Gerador de Anúncio WhatsApp
 
-**URL publicada:** https://carronarederepasses.github.io/gerador-cnr/
+**URL publicada:** https://gerador-cnr.vercel.app
+**URL GitHub Pages (NÃO usar — FIPE quebrada sem serverless):** https://carronarederepasses.github.io/gerador-cnr/
 **GitHub:** https://github.com/Carronarederepasses/gerador-cnr
 **Versão atual:** v4 (HTML/CSS/JS puro, single file `index.html`)
 
