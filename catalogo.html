@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Catálogo de Oportunidades — Carro na Rede Repasses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--green:#25d366}
+  body{font-family:'DM Sans',sans-serif;background:#f4f4f4;color:#111;line-height:1.5;padding:1.5rem 1rem 4rem}
+  .wrap{max-width:1100px;margin:0 auto}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #111;padding-bottom:1rem}
+  h1{font-family:'Playfair Display',serif;font-weight:900;font-size:1.9rem;letter-spacing:-.01em}
+  header .sub{font-size:.82rem;color:#666}
+  header a.voltar{font-size:.8rem;color:#666;text-decoration:none;border-bottom:1px solid #ccc}
+  header a.voltar:hover{color:#000;border-color:#000}
+
+  /* Filtros */
+  .filtros{background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem;margin-bottom:1.4rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;align-items:end}
+  .filtros .full{grid-column:1/-1}
+  label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:.3rem;font-weight:500}
+  input,select{width:100%;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.6rem .7rem;border:1px solid #d5d5d5;border-radius:9px;background:#fff;color:#111}
+  input:focus,select:focus{outline:none;border-color:#111}
+  .filtros .acoes{display:flex;gap:.5rem}
+  button.btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.62rem 1rem;border-radius:9px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;transition:opacity .15s}
+  button.btn:hover{opacity:.85}
+  button.btn.ghost{background:#fff;color:#111}
+
+  .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:#666}
+
+  /* Grid de cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+  .card{background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem;display:flex;flex-direction:column;gap:.6rem;transition:box-shadow .15s}
+  .card:hover{box-shadow:0 6px 22px rgba(0,0,0,.08)}
+  .card .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+  .card h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.08rem;line-height:1.25}
+  .card .dados{font-size:.82rem;color:#555;display:flex;flex-wrap:wrap;gap:.35rem .9rem}
+  .card .precos{display:flex;gap:1.2rem;margin-top:.2rem}
+  .card .precos .v{font-weight:700;font-size:1.05rem}
+  .card .precos .f{font-size:.8rem;color:#888;align-self:flex-end}
+  .card .opc{font-size:.76rem;color:#777;border-top:1px dashed #e2e2e2;padding-top:.55rem}
+
+  /* Fotos */
+  .fotos{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.2rem}
+  .fotos .thumb{position:relative;flex:0 0 auto}
+  .fotos img{height:72px;width:96px;object-fit:cover;border-radius:8px;border:1px solid #e2e2e2;cursor:pointer;display:block}
+  .fotos .rm{position:absolute;top:3px;right:3px;width:18px;height:18px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:.7rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .fotos .add{flex:0 0 auto;height:72px;width:72px;border:1px dashed #bbb;border-radius:8px;background:#fafafa;color:#888;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .fotos .add:hover{border-color:#111;color:#111}
+  .sem-foto{display:flex;gap:.4rem}
+
+  /* Lightbox */
+  .lb{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:50;padding:2rem}
+  .lb.show{display:flex}
+  .lb img{max-width:100%;max-height:100%;border-radius:8px}
+  .lb .fechar{position:absolute;top:1rem;right:1.2rem;color:#fff;font-size:2rem;cursor:pointer;background:none;border:none}
+
+  .badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:.25rem .55rem;border-radius:20px;white-space:nowrap}
+  .badge.disponivel{background:#e7f7ec;color:#1a7f37}
+  .badge.reservado{background:#fff3da;color:#9a6700}
+  .badge.vendido{background:#eee;color:#777}
+
+  .card .rodape{display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap}
+  .card .rodape button{flex:1;min-width:fit-content;font-family:'DM Sans',sans-serif;font-size:.74rem;padding:.45rem .5rem;border:1px solid #d5d5d5;border-radius:8px;background:#fafafa;color:#333;cursor:pointer}
+  .card .rodape button:hover{border-color:#111;color:#111}
+  .card .rodape button.wa{background:var(--green);color:#fff;border-color:var(--green)}
+
+  .vazio{text-align:center;padding:4rem 1rem;color:#999}
+  .vazio .ico{font-size:2.5rem;margin-bottom:.6rem}
+  .erro{background:#fdecea;border:1px solid #f5c6c2;color:#a3261c;padding:.9rem;border-radius:10px;margin-bottom:1rem;font-size:.86rem}
+
+  @media(max-width:520px){h1{font-size:1.5rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Catálogo de Oportunidades</h1>
+      <div class="sub">Carro na Rede Repasses — banco interno de veículos</div>
+    </div>
+    <a class="voltar" href="/index.html">← Voltar ao gerador</a>
+  </header>
+
+  <div class="filtros">
+    <div class="full">
+      <label for="f-q">Busca livre (marca, modelo, versão)</label>
+      <input id="f-q" type="text" placeholder="ex: Onix, T-Cross, Hilux..." />
+    </div>
+    <div>
+      <label for="f-valor-max">Preço repasse até (R$)</label>
+      <input id="f-valor-max" type="number" inputmode="numeric" placeholder="ex: 60000" />
+    </div>
+    <div>
+      <label for="f-km-max">KM até</label>
+      <input id="f-km-max" type="number" inputmode="numeric" placeholder="ex: 80000" />
+    </div>
+    <div>
+      <label for="f-ano-min">Ano a partir de</label>
+      <input id="f-ano-min" type="number" inputmode="numeric" placeholder="ex: 2020" />
+    </div>
+    <div>
+      <label for="f-regiao">Região</label>
+      <input id="f-regiao" type="text" placeholder="ex: Garopaba" />
+    </div>
+    <div>
+      <label for="f-status">Status</label>
+      <select id="f-status">
+        <option value="disponivel">Disponíveis</option>
+        <option value="reservado">Reservados</option>
+        <option value="vendido">Vendidos</option>
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="acoes">
+      <button class="btn" onclick="carregar()">Buscar</button>
+      <button class="btn ghost" onclick="limparFiltros()">Limpar</button>
+    </div>
+  </div>
+
+  <div id="erro" class="erro" style="display:none"></div>
+  <div class="meta-linha"><span id="contador">Carregando...</span></div>
+  <div id="grid" class="grid"></div>
+</div>
+
+<div class="lb" id="lb" onclick="this.classList.remove('show')">
+  <button class="fechar" aria-label="Fechar">&times;</button>
+  <img id="lb-img" src="" alt="">
+</div>
+<input type="file" id="file-input" accept="image/*" multiple style="display:none">
+
+
+<script>
+const $ = id => document.getElementById(id);
+
+function limparFiltros() {
+  ['f-q','f-valor-max','f-km-max','f-ano-min','f-regiao'].forEach(id => $(id).value = '');
+  $('f-status').value = 'disponivel';
+  carregar();
+}
+
+function montarQuery() {
+  const p = new URLSearchParams();
+  const map = { 'f-q':'q', 'f-valor-max':'valor_max', 'f-km-max':'km_max', 'f-ano-min':'ano_min', 'f-regiao':'regiao' };
+  for (const [id, key] of Object.entries(map)) {
+    const v = $(id).value.trim();
+    if (v) p.set(key, v);
+  }
+  const st = $('f-status').value;
+  if (st) p.set('status', st);
+  return p.toString();
+}
+
+function fmtR(n) {
+  if (n == null) return '—';
+  return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtNum(n) { return n == null ? '—' : Number(n).toLocaleString('pt-BR'); }
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function nomeVeiculo(v) {
+  return [v.marca, v.versao || v.modelo, v.complemento].filter(Boolean).join(' ') || 'Veículo sem nome';
+}
+
+function card(v) {
+  const opc = Array.isArray(v.opcionais) ? v.opcionais : [];
+  const opcTxt = opc.length ? opc.slice(0, 6).join(' • ') + (opc.length > 6 ? ` +${opc.length - 6}` : '') : '';
+  const dados = [
+    v.ano_int ? v.ano_int : (v.ano || ''),
+    v.km != null ? fmtNum(v.km) + ' km' : '',
+    v.cor || '',
+    v.regiao ? '📍 ' + v.regiao : '',
+  ].filter(Boolean).map(d => `<span>${esc(String(d))}</span>`).join('');
+
+  const fotos = Array.isArray(v.fotos) ? v.fotos : [];
+  const thumbs = fotos.map((u, i) =>
+    `<div class="thumb"><img src="${esc(u)}" loading="lazy" onclick="abrirFoto('${esc(u)}')">
+       <button class="rm" title="Remover" onclick="removerFoto('${v.id}',${i})">&times;</button></div>`
+  ).join('');
+
+  return `
+  <div class="card">
+    <div class="topo">
+      <h3>${esc(nomeVeiculo(v))}</h3>
+      <span class="badge ${v.status}">${v.status}</span>
+    </div>
+    <div class="dados">${dados}</div>
+    <div class="fotos">
+      ${thumbs}
+      <button class="add" title="Adicionar fotos" onclick="adicionarFotos('${v.id}')">+</button>
+    </div>
+    <div class="precos">
+      <div><div style="font-size:.68rem;color:#999;text-transform:uppercase;letter-spacing:.05em">Repasse</div><span class="v">${fmtR(v.valor)}</span></div>
+      ${v.fipe != null ? `<div><div style="font-size:.68rem;color:#999;text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span></div>` : ''}
+    </div>
+    ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
+    <div class="rodape">
+      <button class="wa" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
+      <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
+      <button onclick="mudarStatus('${v.id}')">Status</button>
+      <button onclick="remover('${v.id}')">Excluir</button>
+    </div>
+  </div>`;
+}
+
+let CACHE = {};
+
+async function carregar() {
+  $('erro').style.display = 'none';
+  $('contador').textContent = 'Carregando...';
+  $('grid').innerHTML = '';
+  try {
+    const r = await fetch('/api/catalogo?' + montarQuery());
+    if (!r.ok) throw new Error((await r.json()).error || 'Erro ao buscar');
+    const lista = await r.json();
+    CACHE = {};
+    lista.forEach(v => CACHE[v.id] = v);
+    $('contador').textContent = lista.length
+      ? `${lista.length} veículo${lista.length > 1 ? 's' : ''} encontrado${lista.length > 1 ? 's' : ''}`
+      : '';
+    if (!lista.length) {
+      $('grid').innerHTML = '<div class="vazio" style="grid-column:1/-1"><div class="ico">🗂️</div>Nenhum veículo com esses filtros.<br>Gere um anúncio e clique em <b>Salvar no catálogo</b>.</div>';
+      return;
+    }
+    $('grid').innerHTML = lista.map(card).join('');
+  } catch (e) {
+    $('contador').textContent = '';
+    $('erro').textContent = 'Não consegui carregar o catálogo: ' + e.message;
+    $('erro').style.display = 'block';
+  }
+}
+
+function abrirFoto(url) {
+  $('lb-img').src = url;
+  $('lb').classList.add('show');
+}
+
+// ── Fotos ──────────────────────────────────────────────────────
+// Reduz a imagem (máx 1600px, JPEG 0.82) antes de subir — evita
+// estourar o limite de body do Vercel e deixa o upload mais leve.
+function comprimir(file, maxLado = 1600, q = 0.82) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        if (Math.max(w, h) > maxLado) {
+          const s = maxLado / Math.max(w, h);
+          w = Math.round(w * s); h = Math.round(h * s);
+        }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = c.toDataURL('image/jpeg', q);
+        resolve(dataUrl.split(',')[1]); // só o base64
+      };
+      img.onerror = reject;
+      img.src = r.result;
+    };
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+let _alvoFotos = null;
+function adicionarFotos(id) {
+  _alvoFotos = id;
+  $('file-input').value = '';
+  $('file-input').click();
+}
+
+$('file-input').addEventListener('change', async (e) => {
+  const id = _alvoFotos;
+  const files = [...e.target.files];
+  if (!id || !files.length) return;
+  $('contador').textContent = `Enviando ${files.length} foto(s)...`;
+  try {
+    for (const f of files) {
+      const b64 = await comprimir(f);
+      const r = await fetch('/api/catalogo-foto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ veiculoId: id, imageBase64: b64, mimeType: 'image/jpeg' }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    }
+    carregar();
+  } catch (err) {
+    $('erro').textContent = 'Falha ao enviar foto: ' + err.message;
+    $('erro').style.display = 'block';
+    $('contador').textContent = '';
+  }
+});
+
+async function removerFoto(id, idx) {
+  const v = CACHE[id];
+  if (!v || !Array.isArray(v.fotos)) return;
+  const url = v.fotos[idx];
+  if (!url || !confirm('Remover esta foto?')) return;
+  try {
+    const r = await fetch('/api/catalogo-foto', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ veiculoId: id, url }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    carregar();
+  } catch (e) { alert('Falha ao remover: ' + e.message); }
+}
+
+// ── Pacote WhatsApp: texto + fotos ─────────────────────────────
+async function pacoteWhatsApp(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  const texto = v.anuncio_texto || nomeVeiculo(v);
+  const fotos = Array.isArray(v.fotos) ? v.fotos : [];
+
+  // Caminho ideal (celular): compartilha texto + imagens de uma vez.
+  if (fotos.length && navigator.canShare) {
+    try {
+      const arquivos = await Promise.all(fotos.map(async (u, i) => {
+        const blob = await (await fetch(u)).blob();
+        return new File([blob], `foto-${i + 1}.jpg`, { type: blob.type || 'image/jpeg' });
+      }));
+      if (navigator.canShare({ files: arquivos })) {
+        await navigator.share({ text: texto, files: arquivos });
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return; // usuário cancelou
+      // senão cai no fallback
+    }
+  }
+
+  // Fallback (desktop): copia o texto e abre o WhatsApp; fotos abrem em abas.
+  try { await navigator.clipboard.writeText(texto); } catch (e) {}
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+  if (fotos.length) {
+    alert('Texto copiado! As fotos vão abrir em abas — baixe e anexe no WhatsApp.');
+    fotos.forEach(u => window.open(u, '_blank'));
+  }
+}
+
+function copiarAnuncio(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  navigator.clipboard.writeText(v.anuncio_texto || nomeVeiculo(v));
+}
+
+async function mudarStatus(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  const ordem = ['disponivel', 'reservado', 'vendido'];
+  const atual = ordem.indexOf(v.status);
+  const novo = ordem[(atual + 1) % ordem.length];
+  try {
+    const r = await fetch('/api/catalogo?id=' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: novo }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    carregar();
+  } catch (e) { alert('Falha ao mudar status: ' + e.message); }
+}
+
+async function remover(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  if (!confirm('Excluir "' + nomeVeiculo(v) + '" do catálogo?')) return;
+  try {
+    const r = await fetch('/api/catalogo?id=' + id, { method: 'DELETE' });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    carregar();
+  } catch (e) { alert('Falha ao excluir: ' + e.message); }
+}
+
+// Enter na busca livre dispara a pesquisa
+$('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); });
+
+carregar();
+</script>
+</body>
+</html>
