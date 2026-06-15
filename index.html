@@ -49,6 +49,16 @@
   select option{background:#1a1a1a}
   select:disabled{opacity:.35;cursor:not-allowed}
 
+  /* SELECT COM BUSCA (combobox filtrável) */
+  .ss-wrap{position:relative}
+  .ss-input{cursor:text}
+  .ss-input:disabled{opacity:.35;cursor:not-allowed}
+  .ss-list{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 2px);max-height:240px;overflow-y:auto;
+    background:#1a1a1a;border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .ss-item{padding:.55rem .85rem;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:300;color:var(--white);cursor:pointer}
+  .ss-item:hover,.ss-item.ss-hi{background:rgba(245,243,238,.1)}
+  .ss-empty{padding:.55rem .85rem;font-size:.78rem;color:var(--mid)}
+
   /* FIPE STATUS */
   .fipe-st{font-size:.7rem;color:var(--mid);margin-top:.4rem;min-height:1rem;padding:.3rem 0}
   .fipe-st.loading{color:var(--yellow)}
@@ -1788,12 +1798,99 @@ function limparEstado() {
 }
 
 
+// ══════════════════════════════════════════════
+// SELECT COM BUSCA — campo de digitar que filtra a lista.
+// Mantém o <select> original como fonte do valor (não quebra a cascata FIPE).
+// ══════════════════════════════════════════════
+const _ssSync = {};
+
+function makeSearchable(selectId, placeholder) {
+  const sel = document.getElementById(selectId);
+  if (!sel || sel.dataset.ss) return;
+  sel.dataset.ss = '1';
+  sel.style.display = 'none';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'ss-wrap';
+  const input = document.createElement('input');
+  input.type = 'text'; input.autocomplete = 'off'; input.className = 'ss-input';
+  const list = document.createElement('div');
+  list.className = 'ss-list'; list.style.display = 'none';
+  wrap.appendChild(input); wrap.appendChild(list);
+  sel.parentNode.insertBefore(wrap, sel.nextSibling);
+
+  let hi = -1; // item destacado (teclado)
+  const opts = () => [...sel.options].filter(o => o.value !== '');
+
+  function syncInput() {
+    const o = sel.options[sel.selectedIndex];
+    input.value = (o && o.value) ? o.text : '';
+    input.disabled = sel.disabled;
+    input.placeholder = sel.disabled ? (sel.options[0]?.text || '') : (placeholder || 'Digite para filtrar...');
+  }
+  _ssSync[selectId] = syncInput;
+
+  function render(filtro) {
+    const f = (filtro || '').toLowerCase().trim();
+    const items = opts().filter(o => o.text.toLowerCase().includes(f));
+    list.innerHTML = ''; hi = -1;
+    if (!items.length) {
+      list.innerHTML = '<div class="ss-empty">Nada encontrado</div>';
+      list.style.display = 'block'; return;
+    }
+    items.slice(0, 80).forEach(o => {
+      const d = document.createElement('div');
+      d.className = 'ss-item'; d.textContent = o.text; d.dataset.val = o.value;
+      d.onmousedown = (e) => { e.preventDefault(); escolher(o.value); };
+      list.appendChild(d);
+    });
+    list.style.display = 'block';
+  }
+  function escolher(val) {
+    sel.value = val;
+    syncInput();
+    list.style.display = 'none';
+    sel.dispatchEvent(new Event('change'));
+  }
+  function mover(d) {
+    const its = [...list.querySelectorAll('.ss-item')];
+    if (!its.length) return;
+    if (hi >= 0) its[hi].classList.remove('ss-hi');
+    hi = (hi + d + its.length) % its.length;
+    its[hi].classList.add('ss-hi');
+    its[hi].scrollIntoView({ block: 'nearest' });
+  }
+
+  input.addEventListener('focus', () => { if (!sel.disabled) { render(''); input.select(); } });
+  input.addEventListener('input', () => render(input.value));
+  input.addEventListener('blur', () => setTimeout(() => { list.style.display = 'none'; syncInput(); }, 150));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (list.style.display === 'none') render(input.value); else mover(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); mover(-1); }
+    else if (e.key === 'Enter') {
+      const its = [...list.querySelectorAll('.ss-item')];
+      if (hi >= 0 && its[hi]) { e.preventDefault(); escolher(its[hi].dataset.val); }
+      else if (its.length === 1) { e.preventDefault(); escolher(its[0].dataset.val); }
+    }
+    else if (e.key === 'Escape') { list.style.display = 'none'; }
+  });
+
+  // Resync quando as opções ou o estado (disabled) mudam
+  new MutationObserver(syncInput).observe(sel, { childList: true, attributes: true, attributeFilter: ['disabled'] });
+  syncInput();
+}
+
+function resyncSearchables() { Object.values(_ssSync).forEach(fn => fn()); }
+
 // ══ INIT ══
 buildOpcionais();
 buildObs();
 (async () => {
   await loadMarcas();
+  ['sel-marca', 'sel-modelo', 'csel-marca', 'csel-modelo'].forEach(id =>
+    makeSearchable(id, 'Digite para filtrar...'));
   await restaurarEstado();
+  resyncSearchables(); // atualiza os campos após restaurar valores salvos
   // Liga o auto-save só depois de restaurar (não salva durante a restauração)
   document.addEventListener('input',  salvarEstadoDebounced);
   document.addEventListener('change', salvarEstadoDebounced);
