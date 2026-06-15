@@ -223,7 +223,7 @@ function card(v) {
     </div>
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     <div class="rodape">
-      <button class="wa" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
+      <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="mudarStatus('${v.id}')">Status</button>
       <button onclick="remover('${v.id}')">Excluir</button>
@@ -360,6 +360,8 @@ function toggleSelMode(id, btn) {
   } else {
     box.querySelectorAll('.thumb.sel').forEach(t => t.classList.remove('sel'));
     del.style.display = 'none';
+    const wa = $('wa-' + id);
+    if (wa) wa.textContent = '📦 Pacote WhatsApp';
   }
 }
 
@@ -368,6 +370,8 @@ function atualizaContagem(id) {
   const del = $('del-' + id);
   del.textContent = `Apagar selecionadas (${n})`;
   del.disabled = n === 0;
+  const wa = $('wa-' + id);
+  if (wa) wa.textContent = n ? `📦 Enviar ${n} foto(s)` : '📦 Pacote WhatsApp';
 }
 
 async function apagarSelecionadas(id) {
@@ -392,7 +396,13 @@ async function pacoteWhatsApp(id) {
   const v = CACHE[id];
   if (!v) return;
   const texto = v.anuncio_texto || nomeVeiculo(v);
-  const fotos = Array.isArray(v.fotos) ? v.fotos : [];
+
+  // Se o usuário marcou fotos no modo "Selecionar fotos", manda só as marcadas.
+  // Sem nenhuma marcada, manda todas (material completo).
+  const box = $('fotos-' + id);
+  const marcadas = box ? [...box.querySelectorAll('.thumb.sel')].map(t => t.dataset.url) : [];
+  const todas = Array.isArray(v.fotos) ? v.fotos : [];
+  const fotos = marcadas.length ? marcadas : todas;
 
   // Caminho ideal (celular): compartilha SÓ as fotos (viram um álbum com uma única
   // legenda no WhatsApp). O texto vai pra área de transferência pra colar de uma vez —
