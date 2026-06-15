@@ -394,7 +394,9 @@ async function pacoteWhatsApp(id) {
   const texto = v.anuncio_texto || nomeVeiculo(v);
   const fotos = Array.isArray(v.fotos) ? v.fotos : [];
 
-  // Caminho ideal (celular): compartilha texto + imagens de uma vez.
+  // Caminho ideal (celular): compartilha SÓ as fotos (viram um álbum com uma única
+  // legenda no WhatsApp). O texto vai pra área de transferência pra colar de uma vez —
+  // se mandasse o texto junto, o WhatsApp repetia a mesma legenda em cada foto.
   if (fotos.length && navigator.canShare) {
     try {
       const arquivos = await Promise.all(fotos.map(async (u, i) => {
@@ -402,7 +404,8 @@ async function pacoteWhatsApp(id) {
         return new File([blob], `foto-${i + 1}.jpg`, { type: blob.type || 'image/jpeg' });
       }));
       if (navigator.canShare({ files: arquivos })) {
-        await navigator.share({ text: texto, files: arquivos });
+        try { await navigator.clipboard.writeText(texto); } catch (e) {}
+        await navigator.share({ files: arquivos });
         return;
       }
     } catch (e) {
