@@ -23,7 +23,7 @@ const TABLE = 'veiculos';
 // Campos aceitos no POST/PATCH (whitelist — ignora o resto)
 const CAMPOS = [
   'marca', 'modelo', 'versao', 'complemento', 'ano', 'ano_int',
-  'km', 'cor', 'regiao', 'valor', 'fipe',
+  'km', 'cor', 'regiao', 'placa', 'valor', 'fipe',
   'opcionais', 'observacoes', 'anuncio_texto', 'status', 'fotos', 'documentos',
 ];
 
@@ -60,7 +60,7 @@ function filtros(q) {
   // busca livre: casa em marca, modelo ou versão
   if (q.q) {
     const t = encodeURIComponent(q.q);
-    f.push(`or=(marca.ilike.*${t}*,modelo.ilike.*${t}*,versao.ilike.*${t}*,complemento.ilike.*${t}*)`);
+    f.push(`or=(marca.ilike.*${t}*,modelo.ilike.*${t}*,versao.ilike.*${t}*,complemento.ilike.*${t}*,placa.ilike.*${t}*)`);
   }
   return f;
 }

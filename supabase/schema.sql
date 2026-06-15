@@ -21,6 +21,7 @@ create table if not exists public.veiculos (
   km            int,
   cor           text,
   regiao        text,
+  placa         text,          -- USO INTERNO: nunca entra no texto do anúncio
   valor         numeric,       -- preço de repasse (R$)
   fipe          numeric,       -- valor FIPE (R$)
 

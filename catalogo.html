@@ -44,6 +44,10 @@
   .card .precos .v{font-weight:700;font-size:1.05rem}
   .card .precos .f{font-size:.8rem;color:#888;align-self:flex-end}
   .card .opc{font-size:.76rem;color:#777;border-top:1px dashed #e2e2e2;padding-top:.55rem}
+  .placa-linha{font-size:.8rem;color:#444;background:#f3f3f3;border:1px solid #e2e2e2;border-radius:8px;padding:.4rem .6rem;cursor:pointer;display:flex;align-items:center;gap:.3rem}
+  .placa-linha b{letter-spacing:.06em}
+  .placa-linha .edit{margin-left:auto;opacity:.5;font-size:.75rem}
+  .placa-linha:hover{border-color:#111}.placa-linha:hover .edit{opacity:1}
 
   /* Fotos */
   .fotos{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.2rem}
@@ -202,6 +206,9 @@ function card(v) {
       <span class="badge ${v.status}">${v.status}</span>
     </div>
     <div class="dados">${dados}</div>
+    <div class="placa-linha" onclick="editarPlaca('${v.id}')" title="Clique para editar (uso interno)">
+      🔒 Placa: <b>${v.placa ? esc(v.placa) : '—'}</b> <span class="edit">✏️</span>
+    </div>
     <div class="fotos" id="fotos-${v.id}">
       ${thumbs}
       <button class="add" title="Adicionar fotos" onclick="adicionarFotos('${v.id}')">+</button>
@@ -254,6 +261,23 @@ async function carregar() {
 function abrirFoto(url) {
   $('lb-img').src = url;
   $('lb').classList.add('show');
+}
+
+async function editarPlaca(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  const nova = prompt('Placa (uso interno — não aparece no anúncio):', v.placa || '');
+  if (nova === null) return; // cancelou
+  const placa = nova.trim().toUpperCase() || null;
+  try {
+    const r = await fetch('/api/catalogo?id=' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ placa }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    carregar();
+  } catch (e) { alert('Falha ao salvar a placa: ' + e.message); }
 }
 
 // ── Fotos ──────────────────────────────────────────────────────
