@@ -77,6 +77,7 @@ module.exports = async (req, res) => {
       const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
         method: 'POST',
         headers: {
+          apikey: SERVICE_KEY,
           Authorization: `Bearer ${SERVICE_KEY}`,
           'Content-Type': mimeType,
           'x-upsert': 'true',
@@ -101,7 +102,7 @@ module.exports = async (req, res) => {
       if (objPath) {
         await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${SERVICE_KEY}` },
+          headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
         });
       }
       const fotos = (await getFotos(veiculoId)).filter(u => u !== url);
