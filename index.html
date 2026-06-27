@@ -319,6 +319,12 @@
     </div>
   </div>
 
+  <!-- DOCUMENTAÇÃO & HISTÓRICO (sempre visível) -->
+  <div class="fsec">
+    <div class="fsec-title">Documentação &amp; Histórico</div>
+    <div id="opc-docs"></div>
+  </div>
+
   <!-- PNEUS -->
   <div class="fsec">
     <div class="fsec-title">Pneus</div>
@@ -401,12 +407,9 @@
     <div class="field"><label>Tipo de vidro</label><input type="text" id="blind-vidro" placeholder="ex: vidros originais blindados..."></div>
   </div>
 
-  <!-- OBS -->
+  <!-- AVALIAÇÃO / GASTOS / OBSERVAÇÃO LIVRE -->
   <div class="fsec">
-    <div class="fsec-title">Observação final</div>
-    <div class="tog-grid" id="obs-grid"></div>
-
-    <div class="field" id="campo-avaliacao" style="margin-top:.5rem">
+    <div class="field" id="campo-avaliacao">
       <label>Avaliação <span style="color:var(--light)">(carro de captação)</span></label>
       <textarea id="avaliacao" rows="4" placeholder="ex: Carro selado frente e traseira; pneus bons, bom de câmbio, motor e suspensão; riscos superficiais que saem no polimento." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
     </div>
@@ -646,12 +649,19 @@ function atualizaContagemOpc() {
 
 function buildOpcionais() {
   const wrap = document.getElementById('opcionais-wrap');
-  wrap.innerHTML = '';
+  const docs = document.getElementById('opc-docs');
+  wrap.innerHTML = ''; docs.innerHTML = '';
   CATEGORIAS.forEach(cat => {
-    const catLbl = document.createElement('div');
-    catLbl.className = 'cat-label';
-    catLbl.textContent = cat.nome;
-    wrap.appendChild(catLbl);
+    // Documentação & Histórico fica fora da cascata, em seção própria sempre visível
+    const ehDocs = cat.nome === 'Documentação & Histórico';
+    const alvo = ehDocs ? docs : wrap;
+
+    if (!ehDocs) {
+      const catLbl = document.createElement('div');
+      catLbl.className = 'cat-label';
+      catLbl.textContent = cat.nome;
+      alvo.appendChild(catLbl);
+    }
 
     const grid = document.createElement('div');
     grid.className = 'tog-grid';
@@ -673,13 +683,14 @@ function buildOpcionais() {
       });
       grid.appendChild(div);
     });
-    wrap.appendChild(grid);
+    alvo.appendChild(grid);
   });
   atualizaContagemOpc();
 }
 
 function buildObs() {
   const c = document.getElementById('obs-grid');
+  if (!c) return; // chips de "Observação final" removidos — nada a montar
   c.innerHTML = '';
   OBS.forEach(item => {
     const div = document.createElement('div');
@@ -865,7 +876,7 @@ function getOnIds(selector) {
 }
 
 function getAllOnIds() {
-  return [...document.querySelectorAll('#opcionais-wrap .tog.on')].map(e => e.dataset.id);
+  return [...document.querySelectorAll('#opcionais-wrap .tog.on, #opc-docs .tog.on')].map(e => e.dataset.id);
 }
 
 function getLblById(id) {
@@ -1284,7 +1295,7 @@ function mapOpcionais(lista) {
   if (!Array.isArray(lista) || !lista.length) return;
   const toMark = new Set(lista.map(k => OPCIONAIS_MAP[k]).filter(Boolean));
   // Só ADICIONA o que a IA encontrou — não toca nos que já estão marcados
-  document.querySelectorAll('#opcionais-wrap .tog').forEach(tog => {
+  document.querySelectorAll('#opcionais-wrap .tog, #opc-docs .tog').forEach(tog => {
     if (toMark.has(tog.dataset.id) && !tog.classList.contains('on')) {
       tog.classList.add('on');
       tog.querySelector('.togbox').textContent = '✓';
@@ -1823,7 +1834,7 @@ async function restaurarEstado() {
     });
   };
   marcarTogs('#opcionais-wrap', estado.opcionais);
-  marcarTogs('#obs-grid', estado.obs);
+  marcarTogs('#opc-docs', estado.opcionais);
   atualizaContagemOpc();
 
   if (estado.mode) setMode(estado.mode);
