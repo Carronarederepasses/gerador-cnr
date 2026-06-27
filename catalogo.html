@@ -149,6 +149,8 @@
 <input type="file" id="file-input" accept="image/*" multiple style="display:none">
 
 
+<!-- Conversor de HEIC/HEIF (fotos do celular) para JPEG no navegador -->
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 
@@ -308,6 +310,19 @@ function comprimir(file, maxLado = 1600, q = 0.82) {
   });
 }
 
+// Converte HEIC/HEIF (formato do celular) pra JPEG antes de comprimir/enviar.
+async function prepararArquivo(f) {
+  const ehHeic = /\.(heic|heif)$/i.test(f.name) || /image\/hei[cf]/i.test(f.type);
+  if (!ehHeic) return f;
+  if (typeof heic2any !== 'function') {
+    throw new Error('conversor de HEIC não carregou — verifique a internet e recarregue a página');
+  }
+  let out = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.92 });
+  if (Array.isArray(out)) out = out[0];
+  const nome = f.name.replace(/\.(heic|heif)$/i, '.jpg');
+  return new File([out], nome, { type: 'image/jpeg' });
+}
+
 let _alvoFotos = null;
 function adicionarFotos(id) {
   _alvoFotos = id;
@@ -319,10 +334,13 @@ $('file-input').addEventListener('change', async (e) => {
   const id = _alvoFotos;
   const files = [...e.target.files];
   if (!id || !files.length) return;
-  $('contador').textContent = `Enviando ${files.length} foto(s)...`;
   try {
+    let n = 0;
     for (const f of files) {
-      const b64 = await comprimir(f);
+      n++;
+      $('contador').textContent = `Enviando foto ${n} de ${files.length}...`;
+      const pronto = await prepararArquivo(f); // converte HEIC->JPEG se precisar
+      const b64 = await comprimir(pronto);
       const r = await fetch('/api/catalogo-foto', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
