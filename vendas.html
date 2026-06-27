@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Registro de Vendas — Carro na Rede Repasses</title>
+<!-- PWA — instalável como app -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon.svg">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--green:#25d366}
+  body{font-family:'DM Sans',sans-serif;background:#f4f4f4;color:#111;line-height:1.5;padding:1.5rem 1rem 4rem}
+  .wrap{max-width:1100px;margin:0 auto}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #111;padding-bottom:1rem}
+  h1{font-family:'Playfair Display',serif;font-weight:900;font-size:1.9rem;letter-spacing:-.01em}
+  header .sub{font-size:.82rem;color:#666}
+  header a.voltar{font-size:.8rem;color:#666;text-decoration:none;border-bottom:1px solid #ccc}
+  header a.voltar:hover{color:#000;border-color:#000}
+
+  .barra{display:flex;gap:.8rem;flex-wrap:wrap;align-items:end;background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem;margin-bottom:1.2rem}
+  .barra .campo{flex:1;min-width:160px}
+  .barra .campo.busca{flex:2;min-width:220px}
+  label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:.3rem;font-weight:500}
+  input,select,textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.6rem .7rem;border:1px solid #d5d5d5;border-radius:9px;background:#fff;color:#111}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#111}
+  button.btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.62rem 1rem;border-radius:9px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+  button.btn:hover{opacity:.85}
+  button.btn.ghost{background:#fff;color:#111}
+
+  .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:#666}
+
+  /* Cards de venda */
+  .lista{display:flex;flex-direction:column;gap:1rem}
+  .card{background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem 1.2rem;display:flex;flex-direction:column;gap:.7rem}
+  .card .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;flex-wrap:wrap}
+  .card h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.12rem;line-height:1.25}
+  .card .partes{display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1.4rem;font-size:.84rem}
+  .card .partes .bloco b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:#999;font-weight:600;margin-bottom:.1rem}
+  .card .partes .bloco span{color:#333}
+  .card .valores{display:flex;gap:1.6rem;flex-wrap:wrap;border-top:1px dashed #e6e6e6;padding-top:.6rem;font-size:.85rem}
+  .card .valores .v b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:#999;font-weight:600}
+  .card .valores .v .num{font-weight:700;font-size:1rem}
+  .card .datas{font-size:.8rem;color:#666;display:flex;gap:1.2rem;flex-wrap:wrap}
+
+  .badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:.25rem .6rem;border-radius:20px;white-space:nowrap}
+  .badge.negociando{background:#eef2ff;color:#3a4fc0}
+  .badge.pago{background:#e7f7ec;color:#1a7f37}
+  .badge.retirado{background:#fff3da;color:#9a6700}
+  .badge.concluido{background:#eef9f0;color:#15803d}
+  .badge.cancelado{background:#fdecea;color:#a3261c}
+
+  /* Anexos */
+  .anexos{border-top:1px dashed #e6e6e6;padding-top:.7rem}
+  .anexos .grupo{margin-bottom:.5rem}
+  .anexos .grupo .gtit{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#999;font-weight:600;margin-bottom:.3rem}
+  .anexo-chips{display:flex;flex-wrap:wrap;gap:.4rem}
+  .chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;background:#f3f3f3;border:1px solid #e2e2e2;border-radius:8px;padding:.35rem .55rem;cursor:pointer}
+  .chip:hover{border-color:#111}
+  .chip .x{color:#c0392b;font-weight:700;opacity:.6}
+  .chip .x:hover{opacity:1}
+  .add-anexo{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;background:#fafafa;border:1px dashed #bbb;border-radius:8px;padding:.35rem .6rem;color:#777;cursor:pointer}
+  .add-anexo:hover{border-color:#111;color:#111}
+
+  .card .rodape{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem}
+  .card .rodape button{font-family:'DM Sans',sans-serif;font-size:.76rem;padding:.42rem .8rem;border:1px solid #d5d5d5;border-radius:8px;background:#fafafa;color:#333;cursor:pointer}
+  .card .rodape button:hover{border-color:#111;color:#111}
+  .card .rodape button.del{color:#c0392b}
+
+  .vazio{text-align:center;padding:4rem 1rem;color:#999}
+  .vazio .ico{font-size:2.5rem;margin-bottom:.6rem}
+  .erro{background:#fdecea;border:1px solid #f5c6c2;color:#a3261c;padding:.9rem;border-radius:10px;margin-bottom:1rem;font-size:.86rem;display:none}
+
+  /* Modal de formulário */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;z-index:40;padding:2rem 1rem;overflow-y:auto}
+  .modal.show{display:flex}
+  .modal .box{background:#fff;border-radius:16px;max-width:680px;width:100%;padding:1.5rem;margin:auto 0}
+  .modal h2{font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem}
+  .form-sec{margin-bottom:1.1rem}
+  .form-sec .stit{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#111;font-weight:700;border-bottom:1px solid #eee;padding-bottom:.3rem;margin-bottom:.7rem}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.7rem}
+  .modal .acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem}
+  textarea{resize:vertical;min-height:64px}
+
+  /* Gate de senha */
+  .gate{position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;z-index:100;padding:1.5rem}
+  .gate .cx{max-width:340px;width:100%;text-align:center}
+  .gate h2{font-family:'Playfair Display',serif;font-size:1.6rem;margin-bottom:.4rem}
+  .gate p{color:#aaa;font-size:.85rem;margin-bottom:1.2rem}
+  .gate input{background:#1a1a1a;border-color:#333;color:#fff;text-align:center;margin-bottom:.7rem}
+  .gate button{width:100%}
+  .gate .msg{color:#ff7a6b;font-size:.8rem;min-height:1.2em;margin-top:.5rem}
+
+  @media(max-width:560px){h1{font-size:1.5rem}.card .partes,.grid2,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ── Portão de senha ────────────────────────────────────────── -->
+<div class="gate" id="gate">
+  <div class="cx">
+    <h2>Registro de Vendas</h2>
+    <p>Área restrita — Carro na Rede Repasses</p>
+    <input id="gate-pass" type="password" inputmode="text" placeholder="Senha de acesso" autocomplete="current-password" />
+    <button class="btn" id="gate-btn" style="background:#fff;color:#111;border-color:#fff">Entrar</button>
+    <div class="msg" id="gate-msg"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <header>
+    <div>
+      <h1>Registro de Vendas</h1>
+      <div class="sub">Carro na Rede Repasses — vendas fechadas, anexos e documentos</div>
+    </div>
+    <a class="voltar" href="/index.html">← Voltar ao gerador</a>
+  </header>
+
+  <div class="erro" id="erro"></div>
+
+  <div class="barra">
+    <div class="campo busca">
+      <label for="f-q">Buscar (comprador, vendedor, carro, placa)</label>
+      <input id="f-q" type="text" placeholder="ex: João, Onix, ABC1D23..." />
+    </div>
+    <div class="campo">
+      <label for="f-status">Status</label>
+      <select id="f-status">
+        <option value="">Todos</option>
+        <option value="negociando">Negociando</option>
+        <option value="pago">Pago</option>
+        <option value="retirado">Retirado</option>
+        <option value="concluido">Concluído</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </div>
+    <button class="btn" id="btn-nova">+ Nova venda</button>
+  </div>
+
+  <div class="meta-linha"><span id="contador"></span></div>
+  <div class="lista" id="lista"></div>
+</div>
+
+<!-- ── Modal formulário ───────────────────────────────────────── -->
+<div class="modal" id="modal">
+  <div class="box">
+    <h2 id="modal-tit">Nova venda</h2>
+    <input type="hidden" id="m-id" />
+
+    <div class="form-sec">
+      <div class="stit">Veículo</div>
+      <div class="grid3">
+        <div><label>Marca</label><input id="m-marca" /></div>
+        <div><label>Modelo</label><input id="m-modelo" /></div>
+        <div><label>Versão</label><input id="m-versao" /></div>
+        <div><label>Ano</label><input id="m-ano" /></div>
+        <div><label>Placa</label><input id="m-placa" /></div>
+        <div><label>Cor</label><input id="m-cor" /></div>
+        <div><label>KM</label><input id="m-km" type="number" inputmode="numeric" /></div>
+        <div><label>Renavam</label><input id="m-renavam" /></div>
+        <div><label>Chassi</label><input id="m-chassi" /></div>
+      </div>
+    </div>
+
+    <div class="form-sec">
+      <div class="stit">Vendedor / Origem (de quem veio o carro)</div>
+      <div class="grid2" style="margin-bottom:.7rem">
+        <div><label>Origem (cidade / de onde veio)</label><input id="m-origem" placeholder="ex: Garopaba - Paulo" /></div>
+        <div><label>Nome do vendedor</label><input id="m-vendedor_nome" /></div>
+      </div>
+      <div class="grid2">
+        <div><label>CPF</label><input id="m-vendedor_cpf" inputmode="numeric" /></div>
+        <div><label>Telefone</label><input id="m-vendedor_telefone" inputmode="tel" /></div>
+      </div>
+    </div>
+
+    <div class="form-sec">
+      <div class="stit">Comprador / Destino (pra onde foi)</div>
+      <div class="grid2" style="margin-bottom:.7rem">
+        <div><label>Destino (cidade / pra quem foi)</label><input id="m-destino" placeholder="ex: New Motors - Novo Hamburgo" /></div>
+        <div><label>Nome do comprador</label><input id="m-comprador_nome" /></div>
+      </div>
+      <div class="grid2">
+        <div><label>CPF</label><input id="m-comprador_cpf" inputmode="numeric" /></div>
+        <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" /></div>
+      </div>
+    </div>
+
+    <div class="form-sec">
+      <div class="stit">Valores</div>
+      <div class="grid3">
+        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="number" inputmode="numeric" placeholder="ex: 2000" /></div>
+        <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="number" inputmode="numeric" /></div>
+        <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="number" inputmode="numeric" /></div>
+        <div><label>Forma de pagamento</label><input id="m-forma_pagamento" placeholder="PIX, financiamento..." /></div>
+      </div>
+    </div>
+
+    <div class="form-sec">
+      <div class="stit">Datas, Status & Documentação</div>
+      <div class="grid3">
+        <div><label>Data da venda</label><input id="m-data_venda" type="date" /></div>
+        <div><label>Entrega / Retirada</label><input id="m-data_retirada" type="date" /></div>
+        <div><label>Status da venda</label>
+          <select id="m-status">
+            <option value="negociando">Negociando</option>
+            <option value="pago">Pago</option>
+            <option value="retirado">Retirado</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div><label>Documentação</label>
+          <select id="m-doc_status">
+            <option value="pendente">Pendente</option>
+            <option value="entregue">Entregue</option>
+            <option value="procuracao">Entregue (procuração)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-sec">
+      <div class="stit">Observações</div>
+      <textarea id="m-observacoes" placeholder="Detalhes do negócio, combinados, pendências..."></textarea>
+    </div>
+
+    <div class="acoes">
+      <button class="btn ghost" id="m-cancelar">Cancelar</button>
+      <button class="btn" id="m-salvar">Salvar venda</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*,application/pdf" style="display:none" />
+
+<script>
+const $ = id => document.getElementById(id);
+let KEY = sessionStorage.getItem('cnr_vendas_key') || '';
+let VENDAS = [];
+
+const TIPOS = [
+  ['comprovante_pagamento', 'Comprovantes de pagamento'],
+  ['documento_carro', 'Documento do carro'],
+  ['cautelar', 'Cautelar'],
+  ['outro', 'Outros'],
+];
+
+const DOC_ROTULO = { pendente: 'Pendente', entregue: 'Entregue', procuracao: 'Entregue (procuração)' };
+
+const moeda = n => (n || n === 0) ? Number(n).toLocaleString('pt-BR', {style:'currency', currency:'BRL'}) : '—';
+const dataBR = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function headers(extra) {
+  const h = { 'Content-Type': 'application/json' };
+  if (KEY) h['x-cnr-key'] = KEY;
+  return Object.assign(h, extra || {});
+}
+
+// ── Gate ───────────────────────────────────────────────────────
+// silent=true: tentativa automática no carregamento (não mostra erro,
+// só entra se der certo). silent=false: clique no "Entrar" (mostra erro).
+async function tentarEntrar(pass, silent) {
+  $('gate-msg').textContent = '';
+  KEY = pass;
+  let r;
+  try {
+    r = await fetch('/api/vendas', { headers: headers() });
+  } catch (e) {
+    if (!silent) $('gate-msg').textContent = 'Erro ao conectar. Tente de novo.';
+    KEY = ''; return;
+  }
+  if (r.status === 401) { if (!silent) $('gate-msg').textContent = 'Senha incorreta.'; KEY = ''; return; }
+  if (!r.ok) { if (!silent) $('gate-msg').textContent = 'Erro ao conectar. Tente de novo.'; KEY = ''; return; }
+  sessionStorage.setItem('cnr_vendas_key', KEY);
+  VENDAS = await r.json();
+  $('gate').style.display = 'none';
+  $('app').style.display = 'block';
+  render();
+}
+$('gate-btn').onclick = () => tentarEntrar($('gate-pass').value.trim(), false);
+$('gate-pass').addEventListener('keydown', e => { if (e.key === 'Enter') tentarEntrar($('gate-pass').value.trim(), false); });
+
+// Se já tem chave salva, tenta entrar direto e em silêncio.
+(async function boot(){ if (KEY) await tentarEntrar(KEY, true); })();
+
+// ── Carregar / filtrar ─────────────────────────────────────────
+async function carregar() {
+  const q = new URLSearchParams();
+  if ($('f-q').value.trim())   q.set('q', $('f-q').value.trim());
+  if ($('f-status').value)     q.set('status', $('f-status').value);
+  try {
+    const r = await fetch('/api/vendas?' + q.toString(), { headers: headers() });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    VENDAS = await r.json();
+    render();
+  } catch (e) { mostrarErro(e.message); }
+}
+$('f-q').addEventListener('input', debounce(carregar, 350));
+$('f-status').addEventListener('change', carregar);
+
+function debounce(fn, ms){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
+function mostrarErro(m){ $('erro').textContent = m; $('erro').style.display = 'block'; setTimeout(()=>$('erro').style.display='none', 5000); }
+
+// ── Render ─────────────────────────────────────────────────────
+function render() {
+  $('contador').textContent = VENDAS.length ? `${VENDAS.length} venda(s)` : '';
+  if (!VENDAS.length) {
+    $('lista').innerHTML = '<div class="vazio"><div class="ico">📋</div>Nenhuma venda registrada ainda.<br>Clique em <b>+ Nova venda</b> pra começar.</div>';
+    return;
+  }
+  $('lista').innerHTML = VENDAS.map(cardHTML).join('');
+}
+
+function nomeCarro(v) {
+  return [v.marca, v.versao || v.modelo, v.ano].filter(Boolean).join(' ') || 'Veículo sem identificação';
+}
+
+function cardHTML(v) {
+  const anexos = Array.isArray(v.anexos) ? v.anexos : [];
+  const gruposAnexo = TIPOS.map(([tipo, rotulo]) => {
+    const lista = anexos.filter(a => a.tipo === tipo);
+    const chips = lista.map(a =>
+      `<span class="chip" onclick="abrirAnexo('${v.id}','${esc(a.path)}')">📎 ${esc(a.nome)} <span class="x" onclick="event.stopPropagation();removerAnexo('${v.id}','${esc(a.path)}')">✕</span></span>`
+    ).join('');
+    return `<div class="grupo"><div class="gtit">${rotulo}</div><div class="anexo-chips">${chips}<span class="add-anexo" onclick="addAnexo('${v.id}','${tipo}')">+ anexar</span></div></div>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="topo">
+      <h3>${esc(nomeCarro(v))}${v.placa ? ' · <span style="font-weight:400;color:#666">'+esc(v.placa)+'</span>' : ''}</h3>
+      <span class="badge ${v.status}">${esc(v.status)}</span>
+    </div>
+    <div class="partes">
+      <div class="bloco"><b>Origem (vendedor)</b><span>${esc(v.origem) || esc(v.vendedor_nome) || '—'}${v.origem && v.vendedor_nome ? ' · '+esc(v.vendedor_nome) : ''}${v.vendedor_telefone ? ' · '+esc(v.vendedor_telefone) : ''}</span></div>
+      <div class="bloco"><b>Destino (comprador)</b><span>${esc(v.destino) || esc(v.comprador_nome) || '—'}${v.destino && v.comprador_nome ? ' · '+esc(v.comprador_nome) : ''}${v.comprador_telefone ? ' · '+esc(v.comprador_telefone) : ''}</span></div>
+    </div>
+    <div class="valores">
+      <div class="v"><b>Lucro / Taxa CNR</b><span class="num" style="color:#1a7f37">${moeda(v.taxa_intermediacao)}</span></div>
+      ${v.valor_venda != null ? '<div class="v"><b>Venda</b><span class="num">'+moeda(v.valor_venda)+'</span></div>' : ''}
+      ${v.valor_fipe != null ? '<div class="v"><b>FIPE</b><span class="num" style="color:#666">'+moeda(v.valor_fipe)+'</span></div>' : ''}
+    </div>
+    <div class="datas">
+      <span>🗓️ Venda: <b>${dataBR(v.data_venda)}</b></span>
+      <span>📦 Entrega: <b>${dataBR(v.data_retirada)}</b></span>
+      <span>📄 Doc: <b>${DOC_ROTULO[v.doc_status] || '—'}</b></span>
+      ${v.forma_pagamento ? '<span>💳 '+esc(v.forma_pagamento)+'</span>' : ''}
+    </div>
+    ${v.observacoes ? '<div style="font-size:.84rem;color:#555">📝 '+esc(v.observacoes)+'</div>' : ''}
+    <div class="anexos">${gruposAnexo}</div>
+    <div class="rodape">
+      <button onclick="editar('${v.id}')">✏️ Editar</button>
+      <button class="del" onclick="apagar('${v.id}')">🗑️ Excluir</button>
+    </div>
+  </div>`;
+}
+
+// ── Modal ──────────────────────────────────────────────────────
+const CAMPOS_FORM = ['marca','modelo','versao','ano','placa','cor','km','renavam','chassi',
+  'origem','vendedor_nome','vendedor_cpf','vendedor_telefone',
+  'destino','comprador_nome','comprador_cpf','comprador_telefone',
+  'valor_venda','valor_fipe','taxa_intermediacao','forma_pagamento','data_venda','data_retirada','status','doc_status','observacoes'];
+
+function abrirModal(v) {
+  v = v || {};
+  $('m-id').value = v.id || '';
+  $('modal-tit').textContent = v.id ? 'Editar venda' : 'Nova venda';
+  CAMPOS_FORM.forEach(c => { const el = $('m-' + c); if (el) el.value = v[c] != null ? v[c] : ''; });
+  if (!v.id) { $('m-status').value = 'negociando'; $('m-doc_status').value = 'pendente'; }
+  $('modal').classList.add('show');
+}
+function fecharModal(){ $('modal').classList.remove('show'); }
+$('btn-nova').onclick = () => abrirModal();
+$('m-cancelar').onclick = fecharModal;
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) fecharModal(); });
+
+function editar(id){ abrirModal(VENDAS.find(v => v.id === id)); }
+
+$('m-salvar').onclick = async () => {
+  const id = $('m-id').value;
+  const body = {};
+  CAMPOS_FORM.forEach(c => {
+    const el = $('m-' + c); if (!el) return;
+    let val = el.value;
+    if (['km','valor_venda','valor_fipe','taxa_intermediacao'].includes(c)) val = val === '' ? null : Number(val);
+    body[c] = val;
+  });
+  try {
+    const url = id ? '/api/vendas?id=' + id : '/api/vendas';
+    const r = await fetch(url, { method: id ? 'PATCH' : 'POST', headers: headers(), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    fecharModal();
+    carregar();
+  } catch (e) { mostrarErro('Falha ao salvar: ' + e.message); }
+};
+
+async function apagar(id) {
+  if (!confirm('Excluir esta venda e todos os anexos? Não dá pra desfazer.')) return;
+  try {
+    const r = await fetch('/api/vendas?id=' + id, { method: 'DELETE', headers: headers() });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    carregar();
+  } catch (e) { mostrarErro('Falha ao excluir: ' + e.message); }
+}
+
+// ── Anexos ─────────────────────────────────────────────────────
+let _alvoAnexo = null;
+function addAnexo(vendaId, tipo) {
+  _alvoAnexo = { vendaId, tipo };
+  $('file-input').value = '';
+  $('file-input').click();
+}
+
+$('file-input').addEventListener('change', async (e) => {
+  const alvo = _alvoAnexo;
+  const files = [...e.target.files];
+  if (!alvo || !files.length) return;
+  try {
+    for (const f of files) {
+      $('contador').textContent = 'Enviando ' + f.name + '...';
+      const b64 = await fileToBase64(f);
+      const r = await fetch('/api/vendas-anexo', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, fileBase64: b64, mimeType: f.type || 'application/octet-stream', nome: f.name }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    }
+    carregar();
+  } catch (err) { mostrarErro('Falha ao anexar: ' + err.message); carregar(); }
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result.split(',')[1]);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+async function abrirAnexo(vendaId, path) {
+  try {
+    const r = await fetch('/api/vendas-anexo?vendaId=' + vendaId + '&path=' + encodeURIComponent(path), { headers: headers() });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    const { url } = await r.json();
+    window.open(url, '_blank');
+  } catch (e) { mostrarErro('Falha ao abrir: ' + e.message); }
+}
+
+async function removerAnexo(vendaId, path) {
+  if (!confirm('Remover este anexo?')) return;
+  try {
+    const r = await fetch('/api/vendas-anexo', { method: 'DELETE', headers: headers(), body: JSON.stringify({ vendaId, path }) });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    carregar();
+  } catch (e) { mostrarErro('Falha ao remover: ' + e.message); }
+}
+</script>
+</body>
+</html>
