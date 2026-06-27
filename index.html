@@ -25,6 +25,9 @@
   .form-side{border-right:1px solid var(--border);padding:2rem;overflow-y:auto}
   .fsec{margin-bottom:2rem}
   .fsec-title{font-size:.6rem;letter-spacing:.35em;text-transform:uppercase;color:var(--mid);margin-bottom:.6rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+  .fsec-toggle{display:flex;align-items:center;gap:.4rem;cursor:pointer;user-select:none}
+  .fsec-toggle .opc-count{font-size:.58rem;letter-spacing:.1em;color:var(--green);margin-left:auto;text-transform:none}
+  .fsec-toggle .fsec-chevron{font-size:.7rem;color:var(--mid)}
   .fsec-hint{font-size:.68rem;color:#555;margin-bottom:.75rem}
 
   /* GRIDS */
@@ -305,9 +308,15 @@
 
   <!-- OPCIONAIS POR CATEGORIA -->
   <div class="fsec">
-    <div class="fsec-title">Opcionais</div>
-    <div class="fsec-hint">Padrão já marcado. Desmarque o que NÃO tem. Marque o que TEM nos diferenciais.</div>
-    <div id="opcionais-wrap"></div>
+    <div class="fsec-title fsec-toggle" onclick="toggleOpcionais()">
+      <span>Opcionais</span>
+      <span class="opc-count" id="opc-count"></span>
+      <span class="fsec-chevron" id="opc-chevron">▸</span>
+    </div>
+    <div id="opc-collapse" style="display:none">
+      <div class="fsec-hint">Padrão já marcado. Desmarque o que NÃO tem. Marque o que TEM nos diferenciais.</div>
+      <div id="opcionais-wrap"></div>
+    </div>
   </div>
 
   <!-- PNEUS -->
@@ -619,6 +628,22 @@ const OBS = [
 // ══════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════
+// Abre/fecha a seção de opcionais (começa fechada pra deixar a tela mais limpa)
+function toggleOpcionais() {
+  const box  = document.getElementById('opc-collapse');
+  const chev = document.getElementById('opc-chevron');
+  const fechado = box.style.display === 'none';
+  box.style.display = fechado ? '' : 'none';
+  chev.textContent  = fechado ? '▾' : '▸';
+}
+
+// Mostra no cabeçalho quantos opcionais estão marcados (sem precisar abrir)
+function atualizaContagemOpc() {
+  const n = document.querySelectorAll('#opcionais-wrap .tog.on').length;
+  const badge = document.getElementById('opc-count');
+  if (badge) badge.textContent = n ? `${n} marcado${n > 1 ? 's' : ''}` : '';
+}
+
 function buildOpcionais() {
   const wrap = document.getElementById('opcionais-wrap');
   wrap.innerHTML = '';
@@ -644,11 +669,13 @@ function buildOpcionais() {
           // scroll suave até blindagem
           if (isOn) document.getElementById('blind-wrap').scrollIntoView({behavior:'smooth', block:'nearest'});
         }
+        atualizaContagemOpc();
       });
       grid.appendChild(div);
     });
     wrap.appendChild(grid);
   });
+  atualizaContagemOpc();
 }
 
 function buildObs() {
@@ -1266,6 +1293,7 @@ function mapOpcionais(lista) {
       }
     }
   });
+  atualizaContagemOpc();
 }
 
 function setParseSt(msg, cls) {
@@ -1796,6 +1824,7 @@ async function restaurarEstado() {
   };
   marcarTogs('#opcionais-wrap', estado.opcionais);
   marcarTogs('#obs-grid', estado.obs);
+  atualizaContagemOpc();
 
   if (estado.mode) setMode(estado.mode);
 
