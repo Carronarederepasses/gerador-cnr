@@ -300,10 +300,10 @@ function comprimir(file, maxLado = 1600, q = 0.82) {
         const dataUrl = c.toDataURL('image/jpeg', q);
         resolve(dataUrl.split(',')[1]); // só o base64
       };
-      img.onerror = reject;
+      img.onerror = () => reject(new Error(`não consegui abrir "${file.name}" — formato não suportado (use JPG ou PNG; fotos de iPhone em HEIC podem falhar)`));
       img.src = r.result;
     };
-    r.onerror = reject;
+    r.onerror = () => reject(new Error(`não consegui ler o arquivo "${file.name}"`));
     r.readAsDataURL(file);
   });
 }
