@@ -396,9 +396,20 @@
   <div class="fsec">
     <div class="fsec-title">Observação final</div>
     <div class="tog-grid" id="obs-grid"></div>
+
+    <div class="field" id="campo-avaliacao" style="margin-top:.5rem">
+      <label>Avaliação <span style="color:var(--light)">(carro de captação)</span></label>
+      <textarea id="avaliacao" rows="4" placeholder="ex: Carro selado frente e traseira; pneus bons, bom de câmbio, motor e suspensão; riscos superficiais que saem no polimento." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+
     <div class="field" style="margin-top:.5rem">
-      <label>Observação personalizada</label>
-      <textarea id="obs-custom" rows="4" placeholder="ex: Veículo de leilão, aceita troca..." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+      <label>Gastos</label>
+      <textarea id="gastos" rows="3" placeholder="ex: Pintar para-choque dianteiro; higienização e preparação de loja." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+
+    <div class="field" style="margin-top:.5rem">
+      <label>Observação livre</label>
+      <textarea id="obs-custom" rows="3" placeholder="ex: *IPVA 2026 ABERTO 2% (R$ 3.810,00)*  •  *TETO-SOLAR*  •  Aceita troca" style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
     </div>
   </div>
 
@@ -906,6 +917,15 @@ function toTitleCase(str) {
   return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// Monta uma seção destacada: título em *negrito caixa-alta* + texto embaixo.
+function pushSecao(linhas, titulo, texto) {
+  if (!texto) return;
+  linhas.push('');
+  linhas.push(`*${titulo}*:`);
+  linhas.push('');
+  linhas.push(texto);
+}
+
 // ══════════════════════════════════════════════
 // GERAR
 // ══════════════════════════════════════════════
@@ -922,6 +942,8 @@ function gerar() {
   const regiao    = document.getElementById('regiao').value.trim();
   const valor     = document.getElementById('valor').value.trim();
   const fipeDigit = document.getElementById('fipe-val').value.trim();
+  const avaliacao = document.getElementById('avaliacao').value.trim();
+  const gastos    = document.getElementById('gastos').value.trim();
   const obsCustom = document.getElementById('obs-custom').value.trim();
 
   const onIds  = getAllOnIds();
@@ -939,14 +961,15 @@ function gerar() {
   ].filter(Boolean);
   const nomeVeic = partes.join(' ');
 
-  let l1 = '🚗';
+  let l1 = '';
   if (nomeVeic) l1 += `*${nomeVeic}*`;
   const det = [
     !badSel(anoNome) ? anoNome : '',
-    km
+    km,
+    cor ? cor.toLowerCase() : ''
   ].filter(Boolean);
   if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
-  if (l1 !== '🚗') linhas.push(l1);
+  if (l1) linhas.push(l1);
 
   // Localização
   if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
@@ -972,11 +995,18 @@ function gerar() {
     }
   }
 
-  // Observações
-  if (obsIds.length || obsCustom) {
+  // Avaliação (só captação) e Gastos — seções em negrito caixa-alta
+  pushSecao(linhas, 'AVALIAÇÃO', avaliacao);
+  pushSecao(linhas, 'GASTOS', gastos);
+
+  // Observações finais (toggles pré-definidos) + observação livre
+  if (obsIds.length) {
     linhas.push('');
     obsIds.forEach(id => linhas.push(obsMap[id] || id));
-    if (obsCustom) linhas.push(`✅ ${obsCustom}`);
+  }
+  if (obsCustom) {
+    linhas.push('');
+    linhas.push(obsCustom);
   }
 
   // Valores
@@ -1165,6 +1195,8 @@ function setMode(mode) {
   document.getElementById('blocos-anuncio').style.display   = mode === 'editor'    ? 'none' : '';
   // O bloco "Valores" duplica os campos do Coletados (colet-valor/colet-fipe) — esconde lá
   document.getElementById('bloco-valores').style.display    = mode === 'coletados' ? 'none' : '';
+  // Avaliação só faz sentido em carro de captação
+  document.getElementById('campo-avaliacao').style.display  = mode === 'captacao'  ? '' : 'none';
   document.getElementById('btn-captacao').classList.toggle('active',  mode === 'captacao');
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
@@ -1343,6 +1375,7 @@ function gerarColetados() {
   const regiao    = document.getElementById('colet-regiao').value.trim();
   const valor     = document.getElementById('colet-valor').value.trim();
   const fipeVal   = document.getElementById('colet-fipe').value.trim();
+  const gastos    = document.getElementById('gastos').value.trim();
   const obsCustom = document.getElementById('obs-custom').value.trim();
 
   const onIds  = getAllOnIds();
@@ -1351,11 +1384,11 @@ function gerarColetados() {
 
   let linhas = [];
 
-  let l1 = '🚗';
+  let l1 = '';
   if (veiculo) l1 += `*${toTitleCase(veiculo)}*`;
-  const det = [ano, km].filter(Boolean);
+  const det = [ano, km, cor ? cor.toLowerCase() : ''].filter(Boolean);
   if (det.length) l1 += (veiculo ? ', ' : '') + det.join(', ');
-  if (l1 !== '🚗') linhas.push(l1);
+  if (l1) linhas.push(l1);
 
   if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
 
@@ -1377,10 +1410,15 @@ function gerarColetados() {
     }
   }
 
-  if (obsIds.length || obsCustom) {
+  pushSecao(linhas, 'GASTOS', gastos);
+
+  if (obsIds.length) {
     linhas.push('');
     obsIds.forEach(id => linhas.push(obsMap[id] || id));
-    if (obsCustom) linhas.push(`✅ ${obsCustom}`);
+  }
+  if (obsCustom) {
+    linhas.push('');
+    linhas.push(obsCustom);
   }
 
   linhas.push('');
@@ -1724,7 +1762,7 @@ function downloadFoto() {
 const SAVE_KEY = 'cnr_form_v1';
 const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','placa','valor','fipe-val',
   'texto-colado','colet-veiculo','colet-km','colet-cor','colet-ano','colet-regiao','colet-valor','colet-fipe',
-  'obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km'];
+  'avaliacao','gastos','obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km'];
 const CAMPOS_CASCATA = ['sel-marca','sel-modelo','sel-ano','sel-versao'];
 let _saveTimer = null;
 
