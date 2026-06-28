@@ -1,4 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="80" fill="#0a0a0a"/>
-  <image href="/assets/logo.svg" x="16" y="158" width="480" height="196"/>
+  <rect width="512" height="512" rx="90" fill="#0a0a0a"/>
+  <text x="256" y="210" text-anchor="middle" fill="#f5f3ee"
+    font-family="'Arial Black',Arial,sans-serif" font-weight="900"
+    font-size="82" letter-spacing="2">CARRO</text>
+  <text x="256" y="296" text-anchor="middle" fill="#f5f3ee"
+    font-family="'Arial Black',Arial,sans-serif" font-weight="900"
+    font-size="82" letter-spacing="2">NA REDE</text>
+  <text x="256" y="356" text-anchor="middle" fill="#666"
+    font-family="Arial,sans-serif" font-weight="400"
+    font-size="34" letter-spacing="13">REPASSES</text>
+  <rect x="176" y="388" width="160" height="5" rx="2.5" fill="#333"/>
 </svg>
