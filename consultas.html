@@ -38,7 +38,7 @@
     select option{background:#141414}
 
     .botoes{display:flex;flex-direction:column;gap:10px;margin-top:4px}
-    .btn{display:flex;align-items:center;gap:10px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;color:#e0e0e0;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;padding:14px 16px;cursor:pointer;text-align:left;transition:all .15s;width:100%}
+    .btn{display:flex;align-items:center;gap:10px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;color:#e0e0e0;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;padding:14px 16px;cursor:pointer;text-align:left;transition:all .15s;width:100%;text-decoration:none}
     .btn:hover{border-color:#555;background:#222;color:#fff}
     .btn .ico{font-size:1.1rem;width:24px;text-align:center;flex-shrink:0}
     .btn .txt{flex:1}
@@ -92,44 +92,44 @@
     </select>
   </div>
 
-  <div class="botoes">
-    <button class="btn destaque" onclick="abrirDetran()">
+  <div class="botoes" id="botoes">
+    <a id="link-detran" class="btn destaque" href="#" target="_blank" rel="noopener">
       <span class="ico">🏛️</span>
       <span class="txt">
         <b>DETRAN — Débitos e multas</b>
         <span>IPVA · Licenciamento · Infrações · DPVAT</span>
       </span>
       <span style="color:#333;font-size:.8rem">↗</span>
-    </button>
+    </a>
 
     <hr class="divider">
 
-    <button class="btn" onclick="abrirAutoCrivo()">
+    <a class="btn" href="https://www.autocrivo.com.br" target="_blank" rel="noopener">
       <span class="ico">🔍</span>
       <span class="txt">
         <b>Auto-crivo — Histórico completo</b>
         <span>Sinistro · Leilão · Gravame · Proprietários</span>
       </span>
       <span style="color:#333;font-size:.8rem">↗</span>
-    </button>
+    </a>
 
-    <button class="btn" onclick="abrirFipe()">
+    <a class="btn" href="https://veiculos.fipe.org.br/" target="_blank" rel="noopener">
       <span class="ico">💰</span>
       <span class="txt">
         <b>Tabela FIPE</b>
         <span>Consultar valor de mercado</span>
       </span>
       <span style="color:#333;font-size:.8rem">↗</span>
-    </button>
+    </a>
 
-    <button class="btn" onclick="abrirGerador()">
+    <a class="btn" id="link-gerador" href="/index.html" target="_blank" rel="noopener">
       <span class="ico">📋</span>
       <span class="txt">
-        <b>Gerar anúncio com essa placa</b>
-        <span>Abre o gerador com a placa preenchida</span>
+        <b>Gerar anúncio</b>
+        <span>Abre o gerador em nova aba</span>
       </span>
       <span style="color:#333;font-size:.8rem">↗</span>
-    </button>
+    </a>
   </div>
 </div>
 
@@ -150,37 +150,20 @@ const DETRANS = {
   ES: 'https://detran.es.gov.br/servicos/veiculos/debitos',
   DF: 'https://www.detran.df.gov.br/servicos/veiculo/consulta-de-debitos',
   PA: 'https://www.detran.pa.gov.br/portal/veiculo/debito',
-  AM: 'https://www.detran.am.gov.br/consultas/consultaDébitosVeiculo',
+  AM: 'https://www.detran.am.gov.br/consultas/consultaDebitosVeiculo',
   outros: 'https://portalnatransito.com.br/consulta-debitos/',
 };
 
-function placa() { return document.getElementById('placa').value.trim(); }
-function estado() { return document.getElementById('estado').value; }
-
-function abrirDetran() {
-  const url = DETRANS[estado()] || DETRANS['outros'];
-  window.open(url, '_blank');
+function atualizarLinks() {
+  const url = DETRANS[document.getElementById('estado').value] || DETRANS['outros'];
+  document.getElementById('link-detran').href = url;
 }
 
-function abrirAutoCrivo() {
-  window.open('https://www.autocrivo.com.br', '_blank');
-}
+// Atualiza quando muda o estado
+document.getElementById('estado').addEventListener('change', atualizarLinks);
 
-function abrirFipe() {
-  window.open('https://veiculos.fipe.org.br/', '_blank');
-}
-
-function abrirGerador() {
-  const p = placa();
-  // Abre o gerador e passa a placa via sessionStorage
-  if (p) sessionStorage.setItem('consultas_placa', p);
-  window.open('/index.html', '_blank');
-}
-
-// Enter consulta (abre DETRAN por padrão)
-document.getElementById('placa').addEventListener('keydown', e => {
-  if (e.key === 'Enter') abrirDetran();
-});
+// Inicia com SC
+atualizarLinks();
 </script>
 </body>
 </html>
