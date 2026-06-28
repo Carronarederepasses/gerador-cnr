@@ -119,6 +119,8 @@
   .av-pill.on.bom{background:#e7f7ec;border-color:#1a7f37;color:#1a7f37}
   .av-pill.on.alerta{background:#fff3da;border-color:#9a6700;color:#9a6700}
   .av-pill.on.ruim{background:#fdecea;border-color:#c0392b;color:#c0392b}
+  .av-sub{margin-top:.45rem;padding-left:.2rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .av-sub .subnm{font-size:.74rem;color:#888}
   .av-acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem;position:sticky;bottom:0;background:#fff;padding-top:.6rem}
   .card .rodape button.aval{background:#111;color:#fff;border-color:#111}
 </style>
@@ -612,9 +614,11 @@ const AVAL = [
     {id:'motor',nome:'Motor'},{id:'cambio',nome:'Câmbio'},{id:'suspensao',nome:'Suspensão'},
     {id:'freios',nome:'Freios'},{id:'vazamentos',nome:'Vazamentos'},
   ]},
-  { id:'itens', titulo:'Itens & Conforto', opts:['OK','Não tem','Com defeito'], itens:[
-    {id:'vidros',nome:'Vidros elétricos'},{id:'ar',nome:'Ar-condicionado'},
-    {id:'multimidia',nome:'Multimídia / elétrica'},{id:'estepe',nome:'Estepe / macaco'},
+  { id:'itens', titulo:'Itens & Conforto', itens:[
+    {id:'ar', nome:'Ar-condicionado', opts:['Gelando','Não gela'], sub:{quando:'Não gela', nome:'Motivo', opts:['Falta gás','Defeito compressor']}},
+    {id:'estepe', nome:'Estepe', opts:['Novo','Usado','Não tem']},
+    {id:'macaco', nome:'Macaco', opts:['Tem','Não tem']},
+    {id:'triangulo', nome:'Triângulo', opts:['Tem','Não tem']},
   ]},
 ];
 function sevAv(opts, idx){
@@ -651,7 +655,15 @@ function avItemHTML(sec, it, opts){
     const on = cur.status === o ? 'on ' + sevAv(opts, idx) : '';
     return `<button type="button" class="av-pill ${on}" onclick="setAvStatus('${sec.id}','${it.id}','${o}',this)">${o}</button>`;
   }).join('');
-  return `<div class="av-item"><div class="l"><span class="nm">${it.nome}</span><div class="av-pills">${pills}</div></div></div>`;
+  let sub = '';
+  if (it.sub){
+    const show = cur.status === it.sub.quando;
+    const subPills = it.sub.opts.map(o =>
+      `<button type="button" class="av-pill ${cur.sub === o ? 'on ruim' : ''}" onclick="setAvSub('${sec.id}','${it.id}','${o}',this)">${o}</button>`
+    ).join('');
+    sub = `<div class="av-sub" id="sub-${sec.id}-${it.id}" style="${show ? '' : 'display:none'}"><span class="subnm">${it.sub.nome}:</span><div class="av-pills">${subPills}</div></div>`;
+  }
+  return `<div class="av-item"><div class="l"><span class="nm">${it.nome}</span><div class="av-pills">${pills}</div></div>${sub}</div>`;
 }
 function setAvStatus(sec, item, val, btn){
   const c = avCel(sec, item);
@@ -662,6 +674,25 @@ function setAvStatus(sec, item, val, btn){
     const opts = [...box.children].map(b => b.textContent);
     btn.className = 'av-pill on ' + sevAv(opts, opts.indexOf(val));
   }
+  // mostra/esconde o sub-campo condicional (ex: ar "Não gela" → motivo)
+  const subEl = document.getElementById('sub-' + sec + '-' + item);
+  if (subEl){
+    const itCfg = AVAL.find(s => s.id === sec).itens.find(i => i.id === item);
+    if (itCfg.sub && c.status === itCfg.sub.quando){
+      subEl.style.display = '';
+    } else {
+      subEl.style.display = 'none';
+      c.sub = '';
+      subEl.querySelectorAll('.av-pill').forEach(b => b.className = 'av-pill');
+    }
+  }
+}
+function setAvSub(sec, item, val, btn){
+  const c = avCel(sec, item);
+  c.sub = (c.sub === val) ? '' : val;
+  const box = btn.parentElement;
+  [...box.children].forEach(b => b.className = 'av-pill');
+  if (c.sub) btn.className = 'av-pill on ruim';
 }
 async function salvarAval(){
   const id = $('av-veiculo-id').value;
