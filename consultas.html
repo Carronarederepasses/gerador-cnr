@@ -308,7 +308,13 @@ async function solicitarRelatorio(){
       body: JSON.stringify({ placa: _placaAtual }),
     });
     const data = await r.json();
-    if (!r.ok || !data.protocolo) throw new Error(data.error || data.mensagem || 'Erro ao solicitar.');
+    const msgErro = data.error || data.mensagem || '';
+    if (!r.ok || !data.protocolo) {
+      const creditos = msgErro.toLowerCase().includes('cr') || msgErro.toLowerCase().includes('saldo');
+      throw new Error(creditos
+        ? 'Saldo insuficiente. Acesse consultarplaca.com.br → Minha Conta para adicionar créditos (relatório custa ~R$15–20).'
+        : (msgErro || 'Erro ao solicitar relatório.'));
+    }
     document.getElementById('rel-msg').textContent = 'Processando relatório... (~1 min)';
     aguardarRelatorio(data.protocolo);
   } catch(e){
