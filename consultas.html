@@ -100,7 +100,7 @@
 
 <div class="nav">
   <a href="/index.html">← Gerador</a>
-  <button class="conf" onclick="abrirConfig()">⚙️ API key</button>
+  <span></span>
 </div>
 
 <header>
@@ -198,42 +198,9 @@
 
 </div>
 
-<!-- Modal config API -->
-<div class="modal" id="modal-config">
-  <div class="modal-box">
-    <h3>Configurar API</h3>
-    <p>Credenciais do <strong style="color:#aaa">Consultar Placa</strong> (consultarplaca.com.br). Salvas só neste aparelho.</p>
-    <div class="campo">
-      <label class="lbl">E-mail da conta</label>
-      <input type="email" id="cfg-email" placeholder="seu@email.com"/>
-    </div>
-    <div class="campo">
-      <label class="lbl">API Key</label>
-      <input type="password" id="cfg-key" placeholder="sua chave de API"/>
-    </div>
-    <p class="aviso-cred" style="margin-top:10px">⚠️ Cada consulta custa ~R$0,25. Use só quando precisar de dados reais do veículo.</p>
-    <div class="modal-acoes">
-      <button class="btn-ghost" onclick="fecharConfig()">Cancelar</button>
-      <button class="btn-salvar" onclick="salvarConfig()">Salvar</button>
-    </div>
-  </div>
-</div>
 
 <script>
 let uf = 'SC';
-
-// ── Configuração ────────────────────────────────────────────────
-function abrirConfig(){
-  document.getElementById('cfg-email').value = localStorage.getItem('cp_email') || '';
-  document.getElementById('cfg-key').value   = localStorage.getItem('cp_key') || '';
-  document.getElementById('modal-config').classList.add('show');
-}
-function fecharConfig(){ document.getElementById('modal-config').classList.remove('show'); }
-function salvarConfig(){
-  localStorage.setItem('cp_email', document.getElementById('cfg-email').value.trim());
-  localStorage.setItem('cp_key',   document.getElementById('cfg-key').value.trim());
-  fecharConfig();
-}
 
 // ── Estado ──────────────────────────────────────────────────────
 function setUF(val, btn){
@@ -248,25 +215,15 @@ async function consultar(){
   const placa = document.getElementById('placa').value.trim();
   if (placa.length < 7){ mostrarErro('Placa inválida. Use o formato ABC1D23.'); return; }
 
-  const email = localStorage.getItem('cp_email');
-  const key   = localStorage.getItem('cp_key');
-  if (!email || !key){
-    mostrarErro('Configure sua API key primeiro (botão ⚙️ no topo).');
-    return;
-  }
-
   esconder();
   document.getElementById('loading').style.display = 'block';
   document.getElementById('btn-consultar').disabled = true;
 
   try {
-    const cred = btoa(`${email}:${key}`);
-    const r = await fetch(`https://api.consultarplaca.com.br/v2/consultarPlaca?placa=${placa}`, {
-      headers: { 'Authorization': `Basic ${cred}`, 'Content-Type': 'application/json' }
-    });
+    const r = await fetch(`/api/consulta?placa=${placa}`);
     const data = await r.json();
     if (!r.ok || data.status !== 'ok'){
-      mostrarErro(data.mensagem || 'Erro na consulta. Verifique a placa ou sua API key.');
+      mostrarErro(data.error || data.mensagem || 'Erro na consulta. Tente novamente.');
       return;
     }
     exibirResultado(placa, data.dados);
@@ -311,8 +268,6 @@ function mascarar(s){ return s && s.length > 6 ? s.slice(0,3)+'***'+s.slice(6) :
 function mostrarErro(m){ const e=document.getElementById('erro'); e.textContent=m; e.style.display='block'; }
 function esconder(){ document.getElementById('resultado').style.display='none'; document.getElementById('erro').style.display='none'; document.getElementById('loading').style.display='none'; }
 
-// Abre config se ainda não tem credenciais
-if (!localStorage.getItem('cp_key')) setTimeout(abrirConfig, 600);
 </script>
 </body>
 </html>
