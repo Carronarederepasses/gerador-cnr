@@ -17,50 +17,45 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#0a0a0a;color:#f0f0f0;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 16px 60px}
+    body{background:#0a0a0a;color:#f0f0f0;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px}
 
     .nav{width:100%;max-width:460px;display:flex;justify-content:flex-end;margin-bottom:20px}
-    .nav a{font-size:.74rem;color:#444;text-decoration:none;letter-spacing:.08em;border-bottom:1px solid #222;padding-bottom:1px}
+    .nav a{font-size:.74rem;color:#444;text-decoration:none;letter-spacing:.08em;border-bottom:1px solid #1e1e1e;padding-bottom:1px}
     .nav a:hover{color:#888}
 
-    header{width:100%;max-width:460px;margin-bottom:28px}
-    .marca{font-size:.68rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:#333;margin-bottom:5px}
-    h1{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:900;color:#fff;letter-spacing:-.02em}
-    .sub{font-size:.76rem;color:#2e2e2e;margin-top:5px}
+    header{width:100%;max-width:460px;margin-bottom:24px}
+    .marca{font-size:.67rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:#333;margin-bottom:4px}
+    h1{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:900;color:#fff;letter-spacing:-.02em}
+    .sub{font-size:.75rem;color:#2a2a2a;margin-top:5px}
 
-    .card{background:#111;border:1px solid #1c1c1c;border-radius:14px;padding:20px;width:100%;max-width:460px;margin-bottom:14px}
+    .card{background:#111;border:1px solid #1c1c1c;border-radius:14px;padding:20px;width:100%;max-width:460px;margin-bottom:12px}
 
-    /* Placa */
-    .placa-input{width:100%;background:#000;border:1px solid #2a2a2a;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:1.5rem;font-weight:700;letter-spacing:.18em;padding:14px 16px;outline:none;text-transform:uppercase;transition:border-color .2s;text-align:center}
-    .placa-input::placeholder{color:#2a2a2a;font-weight:400;font-size:1rem;letter-spacing:.05em}
-    .placa-input:focus{border-color:#444}
+    .placa-input{width:100%;background:#000;border:1.5px solid #252525;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:.2em;padding:14px;outline:none;text-transform:uppercase;text-align:center;transition:border-color .2s;margin-bottom:14px}
+    .placa-input::placeholder{color:#222;font-weight:400;font-size:.95rem;letter-spacing:.05em}
+    .placa-input:focus{border-color:#3a3a3a}
 
-    /* Estado */
-    .estado-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:#333;margin:14px 0 8px;font-weight:600}
-    .estados-rapidos{display:flex;gap:8px;margin-bottom:10px}
-    .est-btn{flex:1;background:#000;border:1px solid #222;border-radius:8px;color:#666;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:700;padding:10px 8px;cursor:pointer;text-align:center;transition:all .15s;letter-spacing:.06em}
-    .est-btn:hover{border-color:#555;color:#ccc}
-    .est-btn.ativo{border-color:#fff;color:#fff;background:#1a1a1a}
+    .uf-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:#2e2e2e;margin-bottom:7px;font-weight:600}
+    .ufs{display:flex;gap:7px;flex-wrap:wrap}
+    .uf-btn{background:#000;border:1px solid #1e1e1e;border-radius:7px;color:#444;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;padding:8px 12px;cursor:pointer;transition:all .15s;letter-spacing:.06em}
+    .uf-btn:hover{border-color:#444;color:#ccc}
+    .uf-btn.on{border-color:#888;color:#fff;background:#131313}
+    select.uf-outro{background:#000;border:1px solid #1e1e1e;border-radius:7px;color:#333;font-family:'DM Sans',sans-serif;font-size:.8rem;padding:8px 10px;outline:none;cursor:pointer;flex:1;min-width:120px}
+    select.uf-outro:focus{border-color:#333;color:#aaa}
+    select.uf-outro option{background:#111}
 
-    .outros-label{font-size:.65rem;color:#2e2e2e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em}
-    select{width:100%;background:#000;border:1px solid #1c1c1c;border-radius:8px;color:#555;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:10px 12px;outline:none;cursor:pointer;transition:border-color .2s}
-    select:focus{border-color:#333;color:#aaa}
-    select option{background:#111}
-
-    /* Links de consulta */
-    .card h2{font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:#333;font-weight:600;margin-bottom:12px}
-    .links{display:flex;flex-direction:column;gap:8px}
-    .link-btn{display:flex;align-items:center;gap:12px;background:#000;border:1px solid #1c1c1c;border-radius:10px;color:#ccc;font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:500;padding:13px 14px;text-decoration:none;transition:all .15s}
-    .link-btn:hover{border-color:#444;color:#fff;background:#0d0d0d}
-    .link-btn .ico{font-size:1rem;width:22px;text-align:center;flex-shrink:0}
-    .link-btn .txt b{display:block;font-size:.84rem;margin-bottom:1px}
-    .link-btn .txt small{font-size:.72rem;color:#333}
+    .card h2{font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:#2a2a2a;font-weight:600;margin-bottom:11px}
+    .links{display:flex;flex-direction:column;gap:7px}
+    .link-btn{display:flex;align-items:center;gap:11px;background:#000;border:1px solid #1c1c1c;border-radius:10px;color:#bbb;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:500;padding:13px 14px;text-decoration:none;transition:all .15s}
+    .link-btn:hover{border-color:#3a3a3a;color:#fff;background:#0d0d0d}
+    .link-btn .ico{font-size:.95rem;width:20px;text-align:center;flex-shrink:0}
+    .link-btn .txt b{display:block;font-size:.83rem;font-weight:600;margin-bottom:1px}
+    .link-btn .txt small{font-size:.7rem;color:#2e2e2e}
     .link-btn:hover .txt small{color:#555}
-    .link-btn .arr{margin-left:auto;color:#2a2a2a;font-size:.8rem}
-    .link-btn:hover .arr{color:#666}
-    .link-btn.destaque{border-color:#222}
+    .link-btn .arr{margin-left:auto;color:#222;font-size:.78rem;flex-shrink:0}
+    .link-btn:hover .arr{color:#555}
+    .link-btn.destaque{border-color:#1e1e1e;background:#0a0a0a}
 
-    .divider{border:none;border-top:1px solid #161616;margin:2px 0}
+    hr.div{border:none;border-top:1px solid #141414;margin:2px 0}
   </style>
 </head>
 <body>
@@ -70,130 +65,110 @@
 <header>
   <div class="marca">Carro na Rede Repasses</div>
   <h1>Consultas</h1>
-  <div class="sub">Uso interno — débitos, gravame, restrições e recall</div>
+  <div class="sub">Uso interno · débitos, gravame, restrições e recall</div>
 </header>
 
-<!-- Placa + Estado -->
 <div class="card">
   <input class="placa-input" id="placa" type="text" placeholder="ABC1D23" maxlength="8" autocomplete="off"
-    oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()"/>
+    oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase();atualizar()"/>
 
-  <div class="estado-label">Estado de emplacamento</div>
-  <div class="estados-rapidos">
-    <button class="est-btn ativo" data-uf="SC" onclick="selecionarUF('SC',this)">SC</button>
-    <button class="est-btn" data-uf="SP" onclick="selecionarUF('SP',this)">SP</button>
-    <button class="est-btn" data-uf="RS" onclick="selecionarUF('RS',this)">RS</button>
-    <button class="est-btn" data-uf="PR" onclick="selecionarUF('PR',this)">PR</button>
+  <div class="uf-label">Estado de emplacamento</div>
+  <div class="ufs">
+    <button class="uf-btn on" data-uf="SC" onclick="setUF('SC',this)">SC</button>
+    <button class="uf-btn" data-uf="SP" onclick="setUF('SP',this)">SP</button>
+    <button class="uf-btn" data-uf="RS" onclick="setUF('RS',this)">RS</button>
+    <button class="uf-btn" data-uf="PR" onclick="setUF('PR',this)">PR</button>
+    <select class="uf-outro" id="uf-outro" onchange="setUF(this.value,null)">
+      <option value="">+ outro</option>
+      <option value="RJ">RJ</option><option value="MG">MG</option>
+      <option value="GO">GO</option><option value="DF">DF</option>
+      <option value="BA">BA</option><option value="PE">PE</option>
+      <option value="CE">CE</option><option value="MT">MT</option>
+      <option value="MS">MS</option><option value="ES">ES</option>
+      <option value="PA">PA</option><option value="AM">AM</option>
+      <option value="MA">MA</option><option value="TO">TO</option>
+      <option value="RO">RO</option><option value="AC">AC</option>
+      <option value="RN">RN</option><option value="PB">PB</option>
+      <option value="AL">AL</option><option value="SE">SE</option>
+      <option value="PI">PI</option><option value="AP">AP</option>
+      <option value="RR">RR</option>
+    </select>
   </div>
-  <div class="outros-label">Outro estado</div>
-  <select id="outros" onchange="selecionarUF(this.value,null)">
-    <option value="">— selecione —</option>
-    <option value="RJ">RJ — Rio de Janeiro</option>
-    <option value="MG">MG — Minas Gerais</option>
-    <option value="GO">GO — Goiás</option>
-    <option value="DF">DF — Distrito Federal</option>
-    <option value="BA">BA — Bahia</option>
-    <option value="PE">PE — Pernambuco</option>
-    <option value="CE">CE — Ceará</option>
-    <option value="MT">MT — Mato Grosso</option>
-    <option value="MS">MS — Mato Grosso do Sul</option>
-    <option value="ES">ES — Espírito Santo</option>
-    <option value="PA">PA — Pará</option>
-    <option value="AM">AM — Amazonas</option>
-    <option value="MA">MA — Maranhão</option>
-    <option value="PI">PI — Piauí</option>
-    <option value="RN">RN — Rio Grande do Norte</option>
-    <option value="PB">PB — Paraíba</option>
-    <option value="AL">AL — Alagoas</option>
-    <option value="SE">SE — Sergipe</option>
-    <option value="TO">TO — Tocantins</option>
-    <option value="RO">RO — Rondônia</option>
-    <option value="AC">AC — Acre</option>
-    <option value="AP">AP — Amapá</option>
-    <option value="RR">RR — Roraima</option>
-  </select>
 </div>
 
-<!-- Links de consulta -->
 <div class="card">
-  <h2>Abrir consulta</h2>
+  <h2>Consultar</h2>
   <div class="links">
-    <a id="link-detran" class="link-btn destaque" href="#" target="_blank" rel="noopener">
+
+    <a id="lnk-debitos" class="link-btn destaque" href="#" target="_blank" rel="noopener">
       <span class="ico">🏛️</span>
-      <span class="txt"><b id="label-detran">DETRAN SC</b><small>Débitos · IPVA · Licenciamento · Gravame · Multas</small></span>
+      <span class="txt">
+        <b id="txt-debitos">Débitos DETRAN SC</b>
+        <small>IPVA · Licenciamento · Multas · Gravame</small>
+      </span>
       <span class="arr">↗</span>
     </a>
 
-    <hr class="divider">
-
-    <a class="link-btn" href="https://www.gov.br/senatran/pt-br/assuntos/recall/consulta-recall" target="_blank" rel="noopener">
-      <span class="ico">🚨</span>
-      <span class="txt"><b>Recall — SENATRAN</b><small>Verificar campanhas de recall ativas (gov.br)</small></span>
-      <span class="arr">↗</span>
-    </a>
-
-    <a class="link-btn" href="https://www.bcb.gov.br/estabilidadefinanceira/registroinformacoes" target="_blank" rel="noopener">
+    <a id="lnk-restricoes" class="link-btn" href="#" target="_blank" rel="noopener">
       <span class="ico">🔒</span>
-      <span class="txt"><b>Gravame — Banco Central</b><small>Restrição financeira / financiamento ativo</small></span>
+      <span class="txt">
+        <b id="txt-restricoes">Restrições e situação</b>
+        <small>Roubo · Furto · Restrição judicial · Sinesp</small>
+      </span>
       <span class="arr">↗</span>
     </a>
 
-    <a class="link-btn" href="https://portalnatransito.com.br/consulta-debitos/" target="_blank" rel="noopener">
-      <span class="ico">🔍</span>
-      <span class="txt"><b>Portal Na Transito</b><small>Consulta agregada de múltiplos estados</small></span>
+    <a id="lnk-recall" class="link-btn" href="#" target="_blank" rel="noopener">
+      <span class="ico">🚨</span>
+      <span class="txt">
+        <b id="txt-recall">Recall</b>
+        <small>Campanhas ativas via SENATRAN / Google</small>
+      </span>
       <span class="arr">↗</span>
     </a>
+
+    <hr class="div">
+
+    <a id="lnk-tudo" class="link-btn" href="#" target="_blank" rel="noopener">
+      <span class="ico">🔍</span>
+      <span class="txt">
+        <b id="txt-tudo">Busca completa no Google</b>
+        <small>Pesquisa todas as informações da placa</small>
+      </span>
+      <span class="arr">↗</span>
+    </a>
+
   </div>
 </div>
 
 <script>
-const DETRANS = {
-  SC: ['https://www.detrannet.sc.gov.br/', 'DETRAN SC'],
-  SP: ['https://www.detran.sp.gov.br/', 'DETRAN SP'],
-  RS: ['https://www.detran.rs.gov.br/', 'DETRAN RS'],
-  PR: ['https://www.detran.pr.gov.br/', 'DETRAN PR'],
-  RJ: ['https://www.detran.rj.gov.br/', 'DETRAN RJ'],
-  MG: ['https://www.detran.mg.gov.br/', 'DETRAN MG'],
-  GO: ['https://www.detran.go.gov.br/', 'DETRAN GO'],
-  DF: ['https://www.detran.df.gov.br/', 'DETRAN DF'],
-  BA: ['https://www.detran.ba.gov.br/', 'DETRAN BA'],
-  PE: ['https://www.detran.pe.gov.br/', 'DETRAN PE'],
-  CE: ['https://www.detran.ce.gov.br/', 'DETRAN CE'],
-  MT: ['https://www.detran.mt.gov.br/', 'DETRAN MT'],
-  MS: ['https://www.detran.ms.gov.br/', 'DETRAN MS'],
-  ES: ['https://detran.es.gov.br/', 'DETRAN ES'],
-  PA: ['https://www.detran.pa.gov.br/', 'DETRAN PA'],
-  AM: ['https://www.detran.am.gov.br/', 'DETRAN AM'],
-  MA: ['https://www.detran.ma.gov.br/', 'DETRAN MA'],
-  PI: ['https://www.detran.pi.gov.br/', 'DETRAN PI'],
-  RN: ['https://www.detran.rn.gov.br/', 'DETRAN RN'],
-  PB: ['https://www.detran.pb.gov.br/', 'DETRAN PB'],
-  AL: ['https://www.detran.al.gov.br/', 'DETRAN AL'],
-  SE: ['https://www.detran.se.gov.br/', 'DETRAN SE'],
-  TO: ['https://www.detran.to.gov.br/', 'DETRAN TO'],
-  RO: ['https://www.detran.ro.gov.br/', 'DETRAN RO'],
-  AC: ['https://www.detran.ac.gov.br/', 'DETRAN AC'],
-  AP: ['https://www.detran.ap.gov.br/', 'DETRAN AP'],
-  RR: ['https://www.detran.rr.gov.br/', 'DETRAN RR'],
-};
+let uf = 'SC';
 
-let ufAtual = 'SC';
+function g(q){ return 'https://www.google.com/search?q=' + encodeURIComponent(q); }
 
-function selecionarUF(uf, btn) {
-  if (!uf) return;
-  ufAtual = uf;
-  // Destaca botão rápido
-  document.querySelectorAll('.est-btn').forEach(b => b.classList.remove('ativo'));
-  if (btn) { btn.classList.add('ativo'); document.getElementById('outros').value = ''; }
-  else { document.querySelectorAll('.est-btn').forEach(b => b.classList.remove('ativo')); }
-  // Atualiza link DETRAN
-  const det = DETRANS[uf] || ['https://portalnatransito.com.br/consulta-debitos/', 'DETRAN ' + uf];
-  document.getElementById('link-detran').href = det[0];
-  document.getElementById('label-detran').textContent = det[1];
+function atualizar() {
+  const p = document.getElementById('placa').value.trim() || 'placa';
+
+  document.getElementById('lnk-debitos').href   = g('detran ' + uf + ' consulta débitos veículo placa ' + p);
+  document.getElementById('lnk-restricoes').href = g('sinesp placa ' + p + ' ' + uf + ' situação roubo furto restrição');
+  document.getElementById('lnk-recall').href     = g('recall placa ' + p + ' ' + uf + ' senatran denatran');
+  document.getElementById('lnk-tudo').href       = g(p + ' ' + uf + ' veículo débitos gravame restrição histórico');
+
+  document.getElementById('txt-debitos').textContent    = 'Débitos DETRAN ' + uf;
+  document.getElementById('txt-restricoes').textContent = 'Restrições — ' + uf;
+  document.getElementById('txt-recall').textContent     = 'Recall — ' + p;
+  document.getElementById('txt-tudo').textContent       = 'Busca completa: ' + p + ' ' + uf;
 }
 
-// Inicia com SC
-selecionarUF('SC', document.querySelector('.est-btn[data-uf="SC"]'));
+function setUF(val, btn) {
+  if (!val) return;
+  uf = val;
+  document.querySelectorAll('.uf-btn').forEach(b => b.classList.remove('on'));
+  if (btn) { btn.classList.add('on'); document.getElementById('uf-outro').value = ''; }
+  atualizar();
+}
+
+atualizar();
 </script>
 </body>
 </html>
