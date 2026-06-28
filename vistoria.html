@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Vistoria / Laudo Cautelar — Carro na Rede Repasses</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon.svg">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:#f4f4f4;color:#111;line-height:1.5;padding:1.5rem 1rem 4rem}
+  .wrap{max-width:900px;margin:0 auto}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.4rem;border-bottom:2px solid #111;padding-bottom:1rem}
+  h1{font-family:'Playfair Display',serif;font-weight:900;font-size:1.8rem;letter-spacing:-.01em}
+  header .sub{font-size:.82rem;color:#666}
+  header a.voltar{font-size:.8rem;color:#666;text-decoration:none;border-bottom:1px solid #ccc}
+  header a.voltar:hover{color:#000;border-color:#000}
+
+  label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:.3rem;font-weight:500}
+  input,select,textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.55rem .7rem;border:1px solid #d5d5d5;border-radius:9px;background:#fff;color:#111}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#111}
+  textarea{resize:vertical;min-height:48px}
+  button.btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.62rem 1rem;border-radius:9px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}
+  button.btn:hover{opacity:.85}
+  button.btn.ghost{background:#fff;color:#111}
+
+  .barra{display:flex;gap:.8rem;flex-wrap:wrap;align-items:end;background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem;margin-bottom:1.2rem}
+  .barra .campo{flex:1;min-width:200px}
+  .meta-linha{font-size:.82rem;color:#666;margin-bottom:.9rem}
+
+  .lista{display:flex;flex-direction:column;gap:.8rem}
+  .card{background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1rem 1.1rem;display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap}
+  .card h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.05rem}
+  .card .info{font-size:.82rem;color:#555;display:flex;gap:1rem;flex-wrap:wrap;margin-top:.2rem}
+  .card .acoes{display:flex;gap:.4rem}
+  .card .acoes button{font-size:.76rem;padding:.42rem .8rem;border:1px solid #d5d5d5;border-radius:8px;background:#fafafa;color:#333;cursor:pointer}
+  .card .acoes button:hover{border-color:#111;color:#111}
+  .card .acoes button.del{color:#c0392b}
+
+  .nota{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:.25rem .6rem;border-radius:20px}
+  .nota.acima{background:#e7f7ec;color:#1a7f37}
+  .nota.media{background:#fff3da;color:#9a6700}
+  .nota.abaixo{background:#fdecea;color:#a3261c}
+  .nota.rascunho{background:#eef2ff;color:#3a4fc0}
+
+  .vazio{text-align:center;padding:4rem 1rem;color:#999}
+  .vazio .ico{font-size:2.5rem;margin-bottom:.6rem}
+  .erro{background:#fdecea;border:1px solid #f5c6c2;color:#a3261c;padding:.9rem;border-radius:10px;margin-bottom:1rem;font-size:.86rem;display:none}
+
+  /* Formulário de vistoria */
+  #form{display:none}
+  .bloco{background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:1rem}
+  .bloco > .btit{font-family:'Playfair Display',serif;font-weight:700;font-size:1.1rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+  .bloco > .btit .seta{font-size:.8rem;color:#999;transition:transform .15s}
+  .bloco.fechado > .btit .seta{transform:rotate(-90deg)}
+  .bloco .conteudo{margin-top:.9rem}
+  .bloco.fechado .conteudo{display:none}
+  .btit .contagem{font-size:.72rem;color:#999;font-weight:500;margin-left:auto;margin-right:.6rem}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.7rem}
+
+  /* Item do checklist */
+  .item{padding:.6rem 0;border-bottom:1px solid #f0f0f0}
+  .item:last-child{border-bottom:none}
+  .item .linha{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .item .nome{font-size:.88rem;font-weight:500;flex:1;min-width:130px}
+  .pills{display:flex;gap:.35rem;flex-wrap:wrap}
+  .pill{font-size:.74rem;font-weight:600;padding:.32rem .65rem;border-radius:20px;border:1.5px solid #ddd;background:#fff;color:#888;cursor:pointer;white-space:nowrap;transition:all .12s}
+  .pill:hover{border-color:#aaa}
+  .pill.on.bom{background:#e7f7ec;border-color:#1a7f37;color:#1a7f37}
+  .pill.on.alerta{background:#fff3da;border-color:#9a6700;color:#9a6700}
+  .pill.on.ruim{background:#fdecea;border-color:#c0392b;color:#c0392b}
+  .item .obsbtn{font-size:.95rem;background:none;border:none;cursor:pointer;opacity:.45;padding:.1rem}
+  .item .obsbtn.tem{opacity:1}
+  .item .obs{margin-top:.5rem;display:none}
+  .item .obs.show{display:block}
+  .item .extra{display:none;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-top:.5rem}
+  .item .extra.show{display:grid}
+
+  .acoes-form{display:flex;gap:.6rem;justify-content:flex-end;position:sticky;bottom:0;background:#f4f4f4;padding:.8rem 0;border-top:1px solid #ddd}
+
+  @media(max-width:560px){h1{font-size:1.45rem}.grid2,.grid3,.item .extra{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- Gate de senha -->
+<div style="position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;z-index:100;padding:1.5rem" id="gate">
+  <div style="max-width:340px;width:100%;text-align:center">
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.6rem;margin-bottom:.4rem">Vistoria / Laudo</h2>
+    <p style="color:#aaa;font-size:.85rem;margin-bottom:1.2rem">Área restrita — Carro na Rede Repasses</p>
+    <input id="gate-pass" type="password" placeholder="Senha de acesso" style="background:#1a1a1a;border-color:#333;color:#fff;text-align:center;margin-bottom:.7rem" />
+    <button class="btn" id="gate-btn" style="width:100%;background:#fff;color:#111;border-color:#fff">Entrar</button>
+    <div id="gate-msg" style="color:#ff7a6b;font-size:.8rem;min-height:1.2em;margin-top:.5rem"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <header>
+    <div>
+      <h1>Vistoria / Laudo Cautelar</h1>
+      <div class="sub">Carro na Rede Repasses — inspeção veicular</div>
+    </div>
+    <div style="display:flex;gap:1rem;align-items:center">
+      <a class="voltar" href="/vendas.html">📋 Vendas</a>
+      <a class="voltar" href="/index.html">← Gerador</a>
+    </div>
+  </header>
+
+  <div class="erro" id="erro"></div>
+
+  <!-- LISTA -->
+  <div id="lista-view">
+    <div class="barra">
+      <div class="campo">
+        <label for="f-q">Buscar (placa, marca, modelo, inspetor)</label>
+        <input id="f-q" type="text" placeholder="ex: ABC1D23, Onix..." />
+      </div>
+      <button class="btn" id="btn-nova">+ Nova vistoria</button>
+    </div>
+    <div class="meta-linha" id="contador"></div>
+    <div class="lista" id="lista"></div>
+  </div>
+
+  <!-- FORMULÁRIO -->
+  <div id="form">
+    <input type="hidden" id="v-id" />
+    <div class="bloco">
+      <div class="btit" style="cursor:default">Dados do veículo</div>
+      <div class="conteudo">
+        <div class="grid3">
+          <div><label>Marca</label><input id="v-marca" /></div>
+          <div><label>Modelo</label><input id="v-modelo" /></div>
+          <div><label>Placa</label><input id="v-placa" /></div>
+          <div><label>Ano fabricação</label><input id="v-ano_fabricacao" type="number" inputmode="numeric" /></div>
+          <div><label>Ano modelo</label><input id="v-ano_modelo" type="number" inputmode="numeric" /></div>
+          <div><label>Cor</label><input id="v-cor" /></div>
+          <div><label>Inspetor</label><input id="v-inspetor" /></div>
+          <div><label>Data da vistoria</label><input id="v-data_vistoria" type="date" /></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="secoes"></div>
+
+    <div class="bloco">
+      <div class="btit" style="cursor:default">Conclusão</div>
+      <div class="conteudo">
+        <div class="grid2">
+          <div><label>Nota geral do veículo</label>
+            <select id="v-nota_geral">
+              <option value="">— selecione —</option>
+              <option value="acima">Acima da média</option>
+              <option value="media">Na média</option>
+              <option value="abaixo">Abaixo da média</option>
+            </select>
+          </div>
+          <div><label>Situação</label>
+            <select id="v-status">
+              <option value="rascunho">Rascunho</option>
+              <option value="finalizada">Finalizada</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:.7rem"><label>Observações gerais</label><textarea id="v-observacoes" placeholder="Resumo, ressalvas, recomendações..."></textarea></div>
+      </div>
+    </div>
+
+    <div class="acoes-form">
+      <button class="btn ghost" id="v-cancelar">Cancelar</button>
+      <button class="btn" id="v-salvar">Salvar vistoria</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let KEY = sessionStorage.getItem('cnr_vendas_key') || '';
+let VISTORIAS = [];
+let RESULTADO = {}; // estado do checklist em edição
+
+const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dataBR = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+const NOTA_ROT = { acima:'Acima da média', media:'Na média', abaixo:'Abaixo da média' };
+
+function headers(){ const h={'Content-Type':'application/json'}; if(KEY) h['x-cnr-key']=KEY; return h; }
+
+// ── Definição do checklist (fiel ao laudo cautelar) ──────────────
+const CHECKLIST = [
+  { id:'identificacao', titulo:'Identificação Veicular', itens:[
+    { id:'numero_motor', nome:'Número do motor', opts:['ORIGINAL','REMARCADO','ILEGÍVEL'] },
+    { id:'numero_chassi', nome:'Número do chassi', opts:['ORIGINAL','REMARCADO','ILEGÍVEL'] },
+    { id:'etiqueta_motor', nome:'Etiqueta compart. motor', opts:['ORIGINAL','TROCADA'] },
+    { id:'etiqueta_coluna', nome:'Etiqueta coluna diant. dir.', opts:['ORIGINAL','TROCADA'] },
+  ]},
+  { id:'vidros', titulo:'Vidros (gravação)', opts:['ORIGINAL','TROCADO'], itens:[
+    {id:'parabrisa',nome:'Parabrisa'},{id:'traseiro',nome:'Vidro traseiro'},
+    {id:'diant_esq',nome:'Diant. esquerdo'},{id:'tras_esq',nome:'Tras. esquerdo'},
+    {id:'diant_dir',nome:'Diant. direito'},{id:'tras_dir',nome:'Tras. direito'},
+    {id:'aux_dir',nome:'Auxiliar direito'},{id:'aux_esq',nome:'Auxiliar esquerdo'},
+  ]},
+  { id:'placas', titulo:'Placas', opts:['ORIGINAL','IRREGULAR'], itens:[
+    {id:'dianteira',nome:'Placa dianteira'},{id:'traseira',nome:'Placa traseira'},
+  ]},
+  { id:'pintura', titulo:'Pintura Externa', opts:['ORIGINAL','REPINTURA','REPARADO'], itens:[
+    {id:'capo',nome:'Capô'},{id:'teto',nome:'Teto'},{id:'porta_malas',nome:'Porta-malas'},
+    {id:'porta_diant_dir',nome:'Porta diant. dir.'},{id:'porta_tras_dir',nome:'Porta tras. dir.'},
+    {id:'porta_diant_esq',nome:'Porta diant. esq.'},{id:'porta_tras_esq',nome:'Porta tras. esq.'},
+    {id:'paralama_diant_dir',nome:'Paralama diant. dir.'},{id:'paralama_diant_esq',nome:'Paralama diant. esq.'},
+    {id:'lateral_tras_dir',nome:'Lateral tras. dir.'},{id:'lateral_tras_esq',nome:'Lateral tras. esq.'},
+    {id:'parachoque_diant',nome:'Parachoque diant.'},{id:'parachoque_tras',nome:'Parachoque tras.'},
+  ]},
+  { id:'estrutura', titulo:'Estrutura', opts:['ORIGINAL','AVARIADO','REPARADO'], itens:[
+    {id:'painel_diant',nome:'Painel dianteiro'},{id:'painel_tras',nome:'Painel traseiro'},
+    {id:'long_diant_dir',nome:'Longarina diant. dir.'},{id:'long_diant_esq',nome:'Longarina diant. esq.'},
+    {id:'long_tras_dir',nome:'Longarina tras. dir.'},{id:'long_tras_esq',nome:'Longarina tras. esq.'},
+    {id:'coluna_diant_dir',nome:'Coluna A dir.'},{id:'coluna_central_dir',nome:'Coluna B dir.'},{id:'coluna_tras_dir',nome:'Coluna C dir.'},
+    {id:'coluna_diant_esq',nome:'Coluna A esq.'},{id:'coluna_central_esq',nome:'Coluna B esq.'},{id:'coluna_tras_esq',nome:'Coluna C esq.'},
+    {id:'caixa_roda_tras_dir',nome:'Caixa roda tras. dir.'},{id:'caixa_roda_tras_esq',nome:'Caixa roda tras. esq.'},
+    {id:'caixa_ar_dir',nome:'Caixa de ar dir.'},{id:'caixa_ar_esq',nome:'Caixa de ar esq.'},
+    {id:'assoalho',nome:'Assoalho'},{id:'caixa_estepe',nome:'Caixa do estepe'},
+  ]},
+  { id:'pneus', titulo:'Pneus e Rodas', opts:['ORIGINAL','TROCADO','AVARIADO'], itens:[
+    {id:'pneu_diant_dir',nome:'Pneu diant. dir.',extra:true},{id:'pneu_diant_esq',nome:'Pneu diant. esq.',extra:true},
+    {id:'pneu_tras_dir',nome:'Pneu tras. dir.',extra:true},{id:'pneu_tras_esq',nome:'Pneu tras. esq.',extra:true},
+    {id:'roda_diant_dir',nome:'Roda diant. dir.'},{id:'roda_diant_esq',nome:'Roda diant. esq.'},
+    {id:'roda_tras_dir',nome:'Roda tras. dir.'},{id:'roda_tras_esq',nome:'Roda tras. esq.'},
+  ]},
+  { id:'manutencao', titulo:'Itens de Manutenção', opts:['OK','ATENÇÃO','CRÍTICO'], itens:[
+    {id:'bateria',nome:'Bateria'},{id:'fluido_arrefecimento',nome:'Fluido de arrefecimento'},
+    {id:'pastilhas_freio',nome:'Pastilhas de freio'},{id:'discos_freio',nome:'Discos de freio'},
+    {id:'historico_revisoes',nome:'Histórico de revisões'},{id:'oleo_motor',nome:'Óleo do motor'},
+    {id:'vazamentos_motor',nome:'Vazamentos no motor'},{id:'vazamentos_cambio',nome:'Vazamentos no câmbio'},
+    {id:'itens_suspensao',nome:'Itens de suspensão'},
+  ]},
+  { id:'luzes_painel', titulo:'Luzes de Aviso do Painel', opts:['APAGADA','ACESA'], itens:[
+    {id:'abs',nome:'ABS'},{id:'airbag',nome:'Airbag / cintos'},{id:'freios',nome:'Sistema de freios'},
+    {id:'pressao_oleo',nome:'Pressão do óleo'},{id:'nivel_oleo',nome:'Nível do óleo'},
+    {id:'arrefecimento',nome:'Temperatura / arrefecimento'},{id:'bateria_carga',nome:'Carga da bateria'},
+    {id:'injecao',nome:'Injeção eletrônica'},{id:'epc',nome:'EPC'},{id:'esp',nome:'Controle de estabilidade'},
+    {id:'direcao',nome:'Direção assistida'},{id:'tpms',nome:'Pressão dos pneus (TPMS)'},
+    {id:'abs_freio_mao',nome:'Freio de estacionamento'},{id:'farois',nome:'Faróis / lâmpadas'},
+    {id:'combustivel',nome:'Combustível baixo'},{id:'porta_aberta',nome:'Portas abertas'},
+    {id:'transmissao',nome:'Transmissão automática'},{id:'glow',nome:'Pré-aquec. velas (diesel)'},
+    {id:'dpf',nome:'Filtro de partículas (diesel)'},{id:'outras',nome:'Outras luzes'},
+  ]},
+];
+
+function severidade(opts, idx){
+  if (idx === 0) return 'bom';
+  if (opts.length >= 3 && idx === opts.length-1) return 'ruim';
+  if (opts.length === 2 && idx === 1) return 'alerta';
+  return 'alerta';
+}
+
+// ── Gate ─────────────────────────────────────────────────────────
+async function tentarEntrar(pass, silent){
+  $('gate-msg').textContent='';
+  KEY = pass;
+  let r;
+  try { r = await fetch('/api/vistorias', { headers: headers() }); }
+  catch(e){ if(!silent) $('gate-msg').textContent='Erro ao conectar.'; KEY=''; return; }
+  if (r.status===401){ if(!silent) $('gate-msg').textContent='Senha incorreta.'; KEY=''; return; }
+  if (!r.ok){ if(!silent) $('gate-msg').textContent='Erro ao conectar.'; KEY=''; return; }
+  sessionStorage.setItem('cnr_vendas_key', KEY);
+  VISTORIAS = await r.json();
+  $('gate').style.display='none'; $('app').style.display='block';
+  render();
+}
+$('gate-btn').onclick = () => tentarEntrar($('gate-pass').value.trim(), false);
+$('gate-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') tentarEntrar($('gate-pass').value.trim(), false); });
+(async function(){ if(KEY) await tentarEntrar(KEY, true); })();
+
+// ── Lista ────────────────────────────────────────────────────────
+async function carregar(){
+  const q = new URLSearchParams();
+  if ($('f-q').value.trim()) q.set('q', $('f-q').value.trim());
+  try {
+    const r = await fetch('/api/vistorias?'+q.toString(), { headers: headers() });
+    if (!r.ok) throw new Error((await r.json()).error||'erro');
+    VISTORIAS = await r.json(); render();
+  } catch(e){ mostrarErro(e.message); }
+}
+$('f-q').addEventListener('input', debounce(carregar, 350));
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+function mostrarErro(m){ $('erro').textContent=m; $('erro').style.display='block'; setTimeout(()=>$('erro').style.display='none',5000); }
+
+function render(){
+  $('contador').textContent = VISTORIAS.length ? `${VISTORIAS.length} vistoria(s)` : '';
+  if (!VISTORIAS.length){
+    $('lista').innerHTML = '<div class="vazio"><div class="ico">🔍</div>Nenhuma vistoria ainda.<br>Clique em <b>+ Nova vistoria</b> pra começar.</div>';
+    return;
+  }
+  $('lista').innerHTML = VISTORIAS.map(cardHTML).join('');
+}
+function nomeCarro(v){ return [v.marca, v.modelo, v.ano_modelo||v.ano_fabricacao].filter(Boolean).join(' ') || 'Veículo'; }
+function cardHTML(v){
+  const notaCls = v.status==='rascunho' ? 'rascunho' : (v.nota_geral||'media');
+  const notaTxt = v.status==='rascunho' ? 'Rascunho' : (NOTA_ROT[v.nota_geral]||'—');
+  return `<div class="card">
+    <div>
+      <h3>${esc(nomeCarro(v))}${v.placa?' · <span style="font-weight:400;color:#666">'+esc(v.placa)+'</span>':''}</h3>
+      <div class="info">
+        <span>🗓️ ${dataBR(v.data_vistoria)}</span>
+        ${v.inspetor?'<span>👤 '+esc(v.inspetor)+'</span>':''}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.7rem">
+      <span class="nota ${notaCls}">${notaTxt}</span>
+      <div class="acoes">
+        <button onclick="editar('${v.id}')">✏️ Abrir</button>
+        <button class="del" onclick="apagar('${v.id}')">🗑️</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Formulário ───────────────────────────────────────────────────
+const CAMPOS_FORM = ['marca','modelo','placa','ano_fabricacao','ano_modelo','cor','inspetor','data_vistoria','nota_geral','status','observacoes'];
+
+function novaVistoria(){ abrirForm({}); }
+function editar(id){ abrirForm(VISTORIAS.find(v=>v.id===id)); }
+$('btn-nova').onclick = novaVistoria;
+$('v-cancelar').onclick = fecharForm;
+
+function abrirForm(v){
+  v = v || {};
+  $('v-id').value = v.id || '';
+  CAMPOS_FORM.forEach(c => { const el=$('v-'+c); if(el) el.value = v[c]!=null ? v[c] : ''; });
+  if (!v.id){ $('v-status').value='rascunho'; $('v-data_vistoria').value = new Date().toISOString().slice(0,10); }
+  RESULTADO = (v.resultado && typeof v.resultado==='object') ? JSON.parse(JSON.stringify(v.resultado)) : {};
+  renderSecoes();
+  $('lista-view').style.display='none'; $('form').style.display='block';
+  window.scrollTo(0,0);
+}
+function fecharForm(){ $('form').style.display='none'; $('lista-view').style.display='block'; }
+
+function renderSecoes(){
+  $('secoes').innerHTML = CHECKLIST.map((sec,i) => {
+    const opts = sec.opts;
+    const itensHTML = sec.itens.map(it => itemHTML(sec, it, opts || it.opts)).join('');
+    return `<div class="bloco ${i>0?'fechado':''}" id="bloco-${sec.id}">
+      <div class="btit" onclick="toggleBloco('${sec.id}')">
+        <span>${sec.titulo}</span>
+        <span class="contagem" id="cont-${sec.id}"></span>
+        <span class="seta">▼</span>
+      </div>
+      <div class="conteudo">${itensHTML}</div>
+    </div>`;
+  }).join('');
+  CHECKLIST.forEach(sec => atualizaContagem(sec.id));
+}
+
+function itemHTML(sec, it, opts){
+  const cur = (RESULTADO[sec.id] && RESULTADO[sec.id][it.id]) || {};
+  const pills = opts.map((o,idx) => {
+    const on = cur.status===o ? 'on '+severidade(opts,idx) : '';
+    return `<button type="button" class="pill ${on}" onclick="setStatus('${sec.id}','${it.id}','${esc(o)}',this)">${esc(o)}</button>`;
+  }).join('');
+  const temObs = cur.obs ? 'tem' : '';
+  const extra = it.extra ? `<div class="extra ${cur.fabricante||cur.medida||cur.ano?'show':''}" id="ex-${sec.id}-${it.id}">
+      <input placeholder="Fabricante" value="${esc(cur.fabricante||'')}" oninput="setExtra('${sec.id}','${it.id}','fabricante',this.value)" />
+      <input placeholder="Medida (ex: 195/55 R16)" value="${esc(cur.medida||'')}" oninput="setExtra('${sec.id}','${it.id}','medida',this.value)" />
+      <input placeholder="Ano fab." value="${esc(cur.ano||'')}" oninput="setExtra('${sec.id}','${it.id}','ano',this.value)" />
+    </div>` : '';
+  return `<div class="item">
+    <div class="linha">
+      <span class="nome">${esc(it.nome)}</span>
+      <div class="pills">${pills}</div>
+      <button type="button" class="obsbtn ${temObs}" title="Observação" onclick="toggleObs('${sec.id}','${it.id}')">📝</button>
+    </div>
+    <div class="obs ${cur.obs?'show':''}" id="obs-${sec.id}-${it.id}">
+      <textarea placeholder="Observação (opcional)" oninput="setObs('${sec.id}','${it.id}',this.value)">${esc(cur.obs||'')}</textarea>
+    </div>
+    ${extra}
+  </div>`;
+}
+
+function cel(sec,item){ if(!RESULTADO[sec]) RESULTADO[sec]={}; if(!RESULTADO[sec][item]) RESULTADO[sec][item]={}; return RESULTADO[sec][item]; }
+function setStatus(sec,item,val,btn){
+  const c = cel(sec,item);
+  c.status = (c.status===val) ? '' : val;       // clicar de novo desmarca
+  const box = btn.parentElement;
+  [...box.children].forEach(b=>b.className='pill');
+  if (c.status){
+    const opts = [...box.children].map(b=>b.textContent);
+    btn.className = 'pill on '+severidade(opts, opts.indexOf(val));
+  }
+  atualizaContagem(sec);
+}
+function setObs(sec,item,val){ cel(sec,item).obs = val; const b=document.querySelector(`#obs-${sec}-${item}`).previousElementSibling; }
+function setExtra(sec,item,campo,val){ cel(sec,item)[campo] = val; }
+function toggleObs(sec,item){ $(`obs-${sec}-${item}`).classList.toggle('show'); }
+function toggleBloco(id){ $('bloco-'+id).classList.toggle('fechado'); }
+function atualizaContagem(secId){
+  const sec = CHECKLIST.find(s=>s.id===secId);
+  const total = sec.itens.length;
+  const feitos = sec.itens.filter(it => (RESULTADO[secId]&&RESULTADO[secId][it.id]&&RESULTADO[secId][it.id].status)).length;
+  const el = $('cont-'+secId); if (el) el.textContent = `${feitos}/${total}`;
+}
+
+$('v-salvar').onclick = async () => {
+  const id = $('v-id').value;
+  const body = { resultado: RESULTADO };
+  CAMPOS_FORM.forEach(c => {
+    const el=$('v-'+c); if(!el) return;
+    let val = el.value;
+    if (c==='ano_fabricacao'||c==='ano_modelo') val = val===''?null:Number(val);
+    body[c] = val;
+  });
+  try {
+    const url = id ? '/api/vistorias?id='+id : '/api/vistorias';
+    const r = await fetch(url, { method: id?'PATCH':'POST', headers: headers(), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error((await r.json()).error||'erro');
+    fecharForm(); carregar();
+  } catch(e){ mostrarErro('Falha ao salvar: '+e.message); }
+};
+
+async function apagar(id){
+  if (!confirm('Excluir esta vistoria? Não dá pra desfazer.')) return;
+  try {
+    const r = await fetch('/api/vistorias?id='+id, { method:'DELETE', headers: headers() });
+    if (!r.ok) throw new Error((await r.json()).error||'erro');
+    carregar();
+  } catch(e){ mostrarErro('Falha ao excluir: '+e.message); }
+}
+</script>
+</body>
+</html>
