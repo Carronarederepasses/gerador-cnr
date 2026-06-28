@@ -97,6 +97,30 @@
   .erro{background:#fdecea;border:1px solid #f5c6c2;color:#a3261c;padding:.9rem;border-radius:10px;margin-bottom:1rem;font-size:.86rem}
 
   @media(max-width:520px){h1{font-size:1.5rem}}
+
+  /* Avaliação */
+  .nota-badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:.2rem .5rem;border-radius:20px}
+  .nota-badge.acima{background:#e7f7ec;color:#1a7f37}
+  .nota-badge.media{background:#fff3da;color:#9a6700}
+  .nota-badge.abaixo{background:#fdecea;color:#a3261c}
+  .av-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:2rem 1rem;overflow-y:auto}
+  .av-modal.show{display:flex}
+  .av-box{background:#fff;border-radius:16px;max-width:620px;width:100%;padding:1.4rem;margin:auto 0}
+  .av-box h2{font-family:'Playfair Display',serif;font-size:1.35rem;margin-bottom:.2rem}
+  .av-box .sub2{font-size:.82rem;color:#777;margin-bottom:1rem}
+  .av-sec{margin-bottom:1rem}
+  .av-sec .stit{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#111;font-weight:700;border-bottom:1px solid #eee;padding-bottom:.3rem;margin-bottom:.5rem}
+  .av-item{padding:.45rem 0;border-bottom:1px solid #f4f4f4}
+  .av-item:last-child{border-bottom:none}
+  .av-item .l{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .av-item .nm{font-size:.86rem;font-weight:500;flex:1;min-width:110px}
+  .av-pills{display:flex;gap:.3rem;flex-wrap:wrap}
+  .av-pill{font-size:.72rem;font-weight:600;padding:.28rem .6rem;border-radius:20px;border:1.5px solid #ddd;background:#fff;color:#888;cursor:pointer;white-space:nowrap}
+  .av-pill.on.bom{background:#e7f7ec;border-color:#1a7f37;color:#1a7f37}
+  .av-pill.on.alerta{background:#fff3da;border-color:#9a6700;color:#9a6700}
+  .av-pill.on.ruim{background:#fdecea;border-color:#c0392b;color:#c0392b}
+  .av-acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem;position:sticky;bottom:0;background:#fff;padding-top:.6rem}
+  .card .rodape button.aval{background:#111;color:#fff;border-color:#111}
 </style>
 </head>
 <body>
@@ -108,7 +132,6 @@
     </div>
     <div style="display:flex;gap:1rem;align-items:center">
       <a class="voltar" href="/vendas.html">📋 Vendas</a>
-      <a class="voltar" href="/vistoria.html">🔍 Vistoria</a>
       <a class="voltar" href="/index.html">← Voltar ao gerador</a>
     </div>
   </header>
@@ -159,6 +182,34 @@
   <img id="lb-img" src="" alt="">
 </div>
 <input type="file" id="file-input" accept="image/*" multiple style="display:none">
+
+<!-- Modal de Avaliação -->
+<div class="av-modal" id="av-modal">
+  <div class="av-box">
+    <h2 id="av-titulo">Avaliação</h2>
+    <div class="sub2">Estado geral do veículo — entra junto das fotos do catálogo</div>
+    <input type="hidden" id="av-veiculo-id" />
+    <div id="av-secoes"></div>
+    <div class="av-sec">
+      <div class="stit">Conclusão</div>
+      <div style="margin-bottom:.6rem">
+        <label>Nota geral</label>
+        <select id="av-nota">
+          <option value="">— selecione —</option>
+          <option value="acima">Acima da média</option>
+          <option value="media">Na média</option>
+          <option value="abaixo">Abaixo da média</option>
+        </select>
+      </div>
+      <label>Observações</label>
+      <textarea id="av-obs" placeholder="Resumo, ressalvas, recomendações..." style="min-height:60px"></textarea>
+    </div>
+    <div class="av-acoes">
+      <button class="btn ghost" onclick="fecharAval()">Cancelar</button>
+      <button class="btn" onclick="salvarAval()">Salvar avaliação</button>
+    </div>
+  </div>
+</div>
 
 
 <!-- Conversor de HEIC/HEIF (fotos do celular) para JPEG no navegador -->
@@ -217,7 +268,10 @@ function card(v) {
   <div class="card">
     <div class="topo">
       <h3>${esc(nomeVeiculo(v))}</h3>
-      <span class="badge ${v.status}">${v.status}</span>
+      <div style="display:flex;gap:.3rem;align-items:center">
+        ${(v.avaliacao && v.avaliacao.nota) ? `<span class="nota-badge ${v.avaliacao.nota}" title="Nota da avaliação">${NOTA_AV[v.avaliacao.nota]}</span>` : ''}
+        <span class="badge ${v.status}">${v.status}</span>
+      </div>
     </div>
     <div class="dados">${dados}</div>
     <div class="placa-linha" onclick="editarPlaca('${v.id}')" title="Clique para editar (uso interno)">
@@ -237,6 +291,7 @@ function card(v) {
     </div>
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     <div class="rodape">
+      <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="mudarStatus('${v.id}')">Status</button>
@@ -534,6 +589,93 @@ async function remover(id) {
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
     carregar();
   } catch (e) { alert('Falha ao excluir: ' + e.message); }
+}
+
+// ── Avaliação do veículo (checklist simplificado) ───────────────
+const NOTA_AV = { acima: 'Acima', media: 'Média', abaixo: 'Abaixo' };
+const AVAL = [
+  { id:'documentacao', titulo:'Documentação', itens:[
+    { id:'situacao', nome:'Situação', opts:['OK','Pendência'] },
+  ]},
+  { id:'estrutura', titulo:'Estrutura / Chassi', itens:[
+    { id:'geral', nome:'Estrutura geral', opts:['Íntegra','Reparada','Avariada'] },
+  ]},
+  { id:'pintura', titulo:'Lataria e Pintura', opts:['Original','Repintura','Reparada'], itens:[
+    {id:'dianteira',nome:'Dianteira'},{id:'teto',nome:'Teto'},
+    {id:'lateral_dir',nome:'Lateral direita'},{id:'lateral_esq',nome:'Lateral esquerda'},
+    {id:'traseira',nome:'Traseira'},
+  ]},
+  { id:'pneus', titulo:'Pneus', itens:[
+    { id:'estado', nome:'Estado geral', opts:['Novos','Bons','Meia-vida','Trocar'] },
+  ]},
+  { id:'mecanica', titulo:'Mecânica', opts:['OK','Atenção','Crítico'], itens:[
+    {id:'motor',nome:'Motor'},{id:'cambio',nome:'Câmbio'},{id:'suspensao',nome:'Suspensão'},
+    {id:'freios',nome:'Freios'},{id:'vazamentos',nome:'Vazamentos'},
+  ]},
+  { id:'itens', titulo:'Itens & Conforto', opts:['OK','Não tem','Com defeito'], itens:[
+    {id:'vidros',nome:'Vidros elétricos'},{id:'ar',nome:'Ar-condicionado'},
+    {id:'multimidia',nome:'Multimídia / elétrica'},{id:'estepe',nome:'Estepe / macaco'},
+  ]},
+];
+function sevAv(opts, idx){
+  if (idx === 0) return 'bom';
+  if (idx === opts.length - 1 && opts.length >= 3) return 'ruim';
+  return 'alerta';
+}
+let AVAL_RES = {};
+function avCel(sec, item){ if(!AVAL_RES[sec]) AVAL_RES[sec]={}; if(!AVAL_RES[sec][item]) AVAL_RES[sec][item]={}; return AVAL_RES[sec][item]; }
+
+function abrirAval(id){
+  const v = CACHE[id]; if(!v) return;
+  $('av-veiculo-id').value = id;
+  $('av-titulo').textContent = 'Avaliação — ' + nomeVeiculo(v);
+  const a = (v.avaliacao && typeof v.avaliacao === 'object') ? v.avaliacao : {};
+  AVAL_RES = a.resultado ? JSON.parse(JSON.stringify(a.resultado)) : {};
+  $('av-nota').value = a.nota || '';
+  $('av-obs').value = a.obs || '';
+  renderAvalSecoes();
+  $('av-modal').classList.add('show');
+}
+function fecharAval(){ $('av-modal').classList.remove('show'); }
+$('av-modal').addEventListener('click', e => { if (e.target === $('av-modal')) fecharAval(); });
+
+function renderAvalSecoes(){
+  $('av-secoes').innerHTML = AVAL.map(sec => {
+    const itens = sec.itens.map(it => avItemHTML(sec, it, sec.opts || it.opts)).join('');
+    return `<div class="av-sec"><div class="stit">${sec.titulo}</div>${itens}</div>`;
+  }).join('');
+}
+function avItemHTML(sec, it, opts){
+  const cur = (AVAL_RES[sec.id] && AVAL_RES[sec.id][it.id]) || {};
+  const pills = opts.map((o, idx) => {
+    const on = cur.status === o ? 'on ' + sevAv(opts, idx) : '';
+    return `<button type="button" class="av-pill ${on}" onclick="setAvStatus('${sec.id}','${it.id}','${o}',this)">${o}</button>`;
+  }).join('');
+  return `<div class="av-item"><div class="l"><span class="nm">${it.nome}</span><div class="av-pills">${pills}</div></div></div>`;
+}
+function setAvStatus(sec, item, val, btn){
+  const c = avCel(sec, item);
+  c.status = (c.status === val) ? '' : val;
+  const box = btn.parentElement;
+  [...box.children].forEach(b => b.className = 'av-pill');
+  if (c.status){
+    const opts = [...box.children].map(b => b.textContent);
+    btn.className = 'av-pill on ' + sevAv(opts, opts.indexOf(val));
+  }
+}
+async function salvarAval(){
+  const id = $('av-veiculo-id').value;
+  const avaliacao = { nota: $('av-nota').value, obs: $('av-obs').value, resultado: AVAL_RES };
+  try {
+    const r = await fetch('/api/catalogo?id=' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ avaliacao }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    fecharAval();
+    carregar();
+  } catch (e) { alert('Falha ao salvar avaliação: ' + e.message); }
 }
 
 // Enter na busca livre dispara a pesquisa

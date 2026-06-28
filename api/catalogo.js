@@ -33,7 +33,7 @@ const EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'imag
 const CAMPOS = [
   'marca', 'modelo', 'versao', 'complemento', 'ano', 'ano_int',
   'km', 'cor', 'regiao', 'placa', 'valor', 'fipe',
-  'opcionais', 'observacoes', 'anuncio_texto', 'status', 'fotos', 'documentos',
+  'opcionais', 'observacoes', 'anuncio_texto', 'status', 'fotos', 'documentos', 'avaliacao',
 ];
 
 function sb(path, opts = {}) {
