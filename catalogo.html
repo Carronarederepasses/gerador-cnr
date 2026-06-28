@@ -603,9 +603,9 @@ const AVAL = [
     { id:'situacao', nome:'Situação', opts:['OK','Pendência'] },
   ]},
   { id:'estrutura', titulo:'Estrutura / Chassi', itens:[
-    { id:'geral', nome:'Estrutura geral', opts:['Íntegra','Reparada','Avariada'] },
+    { id:'geral', nome:'Estrutura geral', opts:['Íntegra','Avariada'] },
   ]},
-  { id:'pintura', titulo:'Lataria e Pintura', opts:['Original','Repintura','Reparada'], itens:[
+  { id:'pintura', titulo:'Lataria e Pintura', opts:['Original','Repintura','Avariada'], itens:[
     {id:'capo',nome:'Capô'},{id:'teto',nome:'Teto'},{id:'porta_malas',nome:'Porta-malas / tampa traseira'},
     {id:'porta_diant_dir',nome:'Porta diant. direita'},{id:'porta_tras_dir',nome:'Porta tras. direita'},
     {id:'porta_diant_esq',nome:'Porta diant. esquerda'},{id:'porta_tras_esq',nome:'Porta tras. esquerda'},
@@ -784,7 +784,7 @@ async function gerarPDFAval(){
       const txt = cell.status + (cell.sub ? ' (' + cell.sub + ')' : '');
       doc.setTextColor(80); doc.text('•  ' + it.nome, M + 2, y);
       doc.setTextColor(...corStatusPDF(sec, it, cell.status));
-      doc.text(txt, W - M, y, { align: 'right' });
+      doc.text(txt, M + 78, y);
       doc.setTextColor(0); y += 5;
     });
     y += 3.5;
