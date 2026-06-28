@@ -19,156 +19,300 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:#0a0a0a;color:#f0f0f0;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px}
 
-    .nav{width:100%;max-width:460px;display:flex;justify-content:flex-end;margin-bottom:20px}
-    .nav a{font-size:.74rem;color:#444;text-decoration:none;letter-spacing:.08em;border-bottom:1px solid #1e1e1e;padding-bottom:1px}
-    .nav a:hover{color:#888}
+    .nav{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .nav a,.nav button.conf{font-size:.74rem;color:#444;text-decoration:none;letter-spacing:.08em;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0}
+    .nav a:hover,.nav button.conf:hover{color:#888}
 
-    header{width:100%;max-width:460px;margin-bottom:24px}
+    header{width:100%;max-width:480px;margin-bottom:24px}
     .marca{font-size:.67rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:#333;margin-bottom:4px}
     h1{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:900;color:#fff;letter-spacing:-.02em}
     .sub{font-size:.75rem;color:#2a2a2a;margin-top:5px}
 
-    .card{background:#111;border:1px solid #1c1c1c;border-radius:14px;padding:20px;width:100%;max-width:460px;margin-bottom:12px}
+    .card{background:#111;border:1px solid #1c1c1c;border-radius:14px;padding:20px;width:100%;max-width:480px;margin-bottom:12px}
+    .card h2{font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:#2a2a2a;font-weight:600;margin-bottom:12px}
 
-    .placa-input{width:100%;background:#000;border:1.5px solid #252525;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:.2em;padding:14px;outline:none;text-transform:uppercase;text-align:center;transition:border-color .2s;margin-bottom:14px}
-    .placa-input::placeholder{color:#222;font-weight:400;font-size:.95rem;letter-spacing:.05em}
-    .placa-input:focus{border-color:#3a3a3a}
+    input[type=text],input[type=email],input[type=password]{width:100%;background:#000;border:1px solid #252525;border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:11px 13px;outline:none;transition:border-color .2s}
+    input:focus{border-color:#3a3a3a}
+    input[type=text].placa{font-size:1.5rem;font-weight:700;letter-spacing:.18em;text-align:center;text-transform:uppercase;padding:14px}
+    input[type=text].placa::placeholder{color:#222;font-weight:400;font-size:.9rem;letter-spacing:.05em}
 
-    .uf-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:#2e2e2e;margin-bottom:7px;font-weight:600}
-    .ufs{display:flex;gap:7px;flex-wrap:wrap}
-    .uf-btn{background:#000;border:1px solid #1e1e1e;border-radius:7px;color:#444;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;padding:8px 12px;cursor:pointer;transition:all .15s;letter-spacing:.06em}
-    .uf-btn:hover{border-color:#444;color:#ccc}
-    .uf-btn.on{border-color:#888;color:#fff;background:#131313}
-    select.uf-outro{background:#000;border:1px solid #1e1e1e;border-radius:7px;color:#333;font-family:'DM Sans',sans-serif;font-size:.8rem;padding:8px 10px;outline:none;cursor:pointer;flex:1;min-width:120px}
-    select.uf-outro:focus{border-color:#333;color:#aaa}
+    label.lbl{display:block;font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:#2e2e2e;margin-bottom:5px;font-weight:600}
+
+    .btn-consultar{width:100%;background:#fff;border:none;border-radius:9px;color:#000;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:700;padding:13px;cursor:pointer;margin-top:12px;transition:opacity .15s;letter-spacing:.04em}
+    .btn-consultar:hover{opacity:.88}
+    .btn-consultar:disabled{background:#1e1e1e;color:#444;cursor:not-allowed}
+
+    /* UF */
+    .ufs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+    .uf-btn{background:#000;border:1px solid #1e1e1e;border-radius:7px;color:#444;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:700;padding:7px 11px;cursor:pointer;transition:all .15s;letter-spacing:.06em}
+    .uf-btn:hover{border-color:#3a3a3a;color:#bbb}
+    .uf-btn.on{border-color:#666;color:#fff;background:#131313}
+    select.uf-outro{background:#000;border:1px solid #1e1e1e;border-radius:7px;color:#333;font-family:'DM Sans',sans-serif;font-size:.78rem;padding:7px 9px;outline:none;cursor:pointer}
+    select.uf-outro:focus{border-color:#333}
     select.uf-outro option{background:#111}
 
-    .card h2{font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:#2a2a2a;font-weight:600;margin-bottom:11px}
-    .links{display:flex;flex-direction:column;gap:7px}
-    .link-btn{display:flex;align-items:center;gap:11px;background:#000;border:1px solid #1c1c1c;border-radius:10px;color:#bbb;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:500;padding:13px 14px;text-decoration:none;transition:all .15s}
-    .link-btn:hover{border-color:#3a3a3a;color:#fff;background:#0d0d0d}
-    .link-btn .ico{font-size:.95rem;width:20px;text-align:center;flex-shrink:0}
-    .link-btn .txt b{display:block;font-size:.83rem;font-weight:600;margin-bottom:1px}
-    .link-btn .txt small{font-size:.7rem;color:#2e2e2e}
-    .link-btn:hover .txt small{color:#555}
-    .link-btn .arr{margin-left:auto;color:#222;font-size:.78rem;flex-shrink:0}
-    .link-btn:hover .arr{color:#555}
-    .link-btn.destaque{border-color:#1e1e1e;background:#0a0a0a}
+    /* Loading */
+    #loading{display:none;text-align:center;padding:28px;color:#333;font-size:.85rem}
+    .spinner{width:28px;height:28px;border:2px solid #1e1e1e;border-top-color:#666;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
-    hr.div{border:none;border-top:1px solid #141414;margin:2px 0}
+    /* Erro */
+    .msg-erro{background:#0d0000;border:1px solid #2a0000;border-radius:10px;padding:14px 16px;color:#f87171;font-size:.84rem;display:none}
+
+    /* Resultado */
+    #resultado{display:none;width:100%;max-width:480px;flex-direction:column;gap:12px}
+    .res-header{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;margin-bottom:14px}
+    .res-header h3{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;line-height:1.25;color:#fff}
+    .res-header .placa-badge{font-size:.72rem;font-weight:700;letter-spacing:.1em;background:#000;border:1px solid #2a2a2a;border-radius:7px;padding:4px 9px;color:#888;white-space:nowrap}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .info-item label{display:block;font-size:.63rem;color:#333;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;font-weight:500}
+    .info-item span{font-size:.9rem;font-weight:600;color:#e0e0e0}
+
+    /* Links de busca */
+    .links{display:flex;flex-direction:column;gap:7px}
+    .link-btn{display:flex;align-items:center;gap:11px;background:#000;border:1px solid #1c1c1c;border-radius:10px;color:#bbb;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:12px 14px;text-decoration:none;transition:all .15s}
+    .link-btn:hover{border-color:#3a3a3a;color:#fff}
+    .link-btn .ico{font-size:.9rem;width:20px;text-align:center;flex-shrink:0}
+    .link-btn .txt b{display:block;font-size:.82rem;font-weight:600;margin-bottom:1px}
+    .link-btn .txt small{font-size:.7rem;color:#2a2a2a}
+    .link-btn:hover .txt small{color:#444}
+    .link-btn .arr{margin-left:auto;color:#1e1e1e;font-size:.76rem;flex-shrink:0}
+    .link-btn:hover .arr{color:#555}
+
+    /* Config modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:1.5rem}
+    .modal.show{display:flex}
+    .modal-box{background:#111;border:1px solid #222;border-radius:16px;max-width:400px;width:100%;padding:22px}
+    .modal-box h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:4px;color:#fff}
+    .modal-box p{font-size:.78rem;color:#444;margin-bottom:16px;line-height:1.5}
+    .modal-box .campo{margin-bottom:10px}
+    .modal-acoes{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+    .btn-ghost{background:none;border:1px solid #222;border-radius:8px;color:#555;font-family:'DM Sans',sans-serif;font-size:.82rem;padding:9px 14px;cursor:pointer}
+    .btn-ghost:hover{border-color:#444;color:#aaa}
+    .btn-salvar{background:#fff;border:none;border-radius:8px;color:#000;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:700;padding:9px 16px;cursor:pointer}
+    .btn-salvar:hover{opacity:.88}
+    .aviso-cred{font-size:.72rem;color:#f59e0b;background:#1a1000;border:1px solid #2a1800;border-radius:8px;padding:10px 12px;margin-bottom:0}
+
+    @media(max-width:480px){.grid2{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 
-<div class="nav"><a href="/index.html">← Gerador</a></div>
+<div class="nav">
+  <a href="/index.html">← Gerador</a>
+  <button class="conf" onclick="abrirConfig()">⚙️ API key</button>
+</div>
 
 <header>
   <div class="marca">Carro na Rede Repasses</div>
   <h1>Consultas</h1>
-  <div class="sub">Uso interno · débitos, gravame, restrições e recall</div>
+  <div class="sub">Uso interno · dados do veículo, restrições e recall</div>
 </header>
 
+<!-- Placa + Estado -->
 <div class="card">
-  <input class="placa-input" id="placa" type="text" placeholder="ABC1D23" maxlength="8" autocomplete="off"
-    oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase();atualizar()"/>
+  <input class="placa" type="text" id="placa" placeholder="ABC1D23" maxlength="8" autocomplete="off"
+    oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()"
+    onkeydown="if(event.key==='Enter')consultar()"/>
 
-  <div class="uf-label">Estado de emplacamento</div>
-  <div class="ufs">
-    <button class="uf-btn on" data-uf="SC" onclick="setUF('SC',this)">SC</button>
-    <button class="uf-btn" data-uf="SP" onclick="setUF('SP',this)">SP</button>
-    <button class="uf-btn" data-uf="RS" onclick="setUF('RS',this)">RS</button>
-    <button class="uf-btn" data-uf="PR" onclick="setUF('PR',this)">PR</button>
-    <select class="uf-outro" id="uf-outro" onchange="setUF(this.value,null)">
-      <option value="">+ outro</option>
-      <option value="RJ">RJ</option><option value="MG">MG</option>
-      <option value="GO">GO</option><option value="DF">DF</option>
-      <option value="BA">BA</option><option value="PE">PE</option>
-      <option value="CE">CE</option><option value="MT">MT</option>
-      <option value="MS">MS</option><option value="ES">ES</option>
-      <option value="PA">PA</option><option value="AM">AM</option>
-      <option value="MA">MA</option><option value="TO">TO</option>
-      <option value="RO">RO</option><option value="AC">AC</option>
-      <option value="RN">RN</option><option value="PB">PB</option>
-      <option value="AL">AL</option><option value="SE">SE</option>
-      <option value="PI">PI</option><option value="AP">AP</option>
-      <option value="RR">RR</option>
-    </select>
+  <div style="margin-top:14px">
+    <label class="lbl">Estado de emplacamento</label>
+    <div class="ufs">
+      <button class="uf-btn on" data-uf="SC" onclick="setUF('SC',this)">SC</button>
+      <button class="uf-btn" data-uf="SP" onclick="setUF('SP',this)">SP</button>
+      <button class="uf-btn" data-uf="RS" onclick="setUF('RS',this)">RS</button>
+      <button class="uf-btn" data-uf="PR" onclick="setUF('PR',this)">PR</button>
+      <select class="uf-outro" id="uf-outro" onchange="setUF(this.value,null)">
+        <option value="">+ outro</option>
+        <option value="RJ">RJ</option><option value="MG">MG</option>
+        <option value="GO">GO</option><option value="DF">DF</option>
+        <option value="BA">BA</option><option value="PE">PE</option>
+        <option value="CE">CE</option><option value="MT">MT</option>
+        <option value="MS">MS</option><option value="ES">ES</option>
+        <option value="PA">PA</option><option value="AM">AM</option>
+        <option value="MA">MA</option><option value="TO">TO</option>
+        <option value="RO">RO</option><option value="AC">AC</option>
+        <option value="RN">RN</option><option value="PB">PB</option>
+        <option value="AL">AL</option><option value="SE">SE</option>
+        <option value="PI">PI</option><option value="AP">AP</option>
+        <option value="RR">RR</option>
+      </select>
+    </div>
   </div>
+
+  <button class="btn-consultar" id="btn-consultar" onclick="consultar()">Consultar</button>
 </div>
 
-<div class="card">
-  <h2>Consultar</h2>
-  <div class="links">
+<!-- Loading -->
+<div id="loading" style="width:100%;max-width:480px">
+  <div class="spinner"></div>
+  Consultando...
+</div>
 
-    <a id="lnk-debitos" class="link-btn destaque" href="#" target="_blank" rel="noopener">
-      <span class="ico">🏛️</span>
-      <span class="txt">
-        <b id="txt-debitos">Débitos DETRAN SC</b>
-        <small>IPVA · Licenciamento · Multas · Gravame</small>
-      </span>
-      <span class="arr">↗</span>
-    </a>
+<!-- Erro -->
+<div class="msg-erro" id="erro" style="width:100%;max-width:480px"></div>
 
-    <a id="lnk-restricoes" class="link-btn" href="#" target="_blank" rel="noopener">
-      <span class="ico">🔒</span>
-      <span class="txt">
-        <b id="txt-restricoes">Restrições e situação</b>
-        <small>Roubo · Furto · Restrição judicial · Sinesp</small>
-      </span>
-      <span class="arr">↗</span>
-    </a>
+<!-- Resultado -->
+<div id="resultado">
 
-    <a id="lnk-recall" class="link-btn" href="#" target="_blank" rel="noopener">
-      <span class="ico">🚨</span>
-      <span class="txt">
-        <b id="txt-recall">Recall</b>
-        <small>Campanhas ativas via SENATRAN / Google</small>
-      </span>
-      <span class="arr">↗</span>
-    </a>
+  <div class="card">
+    <div class="res-header">
+      <h3 id="r-nome">—</h3>
+      <span class="placa-badge" id="r-placa-badge">—</span>
+    </div>
+    <div class="grid2">
+      <div class="info-item"><label>Ano fab. / modelo</label><span id="r-ano">—</span></div>
+      <div class="info-item"><label>Cor</label><span id="r-cor">—</span></div>
+      <div class="info-item"><label>Combustível</label><span id="r-comb">—</span></div>
+      <div class="info-item"><label>Município / UF</label><span id="r-mun">—</span></div>
+      <div class="info-item"><label>Chassi</label><span id="r-chassi">—</span></div>
+      <div class="info-item"><label>Motor</label><span id="r-motor">—</span></div>
+    </div>
+  </div>
 
-    <hr class="div">
+  <div class="card">
+    <h2>Consultas complementares</h2>
+    <div class="links">
+      <a id="lnk-debitos" class="link-btn" href="#" target="_blank" rel="noopener">
+        <span class="ico">🏛️</span>
+        <span class="txt"><b id="txt-debitos">Débitos DETRAN SC</b><small>IPVA · Licenciamento · Multas · Gravame</small></span>
+        <span class="arr">↗</span>
+      </a>
+      <a id="lnk-restricoes" class="link-btn" href="#" target="_blank" rel="noopener">
+        <span class="ico">🔒</span>
+        <span class="txt"><b id="txt-restricoes">Restrições / Sinesp</b><small>Roubo · Furto · Restrição judicial</small></span>
+        <span class="arr">↗</span>
+      </a>
+      <a id="lnk-recall" class="link-btn" href="#" target="_blank" rel="noopener">
+        <span class="ico">🚨</span>
+        <span class="txt"><b id="txt-recall">Recall</b><small>Campanhas ativas via SENATRAN</small></span>
+        <span class="arr">↗</span>
+      </a>
+      <a id="lnk-tudo" class="link-btn" href="#" target="_blank" rel="noopener">
+        <span class="ico">🔍</span>
+        <span class="txt"><b id="txt-tudo">Busca completa</b><small>Gravame · Leilão · Histórico completo</small></span>
+        <span class="arr">↗</span>
+      </a>
+    </div>
+  </div>
 
-    <a id="lnk-tudo" class="link-btn" href="#" target="_blank" rel="noopener">
-      <span class="ico">🔍</span>
-      <span class="txt">
-        <b id="txt-tudo">Busca completa no Google</b>
-        <small>Pesquisa todas as informações da placa</small>
-      </span>
-      <span class="arr">↗</span>
-    </a>
+</div>
 
+<!-- Modal config API -->
+<div class="modal" id="modal-config">
+  <div class="modal-box">
+    <h3>Configurar API</h3>
+    <p>Credenciais do <strong style="color:#aaa">Consultar Placa</strong> (consultarplaca.com.br). Salvas só neste aparelho.</p>
+    <div class="campo">
+      <label class="lbl">E-mail da conta</label>
+      <input type="email" id="cfg-email" placeholder="seu@email.com"/>
+    </div>
+    <div class="campo">
+      <label class="lbl">API Key</label>
+      <input type="password" id="cfg-key" placeholder="sua chave de API"/>
+    </div>
+    <p class="aviso-cred" style="margin-top:10px">⚠️ Cada consulta custa ~R$0,25. Use só quando precisar de dados reais do veículo.</p>
+    <div class="modal-acoes">
+      <button class="btn-ghost" onclick="fecharConfig()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvarConfig()">Salvar</button>
+    </div>
   </div>
 </div>
 
 <script>
 let uf = 'SC';
 
-function g(q){ return 'https://www.google.com/search?q=' + encodeURIComponent(q); }
-
-function atualizar() {
-  const p = document.getElementById('placa').value.trim() || 'placa';
-
-  document.getElementById('lnk-debitos').href   = g('detran ' + uf + ' consulta débitos veículo placa ' + p);
-  document.getElementById('lnk-restricoes').href = g('sinesp placa ' + p + ' ' + uf + ' situação roubo furto restrição');
-  document.getElementById('lnk-recall').href     = g('recall placa ' + p + ' ' + uf + ' senatran denatran');
-  document.getElementById('lnk-tudo').href       = g(p + ' ' + uf + ' veículo débitos gravame restrição histórico');
-
-  document.getElementById('txt-debitos').textContent    = 'Débitos DETRAN ' + uf;
-  document.getElementById('txt-restricoes').textContent = 'Restrições — ' + uf;
-  document.getElementById('txt-recall').textContent     = 'Recall — ' + p;
-  document.getElementById('txt-tudo').textContent       = 'Busca completa: ' + p + ' ' + uf;
+// ── Configuração ────────────────────────────────────────────────
+function abrirConfig(){
+  document.getElementById('cfg-email').value = localStorage.getItem('cp_email') || '';
+  document.getElementById('cfg-key').value   = localStorage.getItem('cp_key') || '';
+  document.getElementById('modal-config').classList.add('show');
+}
+function fecharConfig(){ document.getElementById('modal-config').classList.remove('show'); }
+function salvarConfig(){
+  localStorage.setItem('cp_email', document.getElementById('cfg-email').value.trim());
+  localStorage.setItem('cp_key',   document.getElementById('cfg-key').value.trim());
+  fecharConfig();
 }
 
-function setUF(val, btn) {
+// ── Estado ──────────────────────────────────────────────────────
+function setUF(val, btn){
   if (!val) return;
   uf = val;
   document.querySelectorAll('.uf-btn').forEach(b => b.classList.remove('on'));
-  if (btn) { btn.classList.add('on'); document.getElementById('uf-outro').value = ''; }
-  atualizar();
+  if (btn){ btn.classList.add('on'); document.getElementById('uf-outro').value = ''; }
 }
 
-atualizar();
+// ── Consulta ────────────────────────────────────────────────────
+async function consultar(){
+  const placa = document.getElementById('placa').value.trim();
+  if (placa.length < 7){ mostrarErro('Placa inválida. Use o formato ABC1D23.'); return; }
+
+  const email = localStorage.getItem('cp_email');
+  const key   = localStorage.getItem('cp_key');
+  if (!email || !key){
+    mostrarErro('Configure sua API key primeiro (botão ⚙️ no topo).');
+    return;
+  }
+
+  esconder();
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('btn-consultar').disabled = true;
+
+  try {
+    const cred = btoa(`${email}:${key}`);
+    const r = await fetch(`https://api.consultarplaca.com.br/v2/consultarPlaca?placa=${placa}`, {
+      headers: { 'Authorization': `Basic ${cred}`, 'Content-Type': 'application/json' }
+    });
+    const data = await r.json();
+    if (!r.ok || data.status !== 'ok'){
+      mostrarErro(data.mensagem || 'Erro na consulta. Verifique a placa ou sua API key.');
+      return;
+    }
+    exibirResultado(placa, data.dados);
+  } catch(e){
+    mostrarErro('Falha de conexão. Verifique sua internet e tente novamente.');
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('btn-consultar').disabled = false;
+  }
+}
+
+function exibirResultado(placa, dados){
+  const v = dados.informacoes_veiculo || {};
+  const dv = v.dados_veiculo || {};
+  const dt = v.dados_tecnicos || {};
+
+  const nome = [dv.marca, dv.modelo].filter(Boolean).join(' / ') || '—';
+  document.getElementById('r-nome').textContent = nome;
+  document.getElementById('r-placa-badge').textContent = placa;
+  document.getElementById('r-ano').textContent  = [dv.ano_fabricacao, dv.ano_modelo].filter(Boolean).join(' / ') || '—';
+  document.getElementById('r-cor').textContent  = dv.cor || '—';
+  document.getElementById('r-comb').textContent = dv.combustivel || '—';
+  document.getElementById('r-mun').textContent  = dv.municipio ? `${dv.municipio} / ${dv.uf_municipio}` : '—';
+  document.getElementById('r-chassi').textContent = dv.chassi ? mascarar(dv.chassi) : '—';
+  document.getElementById('r-motor').textContent = dt.numero_motor ? mascarar(dt.numero_motor) : (dt.potencia ? `${dt.potencia}cv` : '—');
+
+  // Links complementares com placa real
+  const g = q => 'https://www.google.com/search?q=' + encodeURIComponent(q);
+  document.getElementById('lnk-debitos').href    = g(`detran ${uf} consulta débitos veículo placa ${placa}`);
+  document.getElementById('lnk-restricoes').href = g(`sinesp placa ${placa} ${uf} situação roubo furto restrição`);
+  document.getElementById('lnk-recall').href     = g(`recall ${nome} ${placa} senatran denatran`);
+  document.getElementById('lnk-tudo').href       = g(`${placa} ${uf} débitos gravame restrição leilão histórico`);
+  document.getElementById('txt-debitos').textContent    = `Débitos DETRAN ${uf}`;
+  document.getElementById('txt-restricoes').textContent = `Restrições — ${placa}`;
+  document.getElementById('txt-recall').textContent     = `Recall — ${nome}`;
+  document.getElementById('txt-tudo').textContent       = `Busca completa: ${placa}`;
+
+  document.getElementById('resultado').style.display = 'flex';
+}
+
+function mascarar(s){ return s && s.length > 6 ? s.slice(0,3)+'***'+s.slice(6) : s; }
+function mostrarErro(m){ const e=document.getElementById('erro'); e.textContent=m; e.style.display='block'; }
+function esconder(){ document.getElementById('resultado').style.display='none'; document.getElementById('erro').style.display='none'; document.getElementById('loading').style.display='none'; }
+
+// Abre config se ainda não tem credenciais
+if (!localStorage.getItem('cp_key')) setTimeout(abrirConfig, 600);
 </script>
 </body>
 </html>
