@@ -739,19 +739,50 @@ function carregarImg(url){
   });
 }
 
+async function carregarLogoParaPDF(){
+  try {
+    const svg = await fetch('/assets/logo.svg').then(r => r.text());
+    const W = 1000, H = 409, scale = 3;
+    const canvas = document.createElement('canvas');
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    await new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); res(); };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(); };
+      img.src = url;
+    });
+    return canvas.toDataURL('image/jpeg', 0.92);
+  } catch { return null; }
+}
+
 async function gerarPDFAval(){
   const id = $('av-veiculo-id').value;
   const v = CACHE[id]; if (!v) return;
   if (!window.jspdf) { alert('A biblioteca de PDF não carregou — verifique a internet e recarregue.'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const W = 210, M = 15; let y = 18;
+  const W = 210, M = 15; let y = 10;
 
-  doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text('CARRO NA REDE REPASSES', M, y);
+  // Logo no cabeçalho
+  try {
+    const logoImg = await carregarLogoParaPDF();
+    if (logoImg) {
+      const lw = 80, lh = lw * (409/1000);
+      doc.addImage(logoImg, 'JPEG', M, y, lw, lh);
+      y += lh + 3;
+    } else { throw new Error('sem logo'); }
+  } catch {
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text('CARRO NA REDE REPASSES', M, y + 6); y += 12;
+  }
   doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(120);
-  y += 6; doc.text('Avaliação do veículo', M, y);
-  doc.setTextColor(0); y += 3; doc.line(M, y, W - M, y); y += 9;
+  doc.text('Avaliação do veículo', M, y);
+  doc.setTextColor(0); y += 4; doc.line(M, y, W - M, y); y += 8;
 
   doc.setFont('helvetica','bold'); doc.setFontSize(13);
   doc.text(nomeVeiculo(v), M, y); y += 6;
