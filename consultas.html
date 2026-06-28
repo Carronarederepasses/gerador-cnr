@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="robots" content="noindex,nofollow">
-  <title>Consulta Veicular — Carro na Rede Repasses</title>
+  <title>Consultas — Carro na Rede Repasses</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0a0a0a">
   <meta name="mobile-web-app-capable" content="yes">
@@ -16,308 +16,171 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a0a0a;color:#f0f0f0;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 60px}
 
-    body {
-      background: #0a0a0a;
-      color: #f0f0f0;
-      font-family: 'DM Sans', 'Segoe UI', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 16px 60px;
-    }
+    header{width:100%;max-width:480px;margin-bottom:36px}
+    .nav{display:flex;justify-content:flex-end;margin-bottom:24px}
+    .nav a{font-size:.74rem;color:#444;text-decoration:none;letter-spacing:.08em;border-bottom:1px solid #222;padding-bottom:1px}
+    .nav a:hover{color:#888}
+    .marca{font-size:.7rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:#444;margin-bottom:6px}
+    h1{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:#fff;letter-spacing:-.02em}
+    .sub{font-size:.78rem;color:#333;margin-top:6px}
 
-    header {
-      text-align: center;
-      margin-bottom: 36px;
-      width: 100%;
-      max-width: 560px;
-    }
+    .card{background:#141414;border:1px solid #1e1e1e;border-radius:14px;padding:24px;width:100%;max-width:480px;margin-bottom:16px}
+    .card h2{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#fff;margin-bottom:16px;letter-spacing:-.01em}
 
-    header .nav {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 28px;
-    }
+    label{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.12em;color:#444;margin-bottom:.4rem;font-weight:500}
+    input,select{width:100%;background:#111;border:1px solid #2a2a2a;border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:.1em;padding:13px 14px;outline:none;text-transform:uppercase;transition:border-color .2s;margin-bottom:12px}
+    input::placeholder{color:#333;font-weight:400;letter-spacing:.05em;font-size:.9rem;text-transform:none}
+    input:focus,select:focus{border-color:#555}
+    select{font-size:.9rem;font-weight:500;letter-spacing:0;text-transform:none;cursor:pointer}
+    select option{background:#141414}
 
-    header .nav a {
-      font-size: .75rem;
-      color: #555;
-      text-decoration: none;
-      letter-spacing: .08em;
-      border-bottom: 1px solid #333;
-      padding-bottom: 1px;
-    }
-    header .nav a:hover { color: #aaa; border-color: #666; }
+    .botoes{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+    .btn{display:flex;align-items:center;gap:10px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;color:#e0e0e0;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;padding:14px 16px;cursor:pointer;text-align:left;transition:all .15s;width:100%}
+    .btn:hover{border-color:#555;background:#222;color:#fff}
+    .btn .ico{font-size:1.1rem;width:24px;text-align:center;flex-shrink:0}
+    .btn .txt{flex:1}
+    .btn .txt b{display:block;font-weight:700;margin-bottom:1px}
+    .btn .txt span{font-size:.74rem;color:#555}
+    .btn:hover .txt span{color:#777}
+    .btn.destaque{background:#1a1a1a;border-color:#333}
+    .btn.destaque:hover{border-color:#fff;background:#1e1e1e}
 
-    header .marca {
-      font-size: .72rem;
-      font-weight: 500;
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      color: #555;
-      margin-bottom: 6px;
-    }
+    .divider{border:none;border-top:1px solid #1a1a1a;margin:4px 0}
 
-    header h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.1rem;
-      font-weight: 900;
-      color: #fff;
-      letter-spacing: -.02em;
-      line-height: 1.15;
-    }
-
-    header h1 span { color: #e63946; }
-
-    header .sub {
-      font-size: .8rem;
-      color: #444;
-      margin-top: 6px;
-    }
-
-    .card {
-      background: #141414;
-      border: 1px solid #222;
-      border-radius: 12px;
-      padding: 24px;
-      width: 100%;
-      max-width: 560px;
-      margin-bottom: 16px;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .input-group input {
-      flex: 1;
-      min-width: 160px;
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 8px;
-      color: #fff;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: .15em;
-      padding: 14px 16px;
-      text-transform: uppercase;
-      outline: none;
-      transition: border-color .2s;
-    }
-
-    .input-group input::placeholder { color: #444; font-weight: 400; letter-spacing: .05em; font-size: .95rem; }
-    .input-group input:focus { border-color: #e63946; }
-
-    .btn {
-      background: #e63946;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 14px 26px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .95rem;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: .05em;
-      transition: background .2s, transform .1s;
-      white-space: nowrap;
-    }
-    .btn:hover { background: #c1121f; }
-    .btn:active { transform: scale(.98); }
-    .btn:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
-
-    .aviso { font-size: .76rem; color: #444; margin-top: 12px; line-height: 1.5; }
-
-    /* Resultado */
-    #resultado { width: 100%; max-width: 560px; display: none; flex-direction: column; gap: 14px; }
-
-    .section-title {
-      font-size: .66rem;
-      font-weight: 700;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: #444;
-      margin-bottom: 14px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #1e1e1e;
-    }
-
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .info-item label { display: block; font-size: .66rem; color: #444; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 3px; }
-    .info-item span { font-size: .92rem; font-weight: 600; color: #f0f0f0; }
-
-    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .74rem; font-weight: 700; letter-spacing: .04em; }
-    .badge-ok    { background: #0d2b1a; color: #4ade80; border: 1px solid #1a4a2a; }
-    .badge-alerta{ background: #2b0d0d; color: #f87171; border: 1px solid #4a1a1a; }
-    .badge-neutro{ background: #1e1e1e; color: #666; border: 1px solid #2a2a2a; }
-
-    .restricoes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .restricao-item { display: flex; align-items: center; gap: 8px; background: #111; border: 1px solid #1e1e1e; border-radius: 8px; padding: 10px 12px; font-size: .8rem; }
-    .restricao-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dot-ok { background: #4ade80; } .dot-alerta { background: #f87171; } .dot-neutro { background: #444; }
-    .restricao-item .nome { color: #888; flex: 1; line-height: 1.3; }
-
-    .rodape-consulta { font-size: .7rem; color: #333; text-align: center; line-height: 1.7; padding-top: 4px; }
-
-    #loading { display: none; text-align: center; padding: 36px; color: #444; font-size: .88rem; width: 100%; max-width: 560px; }
-    .spinner { width: 30px; height: 30px; border: 3px solid #222; border-top-color: #e63946; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 14px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    #erro { display: none; background: #150808; border: 1px solid #3a1010; border-radius: 10px; padding: 18px; color: #f87171; font-size: .88rem; text-align: center; width: 100%; max-width: 560px; }
-
-    @media(max-width:480px){ .info-grid,.restricoes-grid{ grid-template-columns:1fr; } header h1{ font-size:1.7rem; } }
+    @media(max-width:480px){h1{font-size:1.7rem}}
   </style>
 </head>
 <body>
 
 <header>
-  <div class="nav">
-    <a href="/index.html">← Voltar ao gerador</a>
-  </div>
+  <div class="nav"><a href="/index.html">← Voltar ao gerador</a></div>
   <div class="marca">Carro na Rede Repasses</div>
-  <h1>Consulta <span>Veicular</span></h1>
-  <div class="sub">Situação, restrições e dados do veículo — base federal Sinesp</div>
+  <h1>Consultas</h1>
+  <div class="sub">Atalhos internos — débitos, histórico e dados do veículo</div>
 </header>
 
 <div class="card">
-  <div class="input-group">
-    <input type="text" id="placa" placeholder="Digite a placa" maxlength="8" autocomplete="off" />
-    <button class="btn" onclick="consultar()">Consultar</button>
+  <h2>Veículo</h2>
+  <div>
+    <label for="placa">Placa</label>
+    <input id="placa" type="text" placeholder="ABC1D23" maxlength="8" autocomplete="off"
+      oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()" />
   </div>
-  <p class="aviso">Dados em tempo real via Sinesp Cidadão (base pública federal). Retorna situação, roubo/furto, restrições e identificação do veículo. Gratuito.</p>
-</div>
-
-<div id="loading">
-  <div class="spinner"></div>
-  Consultando base federal...
-</div>
-
-<div id="erro"></div>
-
-<div id="resultado">
-  <div class="card">
-    <div class="section-title">Identificação do Veículo</div>
-    <div class="info-grid">
-      <div class="info-item"><label>Placa</label><span id="r-placa">—</span></div>
-      <div class="info-item"><label>Situação</label><span id="r-situacao">—</span></div>
-      <div class="info-item"><label>Marca / Modelo</label><span id="r-modelo">—</span></div>
-      <div class="info-item"><label>Cor</label><span id="r-cor">—</span></div>
-      <div class="info-item"><label>Ano</label><span id="r-ano">—</span></div>
-      <div class="info-item"><label>Chassi</label><span id="r-chassi">—</span></div>
-      <div class="info-item"><label>Município / UF</label><span id="r-municipio">—</span></div>
-      <div class="info-item"><label>Data da consulta</label><span id="r-data">—</span></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">Restrições e Alertas</div>
-    <div class="restricoes-grid">
-      <div class="restricao-item">
-        <div class="dot" id="dot-roubo"></div>
-        <span class="nome">Roubo / Furto</span>
-        <span id="r-roubo" class="status-badge badge-neutro">—</span>
-      </div>
-      <div class="restricao-item">
-        <div class="dot" id="dot-restricao"></div>
-        <span class="nome">Restrição</span>
-        <span id="r-restricao" class="status-badge badge-neutro">—</span>
-      </div>
-      <div class="restricao-item">
-        <div class="dot" id="dot-ocorrencia"></div>
-        <span class="nome">Ocorrência</span>
-        <span id="r-ocorrencia" class="status-badge badge-neutro">—</span>
-      </div>
-      <div class="restricao-item">
-        <div class="dot dot-neutro"></div>
-        <span class="nome">Base</span>
-        <span id="r-base" class="status-badge badge-neutro">Federal</span>
-      </div>
-    </div>
+  <div>
+    <label for="estado">Estado de emplacamento</label>
+    <select id="estado">
+      <option value="SC" selected>SC — Santa Catarina</option>
+      <option value="SP">SP — São Paulo</option>
+      <option value="RS">RS — Rio Grande do Sul</option>
+      <option value="PR">PR — Paraná</option>
+      <option value="RJ">RJ — Rio de Janeiro</option>
+      <option value="MG">MG — Minas Gerais</option>
+      <option value="GO">GO — Goiás</option>
+      <option value="BA">BA — Bahia</option>
+      <option value="PE">PE — Pernambuco</option>
+      <option value="CE">CE — Ceará</option>
+      <option value="MT">MT — Mato Grosso</option>
+      <option value="MS">MS — Mato Grosso do Sul</option>
+      <option value="ES">ES — Espírito Santo</option>
+      <option value="DF">DF — Distrito Federal</option>
+      <option value="PA">PA — Pará</option>
+      <option value="AM">AM — Amazonas</option>
+      <option value="outros">Outros estados</option>
+    </select>
   </div>
 
-  <div class="card" style="border-color:#1a1a1a">
-    <div class="section-title">Aviso</div>
-    <p style="font-size:.8rem;color:#555;line-height:1.7;">
-      Consulta via base pública <strong style="color:#666">Sinesp Cidadão</strong>. Retorna dados básicos de identificação e situação de roubo/furto. Para gravames, débitos, histórico de proprietários e sinistros, solicite um laudo completo.
-    </p>
-  </div>
+  <div class="botoes">
+    <button class="btn destaque" onclick="abrirDetran()">
+      <span class="ico">🏛️</span>
+      <span class="txt">
+        <b>DETRAN — Débitos e multas</b>
+        <span>IPVA · Licenciamento · Infrações · DPVAT</span>
+      </span>
+      <span style="color:#333;font-size:.8rem">↗</span>
+    </button>
 
-  <p class="rodape-consulta">
-    Carro na Rede · @carronarederepasses · <span id="r-data-rodape">—</span>
-  </p>
+    <hr class="divider">
+
+    <button class="btn" onclick="abrirAutoCrivo()">
+      <span class="ico">🔍</span>
+      <span class="txt">
+        <b>Auto-crivo — Histórico completo</b>
+        <span>Sinistro · Leilão · Gravame · Proprietários</span>
+      </span>
+      <span style="color:#333;font-size:.8rem">↗</span>
+    </button>
+
+    <button class="btn" onclick="abrirFipe()">
+      <span class="ico">💰</span>
+      <span class="txt">
+        <b>Tabela FIPE</b>
+        <span>Consultar valor de mercado</span>
+      </span>
+      <span style="color:#333;font-size:.8rem">↗</span>
+    </button>
+
+    <button class="btn" onclick="abrirGerador()">
+      <span class="ico">📋</span>
+      <span class="txt">
+        <b>Gerar anúncio com essa placa</b>
+        <span>Abre o gerador com a placa preenchida</span>
+      </span>
+      <span style="color:#333;font-size:.8rem">↗</span>
+    </button>
+  </div>
 </div>
 
 <script>
-  async function consultar() {
-    const placaRaw = document.getElementById('placa').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (placaRaw.length < 7) { mostrarErro('Placa inválida. Use o formato AAA0000 ou AAA0A00.'); return; }
-    esconderTudo();
-    document.getElementById('loading').style.display = 'block';
-    document.querySelector('.btn').disabled = true;
-    try {
-      const response = await fetch(`/api/consulta?placa=${placaRaw}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          mostrarErro('Veículo não localizado no momento. O serviço Sinesp (base federal) é instável e pode apresentar falhas intermitentes. Aguarde alguns minutos e tente novamente, ou verifique se a placa está correta.');
-        } else {
-          mostrarErro('Serviço temporariamente indisponível (Sinesp fora do ar). Tente novamente em alguns minutos.');
-        }
-        return;
-      }
-      exibirResultado(await response.json(), placaRaw);
-    } catch (err) {
-      mostrarErro('Não foi possível conectar à base de dados. Verifique sua conexão e tente novamente.');
-    } finally {
-      document.getElementById('loading').style.display = 'none';
-      document.querySelector('.btn').disabled = false;
-    }
-  }
+const DETRANS = {
+  SC: 'https://www.detrannet.sc.gov.br/Servicos/ConsultarVeiculo',
+  SP: 'https://www.detran.sp.gov.br/wps/portal/internet/servicos/veiculo/debitos-veicular',
+  RS: 'https://www.detran.rs.gov.br/lista/2078/consulta-de-debitos-do-veiculo',
+  PR: 'https://www.detran.pr.gov.br/Pagina/Consulta-de-debitos',
+  RJ: 'https://www.detran.rj.gov.br/_monta_aplicacao.asp?cod_sistema=5&tipo=1',
+  MG: 'https://www.detran.mg.gov.br/veiculo/consulta-de-debitos',
+  GO: 'https://www.detran.go.gov.br/sub/debitos',
+  BA: 'https://www.detran.ba.gov.br/servicos/veiculo/consulta-debito-veiculo',
+  PE: 'https://www.detran.pe.gov.br/dran/index.php/veiculos/debitos-de-veiculo',
+  CE: 'https://www.detran.ce.gov.br/index.php/servicos-para-veiculo/consulta-de-debito',
+  MT: 'https://www.detran.mt.gov.br/-/consultar-debito-de-veiculo',
+  MS: 'https://www.detran.ms.gov.br/veiculo/debitos',
+  ES: 'https://detran.es.gov.br/servicos/veiculos/debitos',
+  DF: 'https://www.detran.df.gov.br/servicos/veiculo/consulta-de-debitos',
+  PA: 'https://www.detran.pa.gov.br/portal/veiculo/debito',
+  AM: 'https://www.detran.am.gov.br/consultas/consultaDébitosVeiculo',
+  outros: 'https://portalnatransito.com.br/consulta-debitos/',
+};
 
-  function exibirResultado(d, placa) {
-    const agora = new Date().toLocaleString('pt-BR');
-    document.getElementById('r-placa').textContent = placa;
-    document.getElementById('r-modelo').textContent = `${d.marca || '—'} ${d.modelo || ''}`.trim();
-    document.getElementById('r-cor').textContent = d.cor || '—';
-    document.getElementById('r-ano').textContent = d.ano || '—';
-    document.getElementById('r-chassi').textContent = d.chassi ? mascaraChassi(d.chassi) : '—';
-    document.getElementById('r-municipio').textContent = d.municipio ? `${d.municipio} / ${d.uf}` : (d.uf || '—');
-    document.getElementById('r-data').textContent = agora;
-    document.getElementById('r-data-rodape').textContent = agora;
-    const sit = (d.situacao || '').toUpperCase();
-    const spanSit = document.getElementById('r-situacao');
-    if (sit.includes('ROUBO') || sit.includes('FURTO')) {
-      spanSit.innerHTML = `<span class="status-badge badge-alerta">${d.situacao}</span>`;
-    } else if (sit.includes('CIRCULACAO') || sit === 'REGULAR') {
-      spanSit.innerHTML = `<span class="status-badge badge-ok">${d.situacao || 'Em Circulação'}</span>`;
-    } else {
-      spanSit.innerHTML = `<span class="status-badge badge-neutro">${d.situacao || '—'}</span>`;
-    }
-    const roubo = sit.includes('ROUBO') || sit.includes('FURTO');
-    setBadge('r-roubo', 'dot-roubo', roubo ? 'CONSTA' : 'NADA CONSTA', roubo);
-    const restricao = d.restricao && d.restricao !== '' && !d.restricao.toUpperCase().includes('SEM');
-    setBadge('r-restricao', 'dot-restricao', restricao ? (d.restricao || 'CONSTA') : 'NADA CONSTA', restricao);
-    const ocorrencia = d.ocorrencia && d.ocorrencia !== '' && d.ocorrencia.toUpperCase() !== 'NAO';
-    setBadge('r-ocorrencia', 'dot-ocorrencia', ocorrencia ? 'CONSTA' : 'NADA CONSTA', ocorrencia);
-    document.getElementById('resultado').style.display = 'flex';
-  }
+function placa() { return document.getElementById('placa').value.trim(); }
+function estado() { return document.getElementById('estado').value; }
 
-  function setBadge(spanId, dotId, texto, alerta) {
-    const span = document.getElementById(spanId), dot = document.getElementById(dotId);
-    span.textContent = texto;
-    span.className = 'status-badge ' + (alerta ? 'badge-alerta' : 'badge-ok');
-    dot.className = 'dot ' + (alerta ? 'dot-alerta' : 'dot-ok');
-  }
+function abrirDetran() {
+  const url = DETRANS[estado()] || DETRANS['outros'];
+  window.open(url, '_blank');
+}
 
-  function mascaraChassi(c) { return c.length < 6 ? c : c.slice(0,3)+'***'+c.slice(6); }
-  function mostrarErro(msg) { const el=document.getElementById('erro'); el.textContent=msg; el.style.display='block'; }
-  function esconderTudo() { ['resultado','erro','loading'].forEach(id => { const el=document.getElementById(id); el.style.display='none'; }); }
-  document.getElementById('placa').addEventListener('keydown', e => { if(e.key==='Enter') consultar(); });
+function abrirAutoCrivo() {
+  window.open('https://www.autocrivo.com.br', '_blank');
+}
+
+function abrirFipe() {
+  window.open('https://veiculos.fipe.org.br/', '_blank');
+}
+
+function abrirGerador() {
+  const p = placa();
+  // Abre o gerador e passa a placa via sessionStorage
+  if (p) sessionStorage.setItem('consultas_placa', p);
+  window.open('/index.html', '_blank');
+}
+
+// Enter consulta (abre DETRAN por padrão)
+document.getElementById('placa').addEventListener('keydown', e => {
+  if (e.key === 'Enter') abrirDetran();
+});
 </script>
 </body>
 </html>
