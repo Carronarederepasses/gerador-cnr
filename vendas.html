@@ -151,7 +151,7 @@
     <button class="btn" id="btn-nova">+ Nova venda</button>
   </div>
 
-  <div class="meta-linha"><span id="contador"></span></div>
+  <div class="meta-linha" style="display:flex;justify-content:space-between;align-items:center"><span id="contador"></span><button id="btn-ordem" class="btn ghost" style="font-size:.74rem;padding:.4rem .7rem">⬇ Mais recentes</button></div>
   <div class="lista" id="lista"></div>
 </div>
 
@@ -162,12 +162,23 @@
     <input type="hidden" id="m-id" />
 
     <div class="form-sec">
-      <div class="stit">Veículo</div>
-      <div class="grid3">
+      <div class="stit">Veículo <span id="toggle-manual" onclick="toggleManual()" style="float:right;font-size:.72rem;color:#3a4fc0;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500">✏️ digitar manual</span></div>
+      <!-- Cascata FIPE -->
+      <div id="cascata-box" class="grid2">
+        <div><label>Marca</label><select id="m-sel-marca" onchange="vMarca()"><option value="">Carregando marcas...</option></select></div>
+        <div><label>Modelo</label><select id="m-sel-modelo" onchange="vModelo()" disabled><option value="">— selecione a marca</option></select></div>
+        <div><label>Ano</label><select id="m-sel-ano" onchange="vAno()" disabled><option value="">— selecione o modelo</option></select></div>
+        <div><label>Versão</label><select id="m-sel-versao" onchange="vVersao()" disabled><option value="">— selecione o ano</option></select></div>
+      </div>
+      <div id="m-fipe-st" style="font-size:.78rem;margin-top:.45rem;color:#888;min-height:1.1em"></div>
+      <!-- Manual (carros fora da FIPE) -->
+      <div id="manual-box" class="grid2" style="display:none">
         <div><label>Marca</label><input id="m-marca" /></div>
         <div><label>Modelo</label><input id="m-modelo" /></div>
         <div><label>Versão</label><input id="m-versao" /></div>
         <div><label>Ano</label><input id="m-ano" /></div>
+      </div>
+      <div class="grid3" style="margin-top:.7rem">
         <div><label>Placa</label><input id="m-placa" /></div>
         <div><label>Cor</label><input id="m-cor" /></div>
         <div><label>KM</label><input id="m-km" type="number" inputmode="numeric" /></div>
@@ -252,6 +263,17 @@
 const $ = id => document.getElementById(id);
 let KEY = sessionStorage.getItem('cnr_vendas_key') || '';
 let VENDAS = [];
+let ordemDesc = true; // true = venda mais recente primeiro
+
+function ordenar(arr){
+  return [...arr].sort((a,b)=>{
+    const da=a.data_venda||'', db=b.data_venda||'';
+    if(!da && !db) return 0;
+    if(!da) return 1;   // sem data vai pro fim
+    if(!db) return -1;
+    return ordemDesc ? db.localeCompare(da) : da.localeCompare(db);
+  });
+}
 
 const TIPOS = [
   ['comprovante_pagamento', 'Comprovantes de pagamento'],
@@ -324,8 +346,13 @@ function render() {
     $('lista').innerHTML = '<div class="vazio"><div class="ico">📋</div>Nenhuma venda registrada ainda.<br>Clique em <b>+ Nova venda</b> pra começar.</div>';
     return;
   }
-  $('lista').innerHTML = VENDAS.map(cardHTML).join('');
+  $('lista').innerHTML = ordenar(VENDAS).map(cardHTML).join('');
 }
+$('btn-ordem').onclick = () => {
+  ordemDesc = !ordemDesc;
+  $('btn-ordem').textContent = ordemDesc ? '⬇ Mais recentes' : '⬆ Mais antigas';
+  render();
+};
 
 function nomeCarro(v) {
   return [v.marca, v.versao || v.modelo, v.ano].filter(Boolean).join(' ') || 'Veículo sem identificação';
@@ -382,6 +409,9 @@ function abrirModal(v) {
   $('modal-tit').textContent = v.id ? 'Editar venda' : 'Nova venda';
   CAMPOS_FORM.forEach(c => { const el = $('m-' + c); if (el) el.value = v[c] != null ? v[c] : ''; });
   if (!v.id) { $('m-status').value = 'negociando'; $('m-doc_status').value = 'pendente'; }
+  // Nova venda → cascata FIPE. Edição com carro preenchido → modo manual (mostra os textos).
+  const temCarro = !!(v.marca || v.modelo || v.versao);
+  setModoManual(!!(v.id && temCarro));
   $('modal').classList.add('show');
 }
 function fecharModal(){ $('modal').classList.remove('show'); }
@@ -390,6 +420,93 @@ $('m-cancelar').onclick = fecharModal;
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) fecharModal(); });
 
 function editar(id){ abrirModal(VENDAS.find(v => v.id === id)); }
+
+// ── Cascata FIPE (reaproveitada do gerador) ────────────────────
+const FBASE = '/api/fipe?path=';
+let cascData = null, marcasCarregadas = false;
+async function fipeGet(path){ const r = await fetch(`${FBASE}${encodeURIComponent(path)}`); if(!r.ok) throw new Error('FIPE '+r.status); return r.json(); }
+function fipeSt(msg){ const e=$('m-fipe-st'); if(e) e.textContent = msg || ''; }
+function resetSelV(id, txt){ const s=$(id); if(s){ s.innerHTML=`<option value="">${txt}</option>`; s.disabled=true; } }
+
+async function carregarMarcasVenda(){
+  if (marcasCarregadas) return;
+  const sel = $('m-sel-marca');
+  try {
+    const marcas = await fipeGet('/marcas');
+    sel.innerHTML = '<option value="">Selecione a marca</option>';
+    marcas.forEach(m => { const o=document.createElement('option'); o.value=m.codigo; o.dataset.nome=m.nome; o.textContent=m.nome; sel.appendChild(o); });
+    marcasCarregadas = true;
+  } catch(e){ sel.innerHTML='<option value="">FIPE indisponível — use o manual</option>'; }
+}
+
+async function vMarca(){
+  const sel=$('m-sel-marca'); const cod=sel.value;
+  $('m-marca').value = sel.options[sel.selectedIndex]?.dataset.nome || '';
+  $('m-modelo').value=''; $('m-versao').value=''; $('m-ano').value=''; $('m-valor_fipe').value='';
+  resetSelV('m-sel-modelo','— selecione a marca'); resetSelV('m-sel-ano','— selecione o modelo'); resetSelV('m-sel-versao','— selecione o ano');
+  cascData=null;
+  if(!cod){ fipeSt(''); return; }
+  fipeSt('Buscando modelos...');
+  try {
+    const data = await fipeGet(`/marcas/${cod}/modelos`);
+    const bases=[...new Set((data.modelos||[]).map(m=>m.nome.split(/[\s\-\/.]+/)[0]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    const sM=$('m-sel-modelo'); sM.innerHTML='<option value="">Selecione o modelo</option>';
+    bases.forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;sM.appendChild(o);});
+    sM.disabled=false; fipeSt(`${bases.length} modelos`);
+  } catch(e){ fipeSt('Erro ao buscar modelos'); }
+}
+async function vModelo(){
+  const cod=$('m-sel-marca').value; const base=$('m-sel-modelo').value;
+  $('m-modelo').value=base; $('m-versao').value=''; $('m-ano').value=''; $('m-valor_fipe').value='';
+  resetSelV('m-sel-ano','— selecione o modelo'); resetSelV('m-sel-versao','— selecione o ano'); cascData=null;
+  if(!base) return;
+  fipeSt('⏳ Buscando anos e versões... (alguns segundos)');
+  try {
+    const r=await fetch(`/api/fipe-anos-versoes?marca=${encodeURIComponent(cod)}&base=${encodeURIComponent(base.toLowerCase())}`);
+    const data=await r.json(); if(!r.ok||data.error) throw new Error(data.error||'erro');
+    cascData=data;
+    const sA=$('m-sel-ano'); sA.innerHTML='<option value="">Selecione o ano</option>';
+    (data.anos||[]).forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;sA.appendChild(o);});
+    sA.disabled=false; fipeSt(`${(data.anos||[]).length} anos disponíveis`);
+  } catch(e){ fipeSt('Erro ao buscar anos/versões'); }
+}
+function vAno(){
+  const ano=$('m-sel-ano').value; const sV=$('m-sel-versao');
+  $('m-ano').value=ano; $('m-versao').value=''; $('m-valor_fipe').value='';
+  resetSelV('m-sel-versao','— selecione o ano');
+  if(!ano||!cascData) return;
+  sV.innerHTML='<option value="">Selecione a versão</option>'; let n=0;
+  cascData.versoes.forEach(v=>{ const ao=(v.anos||[]).find(a=>a.anoNum===ano); if(ao){const o=document.createElement('option');o.value=`${v.codigo}|${ao.codigo}`;o.textContent=v.nome;o.dataset.nome=v.nome;sV.appendChild(o);n++;} });
+  sV.disabled=false; fipeSt(`${n} versão(ões) em ${ano}`);
+}
+async function vVersao(){
+  const cod=$('m-sel-marca').value; const sel=$('m-sel-versao'); const v=sel.value;
+  $('m-versao').value = sel.options[sel.selectedIndex]?.dataset.nome || '';
+  $('m-valor_fipe').value='';
+  if(!v) return;
+  const [modeloCod,anoCod]=v.split('|');
+  fipeSt('⏳ Consultando FIPE do mês...');
+  try {
+    const data=await fipeGet(`/marcas/${cod}/modelos/${modeloCod}/anos/${anoCod}`);
+    const limpo=(data.Valor||'').replace('R$','').replace(/\./g,'').replace(',','.').trim();
+    $('m-valor_fipe').value = limpo ? Math.round(parseFloat(limpo)) : '';
+    fipeSt(`✓ FIPE ${data.MesReferencia||'atual'}: ${data.Valor}`);
+  } catch(e){ fipeSt('Não encontrado — preencha a FIPE manualmente'); }
+}
+
+function setModoManual(manual){
+  $('manual-box').style.display = manual ? 'grid' : 'none';
+  $('cascata-box').style.display = manual ? 'none' : 'grid';
+  $('m-fipe-st').style.display = manual ? 'none' : 'block';
+  $('toggle-manual').textContent = manual ? '🔽 usar cascata FIPE' : '✏️ digitar manual';
+  if (!manual){
+    $('m-sel-marca').value='';
+    resetSelV('m-sel-modelo','— selecione a marca'); resetSelV('m-sel-ano','— selecione o modelo'); resetSelV('m-sel-versao','— selecione o ano');
+    cascData=null; fipeSt('');
+    carregarMarcasVenda();
+  }
+}
+function toggleManual(){ setModoManual($('manual-box').style.display === 'none'); }
 
 $('m-salvar').onclick = async () => {
   const id = $('m-id').value;
