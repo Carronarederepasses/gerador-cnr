@@ -196,6 +196,22 @@
     </div>
   </div>
 
+  <div class="card" id="card-relatorio" style="display:none">
+    <h2>Relatório completo</h2>
+    <p style="font-size:.78rem;color:#444;margin-bottom:14px;line-height:1.6">
+      Grava, roubo/furto, sinistro, multas, restrições judiciais e recall — via Consultar Placa (~R$2–5). Pronto para enviar ao comprador.
+    </p>
+    <button class="btn-consultar" id="btn-relatorio" onclick="solicitarRelatorio()">📄 Gerar relatório completo</button>
+    <div id="rel-status" style="display:none;margin-top:12px;text-align:center">
+      <div class="spinner" style="margin:0 auto 8px"></div>
+      <div id="rel-msg" style="font-size:.8rem;color:#444">Processando... aguarde</div>
+    </div>
+    <div id="rel-pronto" style="display:none;margin-top:12px">
+      <a id="rel-link" href="#" target="_blank" style="display:block;background:#fff;border-radius:9px;color:#000;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;padding:13px;text-align:center;text-decoration:none">⬇️ Baixar PDF do relatório</a>
+    </div>
+    <div id="rel-erro" style="display:none;margin-top:10px;font-size:.78rem;color:#f87171"></div>
+  </div>
+
 </div>
 
 
@@ -261,12 +277,89 @@ function exibirResultado(placa, dados){
   document.getElementById('txt-recall').textContent     = `Recall — ${nome}`;
   document.getElementById('txt-tudo').textContent       = `Busca completa: ${placa}`;
 
+  _placaAtual = placa;
   document.getElementById('resultado').style.display = 'flex';
+  document.getElementById('card-relatorio').style.display = 'block';
+  document.getElementById('btn-relatorio').disabled = false;
+  document.getElementById('rel-status').style.display = 'none';
+  document.getElementById('rel-pronto').style.display = 'none';
+  document.getElementById('rel-erro').style.display = 'none';
 }
 
 function mascarar(s){ return s && s.length > 6 ? s.slice(0,3)+'***'+s.slice(6) : s; }
 function mostrarErro(m){ const e=document.getElementById('erro'); e.textContent=m; e.style.display='block'; }
 function esconder(){ document.getElementById('resultado').style.display='none'; document.getElementById('erro').style.display='none'; document.getElementById('loading').style.display='none'; }
+
+// ── Relatório completo ──────────────────────────────────────────
+let _placaAtual = '';
+let _pollingTimer = null;
+
+async function solicitarRelatorio(){
+  if (!_placaAtual){ mostrarErro('Faça a consulta básica primeiro.'); return; }
+  document.getElementById('btn-relatorio').disabled = true;
+  document.getElementById('rel-status').style.display = 'block';
+  document.getElementById('rel-pronto').style.display = 'none';
+  document.getElementById('rel-erro').style.display = 'none';
+  document.getElementById('rel-msg').textContent = 'Solicitando relatório...';
+  try {
+    const r = await fetch('/api/consulta?acao=solicitar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ placa: _placaAtual }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.protocolo) throw new Error(data.error || data.mensagem || 'Erro ao solicitar.');
+    document.getElementById('rel-msg').textContent = 'Processando relatório... (~1 min)';
+    aguardarRelatorio(data.protocolo);
+  } catch(e){
+    document.getElementById('rel-status').style.display = 'none';
+    document.getElementById('rel-erro').textContent = 'Erro: ' + e.message;
+    document.getElementById('rel-erro').style.display = 'block';
+    document.getElementById('btn-relatorio').disabled = false;
+  }
+}
+
+function aguardarRelatorio(protocolo, tentativa){
+  tentativa = tentativa || 0;
+  if (tentativa > 24) { // max 2 min
+    document.getElementById('rel-status').style.display = 'none';
+    document.getElementById('rel-erro').textContent = 'Tempo esgotado. Tente gerar novamente.';
+    document.getElementById('rel-erro').style.display = 'block';
+    document.getElementById('btn-relatorio').disabled = false;
+    return;
+  }
+  clearTimeout(_pollingTimer);
+  _pollingTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`/api/consulta?acao=verificar&protocolo=${encodeURIComponent(protocolo)}`);
+      const data = await r.json();
+      const st = data.status || '';
+      if (st === 'finalizada') {
+        document.getElementById('rel-status').style.display = 'none';
+        if (data.pdfBase64) {
+          // PDF veio como base64 — cria blob pra download
+          const bin = atob(data.pdfBase64);
+          const arr = new Uint8Array(bin.length);
+          for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+          const blob = new Blob([arr], {type:'application/pdf'});
+          document.getElementById('rel-link').href = URL.createObjectURL(blob);
+          document.getElementById('rel-link').download = `relatorio-${_placaAtual}.pdf`;
+        } else if (data.data && data.data.url_pdf) {
+          document.getElementById('rel-link').href = data.data.url_pdf;
+        } else {
+          document.getElementById('rel-link').href = `https://app.consultarplaca.com.br/relatorio/${protocolo}`;
+        }
+        document.getElementById('rel-pronto').style.display = 'block';
+        document.getElementById('btn-relatorio').disabled = false;
+      } else if (st === 'parcialmente_finalizada') {
+        document.getElementById('rel-msg').textContent = 'Quase pronto...';
+        aguardarRelatorio(protocolo, tentativa + 1);
+      } else {
+        aguardarRelatorio(protocolo, tentativa + 1);
+      }
+    } catch { aguardarRelatorio(protocolo, tentativa + 1); }
+  }, 5000);
+}
 
 </script>
 </body>
