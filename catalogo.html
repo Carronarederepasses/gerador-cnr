@@ -353,7 +353,7 @@ $('file-input').addEventListener('change', async (e) => {
       $('contador').textContent = `Enviando foto ${n} de ${files.length}...`;
       const pronto = await prepararArquivo(f); // converte HEIC->JPEG se precisar
       const b64 = await comprimir(pronto);
-      const r = await fetch('/api/catalogo-foto', {
+      const r = await fetch('/api/catalogo?foto=1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ veiculoId: id, imageBase64: b64, mimeType: 'image/jpeg' }),
@@ -410,7 +410,7 @@ async function apagarSelecionadas(id) {
   if (!confirm(`Apagar ${sel.length} foto(s)?`)) return;
   try {
     for (const t of sel) {
-      const r = await fetch('/api/catalogo-foto', {
+      const r = await fetch('/api/catalogo?foto=1', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ veiculoId: id, url: t.dataset.url }),

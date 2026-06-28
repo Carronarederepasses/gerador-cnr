@@ -551,7 +551,7 @@ $('file-input').addEventListener('change', async (e) => {
     for (const f of files) {
       $('contador').textContent = 'Enviando ' + f.name + '...';
       const b64 = await fileToBase64(f);
-      const r = await fetch('/api/vendas-anexo', {
+      const r = await fetch('/api/vendas?anexo=1', {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, fileBase64: b64, mimeType: f.type || 'application/octet-stream', nome: f.name }),
@@ -573,7 +573,7 @@ function fileToBase64(file) {
 
 async function abrirAnexo(vendaId, path) {
   try {
-    const r = await fetch('/api/vendas-anexo?vendaId=' + vendaId + '&path=' + encodeURIComponent(path), { headers: headers() });
+    const r = await fetch('/api/vendas?anexo=1&vendaId=' + vendaId + '&path=' + encodeURIComponent(path), { headers: headers() });
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
     const { url } = await r.json();
     window.open(url, '_blank');
@@ -583,7 +583,7 @@ async function abrirAnexo(vendaId, path) {
 async function removerAnexo(vendaId, path) {
   if (!confirm('Remover este anexo?')) return;
   try {
-    const r = await fetch('/api/vendas-anexo', { method: 'DELETE', headers: headers(), body: JSON.stringify({ vendaId, path }) });
+    const r = await fetch('/api/vendas?anexo=1', { method: 'DELETE', headers: headers(), body: JSON.stringify({ vendaId, path }) });
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
     carregar();
   } catch (e) { mostrarErro('Falha ao remover: ' + e.message); }
