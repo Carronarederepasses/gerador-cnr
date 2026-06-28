@@ -263,7 +263,11 @@
     try {
       const response = await fetch(`https://brasilapi.com.br/api/sinesp/v1/${placaRaw}`);
       if (!response.ok) {
-        mostrarErro(response.status === 404 ? 'Veículo não encontrado na base federal. Verifique a placa.' : 'Serviço temporariamente indisponível. Tente novamente em instantes.');
+        if (response.status === 404) {
+          mostrarErro('Veículo não localizado no momento. O serviço Sinesp (base federal) é instável e pode apresentar falhas intermitentes. Aguarde alguns minutos e tente novamente, ou verifique se a placa está correta.');
+        } else {
+          mostrarErro('Serviço temporariamente indisponível (Sinesp fora do ar). Tente novamente em alguns minutos.');
+        }
         return;
       }
       exibirResultado(await response.json(), placaRaw);
