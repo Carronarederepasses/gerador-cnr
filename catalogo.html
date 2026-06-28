@@ -207,6 +207,7 @@
       <textarea id="av-obs" placeholder="Resumo, ressalvas, recomendações..." style="min-height:60px"></textarea>
     </div>
     <div class="av-acoes">
+      <button class="btn ghost" onclick="gerarPDFAval()" style="margin-right:auto">📄 PDF</button>
       <button class="btn ghost" onclick="fecharAval()">Cancelar</button>
       <button class="btn" onclick="salvarAval()">Salvar avaliação</button>
     </div>
@@ -216,6 +217,8 @@
 
 <!-- Conversor de HEIC/HEIF (fotos do celular) para JPEG no navegador -->
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<!-- Geração de PDF da avaliação -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 
@@ -710,6 +713,117 @@ async function salvarAval(){
     fecharAval();
     carregar();
   } catch (e) { alert('Falha ao salvar avaliação: ' + e.message); }
+}
+
+// ── PDF da avaliação ────────────────────────────────────────────
+const NOTA_PDF = { acima: ['ACIMA DA MÉDIA', [26,127,55]], media: ['NA MÉDIA', [154,103,0]], abaixo: ['ABAIXO DA MÉDIA', [163,38,28]] };
+function corStatusPDF(sec, it, status){
+  const opts = sec.opts || it.opts;
+  const sev = sevAv(opts, opts.indexOf(status));
+  return sev === 'bom' ? [26,127,55] : sev === 'ruim' ? [192,57,43] : [154,103,0];
+}
+function carregarImg(url){
+  return new Promise(res => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        res({ dataUrl: c.toDataURL('image/jpeg', 0.7), w: img.naturalWidth, h: img.naturalHeight });
+      } catch (e) { res(null); }
+    };
+    img.onerror = () => res(null);
+    img.src = url;
+  });
+}
+
+async function gerarPDFAval(){
+  const id = $('av-veiculo-id').value;
+  const v = CACHE[id]; if (!v) return;
+  if (!window.jspdf) { alert('A biblioteca de PDF não carregou — verifique a internet e recarregue.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 15; let y = 18;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('CARRO NA REDE REPASSES', M, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(120);
+  y += 6; doc.text('Avaliação do veículo', M, y);
+  doc.setTextColor(0); y += 3; doc.line(M, y, W - M, y); y += 9;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(nomeVeiculo(v), M, y); y += 6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  const dados = [v.ano_int || v.ano, v.km != null ? fmtNum(v.km) + ' km' : '', v.cor, v.placa, v.regiao].filter(Boolean).join('   •   ');
+  if (dados) { doc.text(dados, M, y); y += 6; }
+  const precos = ['Repasse: ' + fmtR(v.valor), v.fipe != null ? 'FIPE: ' + fmtR(v.fipe) : ''].filter(Boolean).join('      ');
+  doc.text(precos, M, y); y += 9;
+
+  const nota = $('av-nota').value;
+  if (nota && NOTA_PDF[nota]) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text('Nota geral:', M, y);
+    doc.setTextColor(...NOTA_PDF[nota][1]);
+    doc.text(NOTA_PDF[nota][0], M + 24, y);
+    doc.setTextColor(0); y += 9;
+  }
+
+  AVAL.forEach(sec => {
+    const res = AVAL_RES[sec.id] || {};
+    const itens = sec.itens.filter(it => res[it.id] && res[it.id].status);
+    if (!itens.length) return;
+    if (y > 268) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text(sec.titulo, M, y); y += 5.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    itens.forEach(it => {
+      if (y > 282) { doc.addPage(); y = 18; }
+      const cell = res[it.id];
+      const txt = cell.status + (cell.sub ? ' (' + cell.sub + ')' : '');
+      doc.setTextColor(80); doc.text('•  ' + it.nome, M + 2, y);
+      doc.setTextColor(...corStatusPDF(sec, it, cell.status));
+      doc.text(txt, W - M, y, { align: 'right' });
+      doc.setTextColor(0); y += 5;
+    });
+    y += 3.5;
+  });
+
+  const obs = $('av-obs').value.trim();
+  if (obs) {
+    if (y > 255) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Observações', M, y); y += 5.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    const linhas = doc.splitTextToSize(obs, W - 2 * M);
+    doc.text(linhas, M, y); y += linhas.length * 5 + 4;
+  }
+
+  // Fotos (até 8, 2 colunas)
+  const fotos = Array.isArray(v.fotos) ? v.fotos : [];
+  if (fotos.length) {
+    if (y > 235) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Fotos', M, y); y += 6;
+    const colW = (W - 2 * M - 6) / 2; let x = M, rowH = 0;
+    for (const u of fotos.slice(0, 8)) {
+      const im = await carregarImg(u); if (!im) continue;
+      const h = colW * (im.h / im.w);
+      if (y + h > 285) { doc.addPage(); y = 18; x = M; rowH = 0; }
+      doc.addImage(im.dataUrl, 'JPEG', x, y, colW, h);
+      if (x === M) { x = M + colW + 6; rowH = h; }
+      else { x = M; y += Math.max(rowH, h) + 5; rowH = 0; }
+    }
+    if (x !== M) y += rowH + 5;
+  }
+
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150);
+    doc.text('Carro na Rede Repasses  •  @carronarederepasses  •  ' + new Date().toLocaleDateString('pt-BR'), M, 290);
+    doc.text(i + '/' + total, W - M, 290, { align: 'right' });
+  }
+  const nomeArq = 'avaliacao-' + String(v.placa || nomeVeiculo(v)).replace(/[^\w]+/g, '-').toLowerCase() + '.pdf';
+  doc.save(nomeArq);
 }
 
 // Enter na busca livre dispara a pesquisa
