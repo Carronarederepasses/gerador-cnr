@@ -165,8 +165,8 @@
       <div class="info-item"><label>Cor</label><span id="r-cor">—</span></div>
       <div class="info-item"><label>Combustível</label><span id="r-comb">—</span></div>
       <div class="info-item"><label>Município / UF</label><span id="r-mun">—</span></div>
-      <div class="info-item"><label>Chassi</label><span id="r-chassi">—</span></div>
-      <div class="info-item"><label>Motor</label><span id="r-motor">—</span></div>
+      <div class="info-item"><label>Tipo</label><span id="r-tipo">—</span></div>
+      <div class="info-item"><label>Procedência</label><span id="r-proc">—</span></div>
     </div>
   </div>
 
@@ -247,8 +247,8 @@ function exibirResultado(placa, dados){
   document.getElementById('r-cor').textContent  = dv.cor || '—';
   document.getElementById('r-comb').textContent = dv.combustivel || '—';
   document.getElementById('r-mun').textContent  = dv.municipio ? `${dv.municipio} / ${dv.uf_municipio}` : '—';
-  document.getElementById('r-chassi').textContent = dv.chassi ? mascarar(dv.chassi) : '—';
-  document.getElementById('r-motor').textContent = dt.numero_motor ? mascarar(dt.numero_motor) : (dt.potencia ? `${dt.potencia}cv` : '—');
+  document.getElementById('r-tipo').textContent = dt.tipo_veiculo || dv.segmento || '—';
+  document.getElementById('r-proc').textContent = dv.procedencia || '—';
 
   // Links complementares com placa real
   const g = q => 'https://www.google.com/search?q=' + encodeURIComponent(q);
