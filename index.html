@@ -750,16 +750,22 @@ async function buscarPlacaGerador() {
     const fipe  = (inner.data || []).find(f => f.principal) || (inner.data || [])[0] || {};
     const vei   = inner.veiculo || {};
 
-    // Preenche cor se estiver vazio
+    // Preenche cor
     const corEl = document.getElementById('cor');
-    if (corEl && !corEl.value && vei.cor) {
+    if (corEl && vei.cor) {
       corEl.value = vei.cor.charAt(0).toUpperCase() + vei.cor.slice(1).toLowerCase();
     }
 
-    // Preenche valor FIPE se estiver vazio
+    // Preenche valor FIPE
     const fipeEl = document.getElementById('fipe-val');
-    if (fipeEl && !fipeEl.value && fipe.valor) {
+    if (fipeEl && fipe.valor) {
       fipeEl.value = Number(fipe.valor).toLocaleString('pt-BR');
+    }
+
+    // Preenche região com UF/município se vazio
+    const regiaoEl = document.getElementById('regiao');
+    if (regiaoEl && !regiaoEl.value && vei.municipio && vei.uf) {
+      regiaoEl.value = vei.municipio + '-' + vei.uf;
     }
 
     const partes = [fipe.marca, fipe.modelo, fipe.anoModelo].filter(Boolean);
