@@ -757,6 +757,8 @@ function aguardarOpcoes(sel, ms = 4000) {
   });
 }
 
+function esperar(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
   const selMarca  = document.getElementById('sel-marca');
   const selModelo = document.getElementById('sel-modelo');
@@ -770,27 +772,36 @@ async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
   if (!opMarca) return;
   selMarca.value = opMarca.value;
   selMarca.dispatchEvent(new Event('change'));
+  await esperar(300);
 
   if (!modeloNome) return;
 
-  // 2. Modelo
-  const opcModelos = await aguardarOpcoes(selModelo);
+  // 2. Modelo — aguarda os modelos carregarem após a troca de marca
+  await aguardarOpcoes(selModelo);
+  await esperar(200);
+  const opcModelos = Array.from(selModelo.options).filter(o => o.value);
   const opModelo   = melhorMatch(opcModelos, modeloNome);
   if (!opModelo) return;
   selModelo.value = opModelo.value;
   selModelo.dispatchEvent(new Event('change'));
+  await esperar(300);
 
   if (!anoModelo) return;
 
   // 3. Ano
-  const opcAnos = await aguardarOpcoes(selAno);
+  await aguardarOpcoes(selAno);
+  await esperar(200);
+  const opcAnos = Array.from(selAno.options).filter(o => o.value);
   const opAno   = opcAnos.find(o => String(o.text).startsWith(String(anoModelo)));
   if (!opAno) return;
   selAno.value = opAno.value;
   selAno.dispatchEvent(new Event('change'));
+  await esperar(300);
 
-  // 4. Versão — seleciona a primeira disponível (a FIPE já vem preenchida)
-  const opcVersoes = await aguardarOpcoes(selVersao);
+  // 4. Versão — seleciona a primeira disponível
+  await aguardarOpcoes(selVersao);
+  await esperar(200);
+  const opcVersoes = Array.from(selVersao.options).filter(o => o.value);
   if (opcVersoes.length > 0) {
     selVersao.value = opcVersoes[0].value;
     selVersao.dispatchEvent(new Event('change'));
