@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({ placa: placaLimpa, homolog: false }),
+    body: JSON.stringify({ tipo: 'fipe', placa: placaLimpa, homolog: false }),
   });
 
   const data = await response.json();
