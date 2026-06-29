@@ -61,26 +61,36 @@ module.exports = async (req, res) => {
       const protocolo = q.protocolo || '';
       if (!protocolo) return res.status(400).json({ error: 'Protocolo obrigatório.' });
 
-      // Primeiro tenta obter o PDF direto
-      const rPdf = await fetch(`${BASE}/consultarProtocolo?protocolo=${protocolo}&tipo_retorno=PDF`, {
-        headers: HEADERS(), signal: AbortSignal.timeout(15000),
+      // 1. Checa status via JSON (mais confiável)
+      const rJson = await fetch(`${BASE}/consultarProtocolo?protocolo=${protocolo}&tipo_retorno=JSON`, {
+        headers: HEADERS(), signal: AbortSignal.timeout(9000),
       });
+      const dataJson = await rJson.json().catch(() => ({}));
+      const st = (dataJson.status || '').toLowerCase();
+      console.log('verificar status:', st, 'protocolo:', protocolo);
 
-      // Se retornou JSON (ainda processando ou status)
-      const ctype = rPdf.headers.get('content-type') || '';
-      if (ctype.includes('json') || !rPdf.ok) {
-        const data = await rPdf.json().catch(() => ({}));
-        return res.status(200).json({
-          status: data.status || 'em_processamento',
-          mensagem: data.mensagem || '',
-          data,
-        });
+      if (st !== 'finalizada' && st !== 'parcialmente_finalizada') {
+        return res.status(200).json({ status: st || 'em_processamento' });
       }
 
-      // Se retornou PDF direto — devolve como base64
-      const buf = await rPdf.arrayBuffer();
-      const b64 = Buffer.from(buf).toString('base64');
-      return res.status(200).json({ status: 'finalizada', pdfBase64: b64 });
+      // 2. Relatório pronto — tenta baixar o PDF binário
+      try {
+        const rPdf = await fetch(`${BASE}/consultarProtocolo?protocolo=${protocolo}&tipo_retorno=PDF`, {
+          headers: HEADERS(), signal: AbortSignal.timeout(9000),
+        });
+        const ctype = rPdf.headers.get('content-type') || '';
+        console.log('pdf content-type:', ctype, 'ok:', rPdf.ok);
+        if (rPdf.ok && (ctype.includes('pdf') || ctype.includes('octet'))) {
+          const buf = await rPdf.arrayBuffer();
+          const b64 = Buffer.from(buf).toString('base64');
+          return res.status(200).json({ status: 'finalizada', pdfBase64: b64 });
+        }
+      } catch (e) {
+        console.log('pdf download falhou:', e.message);
+      }
+
+      // 3. Fallback: PDF não veio direto — avisa pra checar email
+      return res.status(200).json({ status: 'finalizada', emailEnviado: true });
     }
 
     // ── IDENTIFICAÇÃO BÁSICA ────────────────────────────────────

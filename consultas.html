@@ -342,21 +342,26 @@ function aguardarRelatorio(protocolo, tentativa){
       const st = data.status || '';
       if (st === 'finalizada') {
         document.getElementById('rel-status').style.display = 'none';
+        document.getElementById('btn-relatorio').disabled = false;
         if (data.pdfBase64) {
-          // PDF veio como base64 — cria blob pra download
           const bin = atob(data.pdfBase64);
           const arr = new Uint8Array(bin.length);
           for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
           const blob = new Blob([arr], {type:'application/pdf'});
           document.getElementById('rel-link').href = URL.createObjectURL(blob);
           document.getElementById('rel-link').download = `relatorio-${_placaAtual}.pdf`;
-        } else if (data.data && data.data.url_pdf) {
-          document.getElementById('rel-link').href = data.data.url_pdf;
+          document.getElementById('rel-link').textContent = '⬇️ Baixar PDF do relatório';
+          document.getElementById('rel-pronto').style.display = 'block';
         } else {
-          document.getElementById('rel-link').href = `https://app.consultarplaca.com.br/relatorio/${protocolo}`;
+          // PDF não veio direto — veio por email
+          document.getElementById('rel-pronto').innerHTML =
+            '<div style="background:#0d1a0d;border:1px solid #1a3a1a;border-radius:10px;padding:14px;font-size:.82rem;color:#4ade80;line-height:1.6">' +
+            '✅ <strong>Relatório gerado!</strong><br>' +
+            'Verifique seu email (<strong>carronarederepasses@gmail.com</strong>) — o PDF foi enviado pelo Consultar Placa.<br><br>' +
+            '<a href="https://www.consultarplaca.com.br/minha-conta" target="_blank" style="color:#86efac">Ou acesse Minha Conta no Consultar Placa →</a>' +
+            '</div>';
+          document.getElementById('rel-pronto').style.display = 'block';
         }
-        document.getElementById('rel-pronto').style.display = 'block';
-        document.getElementById('btn-relatorio').disabled = false;
       } else if (st === 'parcialmente_finalizada') {
         document.getElementById('rel-msg').textContent = 'Quase pronto...';
         aguardarRelatorio(protocolo, tentativa + 1);
