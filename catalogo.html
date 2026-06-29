@@ -410,20 +410,27 @@ async function buscarPlaca(id) {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Erro na consulta');
 
-    const d = data.data || data; // normaliza estrutura
+    const inner = data.data || {};
+    const fipe = (inner.data || []).find(f => f.principal) || (inner.data || [])[0] || {};
+    const vei  = inner.veiculo || {};
+
+    const fmtFipe = v => v ? 'R$ ' + Number(v).toLocaleString('pt-BR') : null;
+
     const linhas = [
-      ['Marca',        d.marca || d.MARCA],
-      ['Modelo',       d.modelo || d.MODELO],
-      ['Ano Modelo',   d.anoModelo || d.ANO_MODELO],
-      ['Combustível',  d.combustivel || d.COMBUSTIVEL],
-      ['Cor',          d.cor || d.COR],
-      ['UF',           d.uf || d.UF],
-      ['Município',    d.municipio || d.MUNICIPIO],
-      ['Código FIPE',  d.codigoFipe || d.CODIGO_FIPE],
-      ['Valor FIPE',   d.valorFipe || d.VALOR_FIPE],
-      ['IPVA Est.',    d.ipva || d.IPVA],
-      ['Chassi',       d.chassi || d.CHASSI],
-    ].filter(([, val]) => val != null && val !== '');
+      ['Marca',        fipe.marca],
+      ['Modelo',       fipe.modelo],
+      ['Ano Modelo',   fipe.anoModelo],
+      ['Combustível',  vei.combustivel || fipe.combustivel],
+      ['Cor',          vei.cor],
+      ['UF',           vei.uf],
+      ['Município',    vei.municipio],
+      ['Código FIPE',  fipe.codigoFipe],
+      ['Valor FIPE',   fipe.valor ? fmtFipe(fipe.valor) : null],
+      ['Mês Ref.',     fipe.mesReferencia],
+      ['IPVA Est.',    fipe.ipva?.valor_formatado],
+      ['Potência',     vei.potencia ? vei.potencia + ' cv' : null],
+      ['Chassi',       vei.chassi],
+    ].filter(([, val]) => val != null && val !== '' && val !== '0');
 
     if (linhas.length === 0) {
       $('placa-modal-corpo').innerHTML = '<div class="placa-loading">Nenhum dado retornado.</div>';
