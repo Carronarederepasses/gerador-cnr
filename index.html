@@ -771,6 +771,7 @@ async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
   const opMarca   = melhorMatch(opcMarcas, marcaNome);
   if (!opMarca) return;
   selMarca.value = opMarca.value;
+  if (_ssSync['sel-marca']) _ssSync['sel-marca']();
   selMarca.dispatchEvent(new Event('change'));
   await esperar(300);
 
@@ -783,6 +784,7 @@ async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
   const opModelo   = melhorMatch(opcModelos, modeloNome);
   if (!opModelo) return;
   selModelo.value = opModelo.value;
+  if (_ssSync['sel-modelo']) _ssSync['sel-modelo']();
   selModelo.dispatchEvent(new Event('change'));
   await esperar(300);
 
@@ -798,12 +800,13 @@ async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
   selAno.dispatchEvent(new Event('change'));
   await esperar(300);
 
-  // 4. Versão — seleciona a primeira disponível
+  // 4. Versão — tenta casar; se não achar, pega a primeira
   await aguardarOpcoes(selVersao);
   await esperar(200);
   const opcVersoes = Array.from(selVersao.options).filter(o => o.value);
   if (opcVersoes.length > 0) {
-    selVersao.value = opcVersoes[0].value;
+    const opVersao = melhorMatch(opcVersoes, modeloNome) || opcVersoes[0];
+    selVersao.value = opVersao.value;
     selVersao.dispatchEvent(new Event('change'));
   }
 }
@@ -847,6 +850,9 @@ async function buscarPlacaGerador() {
 
     // Auto-fill cascata FIPE por nome
     if (fipe.marca) await preencherCascataPlaca(fipe.marca, fipe.modelo, fipe.anoModelo);
+
+    // Re-força FIPE da API (a cascata sobrescreve com valor calculado)
+    if (fipeEl && fipe.valor) fipeEl.value = Number(fipe.valor).toLocaleString('pt-BR');
 
     const partes = [fipe.marca, fipe.modelo, fipe.anoModelo].filter(Boolean);
     const resumo = partes.length ? partes.join(' • ') : 'Dados obtidos';
