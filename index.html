@@ -726,6 +726,77 @@ function buildObs() {
 }
 
 // ══════════════════════════════════════════════
+// ── Auto-fill cascata FIPE a partir da busca por placa ───────────────────────
+function normalizar(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim(); }
+
+function melhorMatch(opcoes, texto) {
+  const alvo = normalizar(texto);
+  let melhor = null, melhorScore = 0;
+  for (const op of opcoes) {
+    const t = normalizar(op.text);
+    if (t === alvo) return op; // exato
+    // conta palavras em comum
+    const wordsAlvo = alvo.split(' ');
+    const wordsOp   = t.split(' ');
+    const comuns    = wordsAlvo.filter(w => w.length > 1 && wordsOp.includes(w)).length;
+    if (comuns > melhorScore) { melhorScore = comuns; melhor = op; }
+  }
+  return melhorScore > 0 ? melhor : null;
+}
+
+function aguardarOpcoes(sel, ms = 4000) {
+  return new Promise(resolve => {
+    const check = () => {
+      const ops = Array.from(sel.options).filter(o => o.value && o.value !== '');
+      if (ops.length > 0) return resolve(ops);
+    };
+    check();
+    const obs = new MutationObserver(() => { check(); });
+    obs.observe(sel, { childList: true });
+    setTimeout(() => { obs.disconnect(); resolve([]); }, ms);
+  });
+}
+
+async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
+  const selMarca  = document.getElementById('sel-marca');
+  const selModelo = document.getElementById('sel-modelo');
+  const selAno    = document.getElementById('sel-ano');
+  const selVersao = document.getElementById('sel-versao');
+  if (!selMarca) return;
+
+  // 1. Marca
+  const opcMarcas = await aguardarOpcoes(selMarca);
+  const opMarca   = melhorMatch(opcMarcas, marcaNome);
+  if (!opMarca) return;
+  selMarca.value = opMarca.value;
+  selMarca.dispatchEvent(new Event('change'));
+
+  if (!modeloNome) return;
+
+  // 2. Modelo
+  const opcModelos = await aguardarOpcoes(selModelo);
+  const opModelo   = melhorMatch(opcModelos, modeloNome);
+  if (!opModelo) return;
+  selModelo.value = opModelo.value;
+  selModelo.dispatchEvent(new Event('change'));
+
+  if (!anoModelo) return;
+
+  // 3. Ano
+  const opcAnos = await aguardarOpcoes(selAno);
+  const opAno   = opcAnos.find(o => String(o.text).startsWith(String(anoModelo)));
+  if (!opAno) return;
+  selAno.value = opAno.value;
+  selAno.dispatchEvent(new Event('change'));
+
+  // 4. Versão — seleciona a primeira disponível (a FIPE já vem preenchida)
+  const opcVersoes = await aguardarOpcoes(selVersao);
+  if (opcVersoes.length > 0) {
+    selVersao.value = opcVersoes[0].value;
+    selVersao.dispatchEvent(new Event('change'));
+  }
+}
+
 // ── Busca pela placa (APiBrasil) ─────────────────────────────────────────────
 async function buscarPlacaGerador() {
   const placa = (document.getElementById('placa').value || '').trim().toUpperCase();
@@ -752,21 +823,19 @@ async function buscarPlacaGerador() {
 
     // Preenche cor
     const corEl = document.getElementById('cor');
-    if (corEl && vei.cor) {
-      corEl.value = vei.cor.charAt(0).toUpperCase() + vei.cor.slice(1).toLowerCase();
-    }
+    if (corEl && vei.cor) corEl.value = vei.cor.charAt(0).toUpperCase() + vei.cor.slice(1).toLowerCase();
 
     // Preenche valor FIPE
     const fipeEl = document.getElementById('fipe-val');
-    if (fipeEl && fipe.valor) {
-      fipeEl.value = Number(fipe.valor).toLocaleString('pt-BR');
-    }
+    if (fipeEl && fipe.valor) fipeEl.value = Number(fipe.valor).toLocaleString('pt-BR');
 
     // Preenche região com UF/município se vazio
     const regiaoEl = document.getElementById('regiao');
-    if (regiaoEl && !regiaoEl.value && vei.municipio && vei.uf) {
+    if (regiaoEl && !regiaoEl.value && vei.municipio && vei.uf)
       regiaoEl.value = vei.municipio + '-' + vei.uf;
-    }
+
+    // Auto-fill cascata FIPE por nome
+    if (fipe.marca) await preencherCascataPlaca(fipe.marca, fipe.modelo, fipe.anoModelo);
 
     const partes = [fipe.marca, fipe.modelo, fipe.anoModelo].filter(Boolean);
     const resumo = partes.length ? partes.join(' • ') : 'Dados obtidos';
