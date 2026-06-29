@@ -853,8 +853,11 @@ async function buscarPlacaGerador() {
 
     // Re-força FIPE da API após cascata terminar de calcular
     if (fipe.valor) setTimeout(() => {
+      const val = Number(fipe.valor).toLocaleString('pt-BR');
       const el = document.getElementById('fipe-val');
-      if (el) el.value = Number(fipe.valor).toLocaleString('pt-BR');
+      if (el) el.value = val;
+      const stEl = document.getElementById('fipe-st');
+      if (stEl) { stEl.textContent = `✓ FIPE ${fipe.mesReferencia || ''}: R$ ${val}`; stEl.className = 'fipe-st ok'; }
     }, 2500);
 
     const partes = [fipe.marca, fipe.modelo, fipe.anoModelo].filter(Boolean);
