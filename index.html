@@ -219,6 +219,16 @@
   <div class="fsec">
     <div class="fsec-title">Veículo — dados da FIPE</div>
 
+    <!-- Placa + busca APiBrasil -->
+    <div class="field" style="margin-bottom:.9rem">
+      <label>🔒 Placa <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— uso interno, NÃO aparece no anúncio</span></label>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <input type="text" id="placa" placeholder="ABC1D23" style="text-transform:uppercase;flex:1" maxlength="8" oninput="this.value=this.value.toUpperCase()">
+        <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius:9px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+      </div>
+      <div id="placa-st" style="font-size:.72rem;min-height:1rem;margin-top:.35rem;color:var(--mid)"></div>
+    </div>
+
     <div class="g2" style="margin-bottom:.7rem">
       <div class="field">
         <label>Marca</label>
@@ -256,10 +266,6 @@
       <div class="field"><label>KM</label><input type="text" id="km" placeholder="5.000 km"></div>
       <div class="field"><label>Cor</label><input type="text" id="cor" placeholder="Prata"></div>
       <div class="field"><label>Região</label><input type="text" id="regiao" placeholder="Garopaba-SC"></div>
-    </div>
-    <div class="field" style="margin-top:.8rem">
-      <label>🔒 Placa <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— uso interno, NÃO aparece no anúncio</span></label>
-      <input type="text" id="placa" placeholder="ABC1D23" style="text-transform:uppercase" maxlength="8">
     </div>
   </div>
 
@@ -720,6 +726,56 @@ function buildObs() {
 }
 
 // ══════════════════════════════════════════════
+// ── Busca pela placa (APiBrasil) ─────────────────────────────────────────────
+async function buscarPlacaGerador() {
+  const placa = (document.getElementById('placa').value || '').trim().toUpperCase();
+  const st    = document.getElementById('placa-st');
+  const btn   = document.getElementById('btn-buscar-placa');
+  if (!placa) { st.textContent = 'Digite a placa antes de buscar.'; return; }
+
+  st.style.color = 'var(--yellow)';
+  st.textContent = '⏳ Consultando...';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch('/api/placa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ placa }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erro na consulta');
+
+    const inner = data.data || {};
+    const fipe  = (inner.data || []).find(f => f.principal) || (inner.data || [])[0] || {};
+    const vei   = inner.veiculo || {};
+
+    // Preenche cor se estiver vazio
+    const corEl = document.getElementById('cor');
+    if (corEl && !corEl.value && vei.cor) {
+      corEl.value = vei.cor.charAt(0).toUpperCase() + vei.cor.slice(1).toLowerCase();
+    }
+
+    // Preenche valor FIPE se estiver vazio
+    const fipeEl = document.getElementById('fipe-val');
+    if (fipeEl && !fipeEl.value && fipe.valor) {
+      fipeEl.value = Number(fipe.valor).toLocaleString('pt-BR');
+    }
+
+    const partes = [fipe.marca, fipe.modelo, fipe.anoModelo].filter(Boolean);
+    const resumo = partes.length ? partes.join(' • ') : 'Dados obtidos';
+    const fipeStr = fipe.valor ? ' — FIPE R$ ' + Number(fipe.valor).toLocaleString('pt-BR') : '';
+
+    st.style.color = 'var(--green)';
+    st.textContent = '✓ ' + resumo + fipeStr;
+  } catch (e) {
+    st.style.color = 'var(--red)';
+    st.textContent = '✗ ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // FIPE — Netlify Function proxy para API oficial (sem CORS, sem chave)
 // ══════════════════════════════════════════════
 const BASE = '/api/fipe?path=';
