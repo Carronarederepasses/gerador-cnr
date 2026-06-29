@@ -122,6 +122,13 @@
   .av-sub{margin-top:.45rem;padding-left:.2rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
   .av-sub .subnm{font-size:.74rem;color:#888}
   .av-acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem;position:sticky;bottom:0;background:#fff;padding-top:.6rem}
+  .av-foto-avaria{margin-top:.45rem;display:none;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .av-foto-avaria.show{display:flex}
+  .av-foto-btn{font-size:.72rem;background:#fff8f0;border:1px solid #f5c6a0;border-radius:7px;color:#c05c00;padding:.3rem .6rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .av-foto-btn:hover{border-color:#c05c00}
+  .av-foto-thumb{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid #ddd;cursor:pointer}
+  .av-foto-del{font-size:.7rem;color:#c0392b;cursor:pointer;background:none;border:none;padding:0;font-family:'DM Sans',sans-serif}
+  .av-foto-del:hover{text-decoration:underline}
   .card .rodape button.aval{background:#111;color:#fff;border-color:#111}
 </style>
 </head>
@@ -184,6 +191,7 @@
   <img id="lb-img" src="" alt="">
 </div>
 <input type="file" id="file-input" accept="image/*" multiple style="display:none">
+<input type="file" id="avaria-file-input" accept="image/*" style="display:none">
 
 <!-- Modal de Avaliação -->
 <div class="av-modal" id="av-modal">
@@ -605,7 +613,7 @@ const AVAL = [
   { id:'estrutura', titulo:'Estrutura / Chassi', itens:[
     { id:'geral', nome:'Estrutura geral', opts:['Íntegra','Avariada'] },
   ]},
-  { id:'pintura', titulo:'Lataria e Pintura', opts:['Original','Repintura','Avariada'], itens:[
+  { id:'pintura', titulo:'Lataria e Pintura', opts:['Original','Repintura','Avariada'], fotoQuando:'Avariada', itens:[
     {id:'capo',nome:'Capô'},{id:'teto',nome:'Teto'},{id:'porta_malas',nome:'Porta-malas / tampa traseira'},
     {id:'porta_diant_dir',nome:'Porta diant. direita'},{id:'porta_tras_dir',nome:'Porta tras. direita'},
     {id:'porta_diant_esq',nome:'Porta diant. esquerda'},{id:'porta_tras_esq',nome:'Porta tras. esquerda'},
@@ -669,7 +677,18 @@ function avItemHTML(sec, it, opts){
     ).join('');
     sub = `<div class="av-sub" id="sub-${sec.id}-${it.id}" style="${show ? '' : 'display:none'}"><span class="subnm">${it.sub.nome}:</span><div class="av-pills">${subPills}</div></div>`;
   }
-  return `<div class="av-item"><div class="l"><span class="nm">${it.nome}</span><div class="av-pills">${pills}</div></div>${sub}</div>`;
+  // Área de foto de avaria (só em seções com fotoQuando)
+  let fotoArea = '';
+  if (sec.fotoQuando) {
+    const show = cur.status === sec.fotoQuando;
+    const thumb = cur.foto ? `<img class="av-foto-thumb" src="${cur.foto}" onclick="window.open('${cur.foto}','_blank')" title="Ver foto">
+      <button type="button" class="av-foto-del" onclick="removerFotoAvaria('${sec.id}','${it.id}')">✕ remover</button>` : '';
+    fotoArea = `<div class="av-foto-avaria ${show ? 'show' : ''}" id="avf-${sec.id}-${it.id}">
+      ${!cur.foto ? `<button type="button" class="av-foto-btn" onclick="tirarFotoAvaria('${sec.id}','${it.id}')">📷 Foto da avaria</button>` : ''}
+      ${thumb}
+    </div>`;
+  }
+  return `<div class="av-item"><div class="l"><span class="nm">${it.nome}</span><div class="av-pills">${pills}</div></div>${sub}${fotoArea}</div>`;
 }
 function setAvStatus(sec, item, val, btn){
   const c = avCel(sec, item);
@@ -680,7 +699,7 @@ function setAvStatus(sec, item, val, btn){
     const opts = [...box.children].map(b => b.textContent);
     btn.className = 'av-pill on ' + sevAv(opts, opts.indexOf(val));
   }
-  // mostra/esconde o sub-campo condicional (ex: ar "Não gela" → motivo)
+  // sub-campo condicional
   const subEl = document.getElementById('sub-' + sec + '-' + item);
   if (subEl){
     const itCfg = AVAL.find(s => s.id === sec).itens.find(i => i.id === item);
@@ -692,6 +711,56 @@ function setAvStatus(sec, item, val, btn){
       subEl.querySelectorAll('.av-pill').forEach(b => b.className = 'av-pill');
     }
   }
+  // área de foto de avaria
+  const fotoEl = document.getElementById('avf-' + sec + '-' + item);
+  if (fotoEl){
+    const secCfg = AVAL.find(s => s.id === sec);
+    if (c.status === secCfg.fotoQuando) {
+      fotoEl.classList.add('show');
+    } else {
+      fotoEl.classList.remove('show');
+      // Se mudou de Avariada pra outro status, limpa a foto
+      if (c.foto) { c.foto = ''; fotoEl.innerHTML = `<button type="button" class="av-foto-btn" onclick="tirarFotoAvaria('${sec}','${item}')">📷 Foto da avaria</button>`; }
+    }
+  }
+}
+
+// ── Fotos de avaria ────────────────────────────────────────────
+let _avariaAlvo = null;
+function tirarFotoAvaria(sec, item){
+  _avariaAlvo = { sec, item };
+  $('avaria-file-input').value = '';
+  $('avaria-file-input').click();
+}
+$('avaria-file-input').addEventListener('change', async (e) => {
+  const alvo = _avariaAlvo;
+  const f = e.target.files[0];
+  if (!alvo || !f) return;
+  const veiculoId = $('av-veiculo-id').value;
+  const fotoEl = document.getElementById('avf-' + alvo.sec + '-' + alvo.item);
+  if (!fotoEl) return;
+  fotoEl.innerHTML = '<span style="font-size:.72rem;color:#aaa">Enviando...</span>';
+  try {
+    const b64 = await comprimir(f);
+    const r = await fetch('/api/catalogo?avaria=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ veiculoId, item: alvo.sec + '-' + alvo.item, imageBase64: b64, mimeType: 'image/jpeg' }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    const { url } = await r.json();
+    avCel(alvo.sec, alvo.item).foto = url;
+    fotoEl.innerHTML = `<img class="av-foto-thumb" src="${url}" onclick="window.open('${url}','_blank')" title="Ver foto">
+      <button type="button" class="av-foto-del" onclick="removerFotoAvaria('${alvo.sec}','${alvo.item}')">✕ remover</button>`;
+  } catch(err) {
+    fotoEl.innerHTML = `<button type="button" class="av-foto-btn" onclick="tirarFotoAvaria('${alvo.sec}','${alvo.item}')">📷 Foto da avaria</button>
+      <span style="font-size:.7rem;color:#c0392b">${err.message}</span>`;
+  }
+});
+function removerFotoAvaria(sec, item){
+  avCel(sec, item).foto = '';
+  const fotoEl = document.getElementById('avf-' + sec + '-' + item);
+  if (fotoEl) fotoEl.innerHTML = `<button type="button" class="av-foto-btn" onclick="tirarFotoAvaria('${sec}','${item}')">📷 Foto da avaria</button>`;
 }
 function setAvSub(sec, item, val, btn){
   const c = avCel(sec, item);
@@ -790,25 +859,37 @@ async function gerarPDFAval(){
     doc.setTextColor(0); y += 9;
   }
 
-  AVAL.forEach(sec => {
+  for (const sec of AVAL) {
     const res = AVAL_RES[sec.id] || {};
     const itens = sec.itens.filter(it => res[it.id] && res[it.id].status);
-    if (!itens.length) return;
+    if (!itens.length) continue;
     if (y > 268) { doc.addPage(); y = 18; }
     doc.setFont('helvetica','bold'); doc.setFontSize(11);
     doc.text(sec.titulo, M, y); y += 5.5;
     doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    itens.forEach(it => {
-      if (y > 282) { doc.addPage(); y = 18; }
+    for (const it of itens) {
+      if (y > 268) { doc.addPage(); y = 18; }
       const cell = res[it.id];
       const txt = cell.status + (cell.sub ? ' (' + cell.sub + ')' : '');
       doc.setTextColor(80); doc.text('•  ' + it.nome, M + 2, y);
       doc.setTextColor(...corStatusPDF(sec, it, cell.status));
       doc.text(txt, M + 78, y);
       doc.setTextColor(0); y += 5;
-    });
+      // Foto de avaria inline no PDF
+      if (cell.foto) {
+        try {
+          const im = await carregarImg(cell.foto);
+          if (im) {
+            const fw = 40, fh = fw * (im.h / im.w);
+            if (y + fh > 282) { doc.addPage(); y = 18; }
+            doc.addImage(im.dataUrl, 'JPEG', M + 4, y, fw, fh);
+            y += fh + 3;
+          }
+        } catch {}
+      }
+    }
     y += 3.5;
-  });
+  }
 
   const obs = $('av-obs').value.trim();
   if (obs) {

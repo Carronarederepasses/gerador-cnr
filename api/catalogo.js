@@ -96,6 +96,24 @@ function pathFromUrl(url) {
   return i === -1 ? null : url.slice(i + marker.length);
 }
 
+// Upload de foto de avaria (não entra no array fotos do veículo — fica só na avaliação)
+// POST ?avaria=1  body { veiculoId, item, imageBase64, mimeType }  → { url }
+async function avariaHandler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
+  const { veiculoId, item = 'avaria', imageBase64, mimeType = 'image/jpeg' } = req.body || {};
+  if (!veiculoId || !imageBase64) return res.status(400).json({ error: 'veiculoId e imageBase64 obrigatórios.' });
+  const ext = EXT[mimeType] || 'jpg';
+  const objPath = `${veiculoId}/avaria/${item}-${Date.now()}.${ext}`;
+  const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
+    method: 'POST',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': mimeType, 'x-upsert': 'true' },
+    body: Buffer.from(imageBase64, 'base64'),
+  });
+  if (!up.ok) throw new Error(await up.text());
+  const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${objPath}`;
+  return res.status(201).json({ url });
+}
+
 async function fotoHandler(req, res) {
   if (req.method === 'POST') {
     const { veiculoId, imageBase64, mimeType = 'image/jpeg' } = req.body || {};
@@ -149,8 +167,10 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try {
-    // Rota de fotos
+    // Rota de fotos do catálogo
     if (q.foto !== undefined) return await fotoHandler(req, res);
+    // Rota de fotos de avaria (avaliação — não entra no array fotos)
+    if (q.avaria !== undefined) return await avariaHandler(req, res);
 
     // ── LISTAR / DETALHE ────────────────────────────────────────
     if (req.method === 'GET') {
