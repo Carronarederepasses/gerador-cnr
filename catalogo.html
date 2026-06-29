@@ -130,6 +130,21 @@
   .av-foto-del{font-size:.7rem;color:#c0392b;cursor:pointer;background:none;border:none;padding:0;font-family:'DM Sans',sans-serif}
   .av-foto-del:hover{text-decoration:underline}
   .card .rodape button.aval{background:#111;color:#fff;border-color:#111}
+
+  /* Modal consulta placa */
+  .placa-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:70;padding:1.5rem 1rem}
+  .placa-modal.show{display:flex}
+  .placa-box{background:#fff;border-radius:16px;max-width:480px;width:100%;padding:1.4rem}
+  .placa-box h3{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:1rem}
+  .placa-result{font-size:.86rem;line-height:1.8;color:#333}
+  .placa-result b{color:#111}
+  .placa-result .placa-row{display:flex;gap:.5rem;border-bottom:1px solid #f0f0f0;padding:.25rem 0}
+  .placa-result .placa-row:last-child{border-bottom:none}
+  .placa-result .placa-lbl{color:#888;min-width:110px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;padding-top:.05rem}
+  .placa-acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem}
+  .placa-loading{color:#888;font-size:.86rem;padding:.5rem 0}
+  .placa-busca-btn{font-size:.7rem;background:#f0f8ff;border:1px solid #b0d0f0;border-radius:7px;color:#1a5fa0;padding:.2rem .45rem;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:.3rem}
+  .placa-busca-btn:hover{border-color:#1a5fa0}
 </style>
 </head>
 <body>
@@ -192,6 +207,17 @@
 </div>
 <input type="file" id="file-input" accept="image/*" multiple style="display:none">
 <input type="file" id="avaria-file-input" accept="image/*" style="display:none">
+
+<!-- Modal Consulta Placa -->
+<div class="placa-modal" id="placa-modal">
+  <div class="placa-box">
+    <h3 id="placa-modal-titulo">Consulta de Placa</h3>
+    <div id="placa-modal-corpo"><div class="placa-loading">Consultando...</div></div>
+    <div class="placa-acoes">
+      <button class="btn ghost" onclick="fecharPlacaModal()">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal de Avaliação -->
 <div class="av-modal" id="av-modal">
@@ -288,7 +314,9 @@ function card(v) {
     </div>
     <div class="dados">${dados}</div>
     <div class="placa-linha" onclick="editarPlaca('${v.id}')" title="Clique para editar (uso interno)">
-      🔒 Placa: <b>${v.placa ? esc(v.placa) : '—'}</b> <span class="edit">✏️</span>
+      🔒 Placa: <b>${v.placa ? esc(v.placa) : '—'}</b>
+      ${v.placa ? `<button class="placa-busca-btn" onclick="event.stopPropagation();buscarPlaca('${v.id}')">🔍 Buscar</button>` : ''}
+      <span class="edit">✏️</span>
     </div>
     <div class="fotos" id="fotos-${v.id}">
       ${thumbs}
@@ -360,6 +388,56 @@ async function editarPlaca(id) {
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
     carregar();
   } catch (e) { alert('Falha ao salvar a placa: ' + e.message); }
+}
+
+// ── Consulta de placa (APiBrasil) ──────────────────────────────
+function fecharPlacaModal() { $('placa-modal').classList.remove('show'); }
+$('placa-modal').addEventListener('click', e => { if (e.target === $('placa-modal')) fecharPlacaModal(); });
+
+async function buscarPlaca(id) {
+  const v = CACHE[id];
+  if (!v || !v.placa) return;
+  $('placa-modal-titulo').textContent = 'Placa ' + v.placa;
+  $('placa-modal-corpo').innerHTML = '<div class="placa-loading">🔍 Consultando APiBrasil...</div>';
+  $('placa-modal').classList.add('show');
+
+  try {
+    const r = await fetch('/api/placa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ placa: v.placa }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erro na consulta');
+
+    const d = data.data || data; // normaliza estrutura
+    const linhas = [
+      ['Marca',        d.marca || d.MARCA],
+      ['Modelo',       d.modelo || d.MODELO],
+      ['Ano Modelo',   d.anoModelo || d.ANO_MODELO],
+      ['Combustível',  d.combustivel || d.COMBUSTIVEL],
+      ['Cor',          d.cor || d.COR],
+      ['UF',           d.uf || d.UF],
+      ['Município',    d.municipio || d.MUNICIPIO],
+      ['Código FIPE',  d.codigoFipe || d.CODIGO_FIPE],
+      ['Valor FIPE',   d.valorFipe || d.VALOR_FIPE],
+      ['IPVA Est.',    d.ipva || d.IPVA],
+      ['Chassi',       d.chassi || d.CHASSI],
+    ].filter(([, val]) => val != null && val !== '');
+
+    if (linhas.length === 0) {
+      $('placa-modal-corpo').innerHTML = '<div class="placa-loading">Nenhum dado retornado.</div>';
+      return;
+    }
+
+    $('placa-modal-corpo').innerHTML = '<div class="placa-result">' +
+      linhas.map(([lbl, val]) =>
+        `<div class="placa-row"><span class="placa-lbl">${lbl}</span><b>${val}</b></div>`
+      ).join('') +
+    '</div>';
+  } catch (e) {
+    $('placa-modal-corpo').innerHTML = `<div class="placa-loading" style="color:#c0392b">Erro: ${e.message}</div>`;
+  }
 }
 
 // ── Fotos ──────────────────────────────────────────────────────
