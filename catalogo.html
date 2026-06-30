@@ -1166,14 +1166,18 @@ async function gerarPDFAval(){
     doc.setTextColor(...BRANCO);
     doc.text('FOTOS', W/2, 9, { align: 'center' });
     y = 20;
-    const colW = (W - 2*M - 6) / 2; let x = M, rowH = 0;
-    for (const u of fotos.slice(0, 8)) {
+    const COLS = 3, GAP = 4;
+    const colW = (W - 2*M - GAP * (COLS - 1)) / COLS;
+    let col = 0, rowH = 0;
+    for (const u of fotos.slice(0, 12)) {
       const im = await carregarImg(u); if (!im) continue;
       const h  = colW * (im.h / im.w);
-      if (y + h > 283) { doc.addPage(); y = 16; x = M; rowH = 0; }
+      const x  = M + col * (colW + GAP);
+      if (col === 0 && y + h > 283) { doc.addPage(); y = 16; rowH = 0; }
       doc.addImage(im.dataUrl, 'JPEG', x, y, colW, h);
-      if (x === M) { x = M + colW + 6; rowH = h; }
-      else { x = M; y += Math.max(rowH, h) + 5; rowH = 0; }
+      rowH = Math.max(rowH, h);
+      col++;
+      if (col === COLS) { col = 0; y += rowH + GAP; rowH = 0; }
     }
   }
 
