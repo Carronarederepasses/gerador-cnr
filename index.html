@@ -155,6 +155,51 @@
   .btn-parse:disabled{opacity:.4;cursor:not-allowed}
   .btn-parse.loading{color:var(--yellow);border-color:rgba(230,184,0,.4)}
 
+  /* ── TABS CAPTAÇÃO ── */
+  .cap-tabs{display:none;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.4rem}
+  .cap-tabs.show{display:flex}
+  .cap-tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:.75rem .4rem;cursor:pointer;transition:all .15s}
+  .cap-tab:hover{color:var(--light)}
+  .cap-tab.on{color:var(--white);border-bottom-color:var(--white)}
+  .cap-autosave{font-size:.6rem;color:var(--mid);margin-left:auto;align-self:center;padding-right:.2rem;white-space:nowrap;transition:color .3s}
+  .cap-autosave.ok{color:var(--green)}
+  .cap-autosave.err{color:var(--red)}
+
+  /* ── ABA FOTOS ── */
+  .cap-foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin:.8rem 0}
+  .cap-foto-cell{aspect-ratio:1;background:var(--gray);border:1px solid var(--border);position:relative;overflow:hidden}
+  .cap-foto-cell img{width:100%;height:100%;object-fit:cover;display:block}
+  .cap-foto-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.75);color:#fff;border:none;width:20px;height:20px;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;font-family:inherit}
+  .cap-foto-add-btn{aspect-ratio:1;border:1px dashed rgba(245,243,238,.18);background:none;color:var(--mid);font-size:1.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+  .cap-foto-add-btn:hover{border-color:var(--light);color:var(--light)}
+  .cap-foto-st{font-size:.68rem;color:var(--mid);min-height:.9rem}
+
+  /* ── ABA CHECKLIST ── */
+  .cap-av-sec{margin-bottom:1.3rem}
+  .cap-av-stit{font-size:.6rem;text-transform:uppercase;letter-spacing:.2em;color:var(--mid);border-bottom:1px solid var(--border);padding-bottom:.3rem;margin-bottom:.6rem}
+  .cap-av-item{padding:.42rem 0;border-bottom:1px solid rgba(245,243,238,.06)}
+  .cap-av-item:last-child{border-bottom:none}
+  .cap-av-item .cap-av-l{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .cap-av-item .nm{font-size:.84rem;flex:1;min-width:90px;color:var(--white)}
+  .cap-av-pills{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.2rem}
+  .cap-pill{font-size:.68rem;font-weight:600;padding:.24rem .52rem;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--mid);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif}
+  .cap-pill:hover{border-color:rgba(245,243,238,.3);color:var(--light)}
+  .cap-pill.on.bom{background:#0a2e14;border-color:#1a7f37;color:#4ade80}
+  .cap-pill.on.alerta{background:#261800;border-color:#9a6700;color:#fbbf24}
+  .cap-pill.on.ruim{background:#2a0a0a;border-color:#c0392b;color:#f87171}
+  .cap-av-sub{margin-top:.35rem;padding-left:.2rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .cap-av-sub .subnm{font-size:.7rem;color:var(--mid)}
+  .cap-av-fotozone{margin-top:.4rem;display:none;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .cap-av-fotozone.show{display:flex}
+  .cap-av-fotobtn{font-size:.7rem;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:6px;color:#f97316;padding:.26rem .52rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .cap-av-fotothumb{width:46px;height:46px;object-fit:cover;border-radius:5px;border:1px solid var(--border);cursor:pointer}
+  .cap-av-fotodel{font-size:.66rem;color:var(--red);cursor:pointer;background:none;border:none;padding:0;font-family:'DM Sans',sans-serif}
+  .cap-av-nota-row{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;flex-wrap:wrap}
+  .cap-av-nota-row label{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--light);white-space:nowrap}
+  .cap-av-nota-row select{flex:1;min-width:120px}
+  .cap-av-save-btn{width:100%;background:var(--white);color:var(--black);border:none;padding:.85rem;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;margin-top:1rem;transition:background .2s}
+  .cap-av-save-btn:hover{background:var(--light)}
+
   /* EDITOR DE FOTO */
   .editor-upload-zone{border:1px dashed rgba(245,243,238,.2);padding:2rem 1rem;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;background:var(--gray)}
   .editor-upload-zone:hover,.editor-upload-zone.drag{border-color:rgba(245,243,238,.5)}
@@ -211,6 +256,14 @@
   </div>
 
   <button onclick="limparEstado()" style="width:100%;margin-bottom:1.4rem;background:none;border:1px solid var(--border);color:var(--mid);padding:.65rem;font-family:'DM Sans',sans-serif;font-size:.64rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer">🗑️ Limpar dados (novo anúncio)</button>
+
+  <!-- ── TABS CAPTAÇÃO ── -->
+  <div class="cap-tabs" id="cap-tabs">
+    <button class="cap-tab on" id="cap-t0" onclick="trocarAba(0)">Anúncio</button>
+    <button class="cap-tab" id="cap-t1" onclick="trocarAba(1)">Fotos</button>
+    <button class="cap-tab" id="cap-t2" onclick="trocarAba(2)">Checklist</button>
+    <span class="cap-autosave" id="cap-autosave"></span>
+  </div>
 
   <!-- ── CAPTAÇÃO ── -->
   <div id="modo-captacao">
@@ -456,6 +509,37 @@
 
   <button class="btn-gen" onclick="gerar()">▶ Gerar Anúncio</button>
   </div><!-- /blocos-anuncio -->
+
+  <!-- ── ABA FOTOS ── -->
+  <div id="cap-aba-1" style="display:none">
+    <div class="fsec-title" style="margin-bottom:.8rem">Fotos do veículo</div>
+    <div id="cap-foto-grid" class="cap-foto-grid"></div>
+    <div class="cap-foto-st" id="cap-foto-st"></div>
+    <button class="btn-gen" onclick="document.getElementById('cap-foto-input').click()" style="margin-top:.6rem;font-size:.74rem">+ Adicionar fotos</button>
+  </div>
+
+  <!-- ── ABA CHECKLIST ── -->
+  <div id="cap-aba-2" style="display:none">
+    <div class="cap-av-nota-row">
+      <label>Nota geral</label>
+      <select id="cap-av-nota">
+        <option value="">— selecione</option>
+        <option value="acima">Acima da média</option>
+        <option value="media">Na média</option>
+        <option value="abaixo">Abaixo da média</option>
+      </select>
+    </div>
+    <div id="cap-av-secoes"></div>
+    <div class="field" style="margin-top:1rem">
+      <label>Observações internas</label>
+      <textarea id="cap-av-obs" rows="3" placeholder="ex: revisão feita, procedência conhecida..." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+    <button class="cap-av-save-btn" onclick="salvarChecklist()">▶ Salvar Checklist</button>
+  </div>
+
+  <input type="file" id="cap-foto-input" accept="image/*" multiple style="display:none" onchange="onCapFotos(this)">
+  <input type="file" id="cap-avaria-input" accept="image/*" style="display:none">
+
 </div>
 
 <!-- ── EDITOR DE FOTO ── -->
@@ -1394,6 +1478,17 @@ let currentMode = 'captacao';
 
 function setMode(mode) {
   currentMode = mode;
+  // Ao sair da captação, volta para aba 0 sem animar
+  if (mode !== 'captacao' && capAbaAtual !== 0) {
+    capAbaAtual = 0;
+    [0,1,2].forEach(i => { const t=document.getElementById('cap-t'+i); if(t) t.classList.toggle('on',i===0); });
+    const a1=document.getElementById('cap-aba-1'); const a2=document.getElementById('cap-aba-2');
+    if(a1) a1.style.display='none'; if(a2) a2.style.display='none';
+  }
+  // Tab bar só aparece no modo captação
+  const capTabs = document.getElementById('cap-tabs');
+  if (capTabs) capTabs.classList.toggle('show', mode === 'captacao');
+
   document.getElementById('modo-captacao').style.display    = mode === 'captacao'  ? '' : 'none';
   document.getElementById('modo-coletados').style.display   = mode === 'coletados' ? '' : 'none';
   document.getElementById('modo-editor').style.display      = mode === 'editor'    ? '' : 'none';
@@ -2127,6 +2222,299 @@ function makeSearchable(selectId, placeholder) {
 }
 
 function resyncSearchables() { Object.values(_ssSync).forEach(fn => fn()); }
+
+// ══════════════════════════════════════════════
+// CAPTAÇÃO TABS — Anúncio / Fotos / Checklist
+// ══════════════════════════════════════════════
+let catalogoId = null;
+let capAbaAtual = 0;
+
+const AVAL_LOCAL = [
+  { id:'documentacao', titulo:'Documentação', itens:[
+    { id:'situacao', nome:'Situação', opts:['OK','Pendência'] },
+  ]},
+  { id:'estrutura', titulo:'Estrutura / Chassi', itens:[
+    { id:'geral', nome:'Estrutura geral', opts:['Íntegra','Avariada'] },
+  ]},
+  { id:'pintura', titulo:'Lataria e Pintura', opts:['Original','Repintura','Avariada'], fotoQuando:'Avariada', itens:[
+    {id:'capo',nome:'Capô'},{id:'teto',nome:'Teto'},{id:'porta_malas',nome:'Porta-malas'},
+    {id:'porta_diant_dir',nome:'Porta diant. direita'},{id:'porta_tras_dir',nome:'Porta tras. direita'},
+    {id:'porta_diant_esq',nome:'Porta diant. esquerda'},{id:'porta_tras_esq',nome:'Porta tras. esquerda'},
+    {id:'paralama_diant_dir',nome:'Paralama diant. direito'},{id:'paralama_diant_esq',nome:'Paralama diant. esquerdo'},
+    {id:'lateral_tras_dir',nome:'Lateral tras. direita'},{id:'lateral_tras_esq',nome:'Lateral tras. esquerda'},
+    {id:'parachoque_diant',nome:'Parachoque dianteiro'},{id:'parachoque_tras',nome:'Parachoque traseiro'},
+  ]},
+  { id:'pneus', titulo:'Pneus', itens:[
+    { id:'estado', nome:'Estado geral', opts:['Novos','Bons','Meia-vida','Trocar'] },
+  ]},
+  { id:'mecanica', titulo:'Mecânica', opts:['OK','Atenção','Crítico'], itens:[
+    {id:'motor',nome:'Motor'},{id:'cambio',nome:'Câmbio'},{id:'suspensao',nome:'Suspensão'},
+    {id:'freios',nome:'Freios'},{id:'vazamentos',nome:'Vazamentos'},
+  ]},
+  { id:'itens', titulo:'Itens & Conforto', itens:[
+    {id:'ar',   nome:'Ar-condicionado', opts:['Gelando','Não gela'], sub:{quando:'Não gela',nome:'Motivo',opts:['Falta gás','Defeito compressor']}},
+    {id:'estepe',   nome:'Estepe',    opts:['Novo','Usado','Não tem']},
+    {id:'macaco',   nome:'Macaco',    opts:['Tem','Não tem']},
+    {id:'triangulo',nome:'Triângulo', opts:['Tem','Não tem']},
+  ]},
+];
+
+let AVAL_RES_LOCAL = {};
+function avCelLocal(sec,item){ if(!AVAL_RES_LOCAL[sec]) AVAL_RES_LOCAL[sec]={}; if(!AVAL_RES_LOCAL[sec][item]) AVAL_RES_LOCAL[sec][item]={}; return AVAL_RES_LOCAL[sec][item]; }
+function sevAvLocal(opts,idx){ if(idx===0) return 'bom'; if(idx===opts.length-1&&opts.length>=3) return 'ruim'; return 'alerta'; }
+
+async function trocarAba(n) {
+  capAbaAtual = n;
+  [0,1,2].forEach(i => { const t=document.getElementById('cap-t'+i); if(t) t.classList.toggle('on',i===n); });
+  const capt = document.getElementById('modo-captacao');
+  const bloc = document.getElementById('blocos-anuncio');
+  const a1   = document.getElementById('cap-aba-1');
+  const a2   = document.getElementById('cap-aba-2');
+  if (capt) capt.style.display = n===0 ? '' : 'none';
+  if (bloc) bloc.style.display = n===0 ? '' : 'none';
+  if (a1)   a1.style.display   = n===1 ? '' : 'none';
+  if (a2)   a2.style.display   = n===2 ? '' : 'none';
+  if (n !== 0) await autoSalvar();
+  if (n === 1) await carregarFotosExistentes();
+  if (n === 2) { await carregarChecklistExistente(); renderAvalLocal(); }
+}
+
+async function autoSalvar() {
+  const st = document.getElementById('cap-autosave');
+  const ficha = coletarFichaVeiculo();
+  const nome = [ficha.marca, ficha.versao || ficha.modelo].filter(Boolean).join(' ');
+  if (!nome && !ficha.anuncio_texto) return;
+  try {
+    if (st) { st.textContent = '⟳ salvando…'; st.className = 'cap-autosave'; }
+    let r;
+    if (catalogoId) {
+      r = await fetch('/api/catalogo?id=' + catalogoId, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(ficha),
+      });
+    } else {
+      r = await fetch('/api/catalogo', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(ficha),
+      });
+      if (r.ok) { const d = await r.json(); catalogoId = d.id; }
+    }
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    if (st) { st.textContent = '✓ salvo'; st.className = 'cap-autosave ok'; setTimeout(()=>{ if(st) st.textContent=''; },2500); }
+  } catch(e) {
+    if (st) { st.textContent = '⚠ erro ao salvar'; st.className = 'cap-autosave err'; }
+  }
+}
+
+// ── Fotos ──────────────────────────────────────
+let capFotosCache = [];
+
+async function carregarFotosExistentes() {
+  if (!catalogoId) { renderCapFotos(); return; }
+  try {
+    const r = await fetch('/api/catalogo?id=' + catalogoId);
+    if (r.ok) { const v = await r.json(); if (v && Array.isArray(v.fotos)) capFotosCache = [...v.fotos]; }
+  } catch {}
+  renderCapFotos();
+}
+
+function renderCapFotos() {
+  const grid = document.getElementById('cap-foto-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  capFotosCache.forEach((url, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cap-foto-cell';
+    cell.innerHTML = `<img src="${url}" loading="lazy"><button class="cap-foto-del" onclick="removerCapFoto(${i})" title="Remover">✕</button>`;
+    grid.appendChild(cell);
+  });
+  const btn = document.createElement('button');
+  btn.className = 'cap-foto-add-btn';
+  btn.textContent = '+';
+  btn.onclick = () => document.getElementById('cap-foto-input').click();
+  grid.appendChild(btn);
+  const st = document.getElementById('cap-foto-st');
+  if (st) st.textContent = capFotosCache.length ? capFotosCache.length + ' foto(s) adicionada(s)' : '';
+}
+
+async function onCapFotos(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  if (!catalogoId) { await autoSalvar(); }
+  if (!catalogoId) { alert('Preencha ao menos a marca/modelo antes de adicionar fotos.'); return; }
+  const st = document.getElementById('cap-foto-st');
+  if (st) st.textContent = 'Enviando…';
+  let ok = 0;
+  for (const file of files) {
+    try {
+      const b64 = await comprimirLocal(file);
+      const r = await fetch('/api/catalogo?foto=1', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ veiculoId: catalogoId, imageBase64: b64, mimeType: 'image/jpeg' }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || 'erro');
+      const d = await r.json();
+      if (Array.isArray(d.fotos)) capFotosCache = d.fotos;
+      ok++;
+    } catch(e) { console.error('Foto:', e.message); }
+  }
+  input.value = '';
+  if (st) st.textContent = capFotosCache.length + ' foto(s) adicionada(s)';
+  renderCapFotos();
+}
+
+async function removerCapFoto(idx) {
+  if (!catalogoId) return;
+  const url = capFotosCache[idx];
+  try {
+    const r = await fetch('/api/catalogo?foto=1', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ veiculoId: catalogoId, url }),
+    });
+    if (r.ok) { const d = await r.json(); if (Array.isArray(d.fotos)) capFotosCache = d.fotos; }
+  } catch {}
+  renderCapFotos();
+}
+
+function comprimirLocal(file, maxLado=1600, q=0.82) {
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let {width:w,height:h} = img;
+        if (Math.max(w,h) > maxLado) { const s=maxLado/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+        const c = document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',q).split(',')[1]);
+      };
+      img.onerror = reject; img.src = rd.result;
+    };
+    rd.onerror = reject; rd.readAsDataURL(file);
+  });
+}
+
+// ── Checklist ──────────────────────────────────
+async function carregarChecklistExistente() {
+  if (!catalogoId || Object.keys(AVAL_RES_LOCAL).length) return;
+  try {
+    const r = await fetch('/api/catalogo?id=' + catalogoId);
+    if (r.ok) {
+      const v = await r.json();
+      if (v && v.avaliacao && v.avaliacao.resultado) {
+        AVAL_RES_LOCAL = v.avaliacao.resultado;
+        if (v.avaliacao.nota) document.getElementById('cap-av-nota').value = v.avaliacao.nota;
+        if (v.avaliacao.obs)  document.getElementById('cap-av-obs').value  = v.avaliacao.obs;
+      }
+    }
+  } catch {}
+}
+
+function renderAvalLocal() {
+  const cont = document.getElementById('cap-av-secoes');
+  if (!cont) return;
+  cont.innerHTML = AVAL_LOCAL.map(sec =>
+    `<div class="cap-av-sec"><div class="cap-av-stit">${sec.titulo}</div>${sec.itens.map(it => avItemLocalHTML(sec, it, sec.opts||it.opts)).join('')}</div>`
+  ).join('');
+}
+
+function avItemLocalHTML(sec, it, opts) {
+  const cur = (AVAL_RES_LOCAL[sec.id]&&AVAL_RES_LOCAL[sec.id][it.id]) || {};
+  const pills = opts.map((o,idx) =>
+    `<button type="button" class="cap-pill${cur.status===o?' on '+sevAvLocal(opts,idx):''}" onclick="setAvLocal('${sec.id}','${it.id}','${o}',this)">${o}</button>`
+  ).join('');
+  let sub = '';
+  if (it.sub) {
+    const show = cur.status===it.sub.quando;
+    const sp = it.sub.opts.map(o =>
+      `<button type="button" class="cap-pill${cur.sub===o?' on ruim':''}" onclick="setAvSubLocal('${sec.id}','${it.id}','${o}',this)">${o}</button>`
+    ).join('');
+    sub = `<div class="cap-av-sub" id="caps-${sec.id}-${it.id}" style="${show?'':'display:none'}"><span class="subnm">${it.sub.nome}:</span><div class="cap-av-pills">${sp}</div></div>`;
+  }
+  let foto = '';
+  if (sec.fotoQuando) {
+    const show = cur.status===sec.fotoQuando;
+    const thumb = cur.foto
+      ? `<img class="cap-av-fotothumb" src="${cur.foto}" onclick="window.open('${cur.foto}','_blank')"><button type="button" class="cap-av-fotodel" onclick="removerFotoAvLocal('${sec.id}','${it.id}')">✕ remover</button>`
+      : `<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${sec.id}','${it.id}')">📷 Foto</button>`;
+    foto = `<div class="cap-av-fotozone${show?' show':''}" id="capavf-${sec.id}-${it.id}">${thumb}</div>`;
+  }
+  return `<div class="cap-av-item"><div class="cap-av-l"><span class="nm">${it.nome}</span><div class="cap-av-pills">${pills}</div></div>${sub}${foto}</div>`;
+}
+
+function setAvLocal(sec, item, val, btn) {
+  const c = avCelLocal(sec, item);
+  c.status = (c.status===val) ? '' : val;
+  const box = btn.parentElement;
+  [...box.children].forEach(b => b.className='cap-pill');
+  if (c.status) { const opts=[...box.children].map(b=>b.textContent); btn.className='cap-pill on '+sevAvLocal(opts,opts.indexOf(val)); }
+  const subEl = document.getElementById('caps-'+sec+'-'+item);
+  if (subEl) {
+    const itCfg = AVAL_LOCAL.find(s=>s.id===sec).itens.find(i=>i.id===item);
+    if (itCfg.sub && c.status===itCfg.sub.quando) subEl.style.display='';
+    else { subEl.style.display='none'; c.sub=''; subEl.querySelectorAll('.cap-pill').forEach(b=>b.className='cap-pill'); }
+  }
+  const fEl = document.getElementById('capavf-'+sec+'-'+item);
+  if (fEl) {
+    const secCfg = AVAL_LOCAL.find(s=>s.id===sec);
+    if (c.status===secCfg.fotoQuando) fEl.classList.add('show');
+    else { fEl.classList.remove('show'); if(c.foto){ c.foto=''; fEl.innerHTML=`<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${sec}','${item}')">📷 Foto</button>`; } }
+  }
+}
+
+function setAvSubLocal(sec, item, val, btn) {
+  const c = avCelLocal(sec, item);
+  c.sub = (c.sub===val) ? '' : val;
+  const box = btn.parentElement;
+  [...box.children].forEach(b=>b.className='cap-pill');
+  if (c.sub) btn.className='cap-pill on ruim';
+}
+
+let _avAlvoLocal = null;
+function tirarFotoAvLocal(sec, item) {
+  _avAlvoLocal = {sec, item};
+  const inp = document.getElementById('cap-avaria-input');
+  inp.value=''; inp.click();
+}
+document.getElementById('cap-avaria-input').addEventListener('change', async (e) => {
+  const alvo = _avAlvoLocal; const f = e.target.files[0];
+  if (!alvo||!f) return;
+  if (!catalogoId) await autoSalvar();
+  const fEl = document.getElementById('capavf-'+alvo.sec+'-'+alvo.item);
+  if (!fEl) return;
+  fEl.innerHTML='<span style="font-size:.7rem;color:#aaa">Enviando…</span>';
+  try {
+    const b64 = await comprimirLocal(f);
+    const r = await fetch('/api/catalogo?avaria=1', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ veiculoId:catalogoId, item:alvo.sec+'-'+alvo.item, imageBase64:b64, mimeType:'image/jpeg' }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error||'erro');
+    const {url} = await r.json();
+    avCelLocal(alvo.sec, alvo.item).foto = url;
+    fEl.innerHTML=`<img class="cap-av-fotothumb" src="${url}" onclick="window.open('${url}','_blank')"><button type="button" class="cap-av-fotodel" onclick="removerFotoAvLocal('${alvo.sec}','${alvo.item}')">✕ remover</button>`;
+  } catch(err) {
+    fEl.innerHTML=`<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${alvo.sec}','${alvo.item}')">📷 Foto</button><span style="font-size:.68rem;color:var(--red)"> ${err.message}</span>`;
+  }
+});
+
+function removerFotoAvLocal(sec, item) {
+  avCelLocal(sec,item).foto='';
+  const el=document.getElementById('capavf-'+sec+'-'+item);
+  if(el) el.innerHTML=`<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${sec}','${item}')">📷 Foto</button>`;
+}
+
+async function salvarChecklist() {
+  if (!catalogoId) { await autoSalvar(); }
+  if (!catalogoId) { alert('Preencha ao menos a marca/modelo (aba Anúncio) antes de salvar o checklist.'); return; }
+  const avaliacao = { nota: document.getElementById('cap-av-nota').value, obs: document.getElementById('cap-av-obs').value, resultado: AVAL_RES_LOCAL };
+  try {
+    const r = await fetch('/api/catalogo?id='+catalogoId, {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({avaliacao}),
+    });
+    if (!r.ok) throw new Error((await r.json()).error||'erro');
+    const btn = document.querySelector('.cap-av-save-btn');
+    if (btn) { const orig=btn.textContent; btn.textContent='✓ Checklist salvo!'; setTimeout(()=>btn.textContent=orig,2200); }
+  } catch(e) { alert('Erro ao salvar: '+e.message); }
+}
 
 // ══ INIT ══
 buildOpcionais();
