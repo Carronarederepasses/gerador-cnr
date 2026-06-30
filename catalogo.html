@@ -1037,22 +1037,32 @@ async function gerarPDFAval(){
       const cell = res[it.id];
       return { cor: corItem(sec, it, cell.status), txt: cell.status + (cell.sub ? ' (' + cell.sub + ')' : ''), nome: it.nome };
     }));
+    // Fotos de avaria — coleta todas da seção e renderiza em grid 3 colunas com legenda
+    const fotosAv = [];
     for (const it of itens) {
       const cell = res[it.id];
       if (!cell.foto) continue;
-      try {
-        const im = await carregarImg(cell.foto);
-        if (im) {
-          const fw = 55, fh = fw * (im.h / im.w);
-          if (y + fh > 282) { doc.addPage(); y = 16; }
-          doc.setFont('helvetica', 'italic');
-          doc.setFontSize(7.5);
-          doc.setTextColor(120);
-          doc.text('Foto — ' + it.nome, M, y); y += 3;
-          doc.addImage(im.dataUrl, 'JPEG', M, y, fw, fh);
-          y += fh + 5;
-        }
-      } catch {}
+      try { const im = await carregarImg(cell.foto); if (im) fotosAv.push({ im, nome: it.nome }); } catch {}
+    }
+    if (fotosAv.length) {
+      const FCOLS = 3, FGAP = 4;
+      const fcolW = (W - 2*M - FGAP * (FCOLS - 1)) / FCOLS;
+      const LEGENDA_H = 9;
+      let fcol = 0, frowH = 0;
+      for (const { im, nome } of fotosAv) {
+        const fh = fcolW * (im.h / im.w);
+        const fx = M + fcol * (fcolW + FGAP);
+        if (fcol === 0 && y + fh + LEGENDA_H > 278) { doc.addPage(); y = 16; frowH = 0; }
+        doc.addImage(im.dataUrl, 'JPEG', fx, y, fcolW, fh);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(100);
+        doc.text(nome, fx + fcolW / 2, y + fh + 4.5, { align: 'center', maxWidth: fcolW });
+        frowH = Math.max(frowH, fh + LEGENDA_H);
+        fcol++;
+        if (fcol === FCOLS) { fcol = 0; y += frowH + FGAP; frowH = 0; }
+      }
+      if (fcol > 0) y += frowH + FGAP;
     }
   }
 
