@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gerador de Artes — Carro na Rede Repasses</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --black:#0a0a0a;--white:#f5f3ee;--gray:#141414;--gray2:#1c1c1c;
-    --border:rgba(245,243,238,0.1);--mid:#666;--light:#c8c4bb;--green:#25D366;
+    --black:var(--surface);--white:var(--text);--gray:var(--surface-raise);--gray2:var(--surface-raise);
+    --border:var(--line);--mid:var(--text-mid);--light:var(--text);--green:#25D366;
   }
   body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;padding-bottom:3rem}
   header{border-bottom:1px solid var(--border);padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
@@ -44,7 +46,13 @@
 <body>
   <header>
     <div class="logo">Carro na Rede<span>Gerador de Artes</span></div>
-    <a class="nav-link" href="/index.html">← Gerador de Anúncio</a>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <a class="nav-link" href="/index.html">📝 Gerador →</a>
+      <a class="nav-link" href="/catalogo.html">📂 Catálogo →</a>
+      <a class="nav-link" href="/vendas.html">📋 Vendas →</a>
+      <a class="nav-link" href="/consultas.html">🔍 Consulta →</a>
+      <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--border);color:var(--light);padding:.5rem .7rem;cursor:pointer;line-height:1"></button>
+    </div>
   </header>
 
   <div class="wrap">
@@ -394,6 +402,7 @@ function baixar(){
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (function init(){
+  document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
   const sel = document.getElementById('d-preset');
   DICAS.forEach((d, i) => { const o = document.createElement('option'); o.value = i; o.textContent = d.t; sel.appendChild(o); });
   // Restaura logo salvo (se houver)
