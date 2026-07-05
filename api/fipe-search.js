@@ -67,8 +67,9 @@ module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { veiculo, ano } = req.body || {};
+  const { veiculo, ano, combustivel } = req.body || {};
   if (!veiculo || !ano) return res.status(400).json({ error: 'veiculo e ano obrigatórios' });
+  const combLower = (combustivel || '').toLowerCase().trim();
 
   // Garante que o ano seja apenas 4 dígitos reais (ex: "2024/2025" → "2024")
   const anoMatch = String(ano).match(/\b(19|20)\d{2}\b/);
@@ -135,8 +136,19 @@ module.exports = async (req, res) => {
       c.modelo.nome.toLowerCase().split(/[\s\-\/]+/)[0] === ancora
     ).slice(0, 12);
 
-    const temAnoExato = (anos) =>
-      anos.find(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
+    // A FIPE lista o mesmo ano separado por combustível (ex: "2020 Gasolina",
+    // "2020 Diesel"), cada um com código e valor próprios. Sem essa
+    // desambiguação o código pegava o primeiro que aparecesse, o que às vezes
+    // trazia o valor de Gasolina pra um carro Diesel (e vice-versa).
+    const temAnoExato = (anos) => {
+      const candidatos = anos.filter(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
+      if (!candidatos.length) return null;
+      if (combLower) {
+        const match = candidatos.find(a => a.nome.toLowerCase().includes(combLower));
+        if (match) return match;
+      }
+      return candidatos[0];
+    };
 
     let escolhido = null, anoObj = null, anoFallback = false;
 
@@ -173,6 +185,7 @@ module.exports = async (req, res) => {
       marca: escolhido.marca.nome,
       modelo: escolhido.modelo.nome,
       ano: anoObj.nome,
+      combustivel: fipeData.Combustivel || anoObj.nome.replace(/\b(19|20)\d{2}\b/, '').trim() || null,
       mesReferencia: fipeData.MesReferencia,
       anoFallback,
     });

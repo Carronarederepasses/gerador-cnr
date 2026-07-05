@@ -32,7 +32,7 @@ const EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'imag
 // Campos aceitos no POST/PATCH (whitelist — ignora o resto)
 const CAMPOS = [
   'marca', 'modelo', 'versao', 'complemento', 'ano', 'ano_int',
-  'km', 'cor', 'regiao', 'placa', 'valor', 'fipe',
+  'km', 'cor', 'combustivel', 'regiao', 'placa', 'valor', 'fipe',
   'opcionais', 'observacoes', 'anuncio_texto', 'status', 'fotos', 'documentos', 'avaliacao',
 ];
 

@@ -53,8 +53,15 @@ module.exports = async (req, res) => {
     const versoes = await mapLimit(mods, 6, async m => {
       try {
         const anos = await fipeGet(`/marcas/${marca}/modelos/${m.codigo}/anos`);
+        // A FIPE separa o mesmo ano por combustível (ex: "2020 Gasolina", "2020 Diesel"),
+        // com códigos diferentes e valores diferentes. Guarda o combustível à parte
+        // pra não misturar o valor de um com o do outro na cascata.
         const anosLimpos = (anos || [])
-          .map(a => ({ codigo: a.codigo, nome: a.nome, anoNum: (a.nome.match(/\b(19|20)\d{2}\b/) || [])[0] }))
+          .map(a => {
+            const anoNum = (a.nome.match(/\b(19|20)\d{2}\b/) || [])[0];
+            const combustivel = anoNum ? a.nome.replace(anoNum, '').trim() : '';
+            return { codigo: a.codigo, nome: a.nome, anoNum, combustivel };
+          })
           .filter(a => a.anoNum);
         return { codigo: m.codigo, nome: m.nome, anos: anosLimpos };
       } catch { return { codigo: m.codigo, nome: m.nome, anos: [] }; }
