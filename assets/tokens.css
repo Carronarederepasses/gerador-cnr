@@ -1,0 +1,49 @@
+/*
+ * Carro na Rede Repasses — tokens de design compartilhados
+ * Fase 1 do plano de UX/UI: uma única fonte de verdade de cor/tipografia
+ * pras 6 páginas do app (hoje cada uma redeclarava sua própria paleta).
+ * Tema claro/escuro nativo — nada de "tema do gerador" vs "tema do catálogo".
+ */
+:root{
+  color-scheme: light dark;
+
+  --surface:       #f2efe6;
+  --surface-raise: #ffffff;
+  --text:          #17150f;
+  --text-mid:      #56513f;
+  --text-faint:    #8c8570;
+  --line:          #ddd6c3;
+  --accent:        #33526e;
+  --accent-soft:   #e4ebee;
+  --severity-ok:   #3f6b52;
+  --severity-warn: #93701f;
+  --severity-crit: #a2432a;
+
+  --green:  #25D366; /* WhatsApp — reservado só pra ações de WhatsApp, não pra status */
+}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --surface:       #16140f;
+    --surface-raise: #1e1c15;
+    --text:          #efe9da;
+    --text-mid:      #b3ab97;
+    --text-faint:    #877f6c;
+    --line:          #34301f;
+    --accent:        #7fa2c0;
+    --accent-soft:   #24333d;
+    --severity-ok:   #7fb494;
+    --severity-warn: #d1a752;
+    --severity-crit: #d17356;
+  }
+}
+:root[data-theme="dark"]{
+  --surface:#16140f; --surface-raise:#1e1c15; --text:#efe9da; --text-mid:#b3ab97; --text-faint:#877f6c;
+  --line:#34301f; --accent:#7fa2c0; --accent-soft:#24333d;
+  --severity-ok:#7fb494; --severity-warn:#d1a752; --severity-crit:#d17356;
+}
+:root[data-theme="light"]{
+  --surface:#f2efe6; --surface-raise:#ffffff; --text:#17150f; --text-mid:#56513f; --text-faint:#8c8570;
+  --line:#ddd6c3; --accent:#33526e; --accent-soft:#e4ebee;
+  --severity-ok:#3f6b52; --severity-warn:#93701f; --severity-crit:#a2432a;
+}

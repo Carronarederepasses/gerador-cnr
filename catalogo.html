@@ -297,8 +297,10 @@ function card(v) {
 
   const fotos = Array.isArray(v.fotos) ? v.fotos : [];
   const thumbs = fotos.map((u) =>
-    `<div class="thumb" data-url="${esc(u)}" onclick="thumbClick(this,'${v.id}')">
-       <img src="${esc(u)}" loading="lazy">
+    `<div class="thumb" data-url="${esc(u)}" role="button" tabindex="0" aria-label="Selecionar foto"
+          onclick="thumbClick(this,'${v.id}')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();thumbClick(this,'${v.id}')}">
+       <img src="${esc(u)}" loading="lazy" alt="Foto do veículo">
        <span class="check">✓</span>
      </div>`
   ).join('');
@@ -313,7 +315,9 @@ function card(v) {
       </div>
     </div>
     <div class="dados">${dados}</div>
-    <div class="placa-linha" onclick="editarPlaca('${v.id}')" title="Clique para editar (uso interno)">
+    <div class="placa-linha" role="button" tabindex="0" title="Clique para editar (uso interno)" aria-label="Editar placa"
+         onclick="editarPlaca('${v.id}')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editarPlaca('${v.id}')}">
       🔒 Placa: <b>${v.placa ? esc(v.placa) : '—'}</b>
       ${v.placa ? `<button class="placa-busca-btn" onclick="event.stopPropagation();buscarPlaca('${v.id}')">🔍 Buscar</button>` : ''}
       <span class="edit">✏️</span>
