@@ -16,78 +16,79 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  :root{--green:#25d366}
-  body{font-family:'DM Sans',sans-serif;background:#f4f4f4;color:#111;line-height:1.5;padding:1.5rem 1rem 4rem}
+  body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);line-height:1.5;padding:1.5rem 1rem 4rem}
   .wrap{max-width:1100px;margin:0 auto}
 
-  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #111;padding-bottom:1rem}
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid var(--text);padding-bottom:1rem}
   h1{font-family:'Playfair Display',serif;font-weight:900;font-size:1.9rem;letter-spacing:-.01em}
-  header .sub{font-size:.82rem;color:#666}
-  header a.voltar{font-size:.8rem;color:#666;text-decoration:none;border-bottom:1px solid #ccc}
-  header a.voltar:hover{color:#000;border-color:#000}
+  header .sub{font-size:.82rem;color:var(--text-mid)}
+  header a.voltar{font-size:.8rem;color:var(--text-mid);text-decoration:none;border-bottom:1px solid var(--line)}
+  header a.voltar:hover{color:var(--text);border-color:var(--text)}
 
-  .barra{display:flex;gap:.8rem;flex-wrap:wrap;align-items:end;background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem;margin-bottom:1.2rem}
+  .barra{display:flex;gap:.8rem;flex-wrap:wrap;align-items:end;background:var(--surface-raise);border:1px solid var(--line);border-radius:14px;padding:1.1rem;margin-bottom:1.2rem}
   .barra .campo{flex:1;min-width:160px}
   .barra .campo.busca{flex:2;min-width:220px}
-  label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:.3rem;font-weight:500}
-  input,select,textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.6rem .7rem;border:1px solid #d5d5d5;border-radius:9px;background:#fff;color:#111}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:#111}
-  button.btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.62rem 1rem;border-radius:9px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+  label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);margin-bottom:.3rem;font-weight:500}
+  input,select,textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.6rem .7rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-raise);color:var(--text)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button.btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.62rem 1rem;border-radius:9px;border:1px solid var(--text);background:var(--text);color:var(--surface);cursor:pointer;transition:opacity .15s;white-space:nowrap}
   button.btn:hover{opacity:.85}
-  button.btn.ghost{background:#fff;color:#111}
+  button.btn.ghost{background:var(--surface-raise);color:var(--text)}
 
-  .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:#666}
+  .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:var(--text-mid)}
 
   /* Cards de venda */
   .lista{display:flex;flex-direction:column;gap:1rem}
-  .card{background:#fff;border:1px solid #e2e2e2;border-radius:14px;padding:1.1rem 1.2rem;display:flex;flex-direction:column;gap:.7rem}
+  .card{background:var(--surface-raise);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem;display:flex;flex-direction:column;gap:.7rem}
   .card .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;flex-wrap:wrap}
   .card h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.12rem;line-height:1.25}
   .card .partes{display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1.4rem;font-size:.84rem}
-  .card .partes .bloco b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:#999;font-weight:600;margin-bottom:.1rem}
-  .card .partes .bloco span{color:#333}
-  .card .valores{display:flex;gap:1.6rem;flex-wrap:wrap;border-top:1px dashed #e6e6e6;padding-top:.6rem;font-size:.85rem}
-  .card .valores .v b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:#999;font-weight:600}
+  .card .partes .bloco b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-mid);font-weight:600;margin-bottom:.1rem}
+  .card .partes .bloco span{color:var(--text-mid)}
+  .card .valores{display:flex;gap:1.6rem;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:.6rem;font-size:.85rem}
+  .card .valores .v b{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-mid);font-weight:600}
   .card .valores .v .num{font-weight:700;font-size:1rem}
-  .card .datas{font-size:.8rem;color:#666;display:flex;gap:1.2rem;flex-wrap:wrap}
+  .card .datas{font-size:.8rem;color:var(--text-mid);display:flex;gap:1.2rem;flex-wrap:wrap}
 
   .badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:.25rem .6rem;border-radius:20px;white-space:nowrap}
-  .badge.negociando{background:#eef2ff;color:#3a4fc0}
-  .badge.pago{background:#e7f7ec;color:#1a7f37}
-  .badge.retirado{background:#fff3da;color:#9a6700}
-  .badge.concluido{background:#eef9f0;color:#15803d}
-  .badge.cancelado{background:#fdecea;color:#a3261c}
+  .badge.negociando{background:color-mix(in srgb, var(--accent) 15%, transparent);color:var(--accent)}
+  .badge.pago{background:color-mix(in srgb, var(--severity-ok) 15%, transparent);color:var(--severity-ok)}
+  .badge.retirado{background:color-mix(in srgb, var(--severity-warn) 15%, transparent);color:var(--severity-warn)}
+  .badge.concluido{background:color-mix(in srgb, var(--severity-ok) 15%, transparent);color:var(--severity-ok)}
+  .badge.cancelado{background:color-mix(in srgb, var(--severity-crit) 15%, transparent);color:var(--severity-crit)}
 
   /* Anexos */
-  .anexos{border-top:1px dashed #e6e6e6;padding-top:.7rem}
+  .anexos{border-top:1px dashed var(--line);padding-top:.7rem}
   .anexos .grupo{margin-bottom:.5rem}
-  .anexos .grupo .gtit{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#999;font-weight:600;margin-bottom:.3rem}
+  .anexos .grupo .gtit{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-mid);font-weight:600;margin-bottom:.3rem}
   .anexo-chips{display:flex;flex-wrap:wrap;gap:.4rem}
-  .chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;background:#f3f3f3;border:1px solid #e2e2e2;border-radius:8px;padding:.35rem .55rem;cursor:pointer}
-  .chip:hover{border-color:#111}
-  .chip .x{color:#c0392b;font-weight:700;opacity:.6}
+  .chip{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.35rem .55rem;cursor:pointer}
+  .chip:hover{border-color:var(--accent)}
+  .chip .x{color:var(--severity-crit);font-weight:700;opacity:.6}
   .chip .x:hover{opacity:1}
-  .add-anexo{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;background:#fafafa;border:1px dashed #bbb;border-radius:8px;padding:.35rem .6rem;color:#777;cursor:pointer}
-  .add-anexo:hover{border-color:#111;color:#111}
+  .add-anexo{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:.35rem .6rem;color:var(--text-mid);cursor:pointer}
+  .add-anexo:hover{border-color:var(--accent);color:var(--text)}
 
   .card .rodape{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem}
-  .card .rodape button{font-family:'DM Sans',sans-serif;font-size:.76rem;padding:.42rem .8rem;border:1px solid #d5d5d5;border-radius:8px;background:#fafafa;color:#333;cursor:pointer}
-  .card .rodape button:hover{border-color:#111;color:#111}
-  .card .rodape button.del{color:#c0392b}
+  .card .rodape button{font-family:'DM Sans',sans-serif;font-size:.76rem;padding:.42rem .8rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text-mid);cursor:pointer}
+  .card .rodape button:hover{border-color:var(--accent);color:var(--text)}
+  .card .rodape button.del{color:var(--severity-crit)}
 
-  .vazio{text-align:center;padding:4rem 1rem;color:#999}
+  .vazio{text-align:center;padding:4rem 1rem;color:var(--text-faint)}
   .vazio .ico{font-size:2.5rem;margin-bottom:.6rem}
-  .erro{background:#fdecea;border:1px solid #f5c6c2;color:#a3261c;padding:.9rem;border-radius:10px;margin-bottom:1rem;font-size:.86rem;display:none}
+  .erro{background:color-mix(in srgb, var(--severity-crit) 12%, var(--surface));border:1px solid color-mix(in srgb, var(--severity-crit) 40%, transparent);color:var(--severity-crit);padding:.9rem;border-radius:10px;margin-bottom:1rem;font-size:.86rem;display:none}
 
   /* Modal de formulário */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;z-index:40;padding:2rem 1rem;overflow-y:auto}
   .modal.show{display:flex}
-  .modal .box{background:#fff;border-radius:16px;max-width:680px;width:100%;padding:1.5rem;margin:auto 0}
+  .modal .box{background:var(--surface-raise);border-radius:16px;max-width:680px;width:100%;padding:1.5rem;margin:auto 0}
   .modal h2{font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1rem}
   .form-sec{margin-bottom:1.1rem}
-  .form-sec .stit{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#111;font-weight:700;border-bottom:1px solid #eee;padding-bottom:.3rem;margin-bottom:.7rem}
+  .form-sec .stit{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text);font-weight:700;border-bottom:1px solid var(--line);padding-bottom:.3rem;margin-bottom:.7rem}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
   .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.7rem}
   .modal .acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem}
@@ -129,6 +130,7 @@
       <a class="voltar" href="/catalogo.html">📂 Catálogo</a>
       <a class="voltar" href="/consultas.html">🔍 Consulta</a>
       <a class="voltar" href="/artes.html">🎨 Artes</a>
+      <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--line);border-radius:8px;color:var(--text-mid);padding:.35rem .55rem;cursor:pointer;line-height:1"></button>
     </div>
   </header>
 
@@ -164,7 +166,7 @@
     <input type="hidden" id="m-id" />
 
     <div class="form-sec">
-      <div class="stit">Veículo <span id="toggle-manual" onclick="toggleManual()" style="float:right;font-size:.72rem;color:#3a4fc0;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500">✏️ digitar manual</span></div>
+      <div class="stit">Veículo <span id="toggle-manual" onclick="toggleManual()" style="float:right;font-size:.72rem;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500">✏️ digitar manual</span></div>
       <!-- Cascata FIPE -->
       <div id="cascata-box" class="grid2">
         <div><label>Marca</label><select id="m-sel-marca" onchange="vMarca()"><option value="">Carregando marcas...</option></select></div>
@@ -172,7 +174,7 @@
         <div><label>Ano</label><select id="m-sel-ano" onchange="vAno()" disabled><option value="">— selecione o modelo</option></select></div>
         <div><label>Versão</label><select id="m-sel-versao" onchange="vVersao()" disabled><option value="">— selecione o ano</option></select></div>
       </div>
-      <div id="m-fipe-st" style="font-size:.78rem;margin-top:.45rem;color:#888;min-height:1.1em"></div>
+      <div id="m-fipe-st" style="font-size:.78rem;margin-top:.45rem;color:var(--text-mid);min-height:1.1em"></div>
       <!-- Manual (carros fora da FIPE) -->
       <div id="manual-box" class="grid2" style="display:none">
         <div><label>Marca</label><input id="m-marca" /></div>
@@ -317,6 +319,7 @@ async function tentarEntrar(pass, silent) {
   $('app').style.display = 'block';
   render();
 }
+document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 $('gate-btn').onclick = () => tentarEntrar($('gate-pass').value.trim(), false);
 $('gate-pass').addEventListener('keydown', e => { if (e.key === 'Enter') tentarEntrar($('gate-pass').value.trim(), false); });
 
@@ -372,7 +375,7 @@ function cardHTML(v) {
 
   return `<div class="card">
     <div class="topo">
-      <h3>${esc(nomeCarro(v))}${v.placa ? ' · <span style="font-weight:400;color:#666">'+esc(v.placa)+'</span>' : ''}</h3>
+      <h3>${esc(nomeCarro(v))}${v.placa ? ' · <span style="font-weight:400;color:var(--text-mid)">'+esc(v.placa)+'</span>' : ''}</h3>
       <span class="badge ${v.status}">${esc(v.status)}</span>
     </div>
     <div class="partes">
@@ -380,9 +383,9 @@ function cardHTML(v) {
       <div class="bloco"><b>Destino (comprador)</b><span>${esc(v.destino) || esc(v.comprador_nome) || '—'}${v.destino && v.comprador_nome ? ' · '+esc(v.comprador_nome) : ''}${v.comprador_telefone ? ' · '+esc(v.comprador_telefone) : ''}</span></div>
     </div>
     <div class="valores">
-      <div class="v"><b>Lucro / Taxa CNR</b><span class="num" style="color:#1a7f37">${moeda(v.taxa_intermediacao)}</span></div>
+      <div class="v"><b>Lucro / Taxa CNR</b><span class="num" style="color:var(--severity-ok)">${moeda(v.taxa_intermediacao)}</span></div>
       ${v.valor_venda != null ? '<div class="v"><b>Venda</b><span class="num">'+moeda(v.valor_venda)+'</span></div>' : ''}
-      ${v.valor_fipe != null ? '<div class="v"><b>FIPE</b><span class="num" style="color:#666">'+moeda(v.valor_fipe)+'</span></div>' : ''}
+      ${v.valor_fipe != null ? '<div class="v"><b>FIPE</b><span class="num" style="color:var(--text-mid)">'+moeda(v.valor_fipe)+'</span></div>' : ''}
     </div>
     <div class="datas">
       <span>🗓️ Venda: <b>${dataBR(v.data_venda)}</b></span>
@@ -390,7 +393,7 @@ function cardHTML(v) {
       <span>📄 Doc: <b>${DOC_ROTULO[v.doc_status] || '—'}</b></span>
       ${v.forma_pagamento ? '<span>💳 '+esc(v.forma_pagamento)+'</span>' : ''}
     </div>
-    ${v.observacoes ? '<div style="font-size:.84rem;color:#555">📝 '+esc(v.observacoes)+'</div>' : ''}
+    ${v.observacoes ? '<div style="font-size:.84rem;color:var(--text-mid)">📝 '+esc(v.observacoes)+'</div>' : ''}
     <div class="anexos">${gruposAnexo}</div>
     <div class="rodape">
       <button onclick="editar('${v.id}')">✏️ Editar</button>

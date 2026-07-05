@@ -15,12 +15,16 @@
 <link rel="apple-touch-icon" href="/assets/icon-512.png">
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --black:#0a0a0a;--white:#f5f3ee;--gray:#141414;--gray2:#1c1c1c;
-    --border:rgba(245,243,238,0.1);--mid:#8c8c8c;--light:#c8c4bb;
-    --green:#25D366;--yellow:#e6b800;--red:#e05a5a;
+    /* Aliases pro nome histórico das variáveis desta página — os valores reais
+       vêm de assets/tokens.css, que já sabe reagir a tema claro/escuro. */
+    --black:var(--surface);--white:var(--text);--gray:var(--surface-raise);--gray2:var(--surface-raise);
+    --border:var(--line);--mid:var(--text-mid);--light:var(--text);
+    --green:#25D366;--yellow:var(--severity-warn);--red:var(--severity-crit);
   }
   body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh}
 
@@ -38,7 +42,7 @@
   .fsec-toggle{display:flex;align-items:center;gap:.4rem;cursor:pointer;user-select:none}
   .fsec-toggle .opc-count{font-size:.58rem;letter-spacing:.1em;color:var(--green);margin-left:auto;text-transform:none}
   .fsec-toggle .fsec-chevron{font-size:.7rem;color:var(--mid)}
-  .fsec-hint{font-size:.68rem;color:#555;margin-bottom:.75rem}
+  .fsec-hint{font-size:.68rem;color:var(--text-mid);margin-bottom:.75rem}
 
   /* GRIDS */
   .g2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
@@ -55,12 +59,12 @@
     -webkit-appearance:none;appearance:none
   }
   input:focus,select:focus,textarea:focus{border-color:rgba(245,243,238,.35)}
-  input::placeholder,textarea::placeholder{color:#444}
+  input::placeholder,textarea::placeholder{color:var(--text-faint)}
   select{
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:right .8rem center;padding-right:2rem;cursor:pointer
   }
-  select option{background:#1a1a1a}
+  select option{background:var(--surface-raise)}
   select:disabled{opacity:.35;cursor:not-allowed}
 
   /* SELECT COM BUSCA (combobox filtrável) */
@@ -68,7 +72,7 @@
   .ss-input{cursor:text}
   .ss-input:disabled{opacity:.35;cursor:not-allowed}
   .ss-list{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 2px);max-height:240px;overflow-y:auto;
-    background:#1a1a1a;border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+    background:var(--surface-raise);border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.5)}
   .ss-item{padding:.55rem .85rem;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:300;color:var(--white);cursor:pointer}
   .ss-item:hover,.ss-item.ss-hi{background:rgba(245,243,238,.1)}
   .ss-empty{padding:.55rem .85rem;font-size:.78rem;color:var(--mid)}
@@ -80,7 +84,7 @@
   .fipe-st.err{color:var(--red)}
 
   /* CATEGORY LABEL */
-  .cat-label{font-size:.58rem;letter-spacing:.28em;text-transform:uppercase;color:#444;margin:1rem 0 .4rem;padding-top:.6rem;border-top:1px solid rgba(245,243,238,.05)}
+  .cat-label{font-size:.58rem;letter-spacing:.28em;text-transform:uppercase;color:var(--text-faint);margin:1rem 0 .4rem;padding-top:.6rem;border-top:1px solid rgba(245,243,238,.05)}
   .cat-label:first-child{margin-top:0;border-top:none;padding-top:0}
 
   /* TOGGLES */
@@ -131,8 +135,8 @@
   .btn-wa{display:flex;align-items:center;justify-content:center;gap:.6rem;background:var(--green);color:#fff;border:none;padding:.9rem 1.2rem;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:opacity .2s}
   .btn-wa:hover{opacity:.88}
   .share-link{margin-top:.7rem;text-align:center}
-  .share-link a{font-family:'DM Sans',sans-serif;font-size:.78rem;color:#666;text-decoration:none;border-bottom:1px solid #ddd;padding-bottom:1px}
-  .share-link a:hover{color:#000;border-color:#000}
+  .share-link a{font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--text-mid);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:1px}
+  .share-link a:hover{color:var(--text);border-color:var(--text)}
   .btn-icon{background:var(--gray2);border:1px solid var(--border);color:var(--light);padding:.9rem 1rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;gap:.4rem;white-space:nowrap}
   .btn-icon:hover{border-color:rgba(245,243,238,.35);color:var(--white)}
   .btn-icon.copied{border-color:var(--green);color:var(--green)}
@@ -147,7 +151,7 @@
   /* COLETADOS */
   textarea.paste-area{width:100%;background:var(--gray);border:1px solid var(--border);color:var(--white);font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:300;padding:.75rem .85rem;outline:none;resize:vertical;min-height:160px;transition:border-color .2s;line-height:1.65}
   textarea.paste-area:focus{border-color:rgba(245,243,238,.35)}
-  textarea.paste-area::placeholder{color:#444}
+  textarea.paste-area::placeholder{color:var(--text-faint)}
   .parse-st{font-size:.68rem;margin-top:.35rem;min-height:1rem;color:var(--mid)}
   .parse-st.ok{color:var(--green)}
   .parse-st.err{color:var(--red)}
@@ -185,14 +189,14 @@
   .cap-av-pills{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.2rem}
   .cap-pill{font-size:.68rem;font-weight:600;padding:.24rem .52rem;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--mid);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif}
   .cap-pill:hover{border-color:rgba(245,243,238,.3);color:var(--light)}
-  .cap-pill.on.bom{background:#0a2e14;border-color:#1a7f37;color:#4ade80}
-  .cap-pill.on.alerta{background:#261800;border-color:#9a6700;color:#fbbf24}
-  .cap-pill.on.ruim{background:#2a0a0a;border-color:#c0392b;color:#f87171}
+  .cap-pill.on.bom{background:color-mix(in srgb, var(--severity-ok) 18%, var(--surface));border-color:var(--severity-ok);color:var(--severity-ok)}
+  .cap-pill.on.alerta{background:color-mix(in srgb, var(--severity-warn) 18%, var(--surface));border-color:var(--severity-warn);color:var(--severity-warn)}
+  .cap-pill.on.ruim{background:color-mix(in srgb, var(--severity-crit) 18%, var(--surface));border-color:var(--severity-crit);color:var(--severity-crit)}
   .cap-av-sub{margin-top:.35rem;padding-left:.2rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
   .cap-av-sub .subnm{font-size:.7rem;color:var(--mid)}
   .cap-av-fotozone{margin-top:.4rem;display:none;align-items:center;gap:.5rem;flex-wrap:wrap}
   .cap-av-fotozone.show{display:flex}
-  .cap-av-fotobtn{font-size:.7rem;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:6px;color:#f97316;padding:.26rem .52rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .cap-av-fotobtn{font-size:.7rem;background:color-mix(in srgb, var(--severity-warn) 12%, transparent);border:1px solid color-mix(in srgb, var(--severity-warn) 40%, transparent);border-radius:6px;color:var(--severity-warn);padding:.26rem .52rem;cursor:pointer;font-family:'DM Sans',sans-serif}
   .cap-av-fotothumb{width:46px;height:46px;object-fit:cover;border-radius:5px;border:1px solid var(--border);cursor:pointer}
   .cap-av-fotodel{font-size:.66rem;color:var(--red);cursor:pointer;background:none;border:none;padding:0;font-family:'DM Sans',sans-serif}
   .cap-av-nota-row{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;flex-wrap:wrap}
@@ -207,7 +211,7 @@
   .editor-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
   .editor-upload-ico{font-size:2rem;margin-bottom:.5rem;opacity:.4}
   .editor-upload-txt{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mid)}
-  .editor-upload-txt span{display:block;font-size:.62rem;margin-top:.3rem;color:#444}
+  .editor-upload-txt span{display:block;font-size:.62rem;margin-top:.3rem;color:var(--text-faint)}
   .editor-thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:none;border:1px solid var(--border)}
   .editor-st{font-size:.68rem;margin:.4rem 0;min-height:1rem;color:var(--mid)}
   .editor-st.ok{color:var(--green)}
@@ -243,6 +247,7 @@
     <a href="/vendas.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">📋 Vendas →</a>
     <a href="/consultas.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🔍 Consulta →</a>
     <a href="/artes.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🎨 Artes →</a>
+    <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--border);color:var(--light);padding:.5rem .7rem;cursor:pointer;line-height:1"></button>
   </div>
 </header>
 
@@ -279,7 +284,7 @@
       <label>🔒 Placa <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— uso interno, NÃO aparece no anúncio</span></label>
       <div style="display:flex;gap:.5rem;align-items:center">
         <input type="text" id="placa" placeholder="ABC1D23" style="text-transform:uppercase;flex:1" maxlength="8" oninput="this.value=this.value.toUpperCase()">
-        <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius:9px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+        <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius:9px;border:1px solid var(--text);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
       </div>
       <div id="placa-st" style="font-size:.72rem;min-height:1rem;margin-top:.35rem;color:var(--mid)"></div>
     </div>
@@ -2529,7 +2534,7 @@ document.getElementById('cap-avaria-input').addEventListener('change', async (e)
   if (!catalogoId) await autoSalvar();
   const fEl = document.getElementById('capavf-'+alvo.sec+'-'+alvo.item);
   if (!fEl) return;
-  fEl.innerHTML='<span style="font-size:.7rem;color:#aaa">Enviando…</span>';
+  fEl.innerHTML='<span style="font-size:.7rem;color:var(--text-mid)">Enviando…</span>';
   try {
     const b64 = await comprimirLocal(f);
     const r = await fetch('/api/catalogo?avaria=1', {
@@ -2566,6 +2571,7 @@ async function salvarChecklist() {
 }
 
 // ══ INIT ══
+document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 buildOpcionais();
 buildObs();
 (async () => {
