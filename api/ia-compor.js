@@ -64,7 +64,7 @@ async function viaOpenAI(res, imageBase64, mimeType) {
   form.append('model', 'gpt-image-1');
   form.append('prompt', PROMPT);
   form.append('size', '1536x1024');     // paisagem (bom para carro)
-  form.append('quality', 'high');       // máximo realismo (um pouco mais lento)
+  form.append('quality', 'medium');     // mais rápido — evita timeout de conexão em redes móveis/plano Hobby da Vercel
   form.append('output_format', 'png');
   form.append('image[]', new Blob([Buffer.from(imageBase64, 'base64')], { type: mimeType || 'image/jpeg' }), 'carro.jpg');
   form.append('image[]', new Blob([getBgBuffer()], { type: 'image/jpeg' }), 'estudio.jpg');
