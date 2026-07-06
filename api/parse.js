@@ -23,6 +23,9 @@ Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
   "valor": "preço pedido sem R$ e sem pontos (ex: 89990)",
   "fipe": "valor FIPE sem R$ e sem pontos se mencionado, senão null",
   "combustivel": "um destes valores, se mencionado ou claramente indicado pela versão do carro: Flex, Gasolina, Álcool, Diesel, Híbrido, Elétrico, GNV. null se não der pra saber",
+  "blindagem_marca": "marca da blindagem se mencionada (ex: Hevox, Inbrap, Blindex, Centurion). null se não houver ou não for blindado",
+  "blindagem_nivel": "nível de proteção da blindagem se mencionado (ex: IIIA, Nível III-A). null se não houver ou não for blindado",
+  "blindagem_vidro": "descrição do vidro da blindagem se mencionada (ex: vidros originais blindados). null se não houver ou não for blindado",
   "opcionais": ["array somente com itens CONFIRMADOS no texto, usando exatamente estes nomes: ar-condicionado, ar-condicionado digital, direcao-eletrica, vidros-eletricos, travas-eletricas, retrovisores-eletricos, comandos-no-volante, multimidia, android-auto-carplay, piloto-automatico, bancos-em-couro, teto-solar, teto-panoramico, keyless, partida-remota, freio-abs, airbag, controle-de-tracao, sensor-estacionamento, camera-re, cambio-manual, cambio-automatico, cambio-cvt, tracao-4x4, rodas-liga-leve, farol-led-xenon, pneus-zero, unico-dono, ipva-pago, sem-multas-debitos, revisoes-concessionaria, na-garantia, blindado (sinônimos que também contam como blindado: blindagem, blindada, veículo blindado)"],
   "extras": "string com informações relevantes do anúncio que NÃO se encaixam nos opcionais acima. IMPORTANTE: NUNCA repita aqui itens que já estão em opcionais (ex: não coloque 'IPVA pago', 'único dono', 'sem débitos', 'na garantia', 'revisões em concessionária' — esses já ficam em opcionais). Use apenas para informações genuinamente diferentes, como: 'manual e chave reserva', '2 pneus meia vida', 'sinistrado', 'de leilão'. null se não houver."
 }
