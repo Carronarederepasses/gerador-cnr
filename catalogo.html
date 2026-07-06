@@ -1212,12 +1212,9 @@ async function gerarPDFAval(){
   }
 
   const nomeArq = 'ficha-' + String(v.placa || nomeVeiculo(v)).replace(/[^\w]+/g, '-').toLowerCase() + '.pdf';
-  const dataUri = doc.output('datauristring');
   const modal = document.getElementById('pdf-preview-modal');
-  const iframe = document.getElementById('pdf-preview-iframe');
   const btnDl = document.getElementById('pdf-preview-dl');
-  iframe.src = dataUri;
-  btnDl.onclick = () => doc.save(nomeArq);
+  btnDl.onclick = () => { doc.save(nomeArq); modal.style.display = 'none'; };
   modal.style.display = 'flex';
 }
 
@@ -1227,20 +1224,21 @@ $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); }
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 carregar();
 document.getElementById('pdf-preview-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('pdf-preview-modal')) {
+  if (e.target === document.getElementById('pdf-preview-modal'))
     document.getElementById('pdf-preview-modal').style.display = 'none';
-    document.getElementById('pdf-preview-iframe').src = '';
-  }
 });
 </script>
 
 <!-- Modal Preview PDF -->
-<div id="pdf-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;flex-direction:column;align-items:center;justify-content:center;padding:1rem;gap:.75rem" class="">
-  <div style="display:flex;gap:.75rem;width:100%;max-width:860px;justify-content:flex-end">
-    <button id="pdf-preview-dl" style="background:#fff;color:#111;border:none;border-radius:8px;padding:.6rem 1.2rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">⬇ Baixar PDF</button>
-    <button onclick="document.getElementById('pdf-preview-modal').style.display='none';document.getElementById('pdf-preview-iframe').src=''" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:.6rem 1rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">✕ Fechar</button>
+<div id="pdf-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:1.5rem">
+  <div style="background:var(--surface-raise);border-radius:16px;max-width:360px;width:100%;padding:1.8rem;display:flex;flex-direction:column;gap:1.2rem">
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--text)">📄 PDF gerado</div>
+    <div style="font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text-muted)">A ficha de inspeção está pronta. Deseja baixar?</div>
+    <div style="display:flex;gap:.75rem">
+      <button id="pdf-preview-dl" style="flex:1;background:var(--text);color:var(--surface);border:none;border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">⬇ Baixar PDF</button>
+      <button onclick="document.getElementById('pdf-preview-modal').style.display='none'" style="flex:1;background:transparent;color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">Cancelar</button>
+    </div>
   </div>
-  <iframe id="pdf-preview-iframe" src="" style="width:100%;max-width:860px;height:80vh;border:none;border-radius:10px"></iframe>
 </div>
 </body>
 </html>
