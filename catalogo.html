@@ -245,7 +245,7 @@
       <textarea id="av-obs" placeholder="Resumo, ressalvas, recomendações..." style="min-height:60px"></textarea>
     </div>
     <div class="av-acoes">
-      <button class="btn ghost" onclick="gerarPDFAval()" style="margin-right:auto">📄 PDF</button>
+      <button class="btn ghost" onclick="mostrarPreviewPDF()" style="margin-right:auto">📄 PDF</button>
       <button class="btn ghost" onclick="fecharAval()">Cancelar</button>
       <button class="btn" onclick="salvarAval()">Salvar avaliação</button>
     </div>
@@ -1212,10 +1212,65 @@ async function gerarPDFAval(){
   }
 
   const nomeArq = 'ficha-' + String(v.placa || nomeVeiculo(v)).replace(/[^\w]+/g, '-').toLowerCase() + '.pdf';
-  const modal = document.getElementById('pdf-preview-modal');
-  const btnDl = document.getElementById('pdf-preview-dl');
-  btnDl.onclick = () => { doc.save(nomeArq); modal.style.display = 'none'; };
-  modal.style.display = 'flex';
+  doc.save(nomeArq);
+}
+
+function mostrarPreviewPDF() {
+  const id = $('av-veiculo-id').value;
+  const v = CACHE[id]; if (!v) return;
+
+  const nota = $('av-nota').value;
+  const notaLabel = { acima: 'Acima da média', media: 'Na média', abaixo: 'Abaixo da média' }[nota] || '';
+  const notaBg    = { acima: 'var(--bg-success)', media: 'var(--bg-warning)', abaixo: 'var(--bg-danger)' }[nota] || '';
+  const notaCor   = { acima: 'var(--text-success)', media: 'var(--text-warning)', abaixo: 'var(--text-danger)' }[nota] || '';
+
+  let secoesHTML = '';
+  for (const sec of AVAL) {
+    const itens = sec.itens.map(it => {
+      const cel = (AVAL_RES[sec.id] && AVAL_RES[sec.id][it.id]) || {};
+      const status = cel.status || ''; if (!status) return '';
+      const opts = it.opts || sec.opts || [];
+      const idx  = opts.indexOf(status);
+      const sev  = idx === -1 ? 'bom' : sevAv(opts, idx);
+      const icon = sev === 'bom' ? '✓' : sev === 'ruim' ? '✗' : '!';
+      const cor  = sev === 'bom' ? 'var(--text-success)' : sev === 'ruim' ? 'var(--text-danger)' : 'var(--text-warning)';
+      return `<div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-primary);font-family:var(--font-sans)"><span style="color:${cor};font-weight:600;width:10px">${icon}</span>${it.nome}</div>`;
+    }).filter(Boolean).join('');
+    if (!itens) continue;
+    secoesHTML += `<div style="margin-bottom:10px">
+      <p style="margin:0 0 5px;font-size:10px;font-weight:500;color:var(--text-muted);font-family:var(--font-sans);text-transform:uppercase;letter-spacing:.05em">${sec.titulo}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">${itens}</div>
+    </div>`;
+  }
+
+  const kmFmt    = v.km    ? Number(v.km).toLocaleString('pt-BR') + ' km' : '';
+  const valorFmt = v.valor ? 'R$ ' + Number(v.valor).toLocaleString('pt-BR') : '';
+  const fipeFmt  = v.fipe  ? 'R$ ' + Number(v.fipe).toLocaleString('pt-BR')  : '';
+  const nomeCarro = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ');
+  const infos = [v.ano, kmFmt, v.cor, v.placa].filter(Boolean).join(' · ');
+
+  document.getElementById('pdf-preview-content').innerHTML = `
+    <div style="padding:1rem 1.25rem;border-bottom:0.5px solid var(--border)">
+      <p style="margin:0 0 2px;font-size:10px;color:var(--text-muted);font-family:var(--font-sans);text-transform:uppercase;letter-spacing:.05em">Ficha de inspeção</p>
+      <p style="margin:0;font-size:15px;font-weight:500;color:var(--text-primary);font-family:var(--font-sans)">${nomeCarro || '—'}</p>
+      ${infos ? `<p style="margin:4px 0 0;font-size:12px;color:var(--text-secondary);font-family:var(--font-sans)">${infos}</p>` : ''}
+      ${notaLabel ? `<span style="display:inline-block;margin-top:8px;background:${notaBg};color:${notaCor};font-size:11px;font-family:var(--font-sans);padding:3px 10px;border-radius:20px;font-weight:500">${notaLabel}</span>` : ''}
+    </div>
+    ${secoesHTML ? `<div style="padding:1rem 1.25rem;border-bottom:0.5px solid var(--border)">${secoesHTML}</div>` : ''}
+    ${(valorFmt || fipeFmt) ? `<div style="padding:1rem 1.25rem">
+      <p style="margin:0 0 8px;font-size:10px;font-weight:500;color:var(--text-muted);font-family:var(--font-sans);text-transform:uppercase;letter-spacing:.05em">Valores</p>
+      <div style="display:flex;justify-content:space-between">
+        ${valorFmt ? `<div><p style="margin:0;font-size:11px;color:var(--text-muted);font-family:var(--font-sans)">Pretendido</p><p style="margin:2px 0 0;font-size:14px;font-weight:500;color:var(--text-primary);font-family:var(--font-sans)">${valorFmt}</p></div>` : ''}
+        ${fipeFmt  ? `<div style="text-align:right"><p style="margin:0;font-size:11px;color:var(--text-muted);font-family:var(--font-sans)">FIPE</p><p style="margin:2px 0 0;font-size:14px;font-weight:500;color:var(--text-primary);font-family:var(--font-sans)">${fipeFmt}</p></div>` : ''}
+      </div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('pdf-preview-dl').onclick = () => {
+    document.getElementById('pdf-preview-modal').style.display = 'none';
+    gerarPDFAval();
+  };
+  document.getElementById('pdf-preview-modal').style.display = 'flex';
 }
 
 // Enter na busca livre dispara a pesquisa
@@ -1226,13 +1281,16 @@ carregar();
 </script>
 
 <!-- Modal Preview PDF -->
-<div id="pdf-preview-modal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:1.5rem">
-  <div style="background:var(--surface-raise);border-radius:16px;max-width:360px;width:100%;padding:1.8rem;display:flex;flex-direction:column;gap:1.2rem">
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--text)">📄 PDF gerado</div>
-    <div style="font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text-muted)">A ficha de inspeção está pronta. Deseja baixar?</div>
-    <div style="display:flex;gap:.75rem">
-      <button id="pdf-preview-dl" style="flex:1;background:var(--text);color:var(--surface);border:none;border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">⬇ Baixar PDF</button>
-      <button onclick="document.getElementById('pdf-preview-modal').style.display='none'" style="flex:1;background:transparent;color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">Cancelar</button>
+<div id="pdf-preview-modal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center;padding:0">
+  <div style="background:var(--surface-raise,#fff);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.25rem;border-bottom:0.5px solid var(--border)">
+      <span style="font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:var(--text)">Pré-visualização da ficha</span>
+      <button onclick="document.getElementById('pdf-preview-modal').style.display='none'" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted);line-height:1">✕</button>
+    </div>
+    <div id="pdf-preview-content" style="overflow-y:auto;flex:1"></div>
+    <div style="padding:1rem 1.25rem;border-top:0.5px solid var(--border);display:flex;gap:.75rem">
+      <button id="pdf-preview-dl" style="flex:1;background:var(--text,#111);color:var(--surface,#fff);border:none;border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer">⬇ Baixar PDF</button>
+      <button onclick="document.getElementById('pdf-preview-modal').style.display='none'" style="flex:1;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer">Cancelar</button>
     </div>
   </div>
 </div>
