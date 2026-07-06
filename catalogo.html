@@ -1223,14 +1223,10 @@ $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); }
 
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 carregar();
-document.getElementById('pdf-preview-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('pdf-preview-modal'))
-    document.getElementById('pdf-preview-modal').style.display = 'none';
-});
 </script>
 
 <!-- Modal Preview PDF -->
-<div id="pdf-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:1.5rem">
+<div id="pdf-preview-modal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:1.5rem">
   <div style="background:var(--surface-raise);border-radius:16px;max-width:360px;width:100%;padding:1.8rem;display:flex;flex-direction:column;gap:1.2rem">
     <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--text)">📄 PDF gerado</div>
     <div style="font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text-muted)">A ficha de inspeção está pronta. Deseja baixar?</div>
