@@ -78,6 +78,10 @@
   .card .rodape button:hover{border-color:var(--accent);color:var(--text)}
   .card .rodape button.del{color:var(--severity-crit)}
 
+  .sep-mes{display:flex;align-items:center;gap:.9rem;margin:.6rem 0 .2rem}
+  .sep-mes span{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;color:var(--text);white-space:nowrap}
+  .sep-mes::after{content:'';flex:1;height:1px;background:var(--line)}
+
   .vazio{text-align:center;padding:4rem 1rem;color:var(--text-faint)}
   .vazio .ico{font-size:2.5rem;margin-bottom:.6rem}
   .erro{background:color-mix(in srgb, var(--severity-crit) 12%, var(--surface));border:1px solid color-mix(in srgb, var(--severity-crit) 40%, transparent);color:var(--severity-crit);padding:.9rem;border-radius:10px;margin-bottom:1rem;font-size:.86rem;display:none}
@@ -345,13 +349,30 @@ function debounce(fn, ms){ let t; return (...a)=>{clearTimeout(t);t=setTimeout((
 function mostrarErro(m){ $('erro').textContent = m; $('erro').style.display = 'block'; setTimeout(()=>$('erro').style.display='none', 5000); }
 
 // ── Render ─────────────────────────────────────────────────────
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function mesLabel(dataStr) {
+  if (!dataStr) return 'Sem data';
+  const [ano, mes] = dataStr.split('-');
+  return MESES[parseInt(mes, 10) - 1] + '/' + ano;
+}
+
 function render() {
   $('contador').textContent = VENDAS.length ? `${VENDAS.length} venda(s)` : '';
   if (!VENDAS.length) {
     $('lista').innerHTML = '<div class="vazio"><div class="ico">📋</div>Nenhuma venda registrada ainda.<br>Clique em <b>+ Nova venda</b> pra começar.</div>';
     return;
   }
-  $('lista').innerHTML = ordenar(VENDAS).map(cardHTML).join('');
+  const sorted = ordenar(VENDAS);
+  let html = '', mesAtual = null;
+  for (const v of sorted) {
+    const mes = mesLabel(v.data_venda);
+    if (mes !== mesAtual) {
+      html += `<div class="sep-mes"><span>${mes}</span></div>`;
+      mesAtual = mes;
+    }
+    html += cardHTML(v);
+  }
+  $('lista').innerHTML = html;
 }
 $('btn-ordem').onclick = () => {
   ordemDesc = !ordemDesc;
