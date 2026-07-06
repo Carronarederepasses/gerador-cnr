@@ -1212,7 +1212,7 @@ async function gerarPDFAval(){
   }
 
   const nomeArq = 'ficha-' + String(v.placa || nomeVeiculo(v)).replace(/[^\w]+/g, '-').toLowerCase() + '.pdf';
-  doc.save(nomeArq);
+  window.open(doc.output('bloburl'), '_blank');
 }
 
 // Enter na busca livre dispara a pesquisa
