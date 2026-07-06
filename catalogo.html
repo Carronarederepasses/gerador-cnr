@@ -1212,7 +1212,13 @@ async function gerarPDFAval(){
   }
 
   const nomeArq = 'ficha-' + String(v.placa || nomeVeiculo(v)).replace(/[^\w]+/g, '-').toLowerCase() + '.pdf';
-  window.open(doc.output('bloburl'), '_blank');
+  const dataUri = doc.output('datauristring');
+  const modal = document.getElementById('pdf-preview-modal');
+  const iframe = document.getElementById('pdf-preview-iframe');
+  const btnDl = document.getElementById('pdf-preview-dl');
+  iframe.src = dataUri;
+  btnDl.onclick = () => doc.save(nomeArq);
+  modal.style.display = 'flex';
 }
 
 // Enter na busca livre dispara a pesquisa
@@ -1220,6 +1226,21 @@ $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); }
 
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 carregar();
+document.getElementById('pdf-preview-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('pdf-preview-modal')) {
+    document.getElementById('pdf-preview-modal').style.display = 'none';
+    document.getElementById('pdf-preview-iframe').src = '';
+  }
+});
 </script>
+
+<!-- Modal Preview PDF -->
+<div id="pdf-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;flex-direction:column;align-items:center;justify-content:center;padding:1rem;gap:.75rem" class="">
+  <div style="display:flex;gap:.75rem;width:100%;max-width:860px;justify-content:flex-end">
+    <button id="pdf-preview-dl" style="background:#fff;color:#111;border:none;border-radius:8px;padding:.6rem 1.2rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">⬇ Baixar PDF</button>
+    <button onclick="document.getElementById('pdf-preview-modal').style.display='none';document.getElementById('pdf-preview-iframe').src=''" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:.6rem 1rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer">✕ Fechar</button>
+  </div>
+  <iframe id="pdf-preview-iframe" src="" style="width:100%;max-width:860px;height:80vh;border:none;border-radius:10px"></iframe>
+</div>
 </body>
 </html>
