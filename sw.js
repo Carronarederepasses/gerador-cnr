@@ -4,6 +4,9 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (e) => {
-  // Rede sempre; sem cache. (handler presente só pra tornar o app instalável)
+  // POST/PUT/DELETE para /api/ vão direto pra rede sem passar pelo SW —
+  // evita problema de body consumido duas vezes em uploads no mobile.
+  if (e.request.method !== 'GET') return;
+  // GET: rede sempre, sem cache.
   e.respondWith(fetch(e.request));
 });
