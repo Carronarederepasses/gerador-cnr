@@ -102,6 +102,17 @@
   .status-menu-item:hover{background:rgba(245,243,238,.08)}
   .status-menu-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
+  /* CONTRATO - SEÇÕES DO MODAL */
+  .c-sec{border:1px solid var(--border);margin-bottom:.45rem}
+  .c-sec summary{padding:.58rem .85rem;font-size:.63rem;font-weight:500;letter-spacing:.13em;text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;user-select:none;color:var(--mid)}
+  .c-sec summary::-webkit-details-marker{display:none}
+  .c-sec summary::after{content:'▾';font-size:.6rem;flex-shrink:0}
+  .c-sec[open] summary{color:var(--white)}
+  .c-sec[open] summary::after{content:'▴'}
+  .c-body{padding:.75rem;border-top:1px solid var(--border)}
+  .c-body .field{margin-bottom:.65rem}
+  .c-body .field:last-child{margin-bottom:0}
+
   @media(max-width:600px){
     .main{padding:1.2rem}
     .g2{grid-template-columns:1fr}
@@ -199,6 +210,133 @@
   </div>
 </div>
 
+<!-- MODAL CONTRATO -->
+<div class="overlay" id="overlay-c" onclick="fecharContratoFora(event)">
+  <div class="modal" id="modal-c" style="max-width:640px">
+    <div class="modal-title">Gerar Contrato</div>
+
+    <details class="c-sec" open>
+      <summary>Vendedor (proprietário do veículo)</summary>
+      <div class="c-body">
+        <div class="g2">
+          <div class="field"><label>Nome completo</label><input type="text" id="c-vend-nome" placeholder="Nome do vendedor"></div>
+          <div class="field"><label>CPF / CNPJ</label><input type="text" id="c-vend-doc" placeholder="000.000.000-00"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>RG (opcional)</label><input type="text" id="c-vend-rg"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="c-vend-tel"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>E-mail (opcional)</label><input type="text" id="c-vend-email"></div>
+          <div class="field"><label>Cidade/UF</label><input type="text" id="c-vend-cidade" placeholder="ex: Garopaba/SC"></div>
+        </div>
+        <div class="field"><label>Endereço (opcional)</label><input type="text" id="c-vend-end" placeholder="Rua, número, bairro"></div>
+      </div>
+    </details>
+
+    <details class="c-sec" open>
+      <summary>Comprador</summary>
+      <div class="c-body">
+        <div class="g2">
+          <div class="field"><label>Nome completo</label><input type="text" id="c-comp-nome" placeholder="Nome do comprador"></div>
+          <div class="field"><label>CPF / CNPJ</label><input type="text" id="c-comp-doc" placeholder="000.000.000-00"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>RG (opcional)</label><input type="text" id="c-comp-rg"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="c-comp-tel"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>E-mail (opcional)</label><input type="text" id="c-comp-email"></div>
+          <div class="field"><label>Cidade/UF</label><input type="text" id="c-comp-cidade" placeholder="ex: Garopaba/SC"></div>
+        </div>
+        <div class="field"><label>Endereço (opcional)</label><input type="text" id="c-comp-end" placeholder="Rua, número, bairro"></div>
+      </div>
+    </details>
+
+    <details class="c-sec" open>
+      <summary>Veículo</summary>
+      <div class="c-body">
+        <div class="field"><label>Marca / Modelo / Versão / Ano</label><input type="text" id="c-veiculo" placeholder="ex: Ford Ka SE 1.0 Flex 2023/2024"></div>
+        <div class="g2">
+          <div class="field"><label>Placa</label><input type="text" id="c-placa" placeholder="ABC-1234"></div>
+          <div class="field"><label>Quilometragem</label><input type="text" id="c-km" placeholder="ex: 45.000 km"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Cor</label><input type="text" id="c-cor" placeholder="ex: Prata"></div>
+          <div class="field"><label>Combustível</label><input type="text" id="c-combustivel" placeholder="ex: Flex"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Chassi (opcional)</label><input type="text" id="c-chassi"></div>
+          <div class="field"><label>RENAVAM (opcional)</label><input type="text" id="c-renavam"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Alienação / Financiamento</label><input type="text" id="c-alienacao" placeholder="Não"></div>
+          <div class="field"><label>Débitos</label><input type="text" id="c-debitos" placeholder="Nenhum"></div>
+        </div>
+        <div class="field"><label>Observações do veículo (opcional)</label><input type="text" id="c-veiculo-obs"></div>
+      </div>
+    </details>
+
+    <details class="c-sec" open>
+      <summary>Valor e Comissão</summary>
+      <div class="c-body">
+        <div class="g2">
+          <div class="field"><label>Valor do Veículo (R$)</label><input type="text" id="c-valor" placeholder="ex: 45.000,00"></div>
+          <div class="field"><label>Data prevista de pagamento</label><input type="text" id="c-data-pgto" placeholder="ex: na entrega"></div>
+        </div>
+        <div class="field"><label>Forma de Pagamento</label><input type="text" id="c-forma-pgto" placeholder="ex: PIX, transferência bancária, financiamento..."></div>
+        <div class="g2">
+          <div class="field"><label>Comissão (R$)</label><input type="text" id="c-valor-comissao" placeholder="ex: 1.500,00"></div>
+          <div class="field"><label>ou Percentual (%)</label><input type="text" id="c-perc-comissao" placeholder="ex: 3"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Quem paga a comissão</label><input type="text" id="c-resp-comissao" placeholder="ex: Vendedor"></div>
+          <div class="field"><label>Forma de pgto da comissão</label><input type="text" id="c-forma-pgto-comissao" placeholder="ex: PIX na entrega"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="c-sec" open>
+      <summary>Local, Data e Testemunhas</summary>
+      <div class="c-body">
+        <div class="g2">
+          <div class="field"><label>Cidade / UF do contrato</label><input type="text" id="c-cidade-data" placeholder="ex: Garopaba/SC"></div>
+          <div class="field"><label>Data do contrato</label><input type="date" id="c-data" style="color-scheme:dark"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Testemunha 1 — Nome</label><input type="text" id="c-test1-nome"></div>
+          <div class="field"><label>Testemunha 1 — CPF</label><input type="text" id="c-test1-cpf" placeholder="000.000.000-00"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Testemunha 2 — Nome</label><input type="text" id="c-test2-nome"></div>
+          <div class="field"><label>Testemunha 2 — CPF</label><input type="text" id="c-test2-cpf" placeholder="000.000.000-00"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="c-sec">
+      <summary>Intermediadora — seus dados (salvo automaticamente)</summary>
+      <div class="c-body">
+        <div class="g2">
+          <div class="field"><label>Responsável (seu nome)</label><input type="text" id="c-int-resp" placeholder="ex: Yuri Coutinho"></div>
+          <div class="field"><label>CPF</label><input type="text" id="c-int-cpf" placeholder="000.000.000-00"></div>
+        </div>
+        <div class="field"><label>Endereço</label><input type="text" id="c-int-end" placeholder="Rua, número, bairro"></div>
+        <div class="g2">
+          <div class="field"><label>Cidade/UF</label><input type="text" id="c-int-cidade" placeholder="ex: Garopaba/SC"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="c-int-tel"></div>
+        </div>
+        <div class="field"><label>E-mail</label><input type="text" id="c-int-email"></div>
+      </div>
+    </details>
+
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="imprimirContrato()">🖨️ Gerar e Abrir Contrato</button>
+      <button class="btn-secondary" onclick="fecharContrato()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const KEY = 'cnr-negociacoes';
 let dados = [];
@@ -289,6 +427,7 @@ function renderLista() {
         <div class="neg-dias">${n.ultimoContato ? fmtDias(dias) : ''}</div>
       </div>
       ${n.obs ? `<div class="neg-obs">${n.obs}</div>` : ''}
+      ${n.status === 'comprado' ? `<div style="margin-top:.55rem;padding-top:.5rem;border-top:1px solid rgba(245,243,238,.07)"><button onclick="event.stopPropagation();abrirContrato('${n.id}')" style="background:none;border:1px solid rgba(37,211,102,.35);color:#25D366;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:400;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">📄 Gerar Contrato</button></div>` : ''}
     </div>`;
   }).join('');
 }
@@ -437,6 +576,255 @@ function lerParams() {
     abrirNova();
     document.getElementById('m-veiculo').value = decodeURIComponent(veiculo);
   }
+}
+
+// ══ CONTRATO ══
+const PERFIL_KEY = 'cnr-perfil';
+let contratoNegId = null;
+
+function loadPerfil() {
+  try { return JSON.parse(localStorage.getItem(PERFIL_KEY)) || {}; } catch { return {}; }
+}
+function savePerfil(p) { localStorage.setItem(PERFIL_KEY, JSON.stringify(p)); }
+
+function cVal(id) { return (document.getElementById(id)?.value || '').trim(); }
+function cSet(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
+
+function abrirContrato(id) {
+  const n = dados.find(x => x.id === id);
+  if (!n) return;
+  contratoNegId = id;
+
+  // Vendedor — pre-preenche do contato
+  cSet('c-vend-nome', n.contato);
+  cSet('c-vend-tel', n.telefone);
+  cSet('c-vend-doc', ''); cSet('c-vend-rg', ''); cSet('c-vend-email', '');
+  cSet('c-vend-end', ''); cSet('c-vend-cidade', '');
+
+  // Comprador — vazio
+  ['c-comp-nome','c-comp-doc','c-comp-rg','c-comp-tel','c-comp-email','c-comp-end','c-comp-cidade'].forEach(i => cSet(i, ''));
+
+  // Veículo — pre-preenche nome
+  cSet('c-veiculo', n.veiculo);
+  ['c-placa','c-km','c-cor','c-combustivel','c-chassi','c-renavam','c-veiculo-obs'].forEach(i => cSet(i, ''));
+  cSet('c-alienacao', 'Não'); cSet('c-debitos', 'Nenhum');
+
+  // Negociação — vazio
+  ['c-valor','c-data-pgto','c-forma-pgto','c-valor-comissao','c-perc-comissao','c-resp-comissao','c-forma-pgto-comissao'].forEach(i => cSet(i, ''));
+
+  // Data/local
+  cSet('c-data', hoje());
+
+  // Perfil salvo (intermediadora)
+  const p = loadPerfil();
+  cSet('c-int-resp', p.responsavel);
+  cSet('c-int-cpf', p.cpf);
+  cSet('c-int-end', p.endereco);
+  cSet('c-int-cidade', p.cidade);
+  cSet('c-int-tel', p.telefone);
+  cSet('c-int-email', p.email || 'carronarederepasses@gmail.com');
+  cSet('c-cidade-data', p.cidade);
+
+  document.getElementById('overlay-c').classList.add('show');
+  document.getElementById('modal-c').scrollTop = 0;
+}
+
+function fecharContrato() {
+  document.getElementById('overlay-c').classList.remove('show');
+  contratoNegId = null;
+}
+
+function fecharContratoFora(e) {
+  if (e.target === document.getElementById('overlay-c')) fecharContrato();
+}
+
+function imprimirContrato() {
+  // Salva perfil da intermediadora
+  savePerfil({
+    responsavel: cVal('c-int-resp'), cpf: cVal('c-int-cpf'),
+    endereco: cVal('c-int-end'), cidade: cVal('c-int-cidade'),
+    telefone: cVal('c-int-tel'), email: cVal('c-int-email')
+  });
+
+  const d = {
+    int_responsavel: cVal('c-int-resp'), int_cpf: cVal('c-int-cpf'),
+    int_endereco: cVal('c-int-end'), int_cidade: cVal('c-int-cidade'),
+    int_telefone: cVal('c-int-tel'), int_email: cVal('c-int-email'),
+    vend_nome: cVal('c-vend-nome'), vend_doc: cVal('c-vend-doc'),
+    vend_rg: cVal('c-vend-rg'), vend_tel: cVal('c-vend-tel'),
+    vend_email: cVal('c-vend-email'), vend_end: cVal('c-vend-end'), vend_cidade: cVal('c-vend-cidade'),
+    comp_nome: cVal('c-comp-nome'), comp_doc: cVal('c-comp-doc'),
+    comp_rg: cVal('c-comp-rg'), comp_tel: cVal('c-comp-tel'),
+    comp_email: cVal('c-comp-email'), comp_end: cVal('c-comp-end'), comp_cidade: cVal('c-comp-cidade'),
+    veiculo: cVal('c-veiculo'), placa: cVal('c-placa'), km: cVal('c-km'),
+    cor: cVal('c-cor'), combustivel: cVal('c-combustivel'),
+    chassi: cVal('c-chassi'), renavam: cVal('c-renavam'),
+    alienacao: cVal('c-alienacao') || 'Não', debitos: cVal('c-debitos') || 'Nenhum',
+    veiculo_obs: cVal('c-veiculo-obs'),
+    valor: cVal('c-valor'), forma_pgto: cVal('c-forma-pgto'), data_pgto: cVal('c-data-pgto'),
+    valor_comissao: cVal('c-valor-comissao'), perc_comissao: cVal('c-perc-comissao'),
+    resp_comissao: cVal('c-resp-comissao'), forma_pgto_comissao: cVal('c-forma-pgto-comissao'),
+    cidade_data: cVal('c-cidade-data'), data_contrato: fmtData(cVal('c-data')),
+    test1_nome: cVal('c-test1-nome'), test1_cpf: cVal('c-test1-cpf'),
+    test2_nome: cVal('c-test2-nome'), test2_cpf: cVal('c-test2-cpf'),
+  };
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Permita pop-ups para este site para abrir o contrato.'); return; }
+  win.document.write(contratoHTML(d));
+  win.document.close();
+}
+
+function contratoHTML(d) {
+  const f = (v, def) => v || def || '_______________';
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Contrato — ${f(d.veiculo,'Veículo')}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.75;color:#111;background:#fff;padding:2cm 2.5cm}
+h1{font-size:13pt;text-align:center;font-weight:bold;letter-spacing:.06em;margin-bottom:.3rem}
+.sub{text-align:center;font-size:9.5pt;color:#555;margin-bottom:1.8rem}
+hr{border:none;border-top:1.5px solid #333;margin:1.2rem 0}
+.sec{font-size:10pt;font-weight:bold;letter-spacing:.07em;text-transform:uppercase;margin-bottom:.6rem}
+.fl{margin-bottom:.28rem;font-size:10.5pt}
+.fb{font-weight:bold}
+.clt{font-size:10pt;font-weight:bold;text-transform:uppercase;margin-bottom:.28rem}
+.clb{font-size:10.5pt;line-height:1.75}
+.clb p{margin-bottom:.35rem}
+.pad{padding-left:1.4rem}
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:2rem}
+.sig{text-align:center}
+.sig-line{border-top:1px solid #333;margin-top:3rem;padding-top:.3rem;font-size:9.5pt;font-weight:bold}
+.sig-sub{font-size:9pt;color:#333;margin-top:.1rem}
+.no-print{text-align:center;padding:1rem;margin-bottom:1.5rem;background:#f5f5f5;border-bottom:1px solid #ddd}
+.no-print button{padding:.55rem 1.8rem;font-size:11pt;cursor:pointer;background:#111;color:#fff;border:none;font-family:Arial,sans-serif}
+@media print{.no-print{display:none};body{padding:1.5cm}}
+@page{margin:2cm;size:A4}
+</style>
+</head>
+<body>
+<div class="no-print"><button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button></div>
+
+<h1>CONTRATO DE INTERMEDIAÇÃO DE COMPRA E VENDA DE VEÍCULOS</h1>
+<div class="sub">VERSÃO 1.0</div>
+
+<hr>
+<div class="sec">INTERMEDIADORA</div>
+<div class="fl"><span class="fb">Nome Fantasia:</span> CARRO NA REDE REPASSES</div>
+<div class="fl"><span class="fb">Responsável:</span> ${f(d.int_responsavel)}</div>
+<div class="fl"><span class="fb">CPF:</span> ${f(d.int_cpf)}</div>
+<div class="fl"><span class="fb">Endereço:</span> ${f(d.int_endereco)}</div>
+<div class="fl"><span class="fb">Cidade/UF:</span> ${f(d.int_cidade)}</div>
+<div class="fl"><span class="fb">Telefone:</span> ${f(d.int_telefone)}</div>
+<div class="fl"><span class="fb">E-mail:</span> ${f(d.int_email)}</div>
+<p style="margin-top:.5rem;font-style:italic;font-size:10pt">Doravante denominada simplesmente "CARRO NA REDE".</p>
+
+<hr>
+<div class="sec">COMPRADOR</div>
+<div class="fl"><span class="fb">Nome/Razão Social:</span> ${f(d.comp_nome)}</div>
+<div class="fl"><span class="fb">CPF/CNPJ:</span> ${f(d.comp_doc)}</div>
+<div class="fl"><span class="fb">RG/Insc. Estadual:</span> ${f(d.comp_rg)}</div>
+<div class="fl"><span class="fb">Telefone:</span> ${f(d.comp_tel)}</div>
+<div class="fl"><span class="fb">E-mail:</span> ${f(d.comp_email)}</div>
+<div class="fl"><span class="fb">Endereço:</span> ${f(d.comp_end)}</div>
+<div class="fl"><span class="fb">Cidade/UF:</span> ${f(d.comp_cidade)}</div>
+
+<hr>
+<div class="sec">VENDEDOR</div>
+<div class="fl"><span class="fb">Nome/Razão Social:</span> ${f(d.vend_nome)}</div>
+<div class="fl"><span class="fb">CPF/CNPJ:</span> ${f(d.vend_doc)}</div>
+<div class="fl"><span class="fb">RG/Insc. Estadual:</span> ${f(d.vend_rg)}</div>
+<div class="fl"><span class="fb">Telefone:</span> ${f(d.vend_tel)}</div>
+<div class="fl"><span class="fb">E-mail:</span> ${f(d.vend_email)}</div>
+<div class="fl"><span class="fb">Endereço:</span> ${f(d.vend_end)}</div>
+<div class="fl"><span class="fb">Cidade/UF:</span> ${f(d.vend_cidade)}</div>
+
+<hr>
+<div class="sec">DADOS DO VEÍCULO</div>
+<div class="fl"><span class="fb">Veículo:</span> ${f(d.veiculo)}</div>
+<div class="fl"><span class="fb">Placa:</span> ${f(d.placa)} &nbsp;&nbsp; <span class="fb">Cor:</span> ${f(d.cor)} &nbsp;&nbsp; <span class="fb">Combustível:</span> ${f(d.combustivel)}</div>
+<div class="fl"><span class="fb">Chassi:</span> ${f(d.chassi)} &nbsp;&nbsp; <span class="fb">RENAVAM:</span> ${f(d.renavam)}</div>
+<div class="fl"><span class="fb">Quilometragem:</span> ${f(d.km)} &nbsp;&nbsp; <span class="fb">Alienação/Financiamento:</span> ${f(d.alienacao,'Não')}</div>
+<div class="fl"><span class="fb">Débitos:</span> ${f(d.debitos,'Nenhum')}</div>
+${d.veiculo_obs ? `<div class="fl"><span class="fb">Observações:</span> ${d.veiculo_obs}</div>` : ''}
+
+<hr>
+<div class="sec">VALOR DA NEGOCIAÇÃO</div>
+<div class="fl"><span class="fb">Valor do Veículo:</span> R$ ${f(d.valor)}</div>
+<div class="fl"><span class="fb">Forma de Pagamento:</span> ${f(d.forma_pgto)}</div>
+<div class="fl"><span class="fb">Data prevista para pagamento:</span> ${f(d.data_pgto)}</div>
+
+<hr>
+<div class="sec">COMISSÃO DE INTERMEDIAÇÃO</div>
+${d.valor_comissao ? `<div class="fl"><span class="fb">Valor da Comissão:</span> R$ ${d.valor_comissao}</div>` : ''}
+${d.perc_comissao ? `<div class="fl"><span class="fb">Percentual:</span> ${d.perc_comissao}%</div>` : ''}
+<div class="fl"><span class="fb">Responsável pelo pagamento:</span> ${f(d.resp_comissao)}</div>
+<div class="fl"><span class="fb">Forma de pagamento:</span> ${f(d.forma_pgto_comissao)}</div>
+
+<hr>
+<div class="clt">CLÁUSULA 1 - OBJETO</div>
+<div class="clb"><p>O presente contrato tem por objeto a intermediação da negociação de compra e venda do veículo descrito neste instrumento, realizada pela CARRO NA REDE REPASSES.</p><p>A CARRO NA REDE atua exclusivamente como intermediadora da negociação, não figurando como compradora ou vendedora do veículo e não adquirindo sua propriedade.</p></div><br>
+
+<div class="clt">CLÁUSULA 2 - RESPONSABILIDADES DA INTERMEDIADORA</div>
+<div class="clb"><p>A CARRO NA REDE compromete-se a:</p><p class="pad">I - aproximar comprador e vendedor;</p><p class="pad">II - facilitar a negociação entre as partes;</p><p class="pad">III - prestar suporte documental quando contratado;</p><p class="pad">IV - acompanhar a negociação até sua conclusão.</p><p>Parágrafo único. A CARRO NA REDE não responde pela qualidade, funcionamento, conservação, garantia, defeitos mecânicos, elétricos, estruturais ou vícios ocultos do veículo negociado.</p></div><br>
+
+<div class="clt">CLÁUSULA 3 - DECLARAÇÕES DO VENDEDOR</div>
+<div class="clb"><p>O vendedor declara que: I - é legítimo proprietário do veículo ou possui autorização para negociá-lo; II - todas as informações prestadas são verdadeiras; III - informou corretamente eventuais débitos, multas, gravames, alienações, restrições administrativas ou judiciais; IV - fornecerá toda a documentação necessária para transferência do veículo.</p><p>O vendedor responderá civil e criminalmente pelas informações prestadas.</p></div><br>
+
+<div class="clt">CLÁUSULA 4 - DECLARAÇÕES DO COMPRADOR</div>
+<div class="clb"><p>O comprador declara que: I - teve oportunidade de vistoriar o veículo; II - realizou todas as perguntas e verificações que considerou necessárias; III - está ciente de que a CARRO NA REDE atua apenas como intermediadora; IV - reconhece que a compra é realizada diretamente com o vendedor.</p></div><br>
+
+<div class="clt">CLÁUSULA 5 - PAGAMENTO</div>
+<div class="clb"><p>O pagamento do veículo será realizado diretamente entre comprador e vendedor. A CARRO NA REDE não recebe o valor da venda do veículo, salvo ajuste específico firmado entre as partes.</p></div><br>
+
+<div class="clt">CLÁUSULA 6 - COMISSÃO</div>
+<div class="clb"><p>Pela intermediação realizada, será devida à CARRO NA REDE a comissão ajustada entre as partes. A comissão poderá ser paga pelo comprador, vendedor ou ambos, conforme negociação realizada. Caso comprador e vendedor concluam o negócio em razão da aproximação realizada pela CARRO NA REDE, permanecerá devido o pagamento da comissão ajustada, ainda que a venda seja formalizada diretamente entre as partes.</p></div><br>
+
+<div class="clt">CLÁUSULA 7 - TRANSFERÊNCIA</div>
+<div class="clb"><p>O vendedor entregará toda a documentação necessária para transferência do veículo. O comprador compromete-se a efetuar a transferência dentro do prazo legal. Multas, tributos e encargos anteriores à entrega permanecerão sob responsabilidade do vendedor. Multas, tributos e encargos posteriores à entrega serão de responsabilidade do comprador.</p></div><br>
+
+<div class="clt">CLÁUSULA 8 - ESTADO DO VEÍCULO</div>
+<div class="clb"><p>O comprador declara que teve oportunidade de verificar o estado geral do veículo, incluindo lataria, pintura, mecânica, elétrica, estrutura, pneus, acabamento, acessórios e funcionamento geral.</p></div><br>
+
+<div class="clt">CLÁUSULA 9 - LIMITAÇÃO DE RESPONSABILIDADE</div>
+<div class="clb"><p>A CARRO NA REDE não responde por defeitos mecânicos, vícios ocultos, desgaste natural, problemas estruturais, informações incorretas prestadas pelo vendedor ou garantias do veículo. Sua responsabilidade limita-se exclusivamente à prestação do serviço de intermediação.</p></div><br>
+
+<div class="clt">CLÁUSULA 10 - PROTEÇÃO DE DADOS</div>
+<div class="clb"><p>As partes autorizam o tratamento de seus dados pessoais exclusivamente para execução da presente negociação, observando a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</p></div><br>
+
+<div class="clt">CLÁUSULA 11 - ASSINATURA ELETRÔNICA</div>
+<div class="clb"><p>As partes reconhecem como válida a assinatura eletrônica realizada por qualquer plataforma de assinatura digital, produzindo os mesmos efeitos jurídicos da assinatura manuscrita.</p></div><br>
+
+<div class="clt">CLÁUSULA 12 - DISPOSIÇÕES GERAIS</div>
+<div class="clb"><p>Este contrato representa o acordo integral entre as partes. Qualquer alteração deverá ser realizada por escrito. A eventual tolerância de qualquer das partes não implicará renúncia de direitos.</p></div><br>
+
+<div class="clt">CLÁUSULA 13 - FORO</div>
+<div class="clb"><p>Fica eleito o foro da comarca do domicílio da INTERMEDIADORA para dirimir eventuais controvérsias decorrentes deste contrato, salvo disposição legal em contrário.</p></div>
+
+<hr>
+<div style="text-align:center;margin:.8rem 0;font-size:10.5pt">${f(d.cidade_data)}, ${f(d.data_contrato)}</div>
+<hr>
+
+<div class="sig-grid">
+  <div class="sig"><div class="sig-line">CARRO NA REDE REPASSES</div><div class="sig-sub">${f(d.int_responsavel)}</div><div class="sig-sub">CPF: ${f(d.int_cpf)}</div></div>
+  <div class="sig"><div class="sig-line">VENDEDOR</div><div class="sig-sub">${f(d.vend_nome)}</div><div class="sig-sub">CPF/CNPJ: ${f(d.vend_doc)}</div></div>
+</div>
+<div class="sig-grid" style="margin-top:2rem">
+  <div class="sig"><div class="sig-line">COMPRADOR</div><div class="sig-sub">${f(d.comp_nome)}</div><div class="sig-sub">CPF/CNPJ: ${f(d.comp_doc)}</div></div>
+  <div class="sig"></div>
+</div>
+${(d.test1_nome || d.test2_nome) ? `
+<hr>
+<div class="sec" style="font-size:9.5pt">TESTEMUNHAS</div>
+<div class="sig-grid">
+  <div class="sig"><div class="sig-line">TESTEMUNHA 1</div><div class="sig-sub">${f(d.test1_nome)}</div><div class="sig-sub">CPF: ${f(d.test1_cpf)}</div></div>
+  <div class="sig"><div class="sig-line">TESTEMUNHA 2</div><div class="sig-sub">${f(d.test2_nome)}</div><div class="sig-sub">CPF: ${f(d.test2_cpf)}</div></div>
+</div>` : ''}
+
+</body></html>`;
 }
 
 // Init
