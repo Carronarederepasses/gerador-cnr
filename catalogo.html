@@ -880,7 +880,8 @@ $('avaria-file-input').addEventListener('change', async (e) => {
   if (!fotoEl) return;
   fotoEl.innerHTML = '<span style="font-size:.72rem;color:var(--text-mid)">Enviando...</span>';
   try {
-    const b64 = await comprimir(f);
+    const fPrep = await prepararArquivo(f);
+    const b64 = await comprimir(fPrep);
     const r = await fetch('/api/catalogo?avaria=1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
