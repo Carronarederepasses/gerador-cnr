@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Negociações — Carro na Rede Repasses</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --black:var(--surface);--white:var(--text);--gray:var(--surface-raise);--gray2:var(--surface-raise);
+    --border:var(--line);--mid:var(--text-mid);--light:var(--text);
+    --green:#25D366;--yellow:var(--severity-warn);--red:var(--severity-crit);
+  }
+  body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh}
+
+  header{border-bottom:1px solid var(--border);padding:1.2rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem}
+  .logo{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .logo span{display:block;font-family:'DM Sans',sans-serif;font-size:.58rem;font-weight:300;letter-spacing:.3em;color:var(--mid)}
+
+  .main{max-width:900px;margin:0 auto;padding:2rem}
+
+  /* ALERTA DO DIA */
+  .alert-banner{display:none;background:color-mix(in srgb,var(--severity-warn) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--severity-warn) 40%,transparent);padding:1rem 1.2rem;margin-bottom:1.5rem;font-size:.84rem;line-height:1.5}
+  .alert-banner.show{display:block}
+  .alert-banner strong{font-weight:500;color:var(--severity-warn)}
+
+  /* FILTROS */
+  .filters{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.4rem}
+  .filter-btn{background:none;border:1px solid var(--border);color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.62rem;font-weight:400;letter-spacing:.16em;text-transform:uppercase;padding:.38rem .75rem;cursor:pointer;transition:all .15s}
+  .filter-btn:hover{border-color:rgba(245,243,238,.3);color:var(--light)}
+  .filter-btn.on{background:var(--white);color:var(--black);border-color:var(--white)}
+
+  /* LISTA */
+  .neg-list{display:flex;flex-direction:column;gap:.5rem}
+  .neg-card{border:1px solid var(--border);padding:1rem 1.2rem;cursor:pointer;transition:border-color .15s;position:relative}
+  .neg-card:hover{border-color:rgba(245,243,238,.3)}
+  .neg-card.urgente{border-left:3px solid var(--severity-warn)}
+  .neg-top{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+  .neg-veiculo{font-size:.92rem;font-weight:500;flex:1;min-width:140px}
+  .neg-contato{font-size:.78rem;color:var(--mid)}
+  .neg-status-pill{font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:.22rem .6rem;border-radius:20px;white-space:nowrap}
+  .neg-dias{font-size:.62rem;color:var(--mid);white-space:nowrap}
+  .neg-obs{font-size:.78rem;color:var(--mid);margin-top:.4rem;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .empty-state{text-align:center;padding:4rem 2rem;color:var(--mid)}
+  .empty-state .ico{font-size:2.5rem;opacity:.3;margin-bottom:1rem}
+  .empty-state p{font-size:.76rem;letter-spacing:.16em;text-transform:uppercase}
+
+  /* MODAL */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:1rem}
+  .overlay.show{display:flex}
+  .modal{background:var(--surface-raise);border:1px solid var(--border);padding:1.8rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+  .modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:1.4rem}
+  .field{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem}
+  label{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--light)}
+  input[type="text"],select,textarea{
+    background:var(--surface);border:1px solid var(--border);color:var(--white);
+    font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:300;
+    padding:.65rem .85rem;outline:none;transition:border-color .2s;width:100%;
+    -webkit-appearance:none;appearance:none
+  }
+  input:focus,select:focus,textarea:focus{border-color:rgba(245,243,238,.35)}
+  input::placeholder,textarea::placeholder{color:var(--text-faint)}
+  select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right .8rem center;padding-right:2rem;cursor:pointer
+  }
+  select option{background:var(--surface-raise)}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  .modal-btns{display:flex;gap:.5rem;margin-top:1.2rem;flex-wrap:wrap}
+  .btn-primary{flex:1;background:var(--white);color:var(--black);border:none;padding:.85rem;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+  .btn-primary:hover{background:var(--light)}
+  .btn-secondary{background:none;border:1px solid var(--border);color:var(--mid);padding:.85rem 1.2rem;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:400;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+  .btn-secondary:hover{border-color:rgba(245,243,238,.3);color:var(--light)}
+  .btn-danger{background:none;border:1px solid color-mix(in srgb,var(--severity-crit) 40%,transparent);color:var(--severity-crit);padding:.85rem 1.2rem;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:400;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+  .btn-danger:hover{background:color-mix(in srgb,var(--severity-crit) 10%,transparent)}
+
+  /* HISTÓRICO DENTRO DO MODAL */
+  .hist-list{margin-top:.4rem;display:flex;flex-direction:column;gap:.35rem;max-height:180px;overflow-y:auto}
+  .hist-item{font-size:.78rem;color:var(--mid);padding:.3rem 0;border-bottom:1px solid rgba(245,243,238,.06);line-height:1.5}
+  .hist-item:last-child{border-bottom:none}
+  .hist-date{font-size:.64rem;color:var(--text-faint);margin-right:.4rem}
+
+  /* BOTÃO NOVO */
+  .btn-novo{background:var(--white);color:var(--black);border:none;padding:.72rem 1.4rem;font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+  .btn-novo:hover{background:var(--light)}
+
+  @media(max-width:600px){
+    .main{padding:1.2rem}
+    .g2{grid-template-columns:1fr}
+    header{padding:1rem 1.2rem}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Carro na Rede <span>Negociações</span></div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+    <a href="/" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">← Gerador</a>
+    <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema" style="font-size:.9rem;background:none;border:1px solid var(--border);color:var(--light);padding:.5rem .7rem;cursor:pointer;line-height:1"></button>
+    <button class="btn-novo" onclick="abrirNova()">+ Nova negociação</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- ALERTA -->
+  <div class="alert-banner" id="alert-banner"></div>
+
+  <!-- FILTROS -->
+  <div class="filters" id="filters">
+    <button class="filter-btn on" onclick="setFiltro('')" data-f="">Todas</button>
+    <button class="filter-btn" onclick="setFiltro('primeiro-contato')" data-f="primeiro-contato">Primeiro contato</button>
+    <button class="filter-btn" onclick="setFiltro('respondeu')" data-f="respondeu">Respondeu</button>
+    <button class="filter-btn" onclick="setFiltro('negociando')" data-f="negociando">Negociando</button>
+    <button class="filter-btn" onclick="setFiltro('aguardando')" data-f="aguardando">Aguardando</button>
+    <button class="filter-btn" onclick="setFiltro('comprado')" data-f="comprado">Comprado</button>
+    <button class="filter-btn" onclick="setFiltro('descartado')" data-f="descartado">Descartado</button>
+  </div>
+
+  <!-- LISTA -->
+  <div class="neg-list" id="neg-list"></div>
+
+</div>
+
+<!-- MODAL NEGOCIAÇÃO -->
+<div class="overlay" id="overlay" onclick="fecharSeClicarFora(event)">
+  <div class="modal" id="modal">
+    <div class="modal-title" id="modal-title">Nova Negociação</div>
+
+    <div class="field">
+      <label>Veículo</label>
+      <input type="text" id="m-veiculo" placeholder="ex: Corolla XEi 2021">
+    </div>
+    <div class="g2">
+      <div class="field">
+        <label>Contato (nome)</label>
+        <input type="text" id="m-contato" placeholder="ex: João">
+      </div>
+      <div class="field">
+        <label>Telefone (opcional)</label>
+        <input type="text" id="m-telefone" placeholder="ex: 48 99999-9999">
+      </div>
+    </div>
+    <div class="g2">
+      <div class="field">
+        <label>Status</label>
+        <select id="m-status">
+          <option value="primeiro-contato">Primeiro contato</option>
+          <option value="respondeu">Respondeu</option>
+          <option value="negociando">Negociando</option>
+          <option value="aguardando">Aguardando retorno</option>
+          <option value="comprado">Comprado ✓</option>
+          <option value="descartado">Descartado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Último contato</label>
+        <input type="date" id="m-data" style="color-scheme:dark">
+      </div>
+    </div>
+    <div class="field">
+      <label>Observação</label>
+      <textarea id="m-obs" rows="3" placeholder="ex: Pediu R$ 92.000, ofereci R$ 88.000. Disse que ia pensar." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+
+    <!-- Histórico (só no editar) -->
+    <div id="hist-wrap" style="display:none;margin-bottom:.8rem">
+      <label style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--light);display:block;margin-bottom:.4rem">Histórico</label>
+      <div class="hist-list" id="hist-list"></div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="salvar()">Salvar</button>
+      <button class="btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-danger" id="btn-excluir" onclick="excluir()" style="display:none">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'cnr-negociacoes';
+let dados = [];
+let editId = null;
+let filtroAtual = '';
+
+const STATUS_CFG = {
+  'primeiro-contato': { label: 'Primeiro contato', cor: '#8696a0', bg: 'rgba(134,150,160,.15)' },
+  'respondeu':        { label: 'Respondeu',         cor: '#25D366', bg: 'rgba(37,211,102,.12)' },
+  'negociando':       { label: 'Negociando',        cor: '#f59e0b', bg: 'rgba(245,158,11,.12)' },
+  'aguardando':       { label: 'Aguardando',        cor: '#f59e0b', bg: 'rgba(245,158,11,.12)' },
+  'comprado':         { label: 'Comprado ✓',        cor: '#25D366', bg: 'rgba(37,211,102,.12)' },
+  'descartado':       { label: 'Descartado',        cor: '#ef4444', bg: 'rgba(239,68,68,.12)' },
+};
+
+const STATUS_ATIVOS = ['primeiro-contato','respondeu','negociando','aguardando'];
+
+function load() {
+  try { dados = JSON.parse(localStorage.getItem(KEY)) || []; } catch { dados = []; }
+}
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(dados));
+}
+
+function diasDesde(dateStr) {
+  if (!dateStr) return 999;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.floor((hoje - d) / 86400000);
+}
+
+function fmtDias(n) {
+  if (n === 0) return 'hoje';
+  if (n === 1) return '1 dia atrás';
+  return `${n} dias atrás`;
+}
+
+function fmtData(dateStr) {
+  if (!dateStr) return '';
+  const [y,m,d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function hoje() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function setFiltro(f) {
+  filtroAtual = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('on', b.dataset.f === f));
+  renderLista();
+}
+
+function renderAlerta() {
+  const banner = document.getElementById('alert-banner');
+  const urgentes = dados.filter(n => STATUS_ATIVOS.includes(n.status) && diasDesde(n.ultimoContato) >= 1);
+  if (urgentes.length === 0) { banner.classList.remove('show'); return; }
+  banner.classList.add('show');
+  const lista = urgentes.map(n => `<strong>${n.veiculo}</strong> (${fmtDias(diasDesde(n.ultimoContato))})`).join(' · ');
+  banner.innerHTML = `⚠️ ${urgentes.length === 1 ? 'Negociação aguardando' : urgentes.length + ' negociações aguardando'}: ${lista}`;
+}
+
+function renderLista() {
+  const el = document.getElementById('neg-list');
+  const filtrados = filtroAtual ? dados.filter(n => n.status === filtroAtual) : dados;
+  // Ordena: ativos urgentes primeiro, depois por data desc
+  const sorted = [...filtrados].sort((a,b) => {
+    const aUrgente = STATUS_ATIVOS.includes(a.status) && diasDesde(a.ultimoContato) >= 1;
+    const bUrgente = STATUS_ATIVOS.includes(b.status) && diasDesde(b.ultimoContato) >= 1;
+    if (aUrgente !== bUrgente) return aUrgente ? -1 : 1;
+    return (b.ultimoContato||'') > (a.ultimoContato||'') ? 1 : -1;
+  });
+
+  if (sorted.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="ico">🤝</div><p>Nenhuma negociação${filtroAtual ? ' neste status' : ''}</p></div>`;
+    return;
+  }
+
+  el.innerHTML = sorted.map(n => {
+    const dias = diasDesde(n.ultimoContato);
+    const urgente = STATUS_ATIVOS.includes(n.status) && dias >= 1;
+    const cfg = STATUS_CFG[n.status] || STATUS_CFG['aguardando'];
+    return `<div class="neg-card${urgente ? ' urgente' : ''}" onclick="abrirEditar('${n.id}')">
+      <div class="neg-top">
+        <div class="neg-veiculo">${n.veiculo || '—'}</div>
+        <div class="neg-contato">${n.contato || ''}</div>
+        <div class="neg-status-pill" style="color:${cfg.cor};background:${cfg.bg}">${cfg.label}</div>
+        <div class="neg-dias">${n.ultimoContato ? fmtDias(dias) : ''}</div>
+      </div>
+      ${n.obs ? `<div class="neg-obs">${n.obs}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function abrirNova() {
+  editId = null;
+  document.getElementById('modal-title').textContent = 'Nova Negociação';
+  document.getElementById('m-veiculo').value = '';
+  document.getElementById('m-contato').value = '';
+  document.getElementById('m-telefone').value = '';
+  document.getElementById('m-status').value = 'primeiro-contato';
+  document.getElementById('m-data').value = hoje();
+  document.getElementById('m-obs').value = '';
+  document.getElementById('hist-wrap').style.display = 'none';
+  document.getElementById('btn-excluir').style.display = 'none';
+  document.getElementById('overlay').classList.add('show');
+  setTimeout(() => document.getElementById('m-veiculo').focus(), 100);
+}
+
+function abrirEditar(id) {
+  const n = dados.find(x => x.id === id);
+  if (!n) return;
+  editId = id;
+  document.getElementById('modal-title').textContent = 'Editar Negociação';
+  document.getElementById('m-veiculo').value = n.veiculo || '';
+  document.getElementById('m-contato').value = n.contato || '';
+  document.getElementById('m-telefone').value = n.telefone || '';
+  document.getElementById('m-status').value = n.status || 'aguardando';
+  document.getElementById('m-data').value = n.ultimoContato || hoje();
+  document.getElementById('m-obs').value = n.obs || '';
+  document.getElementById('btn-excluir').style.display = '';
+
+  // Histórico
+  if (n.historico && n.historico.length > 0) {
+    document.getElementById('hist-wrap').style.display = 'block';
+    document.getElementById('hist-list').innerHTML = [...n.historico].reverse().map(h =>
+      `<div class="hist-item"><span class="hist-date">${fmtData(h.data)}</span>${STATUS_CFG[h.status]?.label || h.status} — ${h.obs || ''}</div>`
+    ).join('');
+  } else {
+    document.getElementById('hist-wrap').style.display = 'none';
+  }
+
+  document.getElementById('overlay').classList.add('show');
+}
+
+function fecharModal() {
+  document.getElementById('overlay').classList.remove('show');
+  editId = null;
+}
+
+function fecharSeClicarFora(e) {
+  if (e.target === document.getElementById('overlay')) fecharModal();
+}
+
+function salvar() {
+  const veiculo = document.getElementById('m-veiculo').value.trim();
+  if (!veiculo) { document.getElementById('m-veiculo').focus(); return; }
+
+  const status = document.getElementById('m-status').value;
+  const obs = document.getElementById('m-obs').value.trim();
+  const data = document.getElementById('m-data').value;
+
+  if (editId) {
+    const idx = dados.findIndex(x => x.id === editId);
+    if (idx === -1) return;
+    const anterior = dados[idx];
+    // Salva histórico se mudou status ou obs
+    if (!anterior.historico) anterior.historico = [];
+    if (anterior.status !== status || anterior.obs !== obs) {
+      anterior.historico.push({ data: anterior.ultimoContato || hoje(), status: anterior.status, obs: anterior.obs || '' });
+    }
+    dados[idx] = { ...anterior, veiculo, contato: document.getElementById('m-contato').value.trim(), telefone: document.getElementById('m-telefone').value.trim(), status, ultimoContato: data, obs };
+  } else {
+    dados.unshift({ id: Date.now().toString(), veiculo, contato: document.getElementById('m-contato').value.trim(), telefone: document.getElementById('m-telefone').value.trim(), status, ultimoContato: data, obs, historico: [] });
+  }
+
+  save();
+  fecharModal();
+  renderAlerta();
+  renderLista();
+}
+
+function excluir() {
+  if (!editId) return;
+  if (!confirm('Excluir esta negociação?')) return;
+  dados = dados.filter(x => x.id !== editId);
+  save();
+  fecharModal();
+  renderAlerta();
+  renderLista();
+}
+
+// Init
+document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
+load();
+renderAlerta();
+renderLista();
+</script>
+</body>
+</html>

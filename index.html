@@ -247,9 +247,16 @@
     <a href="/vendas.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">📋 Vendas →</a>
     <a href="/consultas.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🔍 Consulta →</a>
     <a href="/artes.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🎨 Artes →</a>
+    <a href="/negociacoes.html" id="btn-neg-header" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem;position:relative">🤝 Negociações</a>
     <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--border);color:var(--light);padding:.5rem .7rem;cursor:pointer;line-height:1"></button>
   </div>
 </header>
+
+<!-- AVISO DE NEGOCIAÇÕES PENDENTES -->
+<div id="neg-aviso" style="display:none;background:color-mix(in srgb,#f59e0b 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,#f59e0b 35%,transparent);padding:.65rem 2rem;font-size:.76rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
+  <span id="neg-aviso-txt" style="color:#f59e0b"></span>
+  <a href="/negociacoes.html" style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#f59e0b;text-decoration:none;border:1px solid color-mix(in srgb,#f59e0b 45%,transparent);padding:.3rem .7rem;white-space:nowrap">Ver negociações →</a>
+</div>
 
 <div class="app">
 
@@ -2576,6 +2583,28 @@ async function salvarChecklist() {
     if (btn) { const orig=btn.textContent; btn.textContent='✓ Checklist salvo!'; setTimeout(()=>btn.textContent=orig,2200); }
   } catch(e) { alert('Erro ao salvar: '+e.message); }
 }
+
+// ══ AVISO NEGOCIAÇÕES ══
+(function checkNegociacoes() {
+  try {
+    const neg = JSON.parse(localStorage.getItem('cnr-negociacoes')) || [];
+    const STATUS_ATIVOS = ['primeiro-contato','respondeu','negociando','aguardando'];
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const pendentes = neg.filter(n => {
+      if (!STATUS_ATIVOS.includes(n.status)) return false;
+      if (!n.ultimoContato) return true;
+      const d = new Date(n.ultimoContato + 'T00:00:00');
+      return Math.floor((hoje - d) / 86400000) >= 1;
+    });
+    if (pendentes.length === 0) return;
+    const aviso = document.getElementById('neg-aviso');
+    const txt = document.getElementById('neg-aviso-txt');
+    txt.textContent = pendentes.length === 1
+      ? `⚠️ 1 negociação aguardando retorno — ${pendentes[0].veiculo}`
+      : `⚠️ ${pendentes.length} negociações aguardando retorno`;
+    aviso.style.display = 'flex';
+  } catch(e) {}
+})();
 
 // ══ INIT ══
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
