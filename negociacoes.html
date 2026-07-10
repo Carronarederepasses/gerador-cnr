@@ -95,6 +95,13 @@
   .btn-novo{background:var(--white);color:var(--black);border:none;padding:.72rem 1.4rem;font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:background .2s}
   .btn-novo:hover{background:var(--light)}
 
+  /* MENU RÁPIDO DE STATUS */
+  .status-menu{position:fixed;z-index:300;background:var(--gray2);border:1px solid var(--border);box-shadow:0 8px 28px rgba(0,0,0,.5);min-width:170px;display:none}
+  .status-menu.show{display:block}
+  .status-menu-item{padding:.55rem .9rem;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-family:'DM Sans',sans-serif;font-weight:300;color:var(--white)}
+  .status-menu-item:hover{background:rgba(245,243,238,.08)}
+  .status-menu-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
   @media(max-width:600px){
     .main{padding:1.2rem}
     .g2{grid-template-columns:1fr}
@@ -133,6 +140,9 @@
   <div class="neg-list" id="neg-list"></div>
 
 </div>
+
+<!-- MENU RÁPIDO DE STATUS -->
+<div class="status-menu" id="status-menu"></div>
 
 <!-- MODAL NEGOCIAÇÃO -->
 <div class="overlay" id="overlay" onclick="fecharSeClicarFora(event)">
@@ -275,7 +285,7 @@ function renderLista() {
       <div class="neg-top">
         <div class="neg-veiculo">${n.veiculo || '—'}</div>
         <div class="neg-contato">${n.contato || ''}</div>
-        <div class="neg-status-pill" style="color:${cfg.cor};background:${cfg.bg}">${cfg.label}</div>
+        <div class="neg-status-pill" style="color:${cfg.cor};background:${cfg.bg};cursor:pointer" onclick="event.stopPropagation();abrirStatusMenu(event,'${n.id}')">${cfg.label} ▾</div>
         <div class="neg-dias">${n.ultimoContato ? fmtDias(dias) : ''}</div>
       </div>
       ${n.obs ? `<div class="neg-obs">${n.obs}</div>` : ''}
@@ -371,11 +381,70 @@ function excluir() {
   renderLista();
 }
 
+// ══ MENU RÁPIDO DE STATUS ══
+let menuAberto = null;
+
+function abrirStatusMenu(event, id) {
+  const menu = document.getElementById('status-menu');
+  menuAberto = id;
+
+  menu.innerHTML = Object.entries(STATUS_CFG).map(([key, cfg]) =>
+    `<div class="status-menu-item" onclick="mudarStatusRapido('${id}','${key}')">
+      <span class="dot" style="background:${cfg.cor}"></span>${cfg.label}
+    </div>`
+  ).join('');
+
+  // Posiciona perto do clique
+  const rect = event.target.getBoundingClientRect();
+  const menuH = Object.keys(STATUS_CFG).length * 38;
+  const top = (rect.bottom + menuH > window.innerHeight) ? rect.top - menuH : rect.bottom + 4;
+  menu.style.top = top + 'px';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 180) + 'px';
+  menu.classList.add('show');
+}
+
+function mudarStatusRapido(id, novoStatus) {
+  const idx = dados.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const n = dados[idx];
+  if (!n.historico) n.historico = [];
+  if (n.status !== novoStatus) {
+    n.historico.push({ data: n.ultimoContato || hoje(), status: n.status, obs: n.obs || '' });
+  }
+  n.status = novoStatus;
+  n.ultimoContato = hoje();
+  save();
+  fecharStatusMenu();
+  renderAlerta();
+  renderLista();
+}
+
+function fecharStatusMenu() {
+  document.getElementById('status-menu').classList.remove('show');
+  menuAberto = null;
+}
+
+document.addEventListener('click', e => {
+  if (menuAberto && !e.target.closest('.status-menu')) fecharStatusMenu();
+});
+
+// ══ URL PARAMS (vindo do catálogo) ══
+function lerParams() {
+  const p = new URLSearchParams(location.search);
+  const veiculo = p.get('veiculo');
+  if (veiculo) {
+    history.replaceState({}, '', '/negociacoes.html');
+    abrirNova();
+    document.getElementById('m-veiculo').value = decodeURIComponent(veiculo);
+  }
+}
+
 // Init
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 load();
 renderAlerta();
 renderLista();
+lerParams();
 </script>
 </body>
 </html>

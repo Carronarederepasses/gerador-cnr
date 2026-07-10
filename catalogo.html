@@ -343,6 +343,7 @@ function card(v) {
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
+      <button onclick="negocia('${v.id}')">🤝 Negociar</button>
       <button onclick="mudarStatus('${v.id}')">Status</button>
       <button onclick="remover('${v.id}')">Excluir</button>
     </div>
@@ -684,6 +685,13 @@ async function mudarStatus(id) {
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
     carregar();
   } catch (e) { alert('Falha ao mudar status: ' + e.message); }
+}
+
+function negocia(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  const nome = nomeVeiculo(v);
+  window.location.href = '/negociacoes.html?veiculo=' + encodeURIComponent(nome);
 }
 
 async function remover(id) {
