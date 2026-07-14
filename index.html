@@ -1191,6 +1191,8 @@ function getLblById(id) {
   return id;
 }
 
+const EMOJI_OPC = { 'ipva_pago': '💰', 'revisoes': '🛠️' };
+
 // Linha dos pneus para o anúncio — aceita até 2 combinações (ex: 2 novos + 2 meia-vida)
 function linhaPneus() {
   const ESTADOS = { 'novos':'novos', 'bons':'bons', 'meia-vida':'meia-vida', 'fracos':'a trocar' };
@@ -1200,7 +1202,7 @@ function linhaPneus() {
   if (get('pneus-estado-2')) grupos.push({ q: get('pneus-qtd-2') || '2', e: get('pneus-estado-2') });
   if (!grupos.length) return null;
 
-  const icone = grupos.every(g => g.e === 'novos' || g.e === 'bons') ? '✅' : '🛞';
+  const icone = '🛞';
   if (grupos.length === 1) {
     const g = grupos[0];
     return `${icone} ${g.q} ${g.q === '1' ? 'pneu' : 'pneus'} ${ESTADOS[g.e]}`;
@@ -1209,9 +1211,9 @@ function linhaPneus() {
 }
 
 // Item com estado "Tem" / "A confirmar" (chave reserva, manual)
-function linhaItemConfirmavel(selId, label) {
+function linhaItemConfirmavel(selId, label, ico = '✅') {
   const v = (document.getElementById(selId) || {}).value || '';
-  if (v === 'tem')      return `✅ ${label}`;
+  if (v === 'tem')       return `${ico} ${label}`;
   if (v === 'confirmar') return `🔎 ${label} (a confirmar)`;
   return null;
 }
@@ -1225,15 +1227,15 @@ function fmtKm(v) {
 // Linha de revisões registradas até X km (ou null)
 function linhaRevisoes() {
   const km = fmtKm((document.getElementById('revisoes-km') || {}).value || '');
-  return km ? `✅ Revisões até ${km} km` : null;
+  return km ? `🛠️ Revisões até ${km} km` : null;
 }
 
 // Todas as linhas extras (pneus, chave, manual, revisões) que entram no anúncio
 function linhasExtras() {
   return [
     linhaPneus(),
-    linhaItemConfirmavel('chave-reserva', 'Chave reserva'),
-    linhaItemConfirmavel('manual-veiculo', 'Manual do veículo'),
+    linhaItemConfirmavel('chave-reserva', 'Chave reserva', '🔑'),
+    linhaItemConfirmavel('manual-veiculo', 'Manual do veículo', '📖'),
     linhaRevisoes(),
   ].filter(Boolean);
 }
@@ -1281,7 +1283,8 @@ function gerar() {
   // quem representa o combustível no texto é o campo Combustível abaixo.
   const anoNome   = getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
   const compl     = document.getElementById('complemento').value.trim();
-  const km        = document.getElementById('km').value.trim();
+  const kmRaw     = document.getElementById('km').value.trim();
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
   const cor       = document.getElementById('cor').value.trim();
   const regiao    = document.getElementById('regiao').value.trim();
   const valor     = document.getElementById('valor').value.trim();
@@ -1325,7 +1328,7 @@ function gerar() {
   const extras = linhasExtras();
   if (itensOn.length || onIds.includes('blindado') || extras.length) {
     linhas.push('');
-    itensOn.forEach(id => linhas.push(`✅ ${getLblById(id)}`));
+    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
     extras.forEach(l => linhas.push(l));
 
     // Blindado com detalhes
@@ -1368,6 +1371,53 @@ function gerar() {
   // Render preview
   renderPreview(texto);
   mostrarShare(texto);
+
+  // Auto-save no catálogo (captação)
+  salvarNoCatalogo({
+    marca:        !badSel(mNome) ? mNome : '',
+    modelo:       !badSel(modNome) ? modNome : '',
+    versao:       !badSel(getSelTxt('sel-versao')) ? getSelTxt('sel-versao') : '',
+    complemento:  compl,
+    ano:          !badSel(anoNome) ? anoNome : '',
+    ano_int:      parseInt(anoNome) || null,
+    km:           parseInt(String(document.getElementById('km').value).replace(/\D/g,''), 10) || null,
+    cor, combustivel, regiao,
+    valor:        parseFloat((valor||'').replace(/\./g,'').replace(',','.')) || null,
+    fipe:         parseFloat((fipeDigit||'').replace(/\./g,'').replace(',','.')) || null,
+    opcionais:    getAllOnIds().map(id => id === 'blindado' ? 'Blindado' : getLblById(id)),
+    anuncio_texto: texto,
+  });
+}
+
+let _catalogoId = null;
+
+async function salvarNoCatalogo(dados) {
+  try {
+    let r;
+    if (_catalogoId) {
+      r = await fetch('/api/catalogo?id=' + _catalogoId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados),
+      });
+    } else {
+      r = await fetch('/api/catalogo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        _catalogoId = (j[0] || j).id || null;
+      }
+    }
+    if (!r || !r.ok) return;
+    const toast = document.createElement('div');
+    toast.textContent = '✓ Salvo no catálogo';
+    toast.style.cssText = 'position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:#25D366;color:#000;padding:.45rem 1.2rem;font-size:.74rem;font-weight:500;font-family:"DM Sans",sans-serif;letter-spacing:.08em;z-index:9999;pointer-events:none;transition:opacity .4s';
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 450); }, 2500);
+  } catch(e) { /* silencioso */ }
 }
 
 function renderPreview(texto) {
@@ -1676,7 +1726,7 @@ async function processarIA() {
     const fill = (id, val) => { if (val) document.getElementById(id).value = val; };
     fill('colet-veiculo', data.veiculo);
     fill('colet-ano',     data.ano);
-    fill('colet-km',      data.km ? data.km + ' km' : null);
+    fill('colet-km',      data.km ? (fmtKm(String(data.km)) || data.km) + ' km' : null);
     fill('colet-cor',     data.cor);
     fill('colet-regiao',  data.regiao);
     fill('colet-valor',   data.valor);
@@ -1739,7 +1789,8 @@ async function processarIA() {
 // ══════════════════════════════════════════════
 function gerarColetados() {
   const veiculo   = document.getElementById('colet-veiculo').value.trim();
-  const km        = document.getElementById('colet-km').value.trim();
+  const kmRaw     = document.getElementById('colet-km').value.trim();
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
   const cor       = document.getElementById('colet-cor').value.trim();
   const ano       = document.getElementById('colet-ano').value.trim();
   const regiao    = document.getElementById('colet-regiao').value.trim();
@@ -1767,7 +1818,7 @@ function gerarColetados() {
   const extras = linhasExtras();
   if (itensOn.length || onIds.includes('blindado') || extras.length) {
     linhas.push('');
-    itensOn.forEach(id => linhas.push(`✅ ${getLblById(id)}`));
+    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
     extras.forEach(l => linhas.push(l));
     if (onIds.includes('blindado')) {
       const bM = document.getElementById('blind-marca').value.trim();
@@ -2204,6 +2255,8 @@ async function restaurarEstado() {
 function limparEstado() {
   if (!confirm('Limpar todos os campos e começar um anúncio novo?')) return;
   try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  sessionStorage.setItem('cnr_restore_mode', currentMode);
+  _catalogoId = null;
   location.reload();
 }
 
@@ -2616,6 +2669,8 @@ buildObs();
   ['sel-marca', 'sel-modelo', 'csel-marca', 'csel-modelo'].forEach(id =>
     makeSearchable(id, 'Digite para filtrar...'));
   await restaurarEstado();
+  const _savedMode = sessionStorage.getItem('cnr_restore_mode');
+  if (_savedMode) { sessionStorage.removeItem('cnr_restore_mode'); setMode(_savedMode); }
   resyncSearchables(); // atualiza os campos após restaurar valores salvos
   // Liga o auto-save só depois de restaurar (não salva durante a restauração)
   document.addEventListener('input',  salvarEstadoDebounced);
