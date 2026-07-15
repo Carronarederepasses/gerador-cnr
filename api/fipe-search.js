@@ -57,9 +57,18 @@ function score(haystack, needle) {
   return pts;
 }
 
+// Apelidos/grafias alternativas de marcas → normaliza o texto do usuário antes do scoring
+const BRAND_ALIASES = [
+  [/\bchery\b/g,  'caoa cherry'],  // "Chery Tiggo" → casa com "CAOA Cherry" no FIPE
+  [/\bgm\b/g,     'chevrolet'],
+  [/\bvw\b/g,     'volkswagen'],
+  [/\bgwm\b/g,    'great wall'],
+];
+
 const MARCAS_POPULARES_IDS = [
   'fiat','chevrolet','volkswagen','hyundai','toyota','honda',
   'renault','jeep','ford','nissan','kia','mitsubishi','peugeot','citroen',
+  'caoa','cherry','byd','great wall','jac',
 ];
 
 module.exports = async (req, res) => {
@@ -77,7 +86,7 @@ module.exports = async (req, res) => {
   const anoLimpo = anoMatch[0];
 
   try {
-    const vLower = veiculo.toLowerCase();
+    const vLower = BRAND_ALIASES.reduce((s, [re, rep]) => s.replace(re, rep), veiculo.toLowerCase());
 
     // ── 1. MARCA ──────────────────────────────────────────────────────────────
     const marcas = await fipeGet('/marcas');

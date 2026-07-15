@@ -324,6 +324,7 @@
     </div>
 
     <div class="fipe-st" id="fipe-st"></div>
+    <div class="fipe-st" id="ml-st" style="cursor:pointer"></div>
   </div>
 
   <!-- DETALHES -->
@@ -384,6 +385,7 @@
       <label>FIPE (R$) — opcional</label>
       <input type="text" id="colet-fipe" placeholder="—">
     </div>
+    <div class="fipe-st" id="cml-st" style="cursor:pointer"></div>
 
     <!-- Cascata FIPE manual (fallback quando a automática erra/não acha) -->
     <details id="colet-cascata" style="margin-top:.8rem">
@@ -1028,8 +1030,8 @@ async function loadMarcas() {
 // ── Cascata FIPE reutilizável (Captação e Coletados) ──────────────────────────
 // Cada contexto aponta para seus próprios IDs de campos e guarda seus dados.
 const CASCATA = {
-  cap: { marca:'sel-marca',  modelo:'sel-modelo',  ano:'sel-ano',  versao:'sel-versao',  fipe:'fipe-val',   st:'fipe-st',   data:null },
-  col: { marca:'csel-marca', modelo:'csel-modelo', ano:'csel-ano', versao:'csel-versao', fipe:'colet-fipe', st:'cfipe-st', data:null },
+  cap: { marca:'sel-marca',  modelo:'sel-modelo',  ano:'sel-ano',  versao:'sel-versao',  fipe:'fipe-val',   st:'fipe-st',  ml:'ml-st',  data:null },
+  col: { marca:'csel-marca', modelo:'csel-modelo', ano:'csel-ano', versao:'csel-versao', fipe:'colet-fipe', st:'cfipe-st', ml:'cml-st', data:null },
 };
 
 function resetSel(id, txt) {
@@ -1143,6 +1145,8 @@ async function cascataVersao(cfg) {
   const marca = document.getElementById(cfg.marca).value;
   const v = document.getElementById(cfg.versao).value;
   document.getElementById(cfg.fipe).value = '';
+  const mlEl = document.getElementById(cfg.ml);
+  if (mlEl) mlEl.textContent = '';
   if (!v) return;
   const [modeloCod, anoCod] = v.split('|');
   cSetSt(cfg, '⏳ Consultando FIPE do mês...', 'loading');
@@ -1151,6 +1155,12 @@ async function cascataVersao(cfg) {
     const limpo = (data.Valor || '').replace('R$', '').trim();
     document.getElementById(cfg.fipe).value = limpo;
     cSetSt(cfg, `✓ FIPE ${data.MesReferencia || 'atual'}: ${data.Valor}`, 'ok');
+    // Busca preços no Mercado Livre para contexto de mercado
+    const marcaNome = document.getElementById(cfg.marca).selectedOptions[0]?.text || '';
+    const modeloBase = document.getElementById(cfg.modelo).value;
+    const anoNum = document.getElementById(cfg.ano).value.split('::')[0];
+    if (marcaNome && modeloBase && anoNum && cfg.ml)
+      buscarMercadoML(`${marcaNome} ${modeloBase} ${anoNum}`, cfg.ml);
   } catch(e) {
     cSetSt(cfg, 'Não encontrado — preencha a FIPE manualmente', 'err');
   }
@@ -1469,10 +1479,35 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel)
     if (combEl && !combEl.value && data.combustivel) combEl.value = data.combustivel;
     const avisoAno = data.anoFallback ? ` (ano ${data.ano} — mais recente disponível)` : '';
     setParseSt(`✓ FIPE ${data.mesReferencia || 'atual'}: ${data.valor}${avisoAno}.${avisoP || ' Se a versão veio errada, ajuste na busca manual abaixo. 👇'}`, 'ok');
+    // Busca preços no Mercado Livre para contexto de mercado
+    buscarMercadoML(`${veiculoTexto} ${anoTexto}`, 'cml-st');
   } catch(e) {
     setParseSt('✓ Campos preenchidos — FIPE indisponível. Use a busca manual abaixo. 👇' + avisoP, 'ok');
     abrirCascataColet();
     console.error('buscarFIPEColetados:', e);
+  }
+}
+
+// ──────────────────────────────────────────────
+// PREÇO DE MERCADO — Mercado Livre (gratuita)
+// ──────────────────────────────────────────────
+async function buscarMercadoML(query, elId) {
+  const el = document.getElementById(elId);
+  if (!el || !query.trim()) return;
+  el.textContent = '📊 Buscando preços no ML...';
+  el.className = 'fipe-st loading';
+  el.onclick = null;
+  try {
+    const r = await fetch(`/api/mercado?q=${encodeURIComponent(query.trim())}`);
+    const data = await r.json();
+    if (!r.ok || !data.found) { el.textContent = ''; return; }
+    const fmt = v => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+    el.textContent = `📊 ML: ${data.count} anúncios · ${fmt(data.min)} – ${fmt(data.max)} (mediana ${fmt(data.med)})`;
+    el.className = 'fipe-st ok';
+    el.title = 'Abrir pesquisa no Mercado Livre';
+    el.onclick = () => window.open(data.searchUrl, '_blank');
+  } catch {
+    el.textContent = '';
   }
 }
 
