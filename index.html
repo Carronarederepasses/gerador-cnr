@@ -1080,7 +1080,7 @@ async function cascataModelo(cfg) {
   if (!base) return;
   cSetSt(cfg, '⏳ Buscando anos e versões... (alguns segundos)', 'loading');
   try {
-    const r = await fetch(`/api/fipe-anos-versoes?marca=${encodeURIComponent(marca)}&base=${encodeURIComponent(base.toLowerCase())}`);
+    const r = await fetch(`/api/fipe?marca=${encodeURIComponent(marca)}&base=${encodeURIComponent(base.toLowerCase())}`);
     const data = await r.json();
     if (!r.ok || data.error) throw new Error(data.error || 'erro');
     cfg.data = data;
@@ -1498,7 +1498,7 @@ async function buscarMercadoML(query, elId) {
   el.className = 'fipe-st loading';
   el.onclick = null;
   try {
-    const r = await fetch(`/api/mercado?q=${encodeURIComponent(query.trim())}`);
+    const r = await fetch(`/api/utils?type=mercado&q=${encodeURIComponent(query.trim())}`);
     const data = await r.json();
     if (!r.ok || !data.found) { el.textContent = ''; return; }
     const fmt = v => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
