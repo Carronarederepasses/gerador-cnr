@@ -136,6 +136,24 @@ module.exports = async (req, res) => {
       return res.status(200).json({ found: false, reason: 'modelo não identificado' });
     }
 
+    // Rejeita resultado fraco: se alguma palavra-chave do usuário (3+ chars, não marca,
+    // não número puro) não aparece em nenhum dos top candidatos, não retorna resultado falso.
+    // Ex: "GLC220" tem palavra-chave "glc" — se o top for "E-220" (sem "glc"), rejeita.
+    {
+      const sepFn = s => s.replace(/([a-záàâãéêíóôõúüç])(\d)/g, '$1 $2');
+      const brandWords = new Set((melhorMarca?.nome || '').toLowerCase().split(/[\s\-\/]+/).filter(w => w.length >= 3));
+      const palavrasChave = sepFn(vLower).split(/[\s\-\/]+/)
+        .filter(w => w.length >= 3 && !/^\d+$/.test(w) && !brandWords.has(w));
+      if (palavrasChave.length > 0) {
+        const topNome = sepFn(candidatos[0].modelo.nome.toLowerCase());
+        const bate = palavrasChave.some(w => topNome.includes(w));
+        if (!bate) {
+          console.log(`fipe-search: "${veiculo}" rejeitado — palavras [${palavrasChave}] não batem com "${candidatos[0].modelo.nome}"`);
+          return res.status(200).json({ found: false, reason: 'modelo não encontrado na FIPE' });
+        }
+      }
+    }
+
     // ── 3. MODELO + ANO (desambiguação) ───────────────────────────────────────
     // Entre as VERSÕES do mesmo modelo/marca do melhor candidato, prefere a que TEM
     // o ano pedido (ex: "Renegade Longitude Flex 2023" → 1.3 Turbo, não a 1.8 que só
