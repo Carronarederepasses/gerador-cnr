@@ -858,6 +858,7 @@ const CATEGORIAS = [
       {id:'sem_debitos', lbl:'Sem multas/débitos',           on:false},
       {id:'revisoes',    lbl:'Revisões na concessionária',   on:false},
       {id:'garantia',    lbl:'Na garantia de fábrica',       on:false},
+      {id:'cautelar',    lbl:'🕵️ Cautelar aprovada',          on:false},
       {id:'blindado',    lbl:'🛡️ Blindado',                  on:false},
     ]
   },
@@ -1306,7 +1307,7 @@ function getLblById(id) {
   return id;
 }
 
-const EMOJI_OPC = { 'ipva_pago': '💰', 'revisoes': '🛠️' };
+const EMOJI_OPC = { 'ipva_pago': '💰', 'revisoes': '🛠️', 'cautelar': '🕵️' };
 
 // Linha dos pneus para o anúncio — aceita até 2 combinações (ex: 2 novos + 2 meia-vida)
 function linhaPneus() {
@@ -1804,6 +1805,7 @@ const OPCIONAIS_MAP = {
   'sem-multas-debitos':    'sem_debitos',
   'revisoes-concessionaria':'revisoes',
   'na-garantia':           'garantia',
+  'cautelar-aprovada':     'cautelar',
   'blindado':              'blindado',
 };
 
