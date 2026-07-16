@@ -59,16 +59,19 @@ function score(haystack, needle) {
 
 // Apelidos/grafias alternativas de marcas → normaliza o texto do usuário antes do scoring
 const BRAND_ALIASES = [
-  [/\bchery\b/g,  'caoa cherry'],  // "Chery Tiggo" → casa com "CAOA Cherry" no FIPE
-  [/\bgm\b/g,     'chevrolet'],
-  [/\bvw\b/g,     'volkswagen'],
-  [/\bgwm\b/g,    'great wall'],
+  [/\bchery\b/g,       'caoa cherry'],  // "Chery Tiggo" → casa com "CAOA Cherry" no FIPE
+  [/\bgm\b/g,          'chevrolet'],
+  [/\bvw\b/g,          'volkswagen'],
+  [/\bgwm\b/g,         'great wall'],
+  [/\bmercedes\b/g,    'mercedes-benz'], // "Mercedes GLC" → casa com "Mercedes-Benz"
+  [/\bland\s*rover\b/g,'land rover'],
 ];
 
 const MARCAS_POPULARES_IDS = [
   'fiat','chevrolet','volkswagen','hyundai','toyota','honda',
   'renault','jeep','ford','nissan','kia','mitsubishi','peugeot','citroen',
   'caoa','cherry','byd','great wall','jac',
+  'mercedes','bmw','audi','volvo','land rover','porsche','jaguar',
 ];
 
 module.exports = async (req, res) => {
