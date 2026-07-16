@@ -28,7 +28,10 @@ function score(haystack, needle) {
   // A FIPE às vezes cola o motor no nome (ex: "Grand Furgão16V"), o que impedia o
   // match de "Furgão". Aplicado igual nos dois lados para ficar justo.
   // Também trata o ponto como separador (abreviações: "Long.", "Lo.", "Lim.").
-  const sep = s => s.replace(/([a-záàâãéêíóôõúüç])(\d)/g, '$1 $2');
+  // Separa letra↔dígito nos dois sentidos: "GLC220D"→"glc 220 d", "16V"→"16 v", "4M"→"4 m"
+  const sep = s => s
+    .replace(/([a-záàâãéêíóôõúüç])(\d)/g, '$1 $2')
+    .replace(/(\d)([a-záàâãéêíóôõúüç])/g, '$1 $2');
   const words  = sep(nRaw).split(/[\s\-\/.]+/).filter(w => w.length > 0);
   const h      = sep(hRaw);
   const hWords = h.split(/[\s\-\/.]+/).filter(Boolean); // palavras isoladas do texto
