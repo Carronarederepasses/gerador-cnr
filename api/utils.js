@@ -1,5 +1,5 @@
-// Utilitários gratuitos: CEP (BrasilAPI) e preços ML (Mercado Livre)
-// Rota por ?type=cep ou ?type=mercado
+// Utilitários gratuitos: CEP (BrasilAPI), preços ML (Mercado Livre), ping Supabase
+// Rota por ?type=cep | ?type=mercado | ?type=ping
 
 const ML_CATEGORIA = 'MLB1744'; // Carros e Caminhonetes
 const PRECO_MINIMO = 8000;
@@ -17,6 +17,16 @@ async function handleCep(cep, res) {
     cidade:     data.city         || '',
     estado:     data.state        || '',
   });
+}
+
+async function handlePing(res) {
+  const url = process.env.SUPABASE_URL;
+  const key  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return res.status(500).json({ ok: false, error: 'Supabase não configurado.' });
+  const r = await fetch(`${url}/rest/v1/veiculos?select=id&limit=1`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
+  return res.status(r.ok ? 200 : 502).json({ ok: r.ok, status: r.status, at: new Date().toISOString() });
 }
 
 async function handleMercado(q, res) {
@@ -48,7 +58,8 @@ module.exports = async (req, res) => {
     const type = req.query.type;
     if (type === 'cep')     return await handleCep(req.query.cep, res);
     if (type === 'mercado') return await handleMercado(req.query.q, res);
-    return res.status(400).json({ error: 'type deve ser cep ou mercado' });
+    if (type === 'ping')    return await handlePing(res);
+    return res.status(400).json({ error: 'type deve ser cep, mercado ou ping' });
   } catch (err) {
     console.error('utils error:', err.message);
     return res.status(500).json({ error: err.message });

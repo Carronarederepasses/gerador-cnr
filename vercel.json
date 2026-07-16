@@ -6,6 +6,6 @@
     "api/*.js": { "maxDuration": 300 }
   },
   "crons": [
-    { "path": "/api/ping", "schedule": "0 9 * * *" }
+    { "path": "/api/utils?type=ping", "schedule": "0 9 * * *" }
   ]
 }
