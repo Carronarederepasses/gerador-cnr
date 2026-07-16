@@ -190,7 +190,7 @@ module.exports = async (req, res) => {
     // ── 4. VALOR FIPE ─────────────────────────────────────────────────────────
     const fipeData = await fipeGet(`/marcas/${escolhido.marca.codigo}/modelos/${escolhido.modelo.codigo}/anos/${anoObj.codigo}`);
 
-    return res.status(200).json({
+    const result = {
       found: true,
       valor: fipeData.Valor,
       valorNumerico: (fipeData.Valor || '').replace('R$', '').trim(),
@@ -200,7 +200,9 @@ module.exports = async (req, res) => {
       combustivel: fipeData.Combustivel || anoObj.nome.replace(/\b(19|20)\d{2}\b/, '').trim() || null,
       mesReferencia: fipeData.MesReferencia,
       anoFallback,
-    });
+    };
+    console.log(`fipe-search: "${veiculo}" ${ano} → ${result.marca} ${result.modelo} ${result.ano} score=${escolhido.score}`);
+    return res.status(200).json(result);
 
   } catch (err) {
     console.error('fipe-search error:', err.message);
