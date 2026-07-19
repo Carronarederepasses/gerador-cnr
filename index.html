@@ -2867,14 +2867,15 @@ async function fazerConsulta() {
     // Mostra resultado
     mostrarResultadoConsulta(data, placa);
 
-    // Salva no log
+    // Salva no log (custo zero se simulado — chave não configurada)
     const entrada = {
       id: Date.now(),
       placa,
       cliente,
       data: new Date().toLocaleString('pt-BR'),
       tipos,
-      custo: custoTotal,
+      custo: data.simulado ? 0 : custoTotal,
+      simulado: !!data.simulado,
       resultado: data,
     };
     const log = JSON.parse(localStorage.getItem(CQ_LOG_KEY) || '[]');
@@ -2963,8 +2964,9 @@ function renderLogConsultas() {
           <div class="cq-log-header">
             <span class="cq-log-placa">${entrada.placa}</span>
             ${entrada.cliente ? `<span style="font-size:.7rem;color:var(--mid)">— ${entrada.cliente}</span>` : ''}
+            ${entrada.simulado ? `<span style="font-size:.6rem;color:var(--mid);letter-spacing:.08em">(simulado)</span>` : ''}
             <span class="cq-log-data">${entrada.data}</span>
-            <span class="cq-log-custo">R$ ${(entrada.custo || 0).toFixed(2).replace('.', ',')}</span>
+            <span class="cq-log-custo">${entrada.simulado ? 'R$ 0,00' : 'R$ ' + (entrada.custo || 0).toFixed(2).replace('.', ',')}</span>
           </div>
           <div class="cq-log-tags">${tags}</div>
         </div>
