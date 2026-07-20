@@ -89,7 +89,7 @@ async function consultaInfracoes(placa) {
 }
 
 async function consultaLaudo(placa) {
-  const r = await fetch(`${BASE}/consultas/laudos/dekra/lcd`, {
+  const r = await fetch(`${BASE}/consultas/laudos-veiculares/dekra/ecv`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: API_KEY, placa }),
