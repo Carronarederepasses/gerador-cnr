@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carro na Rede Repasses — Litoral de SC</title>
+<meta name="description" content="Intermediação de veículos no litoral de Santa Catarina. Seu carro vendido em até 48h para uma rede de +200 compradores.">
+<style>
+  /* ── Tokens ──────────────────────────────────────────────────── */
+  :root {
+    --bg:        #0a0a0a;
+    --bg2:       #111111;
+    --bg3:       #1a1a1a;
+    --line:      #2a2a2a;
+    --text:      #f0ede8;
+    --muted:     #888077;
+    --accent:    #f0ede8;
+    --cta-bg:    #f0ede8;
+    --cta-text:  #0a0a0a;
+    --wpp:       #25D366;
+    --wpp-hover: #1db954;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:       #f5f2ed;
+      --bg2:      #ede9e2;
+      --bg3:      #e4dfd7;
+      --line:     #ccc6bc;
+      --text:     #111111;
+      --muted:    #6b6357;
+      --cta-bg:   #111111;
+      --cta-text: #f5f2ed;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #0a0a0a;
+    --bg2:       #111111;
+    --bg3:       #1a1a1a;
+    --line:      #2a2a2a;
+    --text:      #f0ede8;
+    --muted:     #888077;
+    --cta-bg:    #f0ede8;
+    --cta-text:  #0a0a0a;
+  }
+  :root[data-theme="light"] {
+    --bg:       #f5f2ed;
+    --bg2:      #ede9e2;
+    --bg3:      #e4dfd7;
+    --line:     #ccc6bc;
+    --text:     #111111;
+    --muted:    #6b6357;
+    --cta-bg:   #111111;
+    --cta-text: #f5f2ed;
+  }
+
+  /* ── Reset ───────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ── Typography ──────────────────────────────────────────────── */
+  .serif { font-family: 'Playfair Display', Georgia, serif; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.15; }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ── Layout helpers ──────────────────────────────────────────── */
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 96px 0; }
+  .divider { border: none; border-top: 1px solid var(--line); }
+
+  /* ── Nav ─────────────────────────────────────────────────────── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: 18px 24px;
+  }
+  .nav-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .01em;
+  }
+  .nav-logo span { color: var(--muted); font-weight: 400; }
+  .nav-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--wpp);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 100px;
+    transition: background .2s;
+  }
+  .nav-cta:hover { background: var(--wpp-hover); }
+
+  /* ── Hero ────────────────────────────────────────────────────── */
+  .hero {
+    padding: 120px 0 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 80% 50%, rgba(240,237,232,.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    display: inline-block;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(42px, 6vw, 80px);
+    font-weight: 700;
+    max-width: 780px;
+    margin-bottom: 24px;
+    line-height: 1.08;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--muted);
+  }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 480px;
+    margin-bottom: 40px;
+    line-height: 1.6;
+  }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--cta-bg);
+    color: var(--cta-text);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 28px;
+    border-radius: 100px;
+    transition: opacity .2s;
+  }
+  .btn-primary:hover { opacity: .85; }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--muted);
+    padding: 14px 4px;
+    transition: color .2s;
+  }
+  .btn-ghost:hover { color: var(--text); }
+  .hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    margin-top: 64px;
+    padding-top: 40px;
+    border-top: 1px solid var(--line);
+  }
+  .stat-num {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 13px; color: var(--muted); }
+
+  /* ── Como funciona ───────────────────────────────────────────── */
+  .como-header { margin-bottom: 64px; }
+  .como-header h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(30px, 4vw, 48px);
+    margin-top: 12px;
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0;
+    border: 1px solid var(--line);
+  }
+  .step {
+    padding: 40px 36px;
+    border-right: 1px solid var(--line);
+    position: relative;
+  }
+  .step:last-child { border-right: none; }
+  .step-line {
+    width: 32px;
+    height: 2px;
+    background: var(--text);
+    margin-bottom: 28px;
+    opacity: .3;
+  }
+  .step h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 21px;
+    margin-bottom: 12px;
+  }
+  .step p { font-size: 15px; color: var(--muted); line-height: 1.65; }
+  @media (max-width: 640px) {
+    .steps { grid-template-columns: 1fr; }
+    .step { border-right: none; border-bottom: 1px solid var(--line); }
+    .step:last-child { border-bottom: none; }
+  }
+
+  /* ── Depoimentos ─────────────────────────────────────────────── */
+  .depoe-section { background: var(--bg2); }
+  .depoe-header { margin-bottom: 56px; }
+  .depoe-header h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(28px, 4vw, 44px);
+    margin-top: 12px;
+  }
+  .depoe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--line);
+  }
+  .depoe-card {
+    background: var(--bg2);
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .quote-mark {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 48px;
+    line-height: .8;
+    color: var(--line);
+    user-select: none;
+  }
+  .depoe-text {
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: var(--text);
+    flex: 1;
+  }
+  .depoe-meta {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  /* ── CTA final ───────────────────────────────────────────────── */
+  .cta-section { text-align: center; }
+  .cta-section h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(30px, 5vw, 56px);
+    margin: 16px 0 12px;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .cta-section p {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 400px;
+    margin: 0 auto 40px;
+  }
+  .btn-wpp {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--wpp);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 16px 32px;
+    border-radius: 100px;
+    transition: background .2s, transform .15s;
+  }
+  .btn-wpp:hover { background: var(--wpp-hover); transform: translateY(-1px); }
+  .btn-wpp svg { flex-shrink: 0; }
+
+  /* ── Footer ──────────────────────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 32px 24px;
+  }
+  .footer-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .footer-logo {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { font-size: 13px; color: var(--muted); transition: color .2s; }
+  .footer-links a:hover { color: var(--text); }
+  .footer-region { font-size: 12px; color: var(--muted); }
+
+  /* ── Reduced motion ──────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo serif">Carro na Rede <span>Repasses</span></div>
+    <a class="nav-cta" href="https://wa.me/5548991840304?text=Olá,%20quero%20vender%20meu%20carro" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Falar pelo WhatsApp
+    </a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-tag">Litoral de Santa Catarina</div>
+    <h1>Seu carro vendido<br>em <em>até 48 horas.</em></h1>
+    <p class="hero-sub">Conectamos você com uma rede ativa de +200 compradores — dealers, revendas e investidores. Sem anúncio, sem espera, sem dor de cabeça.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="https://wa.me/5548991840304?text=Olá,%20quero%20vender%20meu%20carro" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Quero vender meu carro
+      </a>
+      <a class="btn-ghost" href="#como-funciona">
+        Como funciona
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div>
+        <div class="stat-num serif">+200</div>
+        <div class="stat-label">compradores na rede</div>
+      </div>
+      <div>
+        <div class="stat-num serif">48h</div>
+        <div class="stat-label">tempo médio de venda</div>
+      </div>
+      <div>
+        <div class="stat-num serif">100%</div>
+        <div class="stat-label">sem estoque, só resultado</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Como funciona -->
+<section id="como-funciona">
+  <div class="container">
+    <div class="como-header">
+      <div class="eyebrow">Como funciona</div>
+      <h2 class="serif">Três passos.<br>Sem complicação.</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-line"></div>
+        <h3 class="serif">Você traz o carro</h3>
+        <p>Nos manda as fotos e as informações do veículo pelo WhatsApp. Avaliamos e entramos em ação imediatamente.</p>
+      </div>
+      <div class="step">
+        <div class="step-line"></div>
+        <h3 class="serif">A gente conecta</h3>
+        <p>Acionamos nossa rede de +200 compradores qualificados — dealers, revendas e investidores do litoral de SC e de todo o Brasil.</p>
+      </div>
+      <div class="step">
+        <div class="step-line"></div>
+        <h3 class="serif">Negócio fechado</h3>
+        <p>Cuidamos de toda a parte burocrática. Você recebe o valor combinado. Média de 48 horas do primeiro contato à venda.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Depoimentos -->
+<section class="depoe-section">
+  <div class="container">
+    <div class="depoe-header">
+      <div class="eyebrow">Depoimentos</div>
+      <h2 class="serif">Quem vendeu,<br>recomendou.</h2>
+    </div>
+    <div class="depoe-grid">
+
+      <div class="depoe-card">
+        <div class="quote-mark">"</div>
+        <p class="depoe-text">Vocês realmente me ajudaram a resolver a venda do carro. Tirou um peso gigante das minhas costas. Vou indicar vocês pra quem eu conhecer!</p>
+        <div class="depoe-meta">Cliente · outubro de 2025</div>
+      </div>
+
+      <div class="depoe-card">
+        <div class="quote-mark">"</div>
+        <p class="depoe-text">O carro que vocês "acharam" superou minhas expectativas. Só o fato de não ter preocupação que o carro ia ser diferente do resumo enviado, me deixou tranquilo pra pagar sem ver. Tô muito satisfeito com a compra!</p>
+        <div class="depoe-meta">Serginho · outubro de 2025</div>
+      </div>
+
+      <div class="depoe-card">
+        <div class="quote-mark">"</div>
+        <p class="depoe-text">A família agradece o bom serviço. Vocês são ótimos.</p>
+        <div class="depoe-meta">Cliente · Garopaba</div>
+      </div>
+
+      <div class="depoe-card">
+        <div class="quote-mark">"</div>
+        <p class="depoe-text">Obrigado pela agilidade na venda, tmj</p>
+        <div class="depoe-meta">Cliente · Garopaba</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CTA final -->
+<section class="cta-section">
+  <div class="container">
+    <div class="eyebrow">Pronto para vender?</div>
+    <h2 class="serif">Fale agora<br>e saia da dúvida.</h2>
+    <p>Sem compromisso. Avaliamos seu carro e te dizemos quanto você pode receber.</p>
+    <a class="btn-wpp" href="https://wa.me/5548991840304?text=Olá,%20quero%20vender%20meu%20carro" target="_blank" rel="noopener">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Falar pelo WhatsApp
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo serif">Carro na Rede Repasses</div>
+    <div class="footer-region">Garopaba · Praia da Rosa · Imbituba — SC</div>
+    <div class="footer-links">
+      <a href="https://instagram.com/carronarederepasses" target="_blank" rel="noopener">@carronarederepasses</a>
+      <a href="https://wa.me/5548991840304" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
