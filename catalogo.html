@@ -198,10 +198,10 @@
     <div>
       <label for="f-status">Status</label>
       <select id="f-status">
+        <option value="">Todos</option>
         <option value="disponivel">Disponíveis</option>
         <option value="reservado">Reservados</option>
         <option value="vendido">Vendidos</option>
-        <option value="">Todos</option>
       </select>
     </div>
     <div class="acoes">
@@ -279,7 +279,7 @@ const $ = id => document.getElementById(id);
 
 function limparFiltros() {
   ['f-q','f-valor-max','f-km-max','f-ano-min','f-regiao'].forEach(id => $(id).value = '');
-  $('f-status').value = 'disponivel';
+  $('f-status').value = '';
   carregar();
 }
 
