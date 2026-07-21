@@ -290,6 +290,18 @@ document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
   if (!r.ok) return;
   VENDAS = await r.json();
   render();
+
+  // Vindo do catálogo via "Registrar Venda" → abre modal pré-preenchido
+  const p = new URLSearchParams(location.search);
+  const campos = ['marca','modelo','versao','ano','placa','cor','km','valor_venda','valor_fipe'];
+  const temDados = campos.some(c => p.has(c));
+  if (temDados) {
+    const veiculo = {};
+    campos.forEach(c => { if (p.has(c)) veiculo[c] = p.get(c); });
+    veiculo._fromCatalogo = true;
+    abrirModal(veiculo);
+    history.replaceState({}, '', '/vendas'); // limpa a URL
+  }
 })();
 
 // ── Carregar / filtrar ─────────────────────────────────────────
@@ -397,9 +409,9 @@ function abrirModal(v) {
   $('modal-tit').textContent = v.id ? 'Editar venda' : 'Nova venda';
   CAMPOS_FORM.forEach(c => { const el = $('m-' + c); if (el) el.value = v[c] != null ? v[c] : ''; });
   if (!v.id) { $('m-status').value = 'negociando'; $('m-doc_status').value = 'pendente'; }
-  // Nova venda → cascata FIPE. Edição com carro preenchido → modo manual (mostra os textos).
+  // Nova venda → cascata FIPE. Edição ou vindo do catálogo com carro preenchido → modo manual.
   const temCarro = !!(v.marca || v.modelo || v.versao);
-  setModoManual(!!(v.id && temCarro));
+  setModoManual(!!(v._fromCatalogo && temCarro) || !!(v.id && temCarro));
   $('modal').classList.add('show');
 }
 function fecharModal(){ $('modal').classList.remove('show'); }

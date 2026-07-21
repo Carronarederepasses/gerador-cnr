@@ -361,10 +361,27 @@ function card(v) {
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
+      <button onclick="registrarVenda('${v.id}')" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">💰 Registrar Venda</button>
       <button onclick="abrirStatusMenu(event,'${v.id}')">Status ▾</button>
       <button onclick="remover('${v.id}')">Excluir</button>
     </div>
   </div>`;
+}
+
+function registrarVenda(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  const p = new URLSearchParams();
+  if (v.marca)   p.set('marca',   v.marca);
+  if (v.modelo)  p.set('modelo',  v.modelo);
+  if (v.versao)  p.set('versao',  v.versao);
+  if (v.ano)     p.set('ano',     v.ano);
+  if (v.placa)   p.set('placa',   v.placa);
+  if (v.cor)     p.set('cor',     v.cor);
+  if (v.km)      p.set('km',      v.km);
+  if (v.valor)   p.set('valor_venda', v.valor);
+  if (v.fipe)    p.set('valor_fipe',  v.fipe);
+  window.location.href = '/vendas?' + p.toString();
 }
 
 let CACHE = {};
