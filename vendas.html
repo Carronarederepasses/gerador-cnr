@@ -98,32 +98,12 @@
   .modal .acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem}
   textarea{resize:vertical;min-height:64px}
 
-  /* Gate de senha */
-  .gate{position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;z-index:100;padding:1.5rem}
-  .gate .cx{max-width:340px;width:100%;text-align:center}
-  .gate h2{font-family:'Playfair Display',serif;font-size:1.6rem;margin-bottom:.4rem}
-  .gate p{color:#aaa;font-size:.85rem;margin-bottom:1.2rem}
-  .gate input{background:#1a1a1a;border-color:#333;color:#fff;text-align:center;margin-bottom:.7rem}
-  .gate button{width:100%}
-  .gate .msg{color:#ff7a6b;font-size:.8rem;min-height:1.2em;margin-top:.5rem}
-
   @media(max-width:560px){h1{font-size:1.5rem}.card .partes,.grid2,.grid3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
-<!-- ── Portão de senha ────────────────────────────────────────── -->
-<div class="gate" id="gate">
-  <div class="cx">
-    <h2>Registro de Vendas</h2>
-    <p>Área restrita — Carro na Rede Repasses</p>
-    <input id="gate-pass" type="password" inputmode="text" placeholder="Senha de acesso" autocomplete="current-password" />
-    <button class="btn" id="gate-btn" style="background:#fff;color:#111;border-color:#fff">Entrar</button>
-    <div class="msg" id="gate-msg"></div>
-  </div>
-</div>
-
-<div class="wrap" id="app" style="display:none">
+<div class="wrap" id="app">
   <header>
     <div>
       <h1>Registro de Vendas</h1>
@@ -302,33 +282,15 @@ function headers(extra) {
   return Object.assign(h, extra || {});
 }
 
-// ── Gate ───────────────────────────────────────────────────────
-// silent=true: tentativa automática no carregamento (não mostra erro,
-// só entra se der certo). silent=false: clique no "Entrar" (mostra erro).
-async function tentarEntrar(pass, silent) {
-  $('gate-msg').textContent = '';
-  KEY = pass;
-  let r;
-  try {
-    r = await fetch('/api/vendas', { headers: headers() });
-  } catch (e) {
-    if (!silent) $('gate-msg').textContent = 'Erro ao conectar. Tente de novo.';
-    KEY = ''; return;
-  }
-  if (r.status === 401) { if (!silent) $('gate-msg').textContent = 'Senha incorreta.'; KEY = ''; return; }
-  if (!r.ok) { if (!silent) $('gate-msg').textContent = 'Erro ao conectar. Tente de novo.'; KEY = ''; return; }
-  sessionStorage.setItem('cnr_vendas_key', KEY);
-  VENDAS = await r.json();
-  $('gate').style.display = 'none';
-  $('app').style.display = 'block';
-  render();
-}
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
-$('gate-btn').onclick = () => tentarEntrar($('gate-pass').value.trim(), false);
-$('gate-pass').addEventListener('keydown', e => { if (e.key === 'Enter') tentarEntrar($('gate-pass').value.trim(), false); });
 
-// Se já tem chave salva, tenta entrar direto e em silêncio.
-(async function boot(){ if (KEY) await tentarEntrar(KEY, true); })();
+(async function boot(){
+  let r;
+  try { r = await fetch('/api/vendas', { headers: headers() }); } catch(e) { return; }
+  if (!r.ok) return;
+  VENDAS = await r.json();
+  render();
+})();
 
 // ── Carregar / filtrar ─────────────────────────────────────────
 async function carregar() {

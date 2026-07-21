@@ -143,9 +143,6 @@ module.exports = async (req, res) => {
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return res.status(500).json({ error: 'Supabase não configurado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).' });
   }
-  if (VENDAS_KEY && req.headers['x-cnr-key'] !== VENDAS_KEY) {
-    return res.status(401).json({ error: 'Senha incorreta.' });
-  }
 
   const q = req.query || {};
 
