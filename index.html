@@ -289,6 +289,15 @@
   </div>
 </header>
 
+<!-- AVISO DADOS DO CARRO ANTERIOR -->
+<div id="aviso-rascunho" style="display:none;background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent);padding:.7rem 1.5rem;font-size:.8rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
+  <span style="color:var(--accent);font-weight:500">⚠️ Tem dados do carro anterior salvos. Limpar para iniciar novo anúncio?</span>
+  <div style="display:flex;gap:.5rem">
+    <button onclick="limparRascunho()" style="font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;background:var(--accent);color:var(--surface);border:none;padding:.4rem .9rem;cursor:pointer;font-weight:600">Limpar e começar novo</button>
+    <button onclick="document.getElementById('aviso-rascunho').style.display='none'" style="font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent);padding:.4rem .9rem;cursor:pointer">Manter dados</button>
+  </div>
+</div>
+
 <!-- AVISO DE NEGOCIAÇÕES PENDENTES -->
 <div id="neg-aviso" style="display:none;background:color-mix(in srgb,#f59e0b 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,#f59e0b 35%,transparent);padding:.65rem 2rem;font-size:.76rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
   <span id="neg-aviso-txt" style="color:#f59e0b"></span>
@@ -2334,6 +2343,12 @@ function limparEstado() {
   location.reload();
 }
 
+function limparRascunho() {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  _catalogoId = null;
+  location.reload();
+}
+
 
 // ══════════════════════════════════════════════
 // SELECT COM BUSCA — campo de digitar que filtra a lista.
@@ -2742,8 +2757,14 @@ buildObs();
   await loadMarcas();
   ['sel-marca', 'sel-modelo', 'csel-marca', 'csel-modelo'].forEach(id =>
     makeSearchable(id, 'Digite para filtrar...'));
-  await restaurarEstado();
+  // Mostra aviso se há rascunho do carro anterior (mas não após um limpar+reload)
   const _savedMode = sessionStorage.getItem('cnr_restore_mode');
+  const temRascunho = (() => { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return !!(d && d.campos && Object.values(d.campos).some(v => v)); } catch(e){ return false; } })();
+  if (temRascunho && !_savedMode) {
+    document.getElementById('aviso-rascunho').style.display = 'flex';
+  }
+
+  await restaurarEstado();
   if (_savedMode) { sessionStorage.removeItem('cnr_restore_mode'); setMode(_savedMode); }
   resyncSearchables(); // atualiza os campos após restaurar valores salvos
   // Liga o auto-save só depois de restaurar (não salva durante a restauração)
