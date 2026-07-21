@@ -151,6 +151,15 @@
 
     <div class="form-sec">
       <div class="stit">Veículo <span id="toggle-manual" onclick="toggleManual()" style="float:right;font-size:.72rem;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500">✏️ digitar manual</span></div>
+      <!-- Busca por placa -->
+      <div style="display:flex;gap:.5rem;align-items:flex-end;margin-bottom:.8rem">
+        <div style="flex:1">
+          <label style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);display:block;margin-bottom:.3rem">🔍 Buscar pela placa (preenche o carro automaticamente)</label>
+          <input id="m-placa-busca" placeholder="ABC1D23" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarPlacaVenda()}" />
+        </div>
+        <button type="button" id="btn-placa-busca" onclick="buscarPlacaVenda()" class="btn" style="white-space:nowrap;flex-shrink:0">Buscar</button>
+      </div>
+      <div id="m-placa-st" style="font-size:.78rem;margin-bottom:.5rem;color:var(--text-mid);min-height:1.1em"></div>
       <!-- Cascata FIPE -->
       <div id="cascata-box" class="grid2">
         <div><label>Marca</label><select id="m-sel-marca" onchange="vMarca()"><option value="">Carregando marcas...</option></select></div>
@@ -492,6 +501,55 @@ async function vVersao(){
     $('m-valor_fipe').value = limpo ? Math.round(parseFloat(limpo)) : '';
     fipeSt(`✓ FIPE ${data.MesReferencia||'atual'}: ${data.Valor}`);
   } catch(e){ fipeSt('Não encontrado — preencha a FIPE manualmente'); }
+}
+
+// ── Busca veículo pela placa (APiBrasil) ───────────────────────
+async function buscarPlacaVenda() {
+  const placa = ($('m-placa-busca').value || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const st = $('m-placa-st');
+  if (!placa) { st.textContent = 'Digite a placa antes de buscar.'; return; }
+  const btn = $('btn-placa-busca');
+  btn.disabled = true; btn.textContent = '⏳ Buscando...';
+  st.textContent = '';
+  try {
+    const r = await fetch('/api/placa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ placa }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erro na consulta');
+
+    const inner = data.data || {};
+    const fipe  = (inner.data || []).find(f => f.principal) || (inner.data || [])[0] || {};
+    const vei   = inner.veiculo || {};
+
+    const marca   = fipe.marca   || '';
+    const modelo  = fipe.modelo  || '';
+    const ano     = fipe.anoModelo ? String(fipe.anoModelo) : '';
+    const cor     = vei.cor      || '';
+    const chassi  = vei.chassi   || '';
+    const fipeVal = fipe.valor   ? String(Math.round(Number(fipe.valor))) : '';
+
+    // Ativa modo manual e preenche campos
+    setModoManual(true);
+    $('m-marca').value      = marca;
+    $('m-modelo').value     = modelo;
+    $('m-versao').value     = modelo; // versão = modelo completo da FIPE
+    $('m-ano').value        = ano;
+    $('m-cor').value        = cor;
+    $('m-chassi').value     = chassi;
+    $('m-placa').value      = placa;
+    if (fipeVal) $('m-valor_fipe').value = fipeVal;
+
+    st.style.color = 'var(--severity-ok)';
+    st.textContent = `✓ ${marca} ${modelo} ${ano} — dados preenchidos. Confirme KM e valor de venda.`;
+  } catch(e) {
+    st.style.color = 'var(--severity-crit)';
+    st.textContent = 'Erro: ' + e.message + ' — preencha manualmente.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Buscar';
+  }
 }
 
 function setModoManual(manual){
