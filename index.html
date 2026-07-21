@@ -304,7 +304,6 @@
     <button class="mode-btn active" id="btn-captacao" onclick="setMode('captacao')">Captação</button>
     <button class="mode-btn" id="btn-coletados" onclick="setMode('coletados')">Coletados</button>
     <button class="mode-btn" id="btn-editor" onclick="setMode('editor')">📸 Foto</button>
-    <button class="mode-btn" id="btn-consultas" onclick="setMode('consultas')">🔍 Consultas</button>
   </div>
 
   <button onclick="limparEstado()" style="width:100%;margin-bottom:1.4rem;background:none;border:1px solid var(--border);color:var(--mid);padding:.65rem;font-family:'DM Sans',sans-serif;font-size:.64rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer">🗑️ Limpar dados (novo anúncio)</button>
@@ -690,72 +689,6 @@
   <button class="btn-download" id="btn-download" onclick="downloadFoto()">⬇ Baixar Foto</button>
 </div>
 
-<!-- ── CONSULTAS ── -->
-<div id="modo-consultas" style="display:none">
-
-  <div class="cq-aviso">
-    ⚠️ <strong>Aguardando chave Infosimples.</strong> As consultas abaixo estão em modo de demonstração. Quando a chave estiver configurada, os resultados serão reais.
-  </div>
-
-  <!-- Placa -->
-  <div class="fsec">
-    <div class="fsec-title">Placa do veículo</div>
-    <div style="display:flex;gap:.5rem;align-items:center">
-      <input type="text" id="cq-placa" placeholder="ABC1D23" maxlength="8" style="text-transform:uppercase;flex:1" oninput="this.value=this.value.toUpperCase()">
-      <input type="text" id="cq-cliente" placeholder="Para quem (opcional)" style="flex:1.4">
-    </div>
-  </div>
-
-  <!-- Tipos de consulta -->
-  <div class="fsec">
-    <div class="fsec-title">O que consultar</div>
-    <div class="cq-tipos">
-      <label class="cq-tipo-item">
-        <input type="checkbox" class="cq-check" value="detran" data-custo="0.26" checked>
-        <span class="cq-tipo-label">DETRAN SC — situação e restrições do veículo</span>
-        <span class="cq-tipo-custo">R$ 0,26</span>
-      </label>
-      <label class="cq-tipo-item">
-        <input type="checkbox" class="cq-check" value="restricoes" data-custo="0.30" checked>
-        <span class="cq-tipo-label">Restrições Unificada — todos os estados</span>
-        <span class="cq-tipo-custo">~R$ 0,30</span>
-      </label>
-      <label class="cq-tipo-item">
-        <input type="checkbox" class="cq-check" value="recall" data-custo="0.26" checked>
-        <span class="cq-tipo-label">SENATRAN — recall pendente</span>
-        <span class="cq-tipo-custo">R$ 0,26</span>
-      </label>
-      <label class="cq-tipo-item">
-        <input type="checkbox" class="cq-check" value="infracoes" data-custo="0.26">
-        <span class="cq-tipo-label">SENATRAN — multas nacionais</span>
-        <span class="cq-tipo-custo">R$ 0,26</span>
-      </label>
-      <label class="cq-tipo-item">
-        <input type="checkbox" class="cq-check" value="laudo" data-custo="0.24">
-        <span class="cq-tipo-label">Laudo DEKRA — histórico de sinistros</span>
-        <span class="cq-tipo-custo">R$ 0,24</span>
-      </label>
-    </div>
-    <div class="cq-total">Custo estimado: <strong id="cq-custo-total">R$ 0,82</strong></div>
-  </div>
-
-  <button class="btn-consultar" id="btn-consultar" onclick="fazerConsulta()">🔍 Consultar veículo</button>
-
-  <!-- Resultado da consulta atual -->
-  <div class="cq-resultado" id="cq-resultado" style="display:none"></div>
-
-  <!-- Log de consultas -->
-  <div class="fsec">
-    <div class="fsec-title">
-      <div class="cq-log-titulo">
-        <span>Histórico de consultas</span>
-        <button onclick="limparLogConsultas()" style="background:none;border:none;color:var(--mid);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Limpar</button>
-      </div>
-    </div>
-    <div id="cq-log"></div>
-  </div>
-
-</div>
 
 <!-- ══ PREVIEW ══ -->
 <div class="preview-side">
@@ -1743,9 +1676,8 @@ function setMode(mode) {
   document.getElementById('modo-captacao').style.display    = mode === 'captacao'  ? '' : 'none';
   document.getElementById('modo-coletados').style.display   = mode === 'coletados' ? '' : 'none';
   document.getElementById('modo-editor').style.display      = mode === 'editor'    ? '' : 'none';
-  document.getElementById('modo-consultas').style.display   = mode === 'consultas' ? '' : 'none';
   // Opcionais/blindagem/obs/valores/Gerar só fazem sentido em Captação e Coletados
-  document.getElementById('blocos-anuncio').style.display   = (mode === 'editor' || mode === 'consultas') ? 'none' : '';
+  document.getElementById('blocos-anuncio').style.display   = mode === 'editor' ? 'none' : '';
   // O bloco "Valores" duplica os campos do Coletados (colet-valor/colet-fipe) — esconde lá
   document.getElementById('bloco-valores').style.display    = mode === 'coletados' ? 'none' : '';
   // Avaliação só faz sentido em carro de captação
@@ -1753,12 +1685,10 @@ function setMode(mode) {
   document.getElementById('btn-captacao').classList.toggle('active',  mode === 'captacao');
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
-  document.getElementById('btn-consultas').classList.toggle('active', mode === 'consultas');
-
-  // No modo Foto e Consultas o preview-side não faz sentido
+  // No modo Foto o preview-side não faz sentido
   const previewSide = document.querySelector('.preview-side');
   const appEl       = document.querySelector('.app');
-  if (mode === 'editor' || mode === 'consultas') {
+  if (mode === 'editor') {
     previewSide.style.display = 'none';
     appEl.style.gridTemplateColumns = '1fr';
   } else {
@@ -1766,7 +1696,6 @@ function setMode(mode) {
     appEl.style.gridTemplateColumns = '';
   }
 
-  if (mode === 'consultas') renderLogConsultas();
 }
 
 // ══════════════════════════════════════════════
@@ -2823,164 +2752,6 @@ buildObs();
   document.addEventListener('click', e => { if (e.target.closest('.tog')) salvarEstadoDebounced(); });
 })();
 
-// ══════════════════════════════════════════════
-// ABA CONSULTAS VEICULARES (Infosimples)
-// ══════════════════════════════════════════════
-
-const CQ_LOG_KEY = 'cq_log_v1';
-
-// Atualiza o custo total conforme checkboxes mudam
-document.querySelectorAll('.cq-check').forEach(cb => {
-  cb.addEventListener('change', () => {
-    const total = [...document.querySelectorAll('.cq-check:checked')]
-      .reduce((s, c) => s + parseFloat(c.dataset.custo), 0);
-    document.getElementById('cq-custo-total').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
-    // Destaca label selecionado
-    cb.closest('.cq-tipo-item').classList.toggle('selected', cb.checked);
-  });
-  // Estado inicial
-  cb.closest('.cq-tipo-item').classList.toggle('selected', cb.checked);
-});
-
-async function fazerConsulta() {
-  const placa = document.getElementById('cq-placa').value.replace(/\W/g,'').toUpperCase();
-  if (placa.length < 7) { alert('Digite uma placa válida (ex: ABC1D23)'); return; }
-
-  const checks = [...document.querySelectorAll('.cq-check:checked')];
-  if (!checks.length) { alert('Selecione pelo menos uma consulta.'); return; }
-
-  const btn = document.getElementById('btn-consultar');
-  btn.disabled = true;
-  btn.classList.add('loading');
-  btn.textContent = '⏳ Consultando...';
-
-  const tipos = checks.map(c => c.value);
-  const custoTotal = checks.reduce((s, c) => s + parseFloat(c.dataset.custo), 0);
-  const cliente = document.getElementById('cq-cliente').value.trim();
-
-  try {
-    const r = await fetch('/api/infosimples?' + new URLSearchParams({ placa, tipos: tipos.join(',') }));
-    const data = await r.json();
-
-    if (!r.ok) throw new Error(data.error || 'Erro na consulta');
-
-    // Mostra resultado
-    mostrarResultadoConsulta(data, placa);
-
-    // Salva no log (custo zero se simulado — chave não configurada)
-    const entrada = {
-      id: Date.now(),
-      placa,
-      cliente,
-      data: new Date().toLocaleString('pt-BR'),
-      tipos,
-      custo: data.simulado ? 0 : custoTotal,
-      simulado: !!data.simulado,
-      resultado: data,
-    };
-    const log = JSON.parse(localStorage.getItem(CQ_LOG_KEY) || '[]');
-    log.unshift(entrada);
-    localStorage.setItem(CQ_LOG_KEY, JSON.stringify(log.slice(0, 100)));
-    renderLogConsultas();
-
-  } catch (e) {
-    document.getElementById('cq-resultado').style.display = '';
-    document.getElementById('cq-resultado').innerHTML =
-      `<div style="color:var(--red);font-size:.78rem;padding:.75rem;border:1px solid rgba(220,50,50,.3)">${e.message}</div>`;
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove('loading');
-    btn.textContent = '🔍 Consultar veículo';
-  }
-}
-
-function mostrarResultadoConsulta(data, placa) {
-  const el = document.getElementById('cq-resultado');
-  el.style.display = '';
-
-  const itens = data.resultados || [];
-  const html = `
-    <div style="font-size:.62rem;letter-spacing:.28em;text-transform:uppercase;color:var(--mid);margin-bottom:.8rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">
-      Resultado — ${placa} — ${new Date().toLocaleString('pt-BR')}
-    </div>
-    ${itens.map(item => `
-      <div class="cq-resultado-item">
-        <div class="cq-resultado-header">
-          <span class="cq-resultado-nome">${item.nome}</span>
-          <span class="cq-resultado-status ${item.status}">${item.statusTexto}</span>
-        </div>
-        <div class="cq-resultado-detalhe">${item.detalhe}</div>
-      </div>
-    `).join('')}
-    <button onclick="copiarRelatorio('${placa}')" style="width:100%;margin-top:.6rem;background:none;border:1px solid var(--border);color:var(--mid);padding:.65rem;font-family:'DM Sans',sans-serif;font-size:.64rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer">📋 Copiar relatório</button>
-  `;
-  el.innerHTML = html;
-}
-
-function copiarRelatorio(placa) {
-  const log = JSON.parse(localStorage.getItem(CQ_LOG_KEY) || '[]');
-  const entrada = log.find(l => l.placa === placa);
-  if (!entrada) return;
-
-  const linhas = [
-    `CONSULTA VEICULAR — ${entrada.placa}`,
-    `Data: ${entrada.data}`,
-    entrada.cliente ? `Cliente: ${entrada.cliente}` : '',
-    '─────────────────────────',
-    ...(entrada.resultado.resultados || []).map(r => `${r.nome}: ${r.statusTexto}\n${r.detalhe}`),
-    '─────────────────────────',
-    `Custo: R$ ${entrada.custo.toFixed(2).replace('.', ',')}`,
-    'Fonte: Infosimples',
-  ].filter(Boolean).join('\n');
-
-  navigator.clipboard.writeText(linhas).then(() => {
-    alert('Relatório copiado!');
-  });
-}
-
-function renderLogConsultas() {
-  const el = document.getElementById('cq-log');
-  if (!el) return;
-  const log = JSON.parse(localStorage.getItem(CQ_LOG_KEY) || '[]');
-
-  if (!log.length) {
-    el.innerHTML = '<div class="cq-log-vazio">Nenhuma consulta realizada ainda.</div>';
-    return;
-  }
-
-  const totalGasto = log.reduce((s, l) => s + (l.custo || 0), 0);
-
-  el.innerHTML = `
-    <div style="font-size:.7rem;color:var(--mid);margin-bottom:.8rem;padding:.5rem .8rem;background:var(--surface-raise);border:1px solid var(--border)">
-      ${log.length} consulta${log.length > 1 ? 's' : ''} · Total gasto: <strong style="color:var(--white)">R$ ${totalGasto.toFixed(2).replace('.', ',')}</strong>
-    </div>
-    ${log.map(entrada => {
-      const itens = entrada.resultado?.resultados || [];
-      const tags = itens.map(r =>
-        `<span class="cq-log-tag ${r.status}">${r.nomeAbrev || r.nome.split('—')[0].trim()}: ${r.statusTexto}</span>`
-      ).join('');
-      return `
-        <div class="cq-log-item">
-          <div class="cq-log-header">
-            <span class="cq-log-placa">${entrada.placa}</span>
-            ${entrada.cliente ? `<span style="font-size:.7rem;color:var(--mid)">— ${entrada.cliente}</span>` : ''}
-            ${entrada.simulado ? `<span style="font-size:.6rem;color:var(--mid);letter-spacing:.08em">(simulado)</span>` : ''}
-            <span class="cq-log-data">${entrada.data}</span>
-            <span class="cq-log-custo">${entrada.simulado ? 'R$ 0,00' : 'R$ ' + (entrada.custo || 0).toFixed(2).replace('.', ',')}</span>
-          </div>
-          <div class="cq-log-tags">${tags}</div>
-        </div>
-      `;
-    }).join('')}
-  `;
-}
-
-function limparLogConsultas() {
-  if (!confirm('Apagar todo o histórico de consultas?')) return;
-  localStorage.removeItem(CQ_LOG_KEY);
-  renderLogConsultas();
-  document.getElementById('cq-resultado').style.display = 'none';
-}
 </script>
 </body>
 </html>
