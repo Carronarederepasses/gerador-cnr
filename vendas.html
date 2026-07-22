@@ -99,10 +99,15 @@
   textarea{resize:vertical;min-height:64px}
 
   @media(max-width:560px){h1{font-size:1.5rem}.card .partes,.grid2,.grid3{grid-template-columns:1fr}}
+
+  #cnr-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--surface);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.65rem 1.2rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;z-index:9999;white-space:nowrap}
+  #cnr-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #cnr-toast.erro{background:var(--severity-crit)}
 </style>
 </head>
 <body>
 
+<div id="cnr-toast"></div>
 <div class="wrap" id="app">
   <header>
     <div>
@@ -113,7 +118,6 @@
       <a class="voltar" href="/index.html">📝 Gerador</a>
       <a class="voltar" href="/catalogo.html">📂 Catálogo</a>
       <a class="voltar" href="/consultas.html">🔍 Consulta</a>
-      <a class="voltar" href="/artes.html">🎨 Artes</a>
       <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--line);border-radius:8px;color:var(--text-mid);padding:.35rem .55rem;cursor:pointer;line-height:1"></button>
     </div>
   </header>
@@ -258,6 +262,16 @@
 
 <script>
 const $ = id => document.getElementById(id);
+
+let _toastTimer;
+function toast(msg, tipo = 'ok', duracao = 2800) {
+  const el = $('cnr-toast');
+  if (!el) return;
+  clearTimeout(_toastTimer);
+  el.textContent = msg;
+  el.className = tipo === 'erro' ? 'erro show' : 'show';
+  _toastTimer = setTimeout(() => el.className = '', duracao);
+}
 let KEY = sessionStorage.getItem('cnr_vendas_key') || '';
 let VENDAS = [];
 let ordemDesc = true; // true = venda mais recente primeiro
@@ -580,7 +594,8 @@ $('m-salvar').onclick = async () => {
     const r = await fetch(url, { method: id ? 'PATCH' : 'POST', headers: headers(), body: JSON.stringify(body) });
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
     fecharModal();
-    carregar();
+    await carregar();
+    toast(id ? '✓ Venda atualizada!' : '✓ Venda registrada com sucesso!');
   } catch (e) { mostrarErro('Falha ao salvar: ' + e.message); }
 };
 

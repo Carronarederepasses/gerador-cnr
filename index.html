@@ -273,9 +273,15 @@
     .form-side{border-right:none;border-bottom:1px solid var(--border)}
     .g2,.g3,.g4,.tog-grid{grid-template-columns:1fr}
   }
+
+  /* TOAST */
+  #cnr-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--surface);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.65rem 1.2rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;z-index:9999;white-space:nowrap}
+  #cnr-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #cnr-toast.erro{background:var(--severity-crit)}
 </style>
 </head>
 <body>
+<div id="cnr-toast"></div>
 
 <header>
   <div class="logo">Carro na Rede <span>Gerador de Anúncio</span></div>
@@ -283,7 +289,6 @@
     <a href="/catalogo.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">📂 Catálogo →</a>
     <a href="/vendas.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">📋 Vendas →</a>
     <a href="/consultas.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🔍 Consulta →</a>
-    <a href="/artes.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🎨 Artes →</a>
     <a href="/negociacoes.html" id="btn-neg-header" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem;position:relative">🤝 Negociações</a>
     <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--border);color:var(--light);padding:.5rem .7rem;cursor:pointer;line-height:1"></button>
   </div>
@@ -311,7 +316,7 @@
 
   <div class="mode-toggle">
     <button class="mode-btn active" id="btn-captacao" onclick="setMode('captacao')">Captação</button>
-    <button class="mode-btn" id="btn-coletados" onclick="setMode('coletados')">Coletados</button>
+    <button class="mode-btn" id="btn-coletados" onclick="setMode('coletados')">Parceiros</button>
     <button class="mode-btn" id="btn-editor" onclick="setMode('editor')">📸 Foto</button>
   </div>
 
@@ -1028,7 +1033,10 @@ async function buscarPlacaGerador() {
     const fipeStr = fipe.valor ? ' — FIPE R$ ' + Number(fipe.valor).toLocaleString('pt-BR') : '';
 
     st.style.color = 'var(--green)';
-    st.textContent = '✓ ' + resumo + fipeStr;
+    // Contador de créditos APiBrasil (sessão)
+    const usado = (parseInt(sessionStorage.getItem('cnr_placa_count') || '0')) + 1;
+    sessionStorage.setItem('cnr_placa_count', usado);
+    st.textContent = '✓ ' + resumo + fipeStr + ` (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
   } catch (e) {
     st.style.color = 'var(--red)';
     st.textContent = '✗ ' + e.message;
@@ -2341,6 +2349,16 @@ function limparEstado() {
   sessionStorage.setItem('cnr_restore_mode', currentMode);
   _catalogoId = null;
   location.reload();
+}
+
+let _toastTimer;
+function toast(msg, tipo = 'ok', duracao = 2800) {
+  const el = document.getElementById('cnr-toast');
+  if (!el) return;
+  clearTimeout(_toastTimer);
+  el.textContent = msg;
+  el.className = tipo === 'erro' ? 'erro show' : 'show';
+  _toastTimer = setTimeout(() => el.className = '', duracao);
 }
 
 function limparRascunho() {
