@@ -98,6 +98,20 @@
   .dot.reservado{background:var(--severity-warn)}
   .dot.vendido{background:var(--text-faint)}
 
+  /* Match */
+  .match-box{border-top:1px solid var(--line);padding:.6rem 0 .2rem;margin-top:.3rem}
+  .match-titulo{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.5rem}
+  .match-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem}
+  .match-nome{font-size:.78rem;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .match-bar-wrap{width:60px;height:5px;background:var(--line);border-radius:3px;flex-shrink:0}
+  .match-bar{height:100%;border-radius:3px;background:var(--severity-ok)}
+  .match-bar.med{background:var(--severity-warn)}
+  .match-bar.baixo{background:var(--text-faint)}
+  .match-score{font-size:.7rem;font-weight:700;color:var(--text-mid);width:28px;text-align:right;flex-shrink:0}
+  .match-wa{font-size:.68rem;background:none;border:1px solid color-mix(in srgb,var(--severity-ok) 40%,transparent);color:var(--severity-ok);border-radius:6px;padding:.15rem .4rem;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;text-decoration:none;flex-shrink:0}
+  .match-wa:hover{background:color-mix(in srgb,var(--severity-ok) 10%,transparent)}
+  .match-vazio{font-size:.72rem;color:var(--text-faint);font-style:italic}
+
   .card .rodape{display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap}
   .card .rodape button{flex:1;min-width:fit-content;font-family:'DM Sans',sans-serif;font-size:.74rem;padding:.45rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text-mid);cursor:pointer}
   .card .rodape button:hover{border-color:var(--accent);color:var(--text)}
@@ -358,6 +372,7 @@ function card(v) {
       ${v.fipe != null ? `<div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span></div>` : ''}
     </div>
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
+    <div class="match-box">${renderMatch(v)}</div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
@@ -387,6 +402,46 @@ function registrarVenda(id) {
 }
 
 let CACHE = {};
+let COMPRADORES = [];
+
+async function carregarCompradores() {
+  try {
+    const r = await fetch('/api/compradores?ativo=true');
+    if (r.ok) COMPRADORES = await r.json();
+  } catch(_) {}
+}
+
+function calcScore(c, marca, valor) {
+  let s = 10;
+  const v = parseFloat(valor) || 0;
+  const min = parseFloat(c.preco_min) || 0;
+  const max = parseFloat(c.preco_max) || Infinity;
+  const marcas = (c.marcas || []).map(m => m.toLowerCase());
+  if (v > 0 && v >= min && v <= max) s += 40;
+  else if (v > 0 && max < Infinity && v <= max) s += 20;
+  if (marca && marcas.includes(marca.toLowerCase())) s += 30;
+  return Math.min(s, 100);
+}
+
+function renderMatch(v) {
+  if (!COMPRADORES.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Cadastre compradores para ver sugestões</div>';
+  const scored = COMPRADORES
+    .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  const rows = scored.map(c => {
+    const wa = c.telefone ? c.telefone.replace(/\D/g,'') : '';
+    const cls = c.score >= 70 ? '' : c.score >= 40 ? ' med' : ' baixo';
+    const msg = encodeURIComponent(`Olá ${c.nome}! Tenho um ${v.marca || ''} ${v.modelo || ''} ${v.ano || ''} aqui que pode te interessar. Posso te passar os detalhes?`);
+    return `<div class="match-row">
+      <span class="match-nome">${esc(c.nome)}</span>
+      <div class="match-bar-wrap"><div class="match-bar${cls}" style="width:${c.score}%"></div></div>
+      <span class="match-score">${c.score}%</span>
+      ${wa ? `<a class="match-wa" href="https://wa.me/55${wa}?text=${msg}" target="_blank">💬</a>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="match-titulo">👥 Possíveis compradores</div>${rows}`;
+}
 
 async function carregar() {
   $('erro').style.display = 'none';
@@ -1343,7 +1398,7 @@ function mostrarPreviewPDF() {
 $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); });
 
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
-carregar();
+carregarCompradores().then(() => carregar());
 </script>
 
 <!-- Modal Preview PDF -->
