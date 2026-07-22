@@ -70,6 +70,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   .etapa .etapa-lista{max-height:120px}
 }
 
+/* Rede de compradores */
+.comp-row{display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--line)}
+.comp-row:last-child{border-bottom:none}
+.comp-nome{flex:1;font-size:.84rem;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.comp-tipo{font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;background:var(--line);border-radius:4px;padding:.15rem .4rem;color:var(--text-mid);white-space:nowrap;flex-shrink:0}
+.comp-faixa{font-size:.72rem;color:var(--text-mid);white-space:nowrap;flex-shrink:0}
+.comp-marcas{font-size:.7rem;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;flex-shrink:0}
+.secao-titulo-link{float:right;font-size:.72rem;font-weight:400;color:var(--accent);text-decoration:none}
+.secao-titulo-link:hover{text-decoration:underline}
+
 /* Últimas vendas */
 .venda-row{display:flex;align-items:center;gap:.8rem;padding:.7rem 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .venda-row:last-child{border-bottom:none}
@@ -136,6 +146,11 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div class="val" id="kpi-taxa">—</div>
       <div class="sub">comissão acumulada</div>
     </div>
+    <div class="kpi azul" onclick="window.location='/compradores.html'" style="cursor:pointer">
+      <div class="lbl">Compradores ativos</div>
+      <div class="val" id="kpi-comp">—</div>
+      <div class="sub" id="kpi-comp-sub">na rede de match</div>
+    </div>
   </div>
 
   <!-- Pipeline -->
@@ -166,6 +181,15 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   <div class="secao">
     <div class="secao-titulo">Últimas vendas registradas</div>
     <div id="ultimas-vendas"><div class="loading">carregando...</div></div>
+  </div>
+
+  <!-- Rede de compradores -->
+  <div class="secao">
+    <div class="secao-titulo">
+      Rede de compradores
+      <a class="secao-titulo-link" href="/compradores.html">ver todos →</a>
+    </div>
+    <div id="comp-lista"><div class="loading">carregando...</div></div>
   </div>
 
   <!-- Atalhos -->
@@ -317,9 +341,46 @@ async function carregarVendas() {
   }
 }
 
+async function carregarCompradores() {
+  try {
+    const r = await fetch('/api/compradores?ativo=true');
+    if (!r.ok) throw new Error();
+    const lista = await r.json();
+
+    document.getElementById('kpi-comp').textContent = lista.length;
+    document.getElementById('kpi-comp-sub').textContent = lista.length === 1 ? 'comprador ativo' : 'compradores ativos';
+
+    const el = document.getElementById('comp-lista');
+    if (!lista.length) {
+      el.innerHTML = '<div class="vazio">Nenhum comprador cadastrado ainda. <a href="/compradores.html">Cadastrar →</a></div>';
+      return;
+    }
+    const moedaK = n => {
+      if (!n) return '—';
+      const v = Number(n);
+      return v >= 1000 ? 'R$' + (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0}) + 'k' : 'R$' + v.toLocaleString('pt-BR');
+    };
+    el.innerHTML = lista.slice(0, 8).map(c => {
+      const faixa = (c.preco_min || c.preco_max)
+        ? moedaK(c.preco_min) + ' – ' + moedaK(c.preco_max)
+        : '';
+      const marcas = (c.marcas || []).slice(0,3).join(', ');
+      return `<div class="comp-row" onclick="window.location='/compradores.html'" style="cursor:pointer">
+        <span class="comp-nome">${c.nome}</span>
+        <span class="comp-tipo">${c.tipo === 'pj' ? 'PJ' : 'PF'}</span>
+        ${faixa ? `<span class="comp-faixa">${faixa}</span>` : ''}
+        ${marcas ? `<span class="comp-marcas">${marcas}</span>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('comp-lista').innerHTML = '<div class="vazio">Erro ao carregar compradores.</div>';
+  }
+}
+
 saudacao();
 carregarCatalogo();
 carregarVendas();
+carregarCompradores();
 </script>
 </body>
 </html>
