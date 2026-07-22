@@ -399,16 +399,22 @@ document.addEventListener('click', e => {
   VENDAS = await r.json();
   render();
 
-  // Vindo do catálogo via "Registrar Venda" → abre modal pré-preenchido
+  // Vindo do catálogo ou negociações via "Registrar Venda" → abre modal pré-preenchido
   const p = new URLSearchParams(location.search);
   const campos = ['marca','modelo','versao','ano','placa','cor','km','valor_venda','valor_fipe'];
-  const temDados = campos.some(c => p.has(c));
+  const temDados = campos.some(c => p.has(c)) || p.has('comprador_nome') || p.has('comprador_telefone');
   if (temDados) {
     const veiculo = {};
     campos.forEach(c => { if (p.has(c)) veiculo[c] = p.get(c); });
+    // Campos extras vindos de negociações
+    if (p.has('comprador_nome'))    veiculo.comprador_nome      = p.get('comprador_nome');
+    if (p.has('comprador_telefone')) veiculo.comprador_telefone = p.get('comprador_telefone');
     veiculo._fromCatalogo = true;
     abrirModal(veiculo);
-    history.replaceState({}, '', '/vendas'); // limpa a URL
+    // Preenche CRM após abrir o modal
+    if (veiculo.comprador_nome)    document.getElementById('m-comprador_nome').value = veiculo.comprador_nome;
+    if (veiculo.comprador_telefone) document.getElementById('m-comprador_telefone').value = veiculo.comprador_telefone;
+    history.replaceState({}, '', '/vendas.html');
   }
 })();
 
