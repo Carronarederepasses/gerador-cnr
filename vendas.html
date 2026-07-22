@@ -97,6 +97,13 @@
   .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.7rem}
   .modal .acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem}
   textarea{resize:vertical;min-height:64px}
+  .crm-combo{position:relative}
+  .crm-drop{position:absolute;z-index:300;left:0;right:0;background:var(--surface-raise);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);max-height:200px;overflow-y:auto;display:none;top:calc(100% + 2px)}
+  .crm-drop.show{display:block}
+  .crm-opt{padding:.45rem .75rem;cursor:pointer;font-size:.82rem}
+  .crm-opt:hover{background:var(--line)}
+  .crm-opt-nome{font-weight:600}
+  .crm-opt-info{font-size:.68rem;color:var(--text-mid);margin-top:.08rem}
 
   @media(max-width:560px){h1{font-size:1.5rem}.card .partes,.grid2,.grid3{grid-template-columns:1fr}}
 
@@ -206,7 +213,14 @@
       <div class="stit">Comprador / Destino (pra onde foi)</div>
       <div class="grid2" style="margin-bottom:.7rem">
         <div><label>Destino (cidade / pra quem foi)</label><input id="m-destino" placeholder="ex: New Motors - Novo Hamburgo" /></div>
-        <div><label>Nome do comprador</label><input id="m-comprador_nome" /></div>
+        <div><label>Nome do comprador</label>
+          <div class="crm-combo" id="crm-combo">
+            <input id="m-comprador_nome" autocomplete="off" placeholder="Buscar no CRM ou digitar..."
+              oninput="filtrarCRM(this.value)" onfocus="filtrarCRM(this.value)"
+              onchange="if(!this.value){document.getElementById('m-comprador_id').value='';}">
+            <div class="crm-drop" id="crm-drop"></div>
+          </div>
+        </div>
       </div>
       <div class="grid2">
         <div><label>CPF</label><input id="m-comprador_cpf" inputmode="numeric" /></div>
@@ -334,6 +348,48 @@ function headers(extra) {
 }
 
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
+
+// ── CRM Autocomplete ────────────────────────────────────────────
+let COMPRADORES_CRM = [];
+(async () => {
+  try {
+    const r = await fetch('/api/compradores?ativo=true');
+    if (r.ok) COMPRADORES_CRM = await r.json();
+  } catch(_) {}
+})();
+
+function filtrarCRM(q) {
+  const drop = document.getElementById('crm-drop');
+  const term = (q || '').toLowerCase().trim();
+  const matches = term
+    ? COMPRADORES_CRM.filter(c => c.nome.toLowerCase().includes(term))
+    : COMPRADORES_CRM;
+  if (!matches.length) { drop.classList.remove('show'); return; }
+  const moedaK = n => n ? 'R$' + Math.round(Number(n)/1000) + 'k' : '?';
+  drop.innerHTML = matches.slice(0, 8).map(c => {
+    const faixa = (c.preco_min || c.preco_max) ? moedaK(c.preco_min) + '–' + moedaK(c.preco_max) : '';
+    const marcas = (c.marcas || []).slice(0, 3).join(', ');
+    const info = [c.tipo?.toUpperCase(), faixa, marcas].filter(Boolean).join(' · ');
+    return `<div class="crm-opt" onmousedown="selecionarCRM('${c.id}')">
+      <div class="crm-opt-nome">${esc(c.nome)}</div>
+      ${info ? `<div class="crm-opt-info">${info}</div>` : ''}
+    </div>`;
+  }).join('');
+  drop.classList.add('show');
+}
+
+function selecionarCRM(id) {
+  const c = COMPRADORES_CRM.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('m-comprador_nome').value = c.nome;
+  document.getElementById('m-comprador_id').value = c.id;
+  if (c.telefone) document.getElementById('m-comprador_telefone').value = c.telefone;
+  document.getElementById('crm-drop').classList.remove('show');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#crm-combo')) document.getElementById('crm-drop').classList.remove('show');
+});
 
 (async function boot(){
   let r;
