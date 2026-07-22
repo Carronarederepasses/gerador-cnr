@@ -112,6 +112,16 @@
   .match-wa:hover{background:color-mix(in srgb,var(--severity-ok) 10%,transparent)}
   .match-vazio{font-size:.72rem;color:var(--text-faint);font-style:italic}
 
+  /* Timeline de eventos */
+  .timeline{border-top:1px solid var(--line);padding:.5rem 0 .1rem;display:none;margin-top:.2rem}
+  .timeline.show{display:block}
+  .tl-item{display:flex;align-items:baseline;gap:.5rem;padding:.28rem 0;border-bottom:1px dashed var(--line)}
+  .tl-item:last-child{border-bottom:none}
+  .tl-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:.35rem}
+  .tl-tipo{font-size:.72rem;flex:1;color:var(--text)}
+  .tl-detalhe{font-size:.67rem;color:var(--text-mid)}
+  .tl-data{font-size:.64rem;color:var(--text-faint);white-space:nowrap;flex-shrink:0}
+
   .card .rodape{display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap}
   .card .rodape button{flex:1;min-width:fit-content;font-family:'DM Sans',sans-serif;font-size:.74rem;padding:.45rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text-mid);cursor:pointer}
   .card .rodape button:hover{border-color:var(--accent);color:var(--text)}
@@ -381,6 +391,7 @@ function card(v) {
     </div>
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     <div class="match-box">${v.status === 'vendido' ? renderVendido(v) : renderMatch(v)}</div>
+    <div class="timeline" id="hist-${v.id}"></div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
@@ -388,6 +399,7 @@ function card(v) {
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
       <button onclick="registrarVenda('${v.id}')" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">💰 Registrar Venda</button>
       <button onclick="abrirStatusMenu(event,'${v.id}')">Status ▾</button>
+      <button onclick="toggleHistorico('${v.id}',this)">📜 Histórico</button>
       <button onclick="remover('${v.id}')">Excluir</button>
     </div>
   </div>`;
@@ -475,6 +487,49 @@ function renderVendido(v) {
       <span class="match-nome">${esc(venda.comprador_nome)}</span>
       ${wa ? `<a class="match-wa" href="https://wa.me/55${wa}" target="_blank">💬</a>` : ''}
     </div>`;
+}
+
+const TIPO_LABEL = {
+  status_alterado:  'Status alterado',
+  avaliacao_salva:  'Avaliação salva',
+  venda_registrada: 'Venda registrada',
+  venda_atualizada: 'Venda atualizada',
+  foto_adicionada:  'Foto adicionada',
+};
+
+async function toggleHistorico(id, btn) {
+  const box = document.getElementById('hist-' + id);
+  if (!box) return;
+  if (box.classList.contains('show')) {
+    box.classList.remove('show');
+    box.innerHTML = '';
+    if (btn) btn.textContent = '📜 Histórico';
+    return;
+  }
+  box.innerHTML = '<div class="match-vazio">Carregando...</div>';
+  box.classList.add('show');
+  if (btn) btn.textContent = '📜 Fechar';
+  try {
+    const r = await fetch('/api/compradores?evento=1&veiculo_id=' + id);
+    if (!r.ok) throw new Error();
+    const eventos = await r.json();
+    if (!eventos.length) {
+      box.innerHTML = '<div class="match-titulo">📜 Histórico</div><div class="match-vazio">Nenhum evento registrado ainda.</div>';
+      return;
+    }
+    const fmt = d => new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    box.innerHTML = '<div class="match-titulo">📜 Histórico</div>' + eventos.map(e => {
+      const label = TIPO_LABEL[e.tipo] || e.tipo;
+      const det = e.dados ? Object.entries(e.dados).map(([k, v]) => v).join(' · ') : '';
+      return `<div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-tipo">${label}${det ? `<span class="tl-detalhe"> — ${det}</span>` : ''}</div>
+        <div class="tl-data">${fmt(e.created_at)}</div>
+      </div>`;
+    }).join('');
+  } catch(_) {
+    box.innerHTML = '<div class="match-vazio">Erro ao carregar histórico.</div>';
+  }
 }
 
 async function carregar() {
