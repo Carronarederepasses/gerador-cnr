@@ -150,6 +150,7 @@
       </select>
     </div>
     <button class="btn" id="btn-nova">+ Nova venda</button>
+    <button class="btn ghost" onclick="exportarCSV()" style="white-space:nowrap">📥 CSV</button>
   </div>
 
   <div class="meta-linha" style="display:flex;justify-content:space-between;align-items:center"><span id="contador"></span><button id="btn-ordem" class="btn ghost" style="font-size:.74rem;padding:.4rem .7rem">⬇ Mais recentes</button></div>
@@ -455,6 +456,24 @@ function render() {
   }
   $('lista').innerHTML = html;
 }
+function exportarCSV() {
+  if (!VENDAS.length) { alert('Nenhuma venda para exportar.'); return; }
+  const cols = ['data_venda','marca','modelo','versao','ano','placa','cor','km',
+    'vendedor_nome','vendedor_telefone','comprador_nome','comprador_telefone',
+    'origem','destino','valor_venda','valor_compra','taxa_intermediacao',
+    'forma_pagamento','canal_origem','status','doc_status','data_retirada','observacoes'];
+  const esc = v => v == null ? '' : '"' + String(v).replace(/"/g, '""') + '"';
+  const linhas = [cols.join(';')];
+  VENDAS.forEach(v => linhas.push(cols.map(c => esc(v[c])).join(';')));
+  const blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const mes = new Date().toISOString().slice(0, 7);
+  a.download = `vendas-cnr-${mes}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 $('btn-ordem').onclick = () => {
   ordemDesc = !ordemDesc;
   $('btn-ordem').textContent = ordemDesc ? '⬇ Mais recentes' : '⬆ Mais antigas';
