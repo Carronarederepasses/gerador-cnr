@@ -117,6 +117,7 @@
     <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
       <a class="voltar" href="/home.html">🏠 Painel</a>
       <a class="voltar" href="/index.html">📝 Gerador</a>
+      <a class="voltar" href="/compradores.html">👥 Compradores</a>
       <a class="voltar" href="/catalogo.html">📂 Catálogo</a>
       <a class="voltar" href="/consultas.html">🔍 Consulta</a>
       <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--line);border-radius:8px;color:var(--text-mid);padding:.35rem .55rem;cursor:pointer;line-height:1"></button>
@@ -211,6 +212,19 @@
         <div><label>CPF</label><input id="m-comprador_cpf" inputmode="numeric" /></div>
         <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" /></div>
       </div>
+      <div style="margin-top:.6rem"><label>Por que esse comprador? — alimenta o Motor de Match</label>
+        <select id="m-motivo_match">
+          <option value="">— selecione</option>
+          <option value="ja_compra_modelo">Já compra esse modelo</option>
+          <option value="paga_rapido">Paga rápido / confiável</option>
+          <option value="melhor_margem">Melhor margem</option>
+          <option value="confianca">Confiança / relacionamento</option>
+          <option value="regiao">Região / logística</option>
+          <option value="primeiro_contato">Foi o primeiro a contatar</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <input type="hidden" id="m-comprador_id">
     </div>
 
     <div class="form-sec">
@@ -218,8 +232,21 @@
       <div class="grid3">
         <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="number" inputmode="numeric" placeholder="ex: 2000" /></div>
         <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="number" inputmode="numeric" /></div>
+        <div><label>Valor de compra — quanto o vendedor recebeu (R$)</label><input id="m-valor_compra" type="number" inputmode="numeric" /></div>
         <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="number" inputmode="numeric" /></div>
         <div><label>Forma de pagamento</label><input id="m-forma_pagamento" placeholder="PIX, financiamento..." /></div>
+        <div><label>Canal de origem — como chegou esse carro</label>
+          <select id="m-canal_origem">
+            <option value="">— selecione</option>
+            <option value="captacao_ativa">Captação ativa</option>
+            <option value="indicacao">Indicação</option>
+            <option value="olx">OLX</option>
+            <option value="instagram">Instagram</option>
+            <option value="whatsapp">WhatsApp direto</option>
+            <option value="facebook">Facebook</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -425,7 +452,9 @@ function cardHTML(v) {
 const CAMPOS_FORM = ['marca','modelo','versao','ano','placa','cor','km','renavam','chassi',
   'origem','vendedor_nome','vendedor_cpf','vendedor_telefone',
   'destino','comprador_nome','comprador_cpf','comprador_telefone',
-  'valor_venda','valor_fipe','taxa_intermediacao','forma_pagamento','data_venda','data_retirada','status','doc_status','observacoes'];
+  'valor_venda','valor_fipe','valor_compra','taxa_intermediacao','forma_pagamento','canal_origem',
+  'comprador_id','motivo_match',
+  'data_venda','data_retirada','status','doc_status','observacoes'];
 
 function abrirModal(v) {
   v = v || {};

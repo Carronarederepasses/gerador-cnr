@@ -38,6 +38,7 @@ const CAMPOS = [
   'origem', 'vendedor_nome', 'vendedor_cpf', 'vendedor_telefone',
   'destino', 'comprador_nome', 'comprador_cpf', 'comprador_telefone',
   'valor_venda', 'valor_fipe', 'taxa_intermediacao', 'forma_pagamento',
+  'valor_compra', 'canal_origem', 'comprador_id', 'motivo_match',
   'data_venda', 'data_retirada',
   'status', 'doc_status', 'observacoes', 'anexos',
 ];
