@@ -220,7 +220,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 
   <!-- Relatório mensal -->
   <div class="secao">
-    <div class="secao-titulo" id="rel-titulo">Resumo do mês</div>
+    <div class="secao-titulo" id="rel-titulo">
+      Resumo do mês
+      <a class="secao-titulo-link" href="#" onclick="exportarRelatorioCSV();return false">⬇ CSV</a>
+    </div>
     <div class="relatorio" id="relatorio"><div class="loading">carregando...</div></div>
   </div>
 
@@ -282,6 +285,25 @@ document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 
 const moeda = n => n != null ? Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}) : '—';
 const dataBR = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '';
+
+let _vendasMes = [];
+
+function exportarRelatorioCSV() {
+  if (!_vendasMes.length) { alert('Nenhuma venda no mês para exportar.'); return; }
+  const cols = ['data_venda','marca','modelo','versao','ano','placa','km','cor','valor_venda','valor_fipe','taxa_intermediacao','comprador_nome','comprador_telefone','vendedor_nome','status','observacoes'];
+  const header = ['Data','Marca','Modelo','Versão','Ano','Placa','KM','Cor','Valor Venda','FIPE','Taxa CNR','Comprador','Tel Comprador','Vendedor','Status','Obs'];
+  const esc = v => v == null ? '' : String(v).replace(/;/g,' ');
+  const rows = _vendasMes.map(v => cols.map(c => esc(v[c])).join(';'));
+  const csv = '﻿' + [header.join(';'), ...rows].join('\r\n');
+  const now = new Date();
+  const nome = `vendas_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}.csv`;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
 function saudacao() {
   const h = new Date().getHours();
@@ -438,6 +460,7 @@ async function carregarRelatorio() {
       const d = v.data_venda ? new Date(v.data_venda + 'T00:00:00') : null;
       return d && d.getMonth() === mes && d.getFullYear() === ano;
     });
+    _vendasMes = doMes;
 
     const taxaTotal = doMes.reduce((s, v) => s + (Number(v.taxa_intermediacao) || 0), 0);
     const ticketMedio = doMes.length
@@ -482,7 +505,7 @@ async function carregarNegociacoes() {
     const r = await fetch('/api/compradores?neg=1');
     if (!r.ok) throw new Error();
     const todas = await r.json();
-    const ativas = todas.filter(n => n.status !== 'perdido');
+    const ativas = todas.filter(n => n.status !== 'descartado');
 
     document.getElementById('kpi-neg').textContent = ativas.length;
     document.getElementById('kpi-neg-sub').textContent = ativas.length === 1 ? 'em andamento' : 'em andamento';
@@ -496,17 +519,20 @@ async function carregarNegociacoes() {
     const hoje = new Date();
     const STATUS_LABEL = {
       'primeiro-contato': ['1º Contato', 'pc'],
-      'em-negociacao':    ['Negociando', 'en'],
-      'proposta-enviada': ['Proposta',   'pe'],
+      'respondeu':        ['Respondeu',  'en'],
+      'negociando':       ['Negociando', 'en'],
+      'aguardando':       ['Aguardando', 'pe'],
       'comprado':         ['Comprado!',  'co'],
     };
+    const ATIVOS_NEG = ['primeiro-contato','respondeu','negociando','aguardando'];
 
     const urgente = n => {
       if (n.status === 'comprado') return true;
+      if (!ATIVOS_NEG.includes(n.status)) return false;
       const ref = n.ultimo_contato
         ? new Date(n.ultimo_contato + 'T12:00:00')
         : new Date(n.created_at || hoje);
-      return (hoje - ref) > 3 * 86400000;
+      return (hoje - ref) > 1 * 86400000;
     };
 
     const sorted = [...ativas].sort((a, b) => (urgente(b) ? 1 : 0) - (urgente(a) ? 1 : 0));

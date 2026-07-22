@@ -206,6 +206,12 @@
       <input id="f-q" type="text" placeholder="ex: ABC1D23, Onix, T-Cross, Hilux..." style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" />
     </div>
     <div>
+      <label for="f-marca">Marca</label>
+      <select id="f-marca">
+        <option value="">Todas</option>
+      </select>
+    </div>
+    <div>
       <label for="f-valor-max">Preço repasse até (R$)</label>
       <input id="f-valor-max" type="number" inputmode="numeric" placeholder="ex: 60000" />
     </div>
@@ -314,6 +320,7 @@ function logEvento(payload) {
 function limparFiltros() {
   ['f-q','f-valor-max','f-km-max','f-ano-min','f-regiao'].forEach(id => $(id).value = '');
   $('f-status').value = '';
+  $('f-marca').value = '';
   carregar();
 }
 
@@ -326,7 +333,16 @@ function montarQuery() {
   }
   const st = $('f-status').value;
   if (st) p.set('status', st);
+  const mk = $('f-marca').value;
+  if (mk) p.set('marca', mk);
   return p.toString();
+}
+
+function atualizarDropdownMarcas(lista) {
+  const sel = $('f-marca');
+  const atual = sel.value;
+  const marcas = [...new Set(lista.map(v => v.marca).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+  sel.innerHTML = '<option value="">Todas</option>' + marcas.map(m => `<option value="${m}"${m===atual?' selected':''}>${m}</option>`).join('');
 }
 
 function fmtR(n) {
@@ -542,6 +558,7 @@ async function carregar() {
     const lista = await r.json();
     CACHE = {};
     lista.forEach(v => CACHE[v.id] = v);
+    atualizarDropdownMarcas(lista);
     $('contador').textContent = lista.length
       ? `${lista.length} veículo${lista.length > 1 ? 's' : ''} encontrado${lista.length > 1 ? 's' : ''}`
       : '';

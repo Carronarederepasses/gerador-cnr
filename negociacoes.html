@@ -113,6 +113,15 @@
   .c-body .field{margin-bottom:.65rem}
   .c-body .field:last-child{margin-bottom:0}
 
+  /* CRM combo — autocomplete de compradores */
+  .neg-crm-wrap{position:relative}
+  .neg-crm-drop{display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--surface-raise);border:1px solid rgba(245,243,238,.25);max-height:200px;overflow-y:auto}
+  .neg-crm-drop.show{display:block}
+  .neg-crm-opt{padding:.5rem .7rem;cursor:pointer;border-bottom:1px solid rgba(245,243,238,.06)}
+  .neg-crm-opt:hover{background:rgba(245,243,238,.07)}
+  .neg-crm-opt-nome{font-size:.82rem;font-weight:500}
+  .neg-crm-opt-info{font-size:.68rem;color:var(--mid);margin-top:.1rem}
+
   @media(max-width:600px){
     .main{padding:1.2rem}
     .g2{grid-template-columns:1fr}
@@ -165,15 +174,27 @@
       <label>Veículo</label>
       <input type="text" id="m-veiculo" placeholder="ex: Corolla XEi 2021">
     </div>
+    <input type="hidden" id="m-comprador-id">
     <div class="g2">
       <div class="field">
         <label>Contato (nome)</label>
-        <input type="text" id="m-contato" placeholder="ex: João">
+        <div class="neg-crm-wrap">
+          <input type="text" id="m-contato" placeholder="ex: João ou buscar comprador…" autocomplete="off"
+            oninput="filtrarNEG(this.value)" onfocus="filtrarNEG(this.value)" onblur="setTimeout(()=>document.getElementById('neg-crm-drop').classList.remove('show'),150)">
+          <div class="neg-crm-drop" id="neg-crm-drop"></div>
+        </div>
       </div>
       <div class="field">
         <label>Telefone (opcional)</label>
         <input type="text" id="m-telefone" placeholder="ex: 48 99999-9999">
       </div>
+    </div>
+    <div class="g2">
+      <div class="field">
+        <label>Valor proposto (R$)</label>
+        <input type="number" id="m-valor" inputmode="numeric" placeholder="ex: 85000">
+      </div>
+      <div class="field" style="align-self:end"><!-- espaçador --></div>
     </div>
     <div class="g2">
       <div class="field">
@@ -342,6 +363,44 @@
 let dados = [];
 let editId = null;
 let filtroAtual = '';
+let COMPRADORES_NEG = [];
+
+// Carrega compradores em background para o autocomplete
+(async () => {
+  try {
+    const r = await fetch('/api/compradores?ativo=true');
+    if (r.ok) COMPRADORES_NEG = await r.json();
+  } catch(_) {}
+})();
+
+function filtrarNEG(q) {
+  const drop = document.getElementById('neg-crm-drop');
+  const term = (q || '').toLowerCase().trim();
+  const matches = term
+    ? COMPRADORES_NEG.filter(c => c.nome.toLowerCase().includes(term))
+    : COMPRADORES_NEG.slice(0, 8);
+  if (!matches.length) { drop.classList.remove('show'); return; }
+  const moedaK = n => n ? 'R$' + Math.round(Number(n)/1000) + 'k' : '?';
+  drop.innerHTML = matches.slice(0, 8).map(c => {
+    const faixa = (c.preco_min || c.preco_max) ? moedaK(c.preco_min) + '–' + moedaK(c.preco_max) : '';
+    const marcas = (c.marcas || []).slice(0, 3).join(', ');
+    const info = [c.tipo?.toUpperCase(), faixa, marcas].filter(Boolean).join(' · ');
+    return `<div class="neg-crm-opt" onmousedown="selecionarNEG('${c.id}')">
+      <div class="neg-crm-opt-nome">${c.nome}</div>
+      ${info ? `<div class="neg-crm-opt-info">${info}</div>` : ''}
+    </div>`;
+  }).join('');
+  drop.classList.add('show');
+}
+
+function selecionarNEG(id) {
+  const c = COMPRADORES_NEG.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('m-contato').value = c.nome;
+  document.getElementById('m-comprador-id').value = c.id;
+  if (c.telefone) document.getElementById('m-telefone').value = c.telefone;
+  document.getElementById('neg-crm-drop').classList.remove('show');
+}
 
 const STATUS_CFG = {
   'primeiro-contato': { label: 'Primeiro contato', cor: '#8696a0', bg: 'rgba(134,150,160,.15)' },
@@ -461,6 +520,8 @@ function abrirNova() {
   document.getElementById('m-veiculo').value = '';
   document.getElementById('m-contato').value = '';
   document.getElementById('m-telefone').value = '';
+  document.getElementById('m-comprador-id').value = '';
+  document.getElementById('m-valor').value = '';
   document.getElementById('m-status').value = 'primeiro-contato';
   document.getElementById('m-data').value = hoje();
   document.getElementById('m-obs').value = '';
@@ -478,6 +539,8 @@ function abrirEditar(id) {
   document.getElementById('m-veiculo').value = n.veiculo_nome || '';
   document.getElementById('m-contato').value = n.comprador_nome || '';
   document.getElementById('m-telefone').value = n.contato_telefone || '';
+  document.getElementById('m-comprador-id').value = n.comprador_id || '';
+  document.getElementById('m-valor').value = n.valor_proposto || '';
   document.getElementById('m-status').value = n.status || 'aguardando';
   document.getElementById('m-data').value = n.ultimo_contato || hoje();
   document.getElementById('m-obs').value = n.observacoes || '';
@@ -508,11 +571,14 @@ async function salvar() {
   const veiculo_nome = document.getElementById('m-veiculo').value.trim();
   if (!veiculo_nome) { document.getElementById('m-veiculo').focus(); return; }
 
-  const status       = document.getElementById('m-status').value;
-  const observacoes  = document.getElementById('m-obs').value.trim();
-  const ultimo_contato = document.getElementById('m-data').value;
+  const status           = document.getElementById('m-status').value;
+  const observacoes      = document.getElementById('m-obs').value.trim();
+  const ultimo_contato   = document.getElementById('m-data').value;
   const comprador_nome   = document.getElementById('m-contato').value.trim();
   const contato_telefone = document.getElementById('m-telefone').value.trim();
+  const comprador_id     = document.getElementById('m-comprador-id').value || null;
+  const valor_raw        = document.getElementById('m-valor').value;
+  const valor_proposto   = valor_raw !== '' ? Number(valor_raw) : null;
 
   const btn = document.querySelector('#modal .btn-primary');
   const orig = btn.textContent; btn.textContent = 'Salvando…'; btn.disabled = true;
@@ -526,12 +592,12 @@ async function salvar() {
       }
       await fetch('/api/compradores?neg=1&id=' + editId, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, status, ultimo_contato, observacoes, historico }),
+        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico }),
       });
     } else {
       await fetch('/api/compradores?neg=1', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, status, ultimo_contato, observacoes, historico: [] }),
+        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico: [] }),
       });
     }
     await load();
