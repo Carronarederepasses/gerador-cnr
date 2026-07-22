@@ -622,7 +622,18 @@ $('m-salvar').onclick = async () => {
   try {
     const url = id ? '/api/vendas?id=' + id : '/api/vendas';
     const r = await fetch(url, { method: id ? 'PATCH' : 'POST', headers: headers(), body: JSON.stringify(body) });
-    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'erro');
+    const vendaId = data.id || id;
+    fetch('/api/compradores?evento=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: id ? 'venda_atualizada' : 'venda_registrada',
+        venda_id: vendaId,
+        dados: { placa: body.placa, marca: body.marca, modelo: body.modelo, valor_venda: body.valor_venda },
+      }),
+    }).catch(() => {});
     fecharModal();
     await carregar();
     toast(id ? '✓ Venda atualizada!' : '✓ Venda registrada com sucesso!');

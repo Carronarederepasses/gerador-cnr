@@ -293,6 +293,14 @@
 <script>
 const $ = id => document.getElementById(id);
 
+function logEvento(payload) {
+  fetch('/api/compradores?evento=1', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
 function limparFiltros() {
   ['f-q','f-valor-max','f-km-max','f-ano-min','f-regiao'].forEach(id => $(id).value = '');
   $('f-status').value = '';
@@ -788,6 +796,7 @@ async function aplicarStatus(novoStatus) {
       body: JSON.stringify({ status: novoStatus }),
     });
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    logEvento({ tipo: 'status_alterado', veiculo_id: id, dados: { status: novoStatus } });
     carregar();
   } catch (e) { alert('Falha ao mudar status: ' + e.message); }
 }
@@ -993,6 +1002,7 @@ async function salvarAval(){
       body: JSON.stringify({ avaliacao }),
     });
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    logEvento({ tipo: 'avaliacao_salva', veiculo_id: id, dados: { nota: avaliacao.nota } });
     fecharAval();
     carregar();
   } catch (e) { alert('Falha ao salvar avaliação: ' + e.message); }
