@@ -182,6 +182,55 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <label>Observações</label>
       <textarea id="m-obs" placeholder="ex: só compra automático, prefere placa par, paga PIX..."></textarea>
     </div>
+
+    <!-- Faturamento PJ -->
+    <div id="bloco-pj" style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados para faturamento — PJ</div>
+      <div class="field"><label>Razão social</label><input id="m-razao_social" type="text" placeholder="Auto Prime Veículos Ltda"></div>
+      <div class="g2">
+        <div class="field"><label>CNPJ</label><input id="m-cnpj" type="text" placeholder="00.000.000/0001-00" inputmode="numeric"></div>
+        <div class="field"><label>Inscrição Estadual (IE)</label><input id="m-ie" type="text" inputmode="numeric"></div>
+      </div>
+    </div>
+
+    <!-- Faturamento PF -->
+    <div id="bloco-pf" style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem;display:none">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados para faturamento — PF</div>
+      <div class="g2">
+        <div class="field"><label>CPF</label><input id="m-cpf" type="text" placeholder="000.000.000-00" inputmode="numeric"></div>
+        <div class="field"><label>RG</label><input id="m-rg" type="text" inputmode="numeric"></div>
+      </div>
+      <div class="field"><label>Data de nascimento</label><input id="m-data_nascimento" type="date"></div>
+    </div>
+
+    <!-- Endereço (sempre visível) -->
+    <div style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Endereço</div>
+      <div class="g2">
+        <div class="field"><label>CEP</label><input id="m-cep" type="text" placeholder="88000-000" inputmode="numeric" oninput="buscarCep(this.value)"></div>
+        <div class="field"><label>Estado</label>
+          <select id="m-estado">
+            <option value="">—</option>
+            <option value="SC">SC</option><option value="RS">RS</option><option value="PR">PR</option>
+            <option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option>
+            <option value="ES">ES</option><option value="BA">BA</option><option value="GO">GO</option>
+            <option value="DF">DF</option><option value="MT">MT</option><option value="MS">MS</option>
+            <option value="PA">PA</option><option value="AM">AM</option><option value="CE">CE</option>
+            <option value="PE">PE</option><option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Logradouro</label><input id="m-logradouro" type="text" placeholder="Rua das Flores"></div>
+      <div class="g2">
+        <div class="field"><label>Número</label><input id="m-numero" type="text" placeholder="123"></div>
+        <div class="field"><label>Complemento</label><input id="m-complemento_end" type="text" placeholder="Sala 2"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><label>Bairro</label><input id="m-bairro" type="text"></div>
+        <div class="field"><label>Cidade</label><input id="m-cidade2" type="text" placeholder="Florianópolis"></div>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn-del" id="btn-del" style="display:none" onclick="desativar()">Desativar</button>
       <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
@@ -296,15 +345,32 @@ function abrirModal(id) {
   marcasSel = [];
   const c = id ? TODOS.find(x => x.id === id) : null;
   document.getElementById('modal-titulo').textContent = c ? 'Editar Comprador' : 'Novo Comprador';
-  document.getElementById('m-nome').value   = c?.nome || '';
-  document.getElementById('m-tel').value    = c?.telefone || '';
-  document.getElementById('m-tipo').value   = c?.tipo || 'loja';
-  document.getElementById('m-cidade').value = c?.cidade || '';
-  document.getElementById('m-pmin').value   = c?.preco_min || '';
-  document.getElementById('m-pmax').value   = c?.preco_max || '';
-  document.getElementById('m-obs').value    = c?.observacoes || '';
+  document.getElementById('m-nome').value          = c?.nome || '';
+  document.getElementById('m-tel').value            = c?.telefone || '';
+  document.getElementById('m-tipo').value           = c?.tipo || 'loja';
+  document.getElementById('m-cidade').value         = c?.cidade || '';
+  document.getElementById('m-pmin').value           = c?.preco_min || '';
+  document.getElementById('m-pmax').value           = c?.preco_max || '';
+  document.getElementById('m-obs').value            = c?.observacoes || '';
+  // PJ
+  document.getElementById('m-razao_social').value  = c?.razao_social || '';
+  document.getElementById('m-cnpj').value          = c?.cnpj || '';
+  document.getElementById('m-ie').value            = c?.ie || '';
+  // PF
+  document.getElementById('m-cpf').value           = c?.cpf || '';
+  document.getElementById('m-rg').value            = c?.rg || '';
+  document.getElementById('m-data_nascimento').value = c?.data_nascimento || '';
+  // Endereço
+  document.getElementById('m-cep').value           = c?.cep || '';
+  document.getElementById('m-estado').value        = c?.estado || 'SC';
+  document.getElementById('m-logradouro').value    = c?.logradouro || '';
+  document.getElementById('m-numero').value        = c?.numero || '';
+  document.getElementById('m-complemento_end').value = c?.complemento_end || '';
+  document.getElementById('m-bairro').value        = c?.bairro || '';
+  document.getElementById('m-cidade2').value       = c?.cidade || '';
   marcasSel = c?.marcas ? [...c.marcas] : [];
   atualizarMarcas();
+  atualizarBlocoFat(c?.tipo || 'loja');
   document.getElementById('btn-del').style.display = c ? '' : 'none';
   document.getElementById('modal-bg').classList.add('show');
   setTimeout(() => document.getElementById('m-nome').focus(), 50);
@@ -324,13 +390,28 @@ async function salvar() {
   if (!nome) { toast('Informe o nome', true); return; }
   const payload = {
     nome,
-    telefone: document.getElementById('m-tel').value.trim() || null,
-    tipo:     document.getElementById('m-tipo').value,
-    cidade:   document.getElementById('m-cidade').value.trim() || null,
-    preco_min: document.getElementById('m-pmin').value || null,
-    preco_max: document.getElementById('m-pmax').value || null,
-    marcas:   marcasSel.length ? marcasSel : null,
+    telefone:    document.getElementById('m-tel').value.trim() || null,
+    tipo:        document.getElementById('m-tipo').value,
+    cidade:      document.getElementById('m-cidade2').value.trim() || document.getElementById('m-cidade').value.trim() || null,
+    preco_min:   document.getElementById('m-pmin').value || null,
+    preco_max:   document.getElementById('m-pmax').value || null,
+    marcas:      marcasSel.length ? marcasSel : null,
     observacoes: document.getElementById('m-obs').value.trim() || null,
+    // PJ
+    razao_social: document.getElementById('m-razao_social').value.trim() || null,
+    cnpj:         document.getElementById('m-cnpj').value.trim() || null,
+    ie:           document.getElementById('m-ie').value.trim() || null,
+    // PF
+    cpf:            document.getElementById('m-cpf').value.trim() || null,
+    rg:             document.getElementById('m-rg').value.trim() || null,
+    data_nascimento: document.getElementById('m-data_nascimento').value || null,
+    // Endereço
+    cep:            document.getElementById('m-cep').value.trim() || null,
+    estado:         document.getElementById('m-estado').value || null,
+    logradouro:     document.getElementById('m-logradouro').value.trim() || null,
+    numero:         document.getElementById('m-numero').value.trim() || null,
+    complemento_end: document.getElementById('m-complemento_end').value.trim() || null,
+    bairro:         document.getElementById('m-bairro').value.trim() || null,
     ativo: true,
   };
   const url    = editId ? `/api/compradores?id=${editId}` : '/api/compradores';
@@ -361,6 +442,29 @@ function toast(msg, err) {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+
+document.getElementById('m-tipo').addEventListener('change', e => atualizarBlocoFat(e.target.value));
+
+function atualizarBlocoFat(tipo) {
+  const isPJ = tipo === 'loja' || tipo === 'revendedor';
+  const isPF = tipo === 'pessoa_fisica';
+  document.getElementById('bloco-pj').style.display = isPJ ? '' : 'none';
+  document.getElementById('bloco-pf').style.display = isPF ? '' : 'none';
+}
+
+async function buscarCep(cep) {
+  const limpo = cep.replace(/\D/g,'');
+  if (limpo.length !== 8) return;
+  try {
+    const r = await fetch(`/api/utils?type=cep&cep=${limpo}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.logradouro) document.getElementById('m-logradouro').value = d.logradouro;
+    if (d.bairro)     document.getElementById('m-bairro').value     = d.bairro;
+    if (d.cidade)     document.getElementById('m-cidade2').value    = d.cidade;
+    if (d.estado)     document.getElementById('m-estado').value     = d.estado;
+  } catch(_) {}
+}
 
 init();
 </script>

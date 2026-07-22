@@ -17,7 +17,12 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const CAMPOS_COMPRADOR = ['nome','telefone','tipo','cidade','marcas','preco_min','preco_max','observacoes','ativo'];
+const CAMPOS_COMPRADOR = [
+  'nome','telefone','tipo','cidade','marcas','preco_min','preco_max','observacoes','ativo',
+  'razao_social','cnpj','ie',
+  'cpf','rg','data_nascimento',
+  'cep','estado','logradouro','numero','complemento_end','bairro',
+];
 const CAMPOS_EVENTO    = ['tipo','veiculo_id','venda_id','comprador_id','usuario','dados','origem'];
 
 function sb(path, opts = {}) {
