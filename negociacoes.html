@@ -501,7 +501,7 @@ function renderLista() {
     return `<div class="neg-card${urgente ? ' urgente' : ''}" onclick="abrirEditar('${n.id}')">
       <div class="neg-top">
         <div class="neg-veiculo">${n.veiculo_nome || '—'}</div>
-        <div class="neg-contato">${n.comprador_nome || ''}</div>
+        <div class="neg-contato">${n.comprador_nome || ''}${n.valor_proposto ? ' · R$' + Number(n.valor_proposto).toLocaleString('pt-BR',{maximumFractionDigits:0}) : ''}</div>
         <div class="neg-status-pill" style="color:${cfg.cor};background:${cfg.bg};cursor:pointer" onclick="event.stopPropagation();abrirStatusMenu(event,'${n.id}')">${cfg.label} ▾</div>
         <div class="neg-dias">${n.ultimo_contato ? fmtDias(dias) : ''}</div>
       </div>

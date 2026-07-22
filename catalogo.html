@@ -220,12 +220,26 @@
       <input id="f-km-max" type="number" inputmode="numeric" placeholder="ex: 80000" />
     </div>
     <div>
-      <label for="f-ano-min">Ano a partir de</label>
+      <label for="f-ano-min">Ano de</label>
       <input id="f-ano-min" type="number" inputmode="numeric" placeholder="ex: 2020" />
+    </div>
+    <div>
+      <label for="f-ano-max">Ano até</label>
+      <input id="f-ano-max" type="number" inputmode="numeric" placeholder="ex: 2024" />
     </div>
     <div>
       <label for="f-regiao">Região</label>
       <input id="f-regiao" type="text" placeholder="ex: Garopaba" />
+    </div>
+    <div>
+      <label for="f-ordem">Ordenar por</label>
+      <select id="f-ordem">
+        <option value="">Mais recentes</option>
+        <option value="valor_asc">Menor preço</option>
+        <option value="valor_desc">Maior preço</option>
+        <option value="km_asc">Menor KM</option>
+        <option value="ano_desc">Mais novo</option>
+      </select>
     </div>
     <div>
       <label for="f-status">Status</label>
@@ -318,15 +332,16 @@ function logEvento(payload) {
 }
 
 function limparFiltros() {
-  ['f-q','f-valor-max','f-km-max','f-ano-min','f-regiao'].forEach(id => $(id).value = '');
+  ['f-q','f-valor-max','f-km-max','f-ano-min','f-ano-max','f-regiao'].forEach(id => $(id).value = '');
   $('f-status').value = '';
   $('f-marca').value = '';
+  $('f-ordem').value = '';
   carregar();
 }
 
 function montarQuery() {
   const p = new URLSearchParams();
-  const map = { 'f-q':'q', 'f-valor-max':'valor_max', 'f-km-max':'km_max', 'f-ano-min':'ano_min', 'f-regiao':'regiao' };
+  const map = { 'f-q':'q', 'f-valor-max':'valor_max', 'f-km-max':'km_max', 'f-ano-min':'ano_min', 'f-ano-max':'ano_max', 'f-regiao':'regiao' };
   for (const [id, key] of Object.entries(map)) {
     const v = $(id).value.trim();
     if (v) p.set(key, v);
@@ -336,6 +351,18 @@ function montarQuery() {
   const mk = $('f-marca').value;
   if (mk) p.set('marca', mk);
   return p.toString();
+}
+
+function ordenarLista(lista) {
+  const ord = $('f-ordem').value;
+  if (!ord) return lista; // padrão: API já retorna por created_at desc
+  return [...lista].sort((a, b) => {
+    if (ord === 'valor_asc')  return (a.valor || 0) - (b.valor || 0);
+    if (ord === 'valor_desc') return (b.valor || 0) - (a.valor || 0);
+    if (ord === 'km_asc')     return (a.km    || 0) - (b.km    || 0);
+    if (ord === 'ano_desc')   return (b.ano_int || 0) - (a.ano_int || 0);
+    return 0;
+  });
 }
 
 function atualizarDropdownMarcas(lista) {
@@ -555,10 +582,11 @@ async function carregar() {
   try {
     const r = await fetch('/api/catalogo?' + montarQuery());
     if (!r.ok) throw new Error((await r.json()).error || 'Erro ao buscar');
-    const lista = await r.json();
+    const listaRaw = await r.json();
+    const lista = ordenarLista(listaRaw);
     CACHE = {};
     lista.forEach(v => CACHE[v.id] = v);
-    atualizarDropdownMarcas(lista);
+    atualizarDropdownMarcas(listaRaw);
     $('contador').textContent = lista.length
       ? `${lista.length} veículo${lista.length > 1 ? 's' : ''} encontrado${lista.length > 1 ? 's' : ''}`
       : '';

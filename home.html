@@ -104,6 +104,11 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .atalho .nome{font-size:.82rem;font-weight:600}
 .atalho .desc{font-size:.7rem;color:var(--text-mid);line-height:1.4}
 
+.rel-nav{display:inline-flex;align-items:center;gap:.45rem}
+.rel-nav-btn{background:none;border:1px solid var(--line);border-radius:6px;color:var(--text-mid);font-size:.7rem;padding:.18rem .45rem;cursor:pointer;line-height:1;transition:all .15s}
+.rel-nav-btn:hover:not(:disabled){color:var(--text);border-color:var(--text)}
+.rel-nav-btn:disabled{opacity:.25;cursor:default}
+
 .vazio{color:var(--text-faint);font-size:.8rem;padding:.5rem 0}
 .loading{color:var(--text-faint);font-size:.8rem;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
@@ -220,8 +225,12 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 
   <!-- Relatório mensal -->
   <div class="secao">
-    <div class="secao-titulo" id="rel-titulo">
-      Resumo do mês
+    <div class="secao-titulo">
+      <span class="rel-nav">
+        <button class="rel-nav-btn" onclick="mudarMes(-1)" title="Mês anterior">◀</button>
+        <span id="rel-titulo-txt">Resumo do mês</span>
+        <button class="rel-nav-btn" id="btn-mes-prox" onclick="mudarMes(1)" title="Próximo mês" disabled>▶</button>
+      </span>
       <a class="secao-titulo-link" href="#" onclick="exportarRelatorioCSV();return false">⬇ CSV</a>
     </div>
     <div class="relatorio" id="relatorio"><div class="loading">carregando...</div></div>
@@ -287,6 +296,18 @@ const moeda = n => n != null ? Number(n).toLocaleString('pt-BR',{style:'currency
 const dataBR = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '';
 
 let _vendasMes = [];
+const _hoje = new Date();
+let _relMes = _hoje.getMonth();
+let _relAno = _hoje.getFullYear();
+
+function mudarMes(dir) {
+  _relMes += dir;
+  if (_relMes < 0) { _relMes = 11; _relAno--; }
+  if (_relMes > 11) { _relMes = 0; _relAno++; }
+  const emAtual = _relMes === _hoje.getMonth() && _relAno === _hoje.getFullYear();
+  document.getElementById('btn-mes-prox').disabled = emAtual;
+  carregarRelatorio();
+}
 
 function exportarRelatorioCSV() {
   if (!_vendasMes.length) { alert('Nenhuma venda no mês para exportar.'); return; }
@@ -441,11 +462,11 @@ async function carregarCompradores() {
 }
 
 async function carregarRelatorio() {
-  const now = new Date();
-  const mes = now.getMonth();
-  const ano = new Date().getFullYear();
+  const mes = _relMes;
+  const ano = _relAno;
   const nomeMes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][mes];
-  document.getElementById('rel-titulo').textContent = `Resumo de ${nomeMes}/${ano}`;
+  document.getElementById('rel-titulo-txt').textContent = `Resumo de ${nomeMes}/${ano}`;
+  document.getElementById('relatorio').innerHTML = '<div class="loading">carregando...</div>';
 
   try {
     const [rCat, rVend] = await Promise.all([fetch('/api/catalogo'), fetch('/api/vendas')]);
