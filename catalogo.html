@@ -380,7 +380,7 @@ function card(v) {
       ${v.fipe != null ? `<div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span></div>` : ''}
     </div>
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
-    <div class="match-box">${renderMatch(v)}</div>
+    <div class="match-box">${v.status === 'vendido' ? renderVendido(v) : renderMatch(v)}</div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
@@ -411,11 +411,24 @@ function registrarVenda(id) {
 
 let CACHE = {};
 let COMPRADORES = [];
+let VENDAS_MAP = {};
 
 async function carregarCompradores() {
   try {
     const r = await fetch('/api/compradores?ativo=true');
     if (r.ok) COMPRADORES = await r.json();
+  } catch(_) {}
+}
+
+async function carregarVendasMap() {
+  try {
+    const r = await fetch('/api/vendas');
+    if (!r.ok) return;
+    const vendas = await r.json();
+    VENDAS_MAP = {};
+    vendas.forEach(v => {
+      if (v.placa && v.comprador_nome) VENDAS_MAP[v.placa.toUpperCase()] = v;
+    });
   } catch(_) {}
 }
 
@@ -449,6 +462,19 @@ function renderMatch(v) {
     </div>`;
   }).join('');
   return `<div class="match-titulo">👥 Possíveis compradores</div>${rows}`;
+}
+
+function renderVendido(v) {
+  const venda = v.placa ? VENDAS_MAP[v.placa.toUpperCase()] : null;
+  if (!venda) return '<div class="match-titulo">🏁 Vendido</div><div class="match-vazio">Sem venda vinculada por placa</div>';
+  const wa = venda.comprador_telefone ? venda.comprador_telefone.replace(/\D/g,'') : '';
+  const data = venda.data_venda ? new Date(venda.data_venda+'T00:00:00').toLocaleDateString('pt-BR') : '';
+  const taxa = venda.taxa_intermediacao ? ' · R$' + Number(venda.taxa_intermediacao).toLocaleString('pt-BR') : '';
+  return `<div class="match-titulo">🏁 Vendido${data ? ' em ' + data : ''}${taxa}</div>
+    <div class="match-row">
+      <span class="match-nome">${esc(venda.comprador_nome)}</span>
+      ${wa ? `<a class="match-wa" href="https://wa.me/55${wa}" target="_blank">💬</a>` : ''}
+    </div>`;
 }
 
 async function carregar() {
@@ -1408,7 +1434,7 @@ function mostrarPreviewPDF() {
 $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); });
 
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
-carregarCompradores().then(() => carregar());
+Promise.all([carregarCompradores(), carregarVendasMap()]).then(() => carregar());
 </script>
 
 <!-- Modal Preview PDF -->

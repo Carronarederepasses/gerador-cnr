@@ -171,7 +171,18 @@ module.exports = async (req, res) => {
       });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
-      return res.status(201).json(data[0] || data);
+      const venda = data[0] || data;
+
+      // Auto-atualiza catálogo para "vendido" quando há placa
+      if (payload.placa) {
+        sb(`catalogo?placa=eq.${encodeURIComponent(payload.placa)}&status=neq.vendido`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ status: 'vendido' }),
+        }).catch(() => {});
+      }
+
+      return res.status(201).json(venda);
     }
 
     if (req.method === 'PATCH') {

@@ -1666,11 +1666,57 @@ async function salvarNoCatalogo() {
     btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Salvo no catálogo!';
     btn.classList.add('copied');
     setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); btn.disabled = false; }, 2600);
+    mostrarMatchPopup(ficha.marca, ficha.valor);
   } catch (e) {
     alert('Não consegui salvar: ' + e.message);
     btn.innerHTML = original;
     btn.disabled = false;
   }
+}
+
+async function mostrarMatchPopup(marca, valor) {
+  try {
+    const p = new URLSearchParams();
+    if (marca) p.set('marca', marca);
+    if (valor)  p.set('valor', valor);
+    const r = await fetch('/api/compradores?match=1&' + p.toString());
+    if (!r.ok) return;
+    const lista = await r.json();
+    const top = lista.filter(c => c.score >= 40).slice(0, 5);
+    if (!top.length) return;
+
+    const old = document.getElementById('cnr-match-popup');
+    if (old) old.remove();
+
+    const moedaK = n => n ? 'R$' + Math.round(Number(n) / 1000) + 'k' : '?';
+    const rows = top.map(c => {
+      const wa = c.telefone ? c.telefone.replace(/\D/g, '') : '';
+      const faixa = (c.preco_min || c.preco_max) ? moedaK(c.preco_min) + '–' + moedaK(c.preco_max) : '';
+      const msg = encodeURIComponent(`Olá ${c.nome}! Acabei de captar um ${marca || 'veículo'}${valor ? ' por R$' + Number(valor).toLocaleString('pt-BR') : ''} que pode te interessar. Posso mandar os detalhes?`);
+      return `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.08)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nome}</div>
+          <div style="font-size:.68rem;color:#888">${[faixa, c.score + '%'].filter(Boolean).join(' · ')}</div>
+        </div>
+        ${wa ? `<a href="https://wa.me/55${wa}?text=${msg}" target="_blank" style="font-size:.72rem;background:#25D366;color:#000;border-radius:6px;padding:.25rem .5rem;text-decoration:none;white-space:nowrap;flex-shrink:0">💬 WA</a>` : ''}
+      </div>`;
+    }).join('');
+
+    const popup = document.createElement('div');
+    popup.id = 'cnr-match-popup';
+    popup.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9998;background:#1c1c1e;border:1px solid #2c2c2e;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.5);padding:1rem 1.1rem;max-width:290px;width:calc(100vw - 3rem);font-family:"DM Sans",sans-serif;color:#f0f0f0;animation:slideUp .25s ease';
+    popup.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+        <span style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:#888">🔔 Compradores compatíveis</span>
+        <button onclick="document.getElementById('cnr-match-popup').remove()" style="background:none;border:none;color:#888;font-size:1.1rem;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      ${rows}
+      <div style="margin-top:.6rem;text-align:right">
+        <a href="/compradores.html" style="font-size:.72rem;color:#aaa;text-decoration:none">Ver todos →</a>
+      </div>`;
+    document.body.appendChild(popup);
+    setTimeout(() => { if (popup.parentNode) popup.remove(); }, 15000);
+  } catch(_) {}
 }
 
 // ══════════════════════════════════════════════
