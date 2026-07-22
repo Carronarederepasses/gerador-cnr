@@ -17,6 +17,11 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+const CAMPOS_NEG = [
+  'veiculo_nome','comprador_nome','comprador_id','contato_telefone',
+  'valor_proposto','status','ultimo_contato','historico','observacoes',
+];
+
 const CAMPOS_COMPRADOR = [
   'nome','telefone','tipo','cidade','marcas','preco_min','preco_max','observacoes','ativo',
   'razao_social','cnpj','ie',
@@ -95,6 +100,53 @@ module.exports = async (req, res) => {
         const r = await sb(`eventos?select=*&${filtros.join('&')}`);
         const data = await r.json();
         return res.status(r.ok ? 200 : r.status).json(data);
+      }
+      return res.status(405).json({ error: 'Método não permitido' });
+    }
+
+    // ── NEGOCIAÇÕES ───────────────────────────────────────────
+    if ('neg' in q) {
+      if (req.method === 'GET') {
+        if (q.id) {
+          const r = await sb(`negociacoes?id=eq.${q.id}&select=*`);
+          const data = await r.json();
+          if (!r.ok) return res.status(r.status).json(data);
+          return res.status(200).json(data[0] || null);
+        }
+        const filtros = ['select=*', 'order=updated_at.desc'];
+        if (q.status) filtros.push(`status=eq.${encodeURIComponent(q.status)}`);
+        const r = await sb(`negociacoes?${filtros.join('&')}`);
+        const data = await r.json();
+        return res.status(r.ok ? 200 : r.status).json(data);
+      }
+      if (req.method === 'POST') {
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+        const payload = limpar(body, CAMPOS_NEG);
+        if (!payload.veiculo_nome && !payload.comprador_nome)
+          return res.status(400).json({ error: 'veiculo_nome ou comprador_nome obrigatório' });
+        payload.historico = payload.historico || [];
+        const r = await sb('negociacoes', {
+          method: 'POST', body: JSON.stringify(payload), prefer: 'return=representation',
+        });
+        const data = await r.json();
+        return res.status(r.ok ? 201 : r.status).json(r.ok ? data[0] : data);
+      }
+      if (req.method === 'PATCH') {
+        if (!q.id) return res.status(400).json({ error: 'id obrigatório' });
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+        const payload = limpar(body, CAMPOS_NEG);
+        payload.updated_at = new Date().toISOString();
+        const r = await sb(`negociacoes?id=eq.${q.id}`, {
+          method: 'PATCH', body: JSON.stringify(payload), prefer: 'return=representation',
+        });
+        const data = await r.json();
+        return res.status(r.ok ? 200 : r.status).json(r.ok ? data[0] : data);
+      }
+      if (req.method === 'DELETE') {
+        if (!q.id) return res.status(400).json({ error: 'id obrigatório' });
+        const r = await sb(`negociacoes?id=eq.${q.id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(await r.text());
+        return res.status(200).json({ ok: true });
       }
       return res.status(405).json({ error: 'Método não permitido' });
     }

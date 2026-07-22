@@ -339,7 +339,6 @@
 </div>
 
 <script>
-const KEY = 'cnr-negociacoes';
 let dados = [];
 let editId = null;
 let filtroAtual = '';
@@ -355,11 +354,32 @@ const STATUS_CFG = {
 
 const STATUS_ATIVOS = ['primeiro-contato','respondeu','negociando','aguardando'];
 
-function load() {
-  try { dados = JSON.parse(localStorage.getItem(KEY)) || []; } catch { dados = []; }
-}
-function save() {
-  localStorage.setItem(KEY, JSON.stringify(dados));
+async function load() {
+  try {
+    const r = await fetch('/api/compradores?neg=1');
+    if (r.ok) dados = await r.json();
+
+    // Migração única de localStorage → Supabase
+    const local = (() => { try { return JSON.parse(localStorage.getItem('cnr-negociacoes')) || []; } catch { return []; } })();
+    if (local.length && !dados.length) {
+      await Promise.all(local.map(n => fetch('/api/compradores?neg=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          veiculo_nome:     n.veiculo,
+          comprador_nome:   n.contato,
+          contato_telefone: n.telefone,
+          status:           n.status,
+          ultimo_contato:   n.ultimoContato,
+          observacoes:      n.obs,
+          historico:        n.historico || [],
+        }),
+      })));
+      localStorage.removeItem('cnr-negociacoes');
+      const r2 = await fetch('/api/compradores?neg=1');
+      if (r2.ok) dados = await r2.json();
+    }
+  } catch(e) { console.error('load:', e); }
 }
 
 function diasDesde(dateStr) {
@@ -393,22 +413,21 @@ function setFiltro(f) {
 
 function renderAlerta() {
   const banner = document.getElementById('alert-banner');
-  const urgentes = dados.filter(n => STATUS_ATIVOS.includes(n.status) && diasDesde(n.ultimoContato) >= 1);
+  const urgentes = dados.filter(n => STATUS_ATIVOS.includes(n.status) && diasDesde(n.ultimo_contato) >= 1);
   if (urgentes.length === 0) { banner.classList.remove('show'); return; }
   banner.classList.add('show');
-  const lista = urgentes.map(n => `<strong>${n.veiculo}</strong> (${fmtDias(diasDesde(n.ultimoContato))})`).join(' · ');
+  const lista = urgentes.map(n => `<strong>${n.veiculo_nome}</strong> (${fmtDias(diasDesde(n.ultimo_contato))})`).join(' · ');
   banner.innerHTML = `⚠️ ${urgentes.length === 1 ? 'Negociação aguardando' : urgentes.length + ' negociações aguardando'}: ${lista}`;
 }
 
 function renderLista() {
   const el = document.getElementById('neg-list');
   const filtrados = filtroAtual ? dados.filter(n => n.status === filtroAtual) : dados;
-  // Ordena: ativos urgentes primeiro, depois por data desc
   const sorted = [...filtrados].sort((a,b) => {
-    const aUrgente = STATUS_ATIVOS.includes(a.status) && diasDesde(a.ultimoContato) >= 1;
-    const bUrgente = STATUS_ATIVOS.includes(b.status) && diasDesde(b.ultimoContato) >= 1;
+    const aUrgente = STATUS_ATIVOS.includes(a.status) && diasDesde(a.ultimo_contato) >= 1;
+    const bUrgente = STATUS_ATIVOS.includes(b.status) && diasDesde(b.ultimo_contato) >= 1;
     if (aUrgente !== bUrgente) return aUrgente ? -1 : 1;
-    return (b.ultimoContato||'') > (a.ultimoContato||'') ? 1 : -1;
+    return (b.ultimo_contato||'') > (a.ultimo_contato||'') ? 1 : -1;
   });
 
   if (sorted.length === 0) {
@@ -417,17 +436,17 @@ function renderLista() {
   }
 
   el.innerHTML = sorted.map(n => {
-    const dias = diasDesde(n.ultimoContato);
+    const dias = diasDesde(n.ultimo_contato);
     const urgente = STATUS_ATIVOS.includes(n.status) && dias >= 1;
     const cfg = STATUS_CFG[n.status] || STATUS_CFG['aguardando'];
     return `<div class="neg-card${urgente ? ' urgente' : ''}" onclick="abrirEditar('${n.id}')">
       <div class="neg-top">
-        <div class="neg-veiculo">${n.veiculo || '—'}</div>
-        <div class="neg-contato">${n.contato || ''}</div>
+        <div class="neg-veiculo">${n.veiculo_nome || '—'}</div>
+        <div class="neg-contato">${n.comprador_nome || ''}</div>
         <div class="neg-status-pill" style="color:${cfg.cor};background:${cfg.bg};cursor:pointer" onclick="event.stopPropagation();abrirStatusMenu(event,'${n.id}')">${cfg.label} ▾</div>
-        <div class="neg-dias">${n.ultimoContato ? fmtDias(dias) : ''}</div>
+        <div class="neg-dias">${n.ultimo_contato ? fmtDias(dias) : ''}</div>
       </div>
-      ${n.obs ? `<div class="neg-obs">${n.obs}</div>` : ''}
+      ${n.observacoes ? `<div class="neg-obs">${n.observacoes}</div>` : ''}
       ${n.status === 'comprado' ? `<div style="margin-top:.55rem;padding-top:.5rem;border-top:1px solid rgba(245,243,238,.07)"><button onclick="event.stopPropagation();abrirContrato('${n.id}')" style="background:none;border:1px solid rgba(37,211,102,.35);color:#25D366;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:400;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">📄 Gerar Contrato</button></div>` : ''}
     </div>`;
   }).join('');
@@ -453,15 +472,14 @@ function abrirEditar(id) {
   if (!n) return;
   editId = id;
   document.getElementById('modal-title').textContent = 'Editar Negociação';
-  document.getElementById('m-veiculo').value = n.veiculo || '';
-  document.getElementById('m-contato').value = n.contato || '';
-  document.getElementById('m-telefone').value = n.telefone || '';
+  document.getElementById('m-veiculo').value = n.veiculo_nome || '';
+  document.getElementById('m-contato').value = n.comprador_nome || '';
+  document.getElementById('m-telefone').value = n.contato_telefone || '';
   document.getElementById('m-status').value = n.status || 'aguardando';
-  document.getElementById('m-data').value = n.ultimoContato || hoje();
-  document.getElementById('m-obs').value = n.obs || '';
+  document.getElementById('m-data').value = n.ultimo_contato || hoje();
+  document.getElementById('m-obs').value = n.observacoes || '';
   document.getElementById('btn-excluir').style.display = '';
 
-  // Histórico
   if (n.historico && n.historico.length > 0) {
     document.getElementById('hist-wrap').style.display = 'block';
     document.getElementById('hist-list').innerHTML = [...n.historico].reverse().map(h =>
@@ -483,39 +501,49 @@ function fecharSeClicarFora(e) {
   if (e.target === document.getElementById('overlay')) fecharModal();
 }
 
-function salvar() {
-  const veiculo = document.getElementById('m-veiculo').value.trim();
-  if (!veiculo) { document.getElementById('m-veiculo').focus(); return; }
+async function salvar() {
+  const veiculo_nome = document.getElementById('m-veiculo').value.trim();
+  if (!veiculo_nome) { document.getElementById('m-veiculo').focus(); return; }
 
-  const status = document.getElementById('m-status').value;
-  const obs = document.getElementById('m-obs').value.trim();
-  const data = document.getElementById('m-data').value;
+  const status       = document.getElementById('m-status').value;
+  const observacoes  = document.getElementById('m-obs').value.trim();
+  const ultimo_contato = document.getElementById('m-data').value;
+  const comprador_nome   = document.getElementById('m-contato').value.trim();
+  const contato_telefone = document.getElementById('m-telefone').value.trim();
 
-  if (editId) {
-    const idx = dados.findIndex(x => x.id === editId);
-    if (idx === -1) return;
-    const anterior = dados[idx];
-    // Salva histórico se mudou status ou obs
-    if (!anterior.historico) anterior.historico = [];
-    if (anterior.status !== status || anterior.obs !== obs) {
-      anterior.historico.push({ data: anterior.ultimoContato || hoje(), status: anterior.status, obs: anterior.obs || '' });
+  const btn = document.querySelector('#modal .btn-primary');
+  const orig = btn.textContent; btn.textContent = 'Salvando…'; btn.disabled = true;
+
+  try {
+    if (editId) {
+      const n = dados.find(x => x.id === editId);
+      const historico = [...(n?.historico || [])];
+      if (n && (n.status !== status || n.observacoes !== observacoes)) {
+        historico.push({ data: n.ultimo_contato || hoje(), status: n.status, obs: n.observacoes || '' });
+      }
+      await fetch('/api/compradores?neg=1&id=' + editId, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, status, ultimo_contato, observacoes, historico }),
+      });
+    } else {
+      await fetch('/api/compradores?neg=1', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, status, ultimo_contato, observacoes, historico: [] }),
+      });
     }
-    dados[idx] = { ...anterior, veiculo, contato: document.getElementById('m-contato').value.trim(), telefone: document.getElementById('m-telefone').value.trim(), status, ultimoContato: data, obs };
-  } else {
-    dados.unshift({ id: Date.now().toString(), veiculo, contato: document.getElementById('m-contato').value.trim(), telefone: document.getElementById('m-telefone').value.trim(), status, ultimoContato: data, obs, historico: [] });
-  }
-
-  save();
-  fecharModal();
-  renderAlerta();
-  renderLista();
+    await load();
+    fecharModal();
+    renderAlerta();
+    renderLista();
+  } catch(e) { alert('Falha ao salvar: ' + e.message); }
+  finally { btn.textContent = orig; btn.disabled = false; }
 }
 
-function excluir() {
+async function excluir() {
   if (!editId) return;
   if (!confirm('Excluir esta negociação?')) return;
-  dados = dados.filter(x => x.id !== editId);
-  save();
+  await fetch('/api/compradores?neg=1&id=' + editId, { method: 'DELETE' });
+  await load();
   fecharModal();
   renderAlerta();
   renderLista();
@@ -543,17 +571,18 @@ function abrirStatusMenu(event, id) {
   menu.classList.add('show');
 }
 
-function mudarStatusRapido(id, novoStatus) {
-  const idx = dados.findIndex(x => x.id === id);
-  if (idx === -1) return;
-  const n = dados[idx];
-  if (!n.historico) n.historico = [];
+async function mudarStatusRapido(id, novoStatus) {
+  const n = dados.find(x => x.id === id);
+  if (!n) return;
+  const historico = [...(n.historico || [])];
   if (n.status !== novoStatus) {
-    n.historico.push({ data: n.ultimoContato || hoje(), status: n.status, obs: n.obs || '' });
+    historico.push({ data: n.ultimo_contato || hoje(), status: n.status, obs: n.observacoes || '' });
   }
-  n.status = novoStatus;
-  n.ultimoContato = hoje();
-  save();
+  await fetch('/api/compradores?neg=1&id=' + id, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: novoStatus, ultimo_contato: hoje(), historico }),
+  });
+  await load();
   fecharStatusMenu();
   renderAlerta();
   renderLista();
@@ -597,8 +626,8 @@ function abrirContrato(id) {
   contratoNegId = id;
 
   // Vendedor — pre-preenche do contato
-  cSet('c-vend-nome', n.contato);
-  cSet('c-vend-tel', n.telefone);
+  cSet('c-vend-nome', n.comprador_nome);
+  cSet('c-vend-tel', n.contato_telefone);
   cSet('c-vend-doc', ''); cSet('c-vend-rg', ''); cSet('c-vend-email', '');
   cSet('c-vend-end', ''); cSet('c-vend-cidade', '');
 
@@ -606,7 +635,7 @@ function abrirContrato(id) {
   ['c-comp-nome','c-comp-doc','c-comp-rg','c-comp-tel','c-comp-email','c-comp-end','c-comp-cidade'].forEach(i => cSet(i, ''));
 
   // Veículo — pre-preenche nome
-  cSet('c-veiculo', n.veiculo);
+  cSet('c-veiculo', n.veiculo_nome);
   ['c-placa','c-km','c-cor','c-combustivel','c-chassi','c-renavam','c-veiculo-obs'].forEach(i => cSet(i, ''));
   cSet('c-alienacao', 'Não'); cSet('c-debitos', 'Nenhum');
 
@@ -830,10 +859,11 @@ ${(d.test1_nome || d.test2_nome) ? `
 
 // Init
 document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
-load();
-renderAlerta();
-renderLista();
-lerParams();
+load().then(() => {
+  renderAlerta();
+  renderLista();
+  lerParams();
+});
 </script>
 </body>
 </html>
