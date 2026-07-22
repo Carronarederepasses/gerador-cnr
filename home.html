@@ -285,7 +285,13 @@ async function carregarVendas() {
     document.getElementById('kpi-taxa').textContent = taxaMes > 0 ? moeda(taxaMes) : '—';
 
     const ul = document.getElementById('ultimas-vendas');
-    const recentes = vendas.slice(0, 6);
+    const recentes = [...vendas]
+      .sort((a, b) => {
+        const da = a.data_venda || a.created_at || '';
+        const db = b.data_venda || b.created_at || '';
+        return db.localeCompare(da);
+      })
+      .slice(0, 6);
     if (!recentes.length) { ul.innerHTML = '<div class="vazio">Nenhuma venda registrada ainda.</div>'; return; }
 
     ul.innerHTML = recentes.map(v => {
