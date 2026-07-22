@@ -88,6 +88,17 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .rel-val.verde{color:var(--severity-ok)}
 .rel-val.roxo{color:#a78bfa}
 
+/* Tabela histórico 12 meses */
+.hist-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:1rem}
+.hist-table th{text-align:left;font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-mid);padding:.4rem .6rem;border-bottom:2px solid var(--line);font-weight:600}
+.hist-table td{padding:.45rem .6rem;border-bottom:1px solid var(--line)}
+.hist-table tr:last-child td{border-bottom:none}
+.hist-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.hist-table .verde{color:var(--severity-ok);font-weight:600}
+.hist-table tr.mes-atual td{background:color-mix(in srgb,var(--accent) 6%,transparent);font-weight:600}
+.btn-hist12{background:none;border:1px solid var(--line);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.7rem;color:var(--text-mid);padding:.4rem .9rem;cursor:pointer;margin-top:.9rem;transition:all .15s}
+.btn-hist12:hover{border-color:var(--text);color:var(--text)}
+
 /* Últimas vendas */
 .venda-row{display:flex;align-items:center;gap:.8rem;padding:.7rem 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .venda-row:last-child{border-bottom:none}
@@ -234,6 +245,8 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <a class="secao-titulo-link" href="#" onclick="exportarRelatorioCSV();return false">⬇ CSV</a>
     </div>
     <div class="relatorio" id="relatorio"><div class="loading">carregando...</div></div>
+    <div id="hist-12" style="display:none"></div>
+    <button class="btn-hist12" id="btn-hist12" onclick="toggleHist12()">📊 Ver histórico completo</button>
   </div>
 
   <!-- Rede de compradores -->
@@ -570,6 +583,56 @@ async function carregarNegociacoes() {
     }).join('');
   } catch(e) {
     document.getElementById('neg-lista').innerHTML = '<div class="vazio">Erro ao carregar.</div>';
+  }
+}
+
+let _hist12Carregado = false;
+async function toggleHist12() {
+  const el  = document.getElementById('hist-12');
+  const btn = document.getElementById('btn-hist12');
+  if (el.style.display !== 'none') {
+    el.style.display = 'none';
+    btn.textContent = '📊 Ver histórico completo';
+    return;
+  }
+  el.style.display = 'block';
+  btn.textContent = '▲ Fechar histórico';
+  if (_hist12Carregado) return;
+  _hist12Carregado = true;
+  el.innerHTML = '<div class="loading">carregando...</div>';
+  try {
+    const [rC, rV] = await Promise.all([fetch('/api/catalogo'), fetch('/api/vendas')]);
+    const [catalogo, vendas] = await Promise.all([rC.json(), rV.json()]);
+    const NOMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const agora = new Date();
+    const linhas = [];
+    for (let i = 11; i >= 0; i--) {
+      const ref = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+      const m = ref.getMonth(), a = ref.getFullYear();
+      const captados = catalogo.filter(v => {
+        const d = new Date(v.created_at || '');
+        return d.getMonth() === m && d.getFullYear() === a;
+      }).length;
+      const doMes = vendas.filter(v => {
+        const d = v.data_venda ? new Date(v.data_venda + 'T00:00:00') : null;
+        return d && d.getMonth() === m && d.getFullYear() === a;
+      });
+      const taxa = doMes.reduce((s, v) => s + (Number(v.taxa_intermediacao) || 0), 0);
+      const isAtual = m === agora.getMonth() && a === agora.getFullYear();
+      linhas.push({ label: `${NOMES[m]}/${a}`, captados, qtd: doMes.length, taxa, isAtual });
+    }
+    const rows = linhas.map(l => `<tr${l.isAtual ? ' class="mes-atual"' : ''}>
+      <td>${l.label}${l.isAtual ? ' ◀' : ''}</td>
+      <td class="num">${l.captados || '—'}</td>
+      <td class="num">${l.qtd || '—'}</td>
+      <td class="num verde">${l.taxa > 0 ? 'R$ ' + Number(l.taxa).toLocaleString('pt-BR',{maximumFractionDigits:0}) : '—'}</td>
+    </tr>`).join('');
+    el.innerHTML = `<table class="hist-table">
+      <thead><tr><th>Mês</th><th class="num">Captados</th><th class="num">Vendidos</th><th class="num verde">Taxa CNR</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  } catch(_) {
+    el.innerHTML = '<div class="vazio">Erro ao carregar histórico.</div>';
   }
 }
 

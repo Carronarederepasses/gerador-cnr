@@ -63,6 +63,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .btn-acao.verde{border-color:color-mix(in srgb,var(--severity-ok) 40%,transparent);color:var(--severity-ok)}
 .btn-acao.verde:hover{background:color-mix(in srgb,var(--severity-ok) 10%,transparent)}
 .inativo{opacity:.45}
+.card-hist{font-size:.72rem;color:var(--severity-ok);font-weight:600;margin-top:.1rem}
 
 /* Empty */
 .empty{text-align:center;padding:3rem 1rem;color:var(--text-faint)}
@@ -114,6 +115,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div class="kpi"><div class="kpi-val" id="k-lojas">—</div><div class="kpi-lbl">Lojas</div></div>
     <div class="kpi"><div class="kpi-val" id="k-inv">—</div><div class="kpi-lbl">Investidores</div></div>
     <div class="kpi"><div class="kpi-val" id="k-pf">—</div><div class="kpi-lbl">Pessoas físicas</div></div>
+    <div class="kpi"><div class="kpi-val" id="k-taxa" style="font-size:1.1rem">—</div><div class="kpi-lbl">Taxa CNR acumulada</div></div>
   </div>
 
   <div class="toolbar">
@@ -251,6 +253,7 @@ const MARCAS = ['Chevrolet','Fiat','Volkswagen','Ford','Toyota','Honda','Hyundai
 let TODOS = [];
 let editId = null;
 let marcasSel = [];
+let HIST_COMP = {}; // id ou nome → { count, taxa, total }
 
 // ── Init ──────────────────────────────────────────────────────────────
 async function init() {
@@ -259,9 +262,22 @@ async function init() {
 }
 
 async function carregar() {
-  const r = await fetch('/api/compradores');
-  if (!r.ok) return;
-  TODOS = await r.json();
+  const [rC, rV] = await Promise.all([fetch('/api/compradores'), fetch('/api/vendas')]);
+  if (!rC.ok) return;
+  TODOS = await rC.json();
+  if (rV.ok) {
+    const vendas = await rV.json();
+    HIST_COMP = {};
+    vendas.forEach(v => {
+      const keys = [v.comprador_id, v.comprador_nome].filter(Boolean);
+      keys.forEach(k => {
+        if (!HIST_COMP[k]) HIST_COMP[k] = { count: 0, taxa: 0, total: 0 };
+        HIST_COMP[k].count++;
+        HIST_COMP[k].taxa  += Number(v.taxa_intermediacao) || 0;
+        HIST_COMP[k].total += Number(v.valor_venda) || 0;
+      });
+    });
+  }
   renderKpis();
   filtrar();
 }
@@ -271,6 +287,15 @@ function renderKpis() {
   document.getElementById('k-lojas').textContent = TODOS.filter(c => c.ativo && c.tipo === 'loja').length;
   document.getElementById('k-inv').textContent   = TODOS.filter(c => c.ativo && c.tipo === 'investidor').length;
   document.getElementById('k-pf').textContent    = TODOS.filter(c => c.ativo && c.tipo === 'pessoa_fisica').length;
+  const taxaTotal = Object.values(HIST_COMP).reduce((s, h) => s + h.taxa, 0);
+  // HIST_COMP tem entradas duplicadas (por id E por nome), então divide por 2 se ambos existem — usa só soma única por id
+  const taxaUnica = Object.entries(HIST_COMP)
+    .filter(([k]) => k.includes('-')) // UUIDs têm traços
+    .reduce((s, [, h]) => s + h.taxa, 0);
+  const taxaFinal = taxaUnica > 0 ? taxaUnica : taxaTotal;
+  document.getElementById('k-taxa').textContent = taxaFinal > 0
+    ? 'R$ ' + Number(taxaFinal).toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+    : '—';
 }
 
 function filtrar() {
@@ -296,6 +321,10 @@ function renderLista(lista) {
       : c.preco_max ? `até R$ ${fmt(c.preco_max)}` : '';
     const marcas = (c.marcas || []).map(m => `<span class="tag">${m}</span>`).join('');
     const wa = c.telefone ? c.telefone.replace(/\D/g,'') : '';
+    const h = HIST_COMP[c.id] || HIST_COMP[c.nome] || null;
+    const histTxt = h && h.count > 0
+      ? `${h.count} compra${h.count>1?'s':''} · R$ ${Number(h.taxa).toLocaleString('pt-BR',{maximumFractionDigits:0})} taxa CNR`
+      : '';
     return `<div class="card${c.ativo ? '' : ' inativo'}" onclick="abrirModal('${c.id}')">
       <div class="card-top">
         <div class="card-nome">${c.nome}</div>
@@ -304,6 +333,7 @@ function renderLista(lista) {
       <div class="card-info">
         ${c.cidade ? `<span>📍 ${c.cidade}</span>` : ''}
         ${preco ? `<span class="card-preco">${preco}</span>` : ''}
+        ${histTxt ? `<span class="card-hist">✓ ${histTxt}</span>` : ''}
         ${c.observacoes ? `<span style="font-size:.73rem;font-style:italic;color:var(--text-faint)">${c.observacoes.slice(0,80)}${c.observacoes.length>80?'…':''}</span>` : ''}
       </div>
       ${marcas ? `<div class="card-marcas">${marcas}</div>` : ''}
