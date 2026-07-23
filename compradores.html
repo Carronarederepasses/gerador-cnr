@@ -230,7 +230,14 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados para faturamento — PJ</div>
       <div class="field"><label>Razão social</label><input id="m-razao_social" type="text" placeholder="Auto Prime Veículos Ltda"></div>
       <div class="g2">
-        <div class="field"><label>CNPJ</label><input id="m-cnpj" type="text" placeholder="00.000.000/0001-00" inputmode="numeric"></div>
+        <div class="field">
+          <label>CNPJ</label>
+          <div style="display:flex;gap:.4rem">
+            <input id="m-cnpj" type="text" placeholder="00.000.000/0001-00" inputmode="numeric" style="flex:1" oninput="cnpjMask(this)">
+            <button type="button" onclick="buscarCNPJ()" style="font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;padding:.55rem .8rem;border-radius:8px;border:1px solid var(--line);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+          </div>
+          <div id="cnpj-st" style="font-size:.7rem;color:var(--text-mid);margin-top:.3rem"></div>
+        </div>
         <div class="field"><label>Inscrição Estadual (IE)</label><input id="m-ie" type="text" inputmode="numeric"></div>
       </div>
     </div>
@@ -639,10 +646,40 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(
 document.getElementById('m-tipo').addEventListener('change', e => atualizarBlocoFat(e.target.value));
 
 function atualizarBlocoFat(tipo) {
-  const isPJ = tipo === 'loja' || tipo === 'revendedor';
+  const isPJ = ['loja','revendedor','parceiro','franquia','concessionaria'].includes(tipo);
   const isPF = tipo === 'pessoa_fisica';
   document.getElementById('bloco-pj').style.display = isPJ ? '' : 'none';
   document.getElementById('bloco-pf').style.display = isPF ? '' : 'none';
+}
+
+function cnpjMask(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,14);
+  if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d+)/,'$1.$2.$3/$4-$5');
+  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d+)/,'$1.$2.$3/$4');
+  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d+)/,'$1.$2.$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d+)/,'$1.$2');
+  el.value = v;
+}
+
+async function buscarCNPJ() {
+  const cnpj = document.getElementById('m-cnpj').value.replace(/\D/g,'');
+  const st   = document.getElementById('cnpj-st');
+  if (cnpj.length !== 14) { st.textContent = 'CNPJ deve ter 14 dígitos.'; return; }
+  st.textContent = '⏳ Buscando...';
+  try {
+    const r = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`);
+    const d = await r.json();
+    if (d.status === 'ERROR') { st.textContent = '✗ ' + (d.message || 'CNPJ não encontrado.'); return; }
+    if (d.nome)        document.getElementById('m-razao_social').value = d.nome;
+    if (d.logradouro)  document.getElementById('m-logradouro').value   = `${d.logradouro}${d.numero ? ', '+d.numero : ''}`;
+    if (d.bairro)      document.getElementById('m-bairro').value       = d.bairro;
+    if (d.municipio)   document.getElementById('m-cidade2').value      = d.municipio;
+    if (d.uf)          document.getElementById('m-estado').value        = d.uf;
+    if (d.cep)         document.getElementById('m-cep').value           = d.cep.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2');
+    if (d.fantasia && !document.getElementById('m-nome').value)
+                       document.getElementById('m-nome').value          = d.fantasia;
+    st.textContent = '✓ Dados preenchidos automaticamente.';
+  } catch(_) { st.textContent = '✗ Erro ao buscar. Tente novamente.'; }
 }
 
 async function buscarCep(cep) {
