@@ -199,11 +199,11 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div class="g2">
       <div class="field">
         <label>Preço mínimo (R$)</label>
-        <input id="m-pmin" type="number" placeholder="30000">
+        <input id="m-pmin" type="text" inputmode="numeric" placeholder="ex: 30.000 ou 30000">
       </div>
       <div class="field">
         <label>Preço máximo (R$)</label>
-        <input id="m-pmax" type="number" placeholder="120000">
+        <input id="m-pmax" type="text" inputmode="numeric" placeholder="ex: 120.000 ou 120000">
       </div>
     </div>
     <div class="field">
@@ -439,6 +439,12 @@ function renderLista(lista) {
   }).join('');
 }
 
+function parseBRnum(s) {
+  if (!s) return null;
+  const n = parseFloat(s.replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'));
+  return isNaN(n) ? null : n;
+}
+
 function fmt(n) {
   return Number(n).toLocaleString('pt-BR');
 }
@@ -580,8 +586,8 @@ async function salvar() {
     telefone:    document.getElementById('m-tel').value.trim() || null,
     tipo:        document.getElementById('m-tipo').value,
     cidade:      document.getElementById('m-cidade2').value.trim() || document.getElementById('m-cidade').value.trim() || null,
-    preco_min:   document.getElementById('m-pmin').value || null,
-    preco_max:   document.getElementById('m-pmax').value || null,
+    preco_min:   parseBRnum(document.getElementById('m-pmin').value),
+    preco_max:   parseBRnum(document.getElementById('m-pmax').value),
     marcas:      marcasSel.length ? marcasSel : null,
     observacoes: document.getElementById('m-obs').value.trim() || null,
     // PJ
