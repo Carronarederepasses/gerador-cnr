@@ -4,6 +4,12 @@
 
 ---
 
+> *"O CNR não aprende porque tem IA. O CNR tem IA porque aprendeu a registrar conhecimento."*
+>
+> *"Na Fase 1, não treinamos modelos. Treinamos os dados."*
+
+---
+
 ## 1. O Negócio
 
 **Nome:** Carro na Rede Repasses
