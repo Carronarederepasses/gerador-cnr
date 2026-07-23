@@ -24,7 +24,7 @@ const CAMPOS_NEG = [
 ];
 
 const CAMPOS_COMPRADOR = [
-  'nome','telefone','tipo','cidade','marcas','preco_min','preco_max','observacoes','ativo',
+  'nome','proprietario','telefone','tipo','cidade','marcas','preco_min','preco_max','observacoes','ativo',
   'razao_social','cnpj','ie',
   'cpf','rg','data_nascimento',
   'cep','estado','logradouro','numero','complemento_end','bairro',

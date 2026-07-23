@@ -153,8 +153,12 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div class="modal-titulo" id="modal-titulo">Novo Comprador</div>
 
     <div class="field">
-      <label>Nome fantasia / Como você chama *</label>
-      <input id="m-nome" type="text" placeholder="ex: Auto Prime, João Silva, Garage Premium">
+      <label>Nome fantasia *</label>
+      <input id="m-nome" type="text" placeholder="ex: Auto Prime, Garage Premium, João">
+    </div>
+    <div class="field">
+      <label>Proprietário</label>
+      <input id="m-proprietario" type="text" placeholder="Nome completo do dono / responsável">
     </div>
     <div class="g2">
       <div class="field">
@@ -445,6 +449,7 @@ function abrirModal(id) {
   const c = id ? TODOS.find(x => x.id === id) : null;
   document.getElementById('modal-titulo').textContent = c ? 'Editar Comprador' : 'Novo Comprador';
   document.getElementById('m-nome').value          = c?.nome || '';
+  document.getElementById('m-proprietario').value  = c?.proprietario || '';
   document.getElementById('m-tel').value            = c?.telefone || '';
   document.getElementById('m-tipo').value           = c?.tipo || 'loja';
   document.getElementById('m-cidade').value         = c?.cidade || '';
@@ -549,6 +554,7 @@ async function salvar() {
   if (!nome) { toast('Informe o nome', true); return; }
   const payload = {
     nome,
+    proprietario: document.getElementById('m-proprietario').value.trim() || null,
     telefone:    document.getElementById('m-tel').value.trim() || null,
     tipo:        document.getElementById('m-tipo').value,
     cidade:      document.getElementById('m-cidade2').value.trim() || document.getElementById('m-cidade').value.trim() || null,
