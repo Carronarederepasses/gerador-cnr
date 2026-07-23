@@ -151,11 +151,36 @@
       </select>
     </div>
     <button class="btn" id="btn-nova">+ Nova venda</button>
+    <button class="btn ghost" onclick="abrirRapida()" style="white-space:nowrap">⚡ Histórico rápido</button>
     <button class="btn ghost" onclick="exportarCSV()" style="white-space:nowrap">📥 CSV</button>
   </div>
 
   <div class="meta-linha" style="display:flex;justify-content:space-between;align-items:center"><span id="contador"></span><button id="btn-ordem" class="btn ghost" style="font-size:.74rem;padding:.4rem .7rem">⬇ Mais recentes</button></div>
   <div class="lista" id="lista"></div>
+</div>
+
+<!-- ── Modal entrada rápida (histórico) ──────────────────────── -->
+<div class="modal" id="modal-rap" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:80;align-items:center;justify-content:center;padding:1.5rem">
+  <div class="box" style="max-width:420px;padding:1.4rem">
+    <h2 style="font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:1rem">⚡ Histórico rápido</h2>
+    <div style="display:grid;gap:.7rem">
+      <div><label>Carro *</label><input id="r-carro" type="text" placeholder="ex: Corolla XEI 2020"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">
+        <div><label>Comprador *</label><input id="r-comprador" type="text" placeholder="Nome"></div>
+        <div><label>Data da venda</label><input id="r-data" type="date" style="color-scheme:dark"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">
+        <div><label>Valor da venda (R$)</label><input id="r-valor" type="text" inputmode="numeric" placeholder="ex: 85.000"></div>
+        <div><label>Taxa CNR (R$)</label><input id="r-taxa" type="text" inputmode="numeric" placeholder="ex: 2.000"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-top:1.1rem;flex-wrap:wrap">
+      <button class="btn" onclick="salvarRapida(false)" style="flex:1">Salvar</button>
+      <button class="btn" onclick="salvarRapida(true)" style="flex:1;opacity:.8">Salvar e próximo ↵</button>
+      <button class="btn ghost" onclick="fecharRapida()">Cancelar</button>
+    </div>
+    <div id="r-contador" style="font-size:.72rem;color:var(--text-mid);margin-top:.5rem;text-align:center"></div>
+  </div>
 </div>
 
 <!-- ── Modal formulário ───────────────────────────────────────── -->
@@ -553,6 +578,42 @@ function fecharModal(){ $('modal').classList.remove('show'); }
 $('btn-nova').onclick = () => abrirModal();
 $('m-cancelar').onclick = fecharModal;
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) fecharModal(); });
+
+// ── Entrada rápida de histórico ────────────────────────────────
+let _rapContador = 0;
+const parseBRv = s => { const l = (s||'').trim().replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'); return l ? parseFloat(l) : null; };
+function abrirRapida() {
+  _rapContador = 0;
+  $('r-carro').value = ''; $('r-comprador').value = ''; $('r-taxa').value = ''; $('r-valor').value = '';
+  $('r-data').value = new Date().toISOString().slice(0,10);
+  $('r-contador').textContent = '';
+  $('modal-rap').style.display = 'flex';
+  setTimeout(() => $('r-carro').focus(), 80);
+}
+function fecharRapida() { $('modal-rap').style.display = 'none'; carregar(); }
+async function salvarRapida(continuar) {
+  const carro = $('r-carro').value.trim();
+  const comprador = $('r-comprador').value.trim();
+  if (!carro || !comprador) { alert('Preenche pelo menos o carro e o comprador.'); return; }
+  const body = {
+    modelo: carro,
+    comprador_nome: comprador,
+    data_venda: $('r-data').value || new Date().toISOString().slice(0,10),
+    valor_venda: parseBRv($('r-valor').value),
+    taxa_intermediacao: parseBRv($('r-taxa').value),
+    status: 'concluida',
+  };
+  try {
+    const r = await fetch('/api/vendas', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    _rapContador++;
+    $('r-contador').textContent = `${_rapContador} registro${_rapContador > 1 ? 's' : ''} salvo${_rapContador > 1 ? 's' : ''} ✓`;
+    if (continuar) {
+      $('r-carro').value = ''; $('r-comprador').value = ''; $('r-taxa').value = ''; $('r-valor').value = '';
+      setTimeout(() => $('r-carro').focus(), 60);
+    } else { fecharRapida(); }
+  } catch(e) { alert('Erro: ' + e.message); }
+}
 
 function editar(id){ abrirModal(VENDAS.find(v => v.id === id)); }
 

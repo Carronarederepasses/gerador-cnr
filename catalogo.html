@@ -54,6 +54,11 @@
   .card .precos .f{font-size:.8rem;color:var(--text-mid);align-self:flex-end}
   .card .opc{font-size:.76rem;color:var(--text-mid);border-top:1px dashed var(--line);padding-top:.55rem}
   .dias-estoque{font-size:.7rem;margin-top:.3rem}
+  .score-resumo{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.35rem}
+  .sr-chip{font-size:.6rem;padding:.12rem .4rem;border-radius:10px;font-weight:600}
+  .sr-chip.ex,.sr-chip.bm{background:color-mix(in srgb,var(--severity-ok) 15%,transparent);color:var(--severity-ok)}
+  .sr-chip.rg{background:color-mix(in srgb,#e8a000 15%,transparent);color:#e8a000}
+  .sr-chip.ru{background:color-mix(in srgb,var(--severity-crit) 15%,transparent);color:var(--severity-crit)}
   .dias-ok{color:var(--severity-ok)}
   .dias-warn{color:#e8a000}
   .dias-crit{color:#e55}
@@ -525,6 +530,7 @@ function card(v) {
       ${(v.valor != null && v.valor_compra != null) ? (() => { const m = v.valor - v.valor_compra; const pct = v.valor_compra > 0 ? ((m/v.valor_compra)*100).toFixed(0) : 0; const cor = m >= 0 ? 'var(--severity-ok)' : '#e55'; return `<div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Margem</div><span style="font-size:.92rem;font-weight:700;color:${cor}">${fmtR(m)} (${pct}%)</span></div>`; })() : ''}
     </div>
     <div class="dias-estoque" id="dias-${v.id}">${diasEstoque(v.created_at)}</div>
+    ${(() => { const s = v.avaliacao?.scores; if (!s || !Object.keys(s).length) return ''; const SLBL = {lataria:'Lat',pintura:'Pin',mecanica:'Mec',interior:'Int',documentacao:'Doc'}; return '<div class="score-resumo">' + Object.entries(s).map(([k,c]) => `<span class="sr-chip ${c}">${SLBL[k]||k}: ${c==='ex'?'Exc':c==='bm'?'Bom':c==='rg'?'Reg':'Ruim'}</span>`).join('') + '</div>'; })()}
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     <div class="match-box">${v.status === 'vendido' ? renderVendido(v) : renderMatch(v)}</div>
     <div class="timeline" id="hist-${v.id}"></div>

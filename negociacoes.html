@@ -51,6 +51,8 @@
   .neg-status-pill{font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:.22rem .6rem;border-radius:20px;white-space:nowrap}
   .neg-dias{font-size:.62rem;color:var(--mid);white-space:nowrap}
   .neg-obs{font-size:.78rem;color:var(--mid);margin-top:.4rem;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .neg-motivo{font-size:.65rem;margin-top:.3rem;color:#ef4444;font-weight:600}
+  .neg-match-motivo{font-size:.65rem;margin-top:.2rem;color:var(--severity-ok);font-weight:500}
 
   .empty-state{text-align:center;padding:4rem 2rem;color:var(--mid)}
   .empty-state .ico{font-size:2.5rem;opacity:.3;margin-bottom:1rem}
@@ -574,6 +576,8 @@ function renderLista() {
         <div class="neg-dias">${n.ultimo_contato ? fmtDias(dias) : ''}</div>
       </div>
       ${n.observacoes ? `<div class="neg-obs">${n.observacoes}</div>` : ''}
+      ${n.status === 'descartado' && n.motivo_descarte ? `<div class="neg-motivo">✗ ${MOTIVOS_DESCARTE.find(m=>m.code===n.motivo_descarte)?.label || n.motivo_descarte}</div>` : ''}
+      ${n.motivo_match ? `<div class="neg-match-motivo">✓ ${MOTIVOS_MATCH.find(m=>m.code===n.motivo_match)?.label || n.motivo_match}</div>` : ''}
       ${n.status === 'comprado' ? `<div style="margin-top:.55rem;padding-top:.5rem;border-top:1px solid rgba(245,243,238,.07);display:flex;gap:.5rem;flex-wrap:wrap">
         <button onclick="event.stopPropagation();abrirContrato('${n.id}')" style="background:none;border:1px solid rgba(37,211,102,.35);color:#25D366;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:400;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">📄 Gerar Contrato</button>
         <button onclick="event.stopPropagation();irParaVenda('${n.id}')" style="background:#25D366;border:1px solid #25D366;color:#000;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">💰 Registrar Venda</button>
