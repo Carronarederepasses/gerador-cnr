@@ -196,20 +196,6 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <label>Cidade</label>
       <input id="m-cidade" type="text" placeholder="Florianópolis">
     </div>
-    <div class="g2">
-      <div class="field">
-        <label>Preço mínimo (R$)</label>
-        <input id="m-pmin" type="text" inputmode="numeric" placeholder="ex: 30.000 ou 30000">
-      </div>
-      <div class="field">
-        <label>Preço máximo (R$)</label>
-        <input id="m-pmax" type="text" inputmode="numeric" placeholder="ex: 120.000 ou 120000">
-      </div>
-    </div>
-    <div class="field">
-      <label>Marcas de interesse — clique para selecionar</label>
-      <div class="marcas-wrap" id="marcas-wrap"></div>
-    </div>
     <div class="field">
       <label>Observações</label>
       <textarea id="m-obs" placeholder="ex: só compra automático, prefere placa par, paga PIX..."></textarea>
@@ -229,17 +215,15 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div id="bloco-pj" style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
       <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados para faturamento — PJ</div>
       <div class="field"><label>Razão social</label><input id="m-razao_social" type="text" placeholder="Auto Prime Veículos Ltda"></div>
-      <div class="g2">
-        <div class="field">
-          <label>CNPJ</label>
-          <div style="display:flex;gap:.4rem">
-            <input id="m-cnpj" type="text" placeholder="00.000.000/0001-00" inputmode="numeric" style="flex:1" oninput="cnpjMask(this)">
-            <button type="button" onclick="buscarCNPJ()" style="font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;padding:.55rem .8rem;border-radius:8px;border:1px solid var(--line);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
-          </div>
-          <div id="cnpj-st" style="font-size:.7rem;color:var(--text-mid);margin-top:.3rem"></div>
+      <div class="field">
+        <label>CNPJ</label>
+        <div style="display:flex;gap:.4rem">
+          <input id="m-cnpj" type="text" placeholder="00.000.000/0001-00" inputmode="numeric" style="flex:1" oninput="cnpjMask(this)">
+          <button type="button" onclick="buscarCNPJ()" style="font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;padding:.55rem .9rem;border-radius:8px;border:1px solid var(--line);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
         </div>
-        <div class="field"><label>Inscrição Estadual (IE)</label><input id="m-ie" type="text" inputmode="numeric"></div>
+        <div id="cnpj-st" style="font-size:.7rem;color:var(--text-mid);margin-top:.3rem"></div>
       </div>
+      <div class="field"><label>Inscrição Estadual (IE)</label><input id="m-ie" type="text" inputmode="numeric"></div>
     </div>
 
     <!-- Faturamento PF -->
@@ -277,6 +261,25 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div class="g2">
         <div class="field"><label>Bairro</label><input id="m-bairro" type="text"></div>
         <div class="field"><label>Cidade</label><input id="m-cidade2" type="text" placeholder="Florianópolis"></div>
+      </div>
+    </div>
+
+    <!-- Preferências de compra — no fim para não atrapalhar o fluxo -->
+    <div style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Preferências de compra</div>
+      <div class="g2">
+        <div class="field">
+          <label>Preço mínimo (R$)</label>
+          <input id="m-pmin" type="text" inputmode="numeric" placeholder="ex: 30.000 ou 30000">
+        </div>
+        <div class="field">
+          <label>Preço máximo (R$)</label>
+          <input id="m-pmax" type="text" inputmode="numeric" placeholder="ex: 120.000 ou 120000">
+        </div>
+      </div>
+      <div class="field">
+        <label>Marcas de interesse — clique para selecionar</label>
+        <div class="marcas-wrap" id="marcas-wrap"></div>
       </div>
     </div>
 
@@ -667,17 +670,17 @@ async function buscarCNPJ() {
   if (cnpj.length !== 14) { st.textContent = 'CNPJ deve ter 14 dígitos.'; return; }
   st.textContent = '⏳ Buscando...';
   try {
-    const r = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`);
+    const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+    if (!r.ok) { st.textContent = '✗ CNPJ não encontrado.'; return; }
     const d = await r.json();
-    if (d.status === 'ERROR') { st.textContent = '✗ ' + (d.message || 'CNPJ não encontrado.'); return; }
-    if (d.nome)        document.getElementById('m-razao_social').value = d.nome;
-    if (d.logradouro)  document.getElementById('m-logradouro').value   = `${d.logradouro}${d.numero ? ', '+d.numero : ''}`;
-    if (d.bairro)      document.getElementById('m-bairro').value       = d.bairro;
-    if (d.municipio)   document.getElementById('m-cidade2').value      = d.municipio;
-    if (d.uf)          document.getElementById('m-estado').value        = d.uf;
-    if (d.cep)         document.getElementById('m-cep').value           = d.cep.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2');
-    if (d.fantasia && !document.getElementById('m-nome').value)
-                       document.getElementById('m-nome').value          = d.fantasia;
+    if (d.razao_social) document.getElementById('m-razao_social').value = d.razao_social;
+    if (d.logradouro)   document.getElementById('m-logradouro').value   = `${d.logradouro}${d.numero ? ', '+d.numero : ''}`;
+    if (d.bairro)       document.getElementById('m-bairro').value       = d.bairro;
+    if (d.municipio)    document.getElementById('m-cidade2').value      = d.municipio;
+    if (d.uf)           document.getElementById('m-estado').value       = d.uf;
+    if (d.cep)          document.getElementById('m-cep').value          = d.cep.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2');
+    if (d.nome_fantasia && !document.getElementById('m-nome').value)
+                        document.getElementById('m-nome').value         = d.nome_fantasia;
     st.textContent = '✓ Dados preenchidos automaticamente.';
   } catch(_) { st.textContent = '✗ Erro ao buscar. Tente novamente.'; }
 }
