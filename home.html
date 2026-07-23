@@ -143,6 +143,15 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .neg-status.pe{background:#2a1a33;color:#c084fc}
 .neg-status.co{background:#332a1a;color:#fb923c}
 .neg-urgente{font-size:.58rem;background:var(--severity-crit);color:#fff;border-radius:4px;padding:.1rem .35rem;flex-shrink:0;font-weight:600}
+
+/* Carros parados */
+.parado-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--line)}
+.parado-row:last-child{border-bottom:none}
+.parado-nome{flex:1;font-size:.84rem;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.parado-dias{font-size:.72rem;font-weight:700;padding:.15rem .45rem;border-radius:5px;flex-shrink:0}
+.parado-dias.warn{background:color-mix(in srgb,#e8a000 15%,transparent);color:#e8a000}
+.parado-dias.crit{background:color-mix(in srgb,var(--severity-crit) 15%,transparent);color:var(--severity-crit)}
+.parado-link{font-size:.72rem;color:var(--accent);text-decoration:none;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -228,6 +237,15 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
         <a class="etapa-link" href="/vendas.html">ver →</a>
       </div>
     </div>
+  </div>
+
+  <!-- Carros parados -->
+  <div class="secao" id="secao-parados" style="display:none">
+    <div class="secao-titulo">
+      ⚠️ Carros parados
+      <a class="secao-titulo-link" href="/catalogo.html">ver catálogo →</a>
+    </div>
+    <div id="parados-lista"></div>
   </div>
 
   <!-- Negociações ativas -->
@@ -400,6 +418,31 @@ async function carregarCatalogo() {
     renderLista('pipe-disp-lista', disp);
     renderLista('pipe-res-lista', res);
     renderLista('pipe-vend-lista', vend);
+
+    // Carros parados: disponíveis há mais de 7 dias
+    const agora = Date.now();
+    const parados = disp
+      .filter(v => v.created_at && (agora - new Date(v.created_at).getTime()) > 7 * 86400000)
+      .map(v => ({ ...v, dias: Math.floor((agora - new Date(v.created_at).getTime()) / 86400000) }))
+      .sort((a, b) => b.dias - a.dias);
+
+    const secao = document.getElementById('secao-parados');
+    const listaEl = document.getElementById('parados-lista');
+    if (parados.length) {
+      secao.style.display = '';
+      listaEl.innerHTML = parados.map(v => {
+        const nome = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ') || 'Veículo';
+        const cls  = v.dias >= 15 ? 'crit' : 'warn';
+        const txt  = v.dias === 1 ? '1 dia' : `${v.dias} dias`;
+        return `<div class="parado-row">
+          <span class="parado-nome">${nome}</span>
+          <span class="parado-dias ${cls}">${txt} parado</span>
+          <a class="parado-link" href="/catalogo.html">ver →</a>
+        </div>`;
+      }).join('');
+    } else {
+      secao.style.display = 'none';
+    }
   } catch(e) {
     ['pipe-disp-lista','pipe-res-lista','pipe-vend-lista'].forEach(id => {
       document.getElementById(id).innerHTML = '<div class="vazio">Erro ao carregar</div>';
