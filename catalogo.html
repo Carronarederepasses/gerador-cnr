@@ -630,8 +630,10 @@ async function editarValorCompra(id) {
   const atual = v.valor_compra != null ? String(v.valor_compra) : '';
   const inp = prompt('Valor de captação (custo — uso interno):', atual);
   if (inp === null) return;
-  const valor_compra = inp.trim() === '' ? null : Number(inp.replace(/\D/g,''));
-  if (inp.trim() !== '' && isNaN(valor_compra)) { alert('Valor inválido'); return; }
+  // Suporta formato BR: "45.000,00" ou "45000" ou "R$ 45.000"
+  const limpo = inp.trim().replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.');
+  const valor_compra = inp.trim() === '' ? null : parseFloat(limpo);
+  if (inp.trim() !== '' && (isNaN(valor_compra) || valor_compra <= 0)) { alert('Valor inválido'); return; }
   try {
     const r = await fetch('/api/catalogo?id=' + id, {
       method: 'PATCH', headers: {'Content-Type':'application/json'},
