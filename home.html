@@ -384,6 +384,8 @@ function saudacao() {
     `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} de ${now.getFullYear()}`;
 }
 
+let _catalogoLista = [];
+
 function itemCard(v) {
   const nome = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ') || 'Veículo sem nome';
   const val  = v.valor ? moeda(v.valor) : '—';
@@ -398,6 +400,7 @@ async function carregarCatalogo() {
     const r = await fetch('/api/catalogo');
     if (!r.ok) throw new Error();
     const lista = await r.json();
+    _catalogoLista = lista;
 
     const disp  = lista.filter(v => v.status === 'disponivel');
     const res   = lista.filter(v => v.status === 'reservado');
@@ -556,9 +559,20 @@ async function carregarRelatorio() {
     _vendasMes = doMes;
 
     const taxaTotal = doMes.reduce((s, v) => s + (Number(v.taxa_intermediacao) || 0), 0);
-    const ticketMedio = doMes.length
-      ? doMes.reduce((s, v) => s + (Number(v.valor_venda) || 0), 0) / doMes.length
-      : 0;
+    const volumeTotal = doMes.reduce((s, v) => s + (Number(v.valor_venda) || 0), 0);
+    const ticketMedio = doMes.length ? volumeTotal / doMes.length : 0;
+
+    // Margem bruta: cruzar venda com catálogo (veículos) pelo placa
+    const placaMap = {};
+    _catalogoLista.forEach(v => { if (v.placa && v.valor_compra != null) placaMap[v.placa.toUpperCase()] = v.valor_compra; });
+    let margemTotal = 0, margemCount = 0;
+    doMes.forEach(v => {
+      const placa = (v.placa || '').toUpperCase();
+      if (placa && placaMap[placa] != null) {
+        margemTotal += (Number(v.valor_venda) || 0) - placaMap[placa];
+        margemCount++;
+      }
+    });
 
     // Top comprador do mês
     const freq = {};
@@ -579,6 +593,14 @@ async function carregarRelatorio() {
         <div class="rel-val roxo">${taxaTotal > 0 ? moeda(taxaTotal) : '—'}</div>
         <div class="rel-lbl">Taxa CNR total</div>
       </div>
+      <div class="rel-card">
+        <div class="rel-val" style="font-size:1.1rem;color:var(--accent)">${volumeTotal > 0 ? moeda(volumeTotal) : '—'}</div>
+        <div class="rel-lbl">Volume negociado</div>
+      </div>
+      ${margemCount > 0 ? `<div class="rel-card">
+        <div class="rel-val verde" style="font-size:1.1rem">${moeda(margemTotal)}</div>
+        <div class="rel-lbl">Margem bruta (${margemCount} venda${margemCount > 1 ? 's' : ''})</div>
+      </div>` : ''}
       <div class="rel-card">
         <div class="rel-val" style="font-size:1.1rem">${ticketMedio > 0 ? moeda(ticketMedio) : '—'}</div>
         <div class="rel-lbl">Ticket médio</div>
