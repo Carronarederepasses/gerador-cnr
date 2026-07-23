@@ -676,7 +676,11 @@ async function buscarCNPJ() {
     if (d.razao_social) document.getElementById('m-razao_social').value = d.razao_social;
     if (d.logradouro)   document.getElementById('m-logradouro').value   = `${d.logradouro}${d.numero ? ', '+d.numero : ''}`;
     if (d.bairro)       document.getElementById('m-bairro').value       = d.bairro;
-    if (d.municipio)    document.getElementById('m-cidade2').value      = d.municipio;
+    if (d.municipio) {
+      document.getElementById('m-cidade2').value = d.municipio;
+      if (!document.getElementById('m-cidade').value)
+        document.getElementById('m-cidade').value = d.municipio;
+    }
     if (d.uf)           document.getElementById('m-estado').value       = d.uf;
     if (d.cep)          document.getElementById('m-cep').value          = d.cep.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2');
     if (d.nome_fantasia && !document.getElementById('m-nome').value)
