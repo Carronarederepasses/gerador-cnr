@@ -78,6 +78,37 @@ module.exports = async (req, res) => {
   const q = req.query;
 
   try {
+    // ── OBSERVAÇÕES (conhecimento sobre qualquer entidade) ────
+    if ('obs' in q) {
+      if (req.method === 'GET') {
+        if (!q.entidade_id) return res.status(400).json({ error: 'entidade_id obrigatório' });
+        const tipo = q.tipo || 'comprador';
+        const r = await sb(`observacoes?tipo_entidade=eq.${encodeURIComponent(tipo)}&entidade_id=eq.${q.entidade_id}&ativo=eq.true&order=created_at.asc`);
+        const data = await r.json();
+        return res.status(r.ok ? 200 : r.status).json(data);
+      }
+      if (req.method === 'POST') {
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+        if (!body.texto || !body.entidade_id) return res.status(400).json({ error: 'texto e entidade_id obrigatórios' });
+        const payload = {
+          tipo_entidade: body.tipo_entidade || 'comprador',
+          entidade_id:   body.entidade_id,
+          texto:         body.texto.trim(),
+          autor:         body.autor || 'yuri',
+        };
+        const r = await sb('observacoes', { method: 'POST', body: JSON.stringify(payload), prefer: 'return=representation' });
+        const data = await r.json();
+        return res.status(r.ok ? 201 : r.status).json(r.ok ? data[0] : data);
+      }
+      if (req.method === 'PATCH') {
+        if (!q.id) return res.status(400).json({ error: 'id obrigatório' });
+        const r = await sb(`observacoes?id=eq.${q.id}`, { method: 'PATCH', body: JSON.stringify({ ativo: false }), prefer: 'return=representation' });
+        const data = await r.json();
+        return res.status(r.ok ? 200 : r.status).json(r.ok ? data[0] : data);
+      }
+      return res.status(405).json({ error: 'Método não permitido' });
+    }
+
     // ── EVENTOS ──────────────────────────────────────────────
     if ('evento' in q) {
       if (req.method === 'POST') {

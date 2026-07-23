@@ -194,6 +194,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <textarea id="m-obs" placeholder="ex: só compra automático, prefere placa par, paga PIX..."></textarea>
     </div>
 
+    <!-- 💡 O que sabemos — conhecimento estruturado -->
+    <div id="bloco-conhecimento" style="display:none;border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.6rem">💡 O que sabemos</div>
+      <div id="obs-lista" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.6rem"></div>
+      <div style="display:flex;gap:.5rem">
+        <input id="obs-input" type="text" placeholder='ex: "Só compra Corolla branco"' onkeydown="if(event.key==='Enter'){adicionarObs();event.preventDefault()}" style="flex:1;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--surface-raise);color:var(--text)">
+        <button onclick="adicionarObs()" style="font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;padding:.5rem .9rem;border-radius:8px;border:none;background:var(--text);color:var(--surface);cursor:pointer">+</button>
+      </div>
+    </div>
+
     <!-- Faturamento PJ -->
     <div id="bloco-pj" style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
       <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados para faturamento — PJ</div>
@@ -461,13 +471,73 @@ function abrirModal(id) {
   atualizarMarcas();
   atualizarBlocoFat(c?.tipo || 'loja');
   document.getElementById('btn-del').style.display = c ? '' : 'none';
+  const blocoObs = document.getElementById('bloco-conhecimento');
+  if (c) {
+    blocoObs.style.display = '';
+    _obsLista = [];
+    document.getElementById('obs-lista').innerHTML = '';
+    carregarObs(c.id);
+  } else {
+    blocoObs.style.display = 'none';
+  }
   document.getElementById('modal-bg').classList.add('show');
   setTimeout(() => document.getElementById('m-nome').focus(), 50);
 }
 
 function fecharModal() {
   document.getElementById('modal-bg').classList.remove('show');
+  document.getElementById('bloco-conhecimento').style.display = 'none';
+  document.getElementById('obs-lista').innerHTML = '';
+  document.getElementById('obs-input').value = '';
+  _obsLista = [];
   editId = null;
+}
+
+// ── Conhecimento (observações) ─────────────────────────────────
+let _obsLista = [];
+
+async function carregarObs(id) {
+  const r = await fetch(`/api/compradores?obs=1&entidade_id=${id}&tipo=comprador`);
+  if (!r.ok) return;
+  _obsLista = await r.json();
+  renderObs();
+}
+
+function renderObs() {
+  const el = document.getElementById('obs-lista');
+  if (!_obsLista.length) {
+    el.innerHTML = '<div style="font-size:.75rem;color:var(--text-faint);padding:.2rem 0">Nenhum conhecimento registrado ainda.</div>';
+    return;
+  }
+  el.innerHTML = _obsLista.map(o => `
+    <div style="display:flex;align-items:flex-start;gap:.5rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.45rem .65rem">
+      <span style="flex:1;font-size:.82rem;line-height:1.45">${o.texto}</span>
+      <button onclick="arquivarObs('${o.id}')" title="Arquivar" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:.75rem;padding:0;line-height:1;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
+async function adicionarObs() {
+  const input = document.getElementById('obs-input');
+  const texto = input.value.trim();
+  if (!texto || !editId) return;
+  const r = await fetch('/api/compradores?obs=1', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entidade_id: editId, tipo_entidade: 'comprador', texto }),
+  });
+  if (!r.ok) return;
+  const nova = await r.json();
+  _obsLista.push(nova);
+  input.value = '';
+  renderObs();
+  input.focus();
+}
+
+async function arquivarObs(id) {
+  const r = await fetch(`/api/compradores?obs=1&id=${id}`, { method: 'PATCH' });
+  if (!r.ok) return;
+  _obsLista = _obsLista.filter(o => o.id !== id);
+  renderObs();
 }
 
 function fecharModalFora(e) {
