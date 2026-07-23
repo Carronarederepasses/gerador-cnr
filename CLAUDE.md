@@ -112,6 +112,14 @@ Se uma feature responde só 1 e 2, ela registra operação. Se responde as 4, el
 
 **Regra de fechamento de sprint:** "Toda decisão estratégica do CNR deve terminar em uma ação operacional que aumente a qualidade do dataset." Princípio sem ação é filosofia. Ação sem princípio é ruído. A ponte entre os dois é o que faz o flywheel girar.
 
+**Ciclo de Aprendizado do CNR** (como o projeto evolui sem perder coerência):
+```
+Observação do mundo real → Princípio → Decisão de produto
+→ Implementação → Uso pelo Yuri → Novos dados
+→ Conhecimento → Novo princípio (quando necessário) → [volta ao início]
+```
+O último passo sempre volta para o primeiro. É um ciclo vivo.
+
 **Critério de saída da Fase 1 (Ferramenta):** 30+ transações reais no banco com dados completos.
 **Critério de entrada na Fase 2 (Copiloto):** Motor de Match acertando comprador certo em ≥60% dos casos.
 
