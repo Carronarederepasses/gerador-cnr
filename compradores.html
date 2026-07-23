@@ -130,6 +130,12 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <option value="pessoa_fisica">Pessoa física</option>
       <option value="revendedor">Revendedores</option>
     </select>
+    <select id="f-papel" onchange="filtrar()">
+      <option value="">Todos os papéis</option>
+      <option value="comprador">Compradores</option>
+      <option value="fonte">Fontes / Parceiros</option>
+      <option value="ambos">Ambos</option>
+    </select>
     <select id="f-ordem" onchange="filtrar()">
       <option value="">Ordem A–Z</option>
       <option value="compras">Mais compras</option>
@@ -172,8 +178,19 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
           <option value="pessoa_fisica">Pessoa física</option>
           <option value="investidor">Investidor</option>
           <option value="revendedor">Revendedor</option>
+          <option value="parceiro">Parceiro / Fonte</option>
+          <option value="franquia">Franquia (ex: Vaapty)</option>
+          <option value="concessionaria">Concessionária</option>
         </select>
       </div>
+    </div>
+    <div class="field">
+      <label>Papel no negócio</label>
+      <select id="m-papel">
+        <option value="comprador">Comprador — recebe ofertas de carros</option>
+        <option value="fonte">Fonte / Parceiro — nos envia carros para repassar</option>
+        <option value="ambos">Ambos — compra e envia carros</option>
+      </select>
     </div>
     <div class="field">
       <label>Cidade</label>
@@ -361,9 +378,10 @@ function filtrar() {
   const q    = document.getElementById('busca').value.toLowerCase();
   const tipo = document.getElementById('f-tipo').value;
   const ord  = document.getElementById('f-ordem').value;
+  const papel = document.getElementById('f-papel').value;
   let res = TODOS.filter(c => {
     const txt = `${c.nome} ${c.cidade || ''} ${(c.marcas||[]).join(' ')}`.toLowerCase();
-    return (!q || txt.includes(q)) && (!tipo || c.tipo === tipo);
+    return (!q || txt.includes(q)) && (!tipo || c.tipo === tipo) && (!papel || (c.papel || 'comprador') === papel);
   });
   if (ord === 'compras') {
     res = [...res].sort((a, b) => {
@@ -405,6 +423,8 @@ function renderLista(lista) {
       </div>
       <div class="card-info">
         ${c.cidade ? `<span>📍 ${c.cidade}</span>` : ''}
+        ${c.papel === 'fonte' ? `<span style="font-size:.68rem;color:var(--severity-warn);font-weight:600">📤 Fonte / Parceiro</span>` : ''}
+        ${c.papel === 'ambos' ? `<span style="font-size:.68rem;color:var(--severity-ok);font-weight:600">🔄 Compra e envia</span>` : ''}
         ${preco ? `<span class="card-preco">${preco}</span>` : ''}
         ${histTxt ? `<span class="card-hist">✓ ${histTxt}</span>` : ''}
         ${c.observacoes ? `<span style="font-size:.73rem;font-style:italic;color:var(--text-faint)">${c.observacoes.slice(0,80)}${c.observacoes.length>80?'…':''}</span>` : ''}
@@ -452,6 +472,7 @@ function abrirModal(id) {
   document.getElementById('m-proprietario').value  = c?.proprietario || '';
   document.getElementById('m-tel').value            = c?.telefone || '';
   document.getElementById('m-tipo').value           = c?.tipo || 'loja';
+  document.getElementById('m-papel').value          = c?.papel || 'comprador';
   document.getElementById('m-cidade').value         = c?.cidade || '';
   document.getElementById('m-pmin').value           = c?.preco_min || '';
   document.getElementById('m-pmax').value           = c?.preco_max || '';
@@ -555,6 +576,7 @@ async function salvar() {
   const payload = {
     nome,
     proprietario: document.getElementById('m-proprietario').value.trim() || null,
+    papel:       document.getElementById('m-papel').value || 'comprador',
     telefone:    document.getElementById('m-tel').value.trim() || null,
     tipo:        document.getElementById('m-tipo').value,
     cidade:      document.getElementById('m-cidade2').value.trim() || document.getElementById('m-cidade').value.trim() || null,
