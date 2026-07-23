@@ -136,7 +136,9 @@
   <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
     <a href="/home.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🏠 Painel</a>
     <a href="/" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">📝 Gerador</a>
+    <a href="/busca.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🔎 Busca</a>
     <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema" style="font-size:.9rem;background:none;border:1px solid var(--border);color:var(--light);padding:.5rem .7rem;cursor:pointer;line-height:1"></button>
+    <button onclick="exportarCSV()" style="background:none;border:1px solid var(--border);color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.62rem;font-weight:400;letter-spacing:.13em;text-transform:uppercase;padding:.5rem .8rem;cursor:pointer">⬇ CSV</button>
     <button class="btn-novo" onclick="abrirNova()">+ Nova negociação</button>
   </div>
 </header>
@@ -678,6 +680,21 @@ function irParaVenda(id) {
 }
 
 // ══ URL PARAMS (vindo do catálogo) ══
+function exportarCSV() {
+  if (!dados.length) { alert('Nenhuma negociação para exportar.'); return; }
+  const cols = ['veiculo_nome','comprador_nome','contato_telefone','valor_proposto','status','ultimo_contato','observacoes','created_at'];
+  const header = ['Veículo','Comprador','Telefone','Valor Proposto','Status','Último Contato','Observações','Criado em'];
+  const esc = v => v == null ? '' : String(v).replace(/;/g,' ');
+  const rows = dados.map(n => cols.map(c => esc(n[c])).join(';'));
+  const csv = '﻿' + [header.join(';'), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'negociacoes_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function lerParams() {
   const p = new URLSearchParams(location.search);
   const veiculo = p.get('veiculo');
@@ -719,8 +736,9 @@ function abrirContrato(id) {
   ['c-placa','c-km','c-cor','c-combustivel','c-chassi','c-renavam','c-veiculo-obs'].forEach(i => cSet(i, ''));
   cSet('c-alienacao', 'Não'); cSet('c-debitos', 'Nenhum');
 
-  // Negociação — vazio
-  ['c-valor','c-data-pgto','c-forma-pgto','c-valor-comissao','c-perc-comissao','c-resp-comissao','c-forma-pgto-comissao'].forEach(i => cSet(i, ''));
+  // Negociação — pré-preenche valor proposto se disponível
+  cSet('c-valor', n.valor_proposto ? String(n.valor_proposto) : '');
+  ['c-data-pgto','c-forma-pgto','c-valor-comissao','c-perc-comissao','c-resp-comissao','c-forma-pgto-comissao'].forEach(i => cSet(i, ''));
 
   // Data/local
   cSet('c-data', hoje());

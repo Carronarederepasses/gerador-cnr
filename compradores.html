@@ -104,6 +104,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <a href="/catalogo.html">📂 Catálogo</a>
     <a href="/vendas.html">📋 Vendas</a>
     <a href="/compradores.html" class="ativo">👥 Compradores</a>
+    <a href="/busca.html">🔎 Busca</a>
     <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema"></button>
   </div>
 </header>
@@ -126,6 +127,11 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <option value="investidor">Investidores</option>
       <option value="pessoa_fisica">Pessoa física</option>
       <option value="revendedor">Revendedores</option>
+    </select>
+    <select id="f-ordem" onchange="filtrar()">
+      <option value="">Ordem A–Z</option>
+      <option value="compras">Mais compras</option>
+      <option value="taxa">Maior taxa CNR</option>
     </select>
     <button class="btn-add" onclick="abrirModal()">+ Novo comprador</button>
   </div>
@@ -299,12 +305,26 @@ function renderKpis() {
 }
 
 function filtrar() {
-  const q   = document.getElementById('busca').value.toLowerCase();
+  const q    = document.getElementById('busca').value.toLowerCase();
   const tipo = document.getElementById('f-tipo').value;
-  const res = TODOS.filter(c => {
+  const ord  = document.getElementById('f-ordem').value;
+  let res = TODOS.filter(c => {
     const txt = `${c.nome} ${c.cidade || ''} ${(c.marcas||[]).join(' ')}`.toLowerCase();
     return (!q || txt.includes(q)) && (!tipo || c.tipo === tipo);
   });
+  if (ord === 'compras') {
+    res = [...res].sort((a, b) => {
+      const ha = HIST_COMP[a.id] || HIST_COMP[a.nome] || { count: 0 };
+      const hb = HIST_COMP[b.id] || HIST_COMP[b.nome] || { count: 0 };
+      return hb.count - ha.count;
+    });
+  } else if (ord === 'taxa') {
+    res = [...res].sort((a, b) => {
+      const ha = HIST_COMP[a.id] || HIST_COMP[a.nome] || { taxa: 0 };
+      const hb = HIST_COMP[b.id] || HIST_COMP[b.nome] || { taxa: 0 };
+      return hb.taxa - ha.taxa;
+    });
+  }
   renderLista(res);
 }
 
