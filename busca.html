@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Busca — Carro na Rede</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);min-height:100vh;padding-bottom:3rem}
+
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.7rem;padding:1.1rem 1.4rem;border-bottom:1px solid var(--line)}
+.logo{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700}
+.logo span{display:block;font-size:.55rem;font-weight:400;letter-spacing:.2em;text-transform:uppercase;color:var(--text-mid);margin-top:.1rem}
+.nav{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.nav a{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mid);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:.38rem .7rem;transition:color .15s,border-color .15s}
+.nav a:hover,.nav a.ativo{color:var(--text);border-color:var(--text)}
+.nav button{font-size:.9rem;background:none;border:1px solid var(--line);border-radius:7px;color:var(--text-mid);padding:.38rem .6rem;cursor:pointer;line-height:1}
+
+.wrap{max-width:760px;margin:0 auto;padding:2rem 1.2rem}
+
+.busca-hero{text-align:center;margin-bottom:2.2rem}
+.busca-hero h1{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;margin-bottom:.5rem}
+.busca-hero p{font-size:.85rem;color:var(--text-mid)}
+
+.busca-form{display:flex;gap:.5rem;margin-bottom:2rem}
+.busca-input{flex:1;font-family:'DM Sans',sans-serif;font-size:1rem;padding:.75rem 1rem;border:2px solid var(--line);border-radius:12px;background:var(--surface-raise);color:var(--text);outline:none;transition:border-color .15s}
+.busca-input:focus{border-color:var(--accent)}
+.busca-btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;padding:.75rem 1.4rem;border-radius:12px;border:none;background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap}
+.busca-btn:hover{opacity:.85}
+
+.grupo{margin-bottom:1.8rem}
+.grupo-titulo{font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem;padding-bottom:.4rem;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.5rem}
+.grupo-count{background:var(--surface-raise);border:1px solid var(--line);border-radius:10px;font-size:.6rem;padding:.1rem .4rem;color:var(--text-mid)}
+
+.resultado{display:flex;align-items:center;gap:.8rem;padding:.65rem .8rem;border-radius:10px;cursor:pointer;transition:background .12s;text-decoration:none;color:var(--text);border:1px solid transparent}
+.resultado:hover{background:var(--surface-raise);border-color:var(--line)}
+.res-ico{font-size:1.1rem;flex-shrink:0;width:2rem;text-align:center}
+.res-body{flex:1;min-width:0}
+.res-titulo{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-sub{font-size:.72rem;color:var(--text-mid);margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-badge{font-size:.6rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.18rem .45rem;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.badge-disp{background:color-mix(in srgb,var(--severity-ok) 15%,transparent);color:var(--severity-ok)}
+.badge-res{background:color-mix(in srgb,var(--severity-warn) 15%,transparent);color:var(--severity-warn)}
+.badge-vend{background:color-mix(in srgb,var(--text-faint) 20%,transparent);color:var(--text-mid)}
+.badge-neg{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+
+.estado{text-align:center;padding:2.5rem;color:var(--text-faint);font-size:.85rem}
+.estado .ico{font-size:2rem;margin-bottom:.6rem;opacity:.4}
+.loading-dots::after{content:'...';animation:dots 1.2s steps(3,end) infinite}
+@keyframes dots{0%{content:'.'}33%{content:'..'}66%{content:'...'}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Carro na Rede <span>Busca Global</span></div>
+  <div class="nav">
+    <a href="/home.html">🏠 Painel</a>
+    <a href="/catalogo.html">📂 Catálogo</a>
+    <a href="/vendas.html">📋 Vendas</a>
+    <a href="/negociacoes.html">🤝 Negociações</a>
+    <a href="/compradores.html">👥 Compradores</a>
+    <a href="/busca.html" class="ativo">🔍 Busca</a>
+    <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema"></button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="busca-hero">
+    <h1>Busca global</h1>
+    <p>Pesquise em catálogo, vendas, negociações e compradores de uma vez.</p>
+  </div>
+
+  <div class="busca-form">
+    <input id="q" class="busca-input" type="text" placeholder="placa, modelo, nome, marca…" autofocus>
+    <button class="busca-btn" onclick="buscar()">Buscar</button>
+  </div>
+
+  <div id="resultados"></div>
+
+</div>
+
+<script>
+document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
+
+const $ = id => document.getElementById(id);
+
+function fmtR(n) {
+  return n != null && n > 0 ? 'R$ ' + Number(n).toLocaleString('pt-BR',{maximumFractionDigits:0}) : '';
+}
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Lê a query da URL ao carregar
+window.addEventListener('DOMContentLoaded', () => {
+  const p = new URLSearchParams(location.search);
+  const q = p.get('q') || '';
+  if (q) { $('q').value = q; buscar(); }
+});
+
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') buscar(); });
+
+async function buscar() {
+  const termo = $('q').value.trim();
+  if (!termo) return;
+  history.replaceState({}, '', '/busca.html?q=' + encodeURIComponent(termo));
+
+  $('resultados').innerHTML = `<div class="estado"><div class="ico">🔍</div><div class="loading-dots">Buscando</div></div>`;
+
+  const enc = encodeURIComponent(termo);
+
+  const [rCat, rVend, rNeg, rComp] = await Promise.allSettled([
+    fetch('/api/catalogo?q=' + enc),
+    fetch('/api/vendas?q='   + enc),
+    fetch('/api/compradores?neg=1'),
+    fetch('/api/compradores'),
+  ]);
+
+  const safe = async r => { try { if (r.status === 'fulfilled' && r.value.ok) return await r.value.json(); } catch(_){} return []; };
+  const [catalogo, vendas, negRaw, comprRaw] = await Promise.all([safe(rCat), safe(rVend), safe(rNeg), safe(rComp)]);
+
+  // Filtro client-side para negociações e compradores
+  const t = termo.toLowerCase();
+  const neg = negRaw.filter(n =>
+    [n.veiculo_nome, n.comprador_nome, n.observacoes, n.contato_telefone].some(v => v && v.toLowerCase().includes(t))
+  );
+  const comp = comprRaw.filter(c =>
+    [c.nome, c.cidade, ...(c.marcas||[])].some(v => v && v.toLowerCase().includes(t))
+  );
+
+  const total = catalogo.length + vendas.length + neg.length + comp.length;
+  if (!total) {
+    $('resultados').innerHTML = `<div class="estado"><div class="ico">🤷</div>Nenhum resultado para <strong>"${esc(termo)}"</strong></div>`;
+    return;
+  }
+
+  $('resultados').innerHTML = [
+    renderCatalogo(catalogo),
+    renderVendas(vendas),
+    renderNeg(neg),
+    renderComp(comp),
+  ].filter(Boolean).join('');
+}
+
+function renderCatalogo(lista) {
+  if (!lista.length) return '';
+  const STATUS = { disponivel:'badge-disp', reservado:'badge-res', vendido:'badge-vend' };
+  const SLBL   = { disponivel:'Disponível', reservado:'Reservado', vendido:'Vendido' };
+  const rows = lista.slice(0,10).map(v => {
+    const nome = [v.marca, v.versao||v.modelo].filter(Boolean).join(' ') || 'Veículo';
+    const sub  = [v.ano_int||v.ano, v.placa, v.regiao, fmtR(v.valor)].filter(Boolean).join(' · ');
+    return `<a class="resultado" href="/catalogo.html">
+      <div class="res-ico">🚗</div>
+      <div class="res-body">
+        <div class="res-titulo">${esc(nome)}</div>
+        ${sub ? `<div class="res-sub">${esc(sub)}</div>` : ''}
+      </div>
+      <span class="res-badge ${STATUS[v.status]||'badge-vend'}">${SLBL[v.status]||v.status}</span>
+    </a>`;
+  }).join('');
+  return grupo('📂 Catálogo', lista.length, rows);
+}
+
+function renderVendas(lista) {
+  if (!lista.length) return '';
+  const rows = lista.slice(0,10).map(v => {
+    const nome = [v.marca, v.versao||v.modelo].filter(Boolean).join(' ') || 'Venda';
+    const sub  = [v.placa, v.comprador_nome, v.data_venda, fmtR(v.taxa_intermediacao)].filter(Boolean).join(' · ');
+    return `<a class="resultado" href="/vendas.html">
+      <div class="res-ico">📋</div>
+      <div class="res-body">
+        <div class="res-titulo">${esc(nome)}</div>
+        ${sub ? `<div class="res-sub">${esc(sub)}</div>` : ''}
+      </div>
+      ${v.taxa_intermediacao ? `<span class="res-badge badge-disp">${fmtR(v.taxa_intermediacao)}</span>` : ''}
+    </a>`;
+  }).join('');
+  return grupo('📋 Vendas', lista.length, rows);
+}
+
+function renderNeg(lista) {
+  if (!lista.length) return '';
+  const STATUS_LBL = {
+    'primeiro-contato':'1º contato','respondeu':'Respondeu','negociando':'Negociando',
+    'aguardando':'Aguardando','comprado':'Comprado','descartado':'Descartado',
+  };
+  const rows = lista.slice(0,10).map(n => {
+    const sub = [n.comprador_nome, n.contato_telefone, n.valor_proposto ? fmtR(n.valor_proposto) : ''].filter(Boolean).join(' · ');
+    return `<a class="resultado" href="/negociacoes.html">
+      <div class="res-ico">🤝</div>
+      <div class="res-body">
+        <div class="res-titulo">${esc(n.veiculo_nome||'Negociação')}</div>
+        ${sub ? `<div class="res-sub">${esc(sub)}</div>` : ''}
+      </div>
+      <span class="res-badge badge-neg">${STATUS_LBL[n.status]||n.status}</span>
+    </a>`;
+  }).join('');
+  return grupo('🤝 Negociações', lista.length, rows);
+}
+
+function renderComp(lista) {
+  if (!lista.length) return '';
+  const rows = lista.slice(0,10).map(c => {
+    const faixa = c.preco_min && c.preco_max ? fmtR(c.preco_min) + ' – ' + fmtR(c.preco_max) : '';
+    const sub   = [c.cidade, faixa, (c.marcas||[]).slice(0,3).join(', ')].filter(Boolean).join(' · ');
+    const tipo  = {loja:'Loja',pessoa_fisica:'PF',investidor:'Investidor',revendedor:'Revendedor'}[c.tipo]||c.tipo;
+    return `<a class="resultado" href="/compradores.html">
+      <div class="res-ico">👤</div>
+      <div class="res-body">
+        <div class="res-titulo">${esc(c.nome)}</div>
+        ${sub ? `<div class="res-sub">${esc(sub)}</div>` : ''}
+      </div>
+      <span class="res-badge ${c.ativo?'badge-disp':'badge-vend'}">${tipo}</span>
+    </a>`;
+  }).join('');
+  return grupo('👥 Compradores', lista.length, rows);
+}
+
+function grupo(titulo, count, rows) {
+  return `<div class="grupo">
+    <div class="grupo-titulo">${titulo} <span class="grupo-count">${count}</span></div>
+    ${rows}
+  </div>`;
+}
+</script>
+</body>
+</html>
