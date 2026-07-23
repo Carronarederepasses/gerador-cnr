@@ -65,9 +65,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .etapa-item .item-val{font-size:.7rem;color:var(--text-mid)}
 .etapa-arrow{display:flex;align-items:center;color:var(--text-faint);font-size:1.2rem;flex-shrink:0;padding:0 .1rem}
 @media(max-width:600px){
-  .pipeline{flex-direction:column}
+  .pipeline{flex-direction:row;gap:.4rem}
+  .etapa{padding:.65rem .5rem;text-align:center}
+  .etapa .etapa-nome{font-size:.55rem;justify-content:center}
+  .etapa .etapa-num{font-size:1.6rem}
   .etapa-arrow{display:none}
-  .etapa .etapa-lista{max-height:120px}
+  .etapa .etapa-lista{display:none}
+  .etapa .etapa-link{display:block;font-size:.62rem;color:var(--accent);margin-top:.35rem;text-decoration:none}
+}
+@media(min-width:601px){
+  .etapa .etapa-link{display:none}
 }
 
 /* Rede de compradores */
@@ -204,18 +211,21 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
         <div class="etapa-nome"><span class="dot disponivel"></span> Disponíveis</div>
         <div class="etapa-num" id="pipe-disp">—</div>
         <div class="etapa-lista" id="pipe-disp-lista"><div class="loading">carregando...</div></div>
+        <a class="etapa-link" href="/catalogo.html">ver →</a>
       </div>
       <div class="etapa-arrow">→</div>
       <div class="etapa">
         <div class="etapa-nome"><span class="dot reservado"></span> Reservados</div>
         <div class="etapa-num" id="pipe-res">—</div>
         <div class="etapa-lista" id="pipe-res-lista"><div class="loading">carregando...</div></div>
+        <a class="etapa-link" href="/catalogo.html">ver →</a>
       </div>
       <div class="etapa-arrow">→</div>
       <div class="etapa">
-        <div class="etapa-nome"><span class="dot vendido"></span> Vendidos (total)</div>
+        <div class="etapa-nome"><span class="dot vendido"></span> Vendidos</div>
         <div class="etapa-num" id="pipe-vend">—</div>
         <div class="etapa-lista" id="pipe-vend-lista"><div class="loading">carregando...</div></div>
+        <a class="etapa-link" href="/vendas.html">ver →</a>
       </div>
     </div>
   </div>
