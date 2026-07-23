@@ -73,3 +73,7 @@ create table if not exists negociacoes (
 
 create index if not exists negociacoes_status_idx     on negociacoes(status);
 create index if not exists negociacoes_updated_at_idx on negociacoes(updated_at desc);
+
+-- 6. Campo valor_compra na tabela de veículos (custo de captação — uso interno)
+-- Rode no Supabase SQL Editor:
+alter table veiculos add column if not exists valor_compra numeric;

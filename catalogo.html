@@ -53,6 +53,10 @@
   .card .precos .v{font-weight:700;font-size:1.05rem}
   .card .precos .f{font-size:.8rem;color:var(--text-mid);align-self:flex-end}
   .card .opc{font-size:.76rem;color:var(--text-mid);border-top:1px dashed var(--line);padding-top:.55rem}
+  .dias-estoque{font-size:.7rem;margin-top:.3rem}
+  .dias-ok{color:var(--severity-ok)}
+  .dias-warn{color:#e8a000}
+  .dias-crit{color:#e55}
   .placa-linha{font-size:.8rem;color:var(--text-mid);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;cursor:pointer;display:flex;align-items:center;gap:.3rem}
   .placa-linha b{letter-spacing:.06em}
   .placa-linha .edit{margin-left:auto;opacity:.5;font-size:.75rem}
@@ -432,7 +436,10 @@ function card(v) {
     <div class="precos">
       <div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Repasse</div><span class="v">${fmtR(v.valor)}</span></div>
       ${v.fipe != null ? `<div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span></div>` : ''}
+      ${(v.valor_compra != null) ? `<div style="cursor:pointer" title="Clique para editar" onclick="editarValorCompra('${v.id}')"><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Captado por</div><span style="font-size:.92rem;font-weight:700;color:var(--text-mid)">${fmtR(v.valor_compra)}</span></div>` : `<button style="font-size:.68rem;padding:.2rem .5rem;opacity:.55" onclick="editarValorCompra('${v.id}')">+ Custo</button>`}
+      ${(v.valor != null && v.valor_compra != null) ? (() => { const m = v.valor - v.valor_compra; const pct = v.valor_compra > 0 ? ((m/v.valor_compra)*100).toFixed(0) : 0; const cor = m >= 0 ? 'var(--severity-ok)' : '#e55'; return `<div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Margem</div><span style="font-size:.92rem;font-weight:700;color:${cor}">${fmtR(m)} (${pct}%)</span></div>`; })() : ''}
     </div>
+    <div class="dias-estoque" id="dias-${v.id}">${diasEstoque(v.created_at)}</div>
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     <div class="match-box">${v.status === 'vendido' ? renderVendido(v) : renderMatch(v)}</div>
     <div class="timeline" id="hist-${v.id}"></div>
@@ -606,6 +613,33 @@ async function carregar() {
 function abrirFoto(url) {
   $('lb-img').src = url;
   $('lb').classList.add('show');
+}
+
+function diasEstoque(createdAt) {
+  if (!createdAt) return '';
+  const dias = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
+  if (dias <= 0) return '<span class="dias-ok">entrada hoje</span>';
+  if (dias === 1) return '<span class="dias-ok">há 1 dia</span>';
+  if (dias <= 7) return `<span class="dias-ok">há ${dias} dias</span>`;
+  if (dias <= 15) return `<span class="dias-warn">há ${dias} dias ⚠</span>`;
+  return `<span class="dias-crit">há ${dias} dias 🔴</span>`;
+}
+
+async function editarValorCompra(id) {
+  const v = CACHE[id]; if (!v) return;
+  const atual = v.valor_compra != null ? String(v.valor_compra) : '';
+  const inp = prompt('Valor de captação (custo — uso interno):', atual);
+  if (inp === null) return;
+  const valor_compra = inp.trim() === '' ? null : Number(inp.replace(/\D/g,''));
+  if (inp.trim() !== '' && isNaN(valor_compra)) { alert('Valor inválido'); return; }
+  try {
+    const r = await fetch('/api/catalogo?id=' + id, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ valor_compra }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    carregar();
+  } catch (e) { alert('Falha ao salvar: ' + e.message); }
 }
 
 async function editarPlaca(id) {
