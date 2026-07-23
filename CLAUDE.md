@@ -31,109 +31,96 @@ Intermediação de veículos (repasse), modelo **C2B**:
 
 ---
 
-## 3. Aplicação Principal — Gerador de Anúncio WhatsApp
+## 3. Stack Técnica
 
-**URL publicada:** https://gerador-cnr.vercel.app
-**URL GitHub Pages (NÃO usar — FIPE quebrada sem serverless):** https://carronarederepasses.github.io/gerador-cnr/
-**GitHub:** https://github.com/Carronarederepasses/gerador-cnr
-**Versão atual:** v4 (HTML/CSS/JS puro, single file `index.html`)
+- **Frontend:** HTML/CSS/JS puro — multi-page app
+- **Backend:** Vercel serverless (funções em `api/`)
+- **Banco:** Supabase (PostgreSQL via PostgREST)
+- **Storage:** Supabase Storage (bucket `veiculos`)
+- **IA:** OpenRouter via Vercel API Route (chave em env var — NUNCA no código)
+- **Hospedagem:** Vercel — deploy automático a cada push no GitHub
+- **API FIPE:** `parallelum.com.br/fipe/api/v1` (gratuita, sem chave, com CORS)
 
-### Funcionalidades v4
-- **Modo Manual:** preenchimento campo a campo
-- **Modo Colar Anúncio:** cola texto de qualquer anúncio (OLX, Webmotors, WhatsApp) e a IA extrai os dados
-- **Cascata FIPE completa:** Marca → Modelo/Versão → Ano → FIPE automática
-- **Opcionais por categoria** (estilo Webmotors): Conforto & Conveniência, Segurança, Mecânica & Performance, Aparência & Extras, Documentação & Histórico
-- **Blindagem:** campo expansível (marca, nível, tipo de vidro)
-- **Observações finais** pré-definidas + campo personalizado
-- **Preview** em tempo real estilo bolha do WhatsApp
-- **Botões:** Copiar texto + Enviar pelo WhatsApp
+> **Segurança:** chaves NUNCA vão no código. Somente em variáveis de ambiente no painel do Vercel. Quem digita é o Yuri.
 
-### Formato do anúncio gerado
-```
-🚗*Volkswagen Virtus Sense 1.0 Flex*, 2026, 5.000 km
-📍 Carro na região de Rio Preto-SP
-✅ ÚNICO DONO
-✅ Câmbio manual
-✅ 4 pneus zero
-✅ Ar-condicionado
-✅ Multimídia
-✅ Comandos no volante
-✅ Direção elétrica
-✅ Vidros e travas elétricas
-🚨 Veículo impecável
- *VALOR: R$ 88.990,00*
- *FIPE: R$ 98.776,00*
-```
+### Limite crítico — Vercel 12 funções serverless (já no limite)
+`api/`: catalogo.js, compradores.js, consulta.js, fetch-anuncio.js, fipe-search.js, fipe.js, ia-compor.js, parse.js, placa.js, remove-bg.js, utils.js, vendas.js
+
+Novas features de backend devem reutilizar funções existentes via query params (ex: `?neg=1`, `?foto=1`, `?evento=1`, `?match=1`).
 
 ---
 
-## 4. Stack Técnica
+## 4. Páginas do Sistema
 
-### Atual (publicado)
-- HTML/CSS/JS puro — single file `index.html`
-- **API FIPE: `parallelum.com.br/fipe/api/v1`** (gratuita, sem chave, com CORS).
-  - Trocada da BrasilAPI (que estava fora do ar e travava a marca em "Carregando...") para a Parallelum em mai/2026.
-  - Estrutura: marca/modelo/ano usam `codigo`; valor vem no campo `Valor` (V maiúsculo) e `MesReferencia`.
-- IA para parsing/geração: **OpenRouter** (chave NUNCA no código — só em variável de ambiente no Vercel)
-- **Hospedagem: Vercel** (migrou do Netlify por excesso de uso)
-  - Funções serverless em `api/` (parse.js, fipe-search.js, fipe.js)
-  - Deploy automático a cada push no GitHub
-
-### Próxima versão (planejada)
-- **Frontend:** React + Next.js
-- **Backend/DB:** Supabase
-- **Hospedagem:** Vercel (já em uso)
-- **Repositório:** GitHub (`Carronarederepasses/gerador-cnr`)
-- **IA (Colar Anúncio / geração):** OpenRouter via Vercel API Route (chave em env var secreta)
+| Página | Descrição |
+|---|---|
+| `index.html` | Gerador de anúncio WhatsApp (modo manual + colar anúncio com IA, cascata FIPE) |
+| `home.html` | Dashboard: pipeline, KPIs, carros parados, negociações ativas, relatório mensal, histórico 12 meses |
+| `catalogo.html` | Catálogo de veículos: fotos, avaliação estruturada com score por categoria, valor_compra + margem, dias em estoque, Motor de Match, edição inline |
+| `negociacoes.html` | CRM de negociações: motivo do match, motivo do descarte (tap), contrato PDF, link para registrar venda |
+| `vendas.html` | Registro de vendas + entrada rápida de histórico (⚡), CSV, pré-preenchimento vindo das negociações |
+| `compradores.html` | CRM: histórico de compras, taxa acumulada, Motor de Match automático, ranking |
+| `busca.html` | Busca global: catálogo, vendas, negociações, compradores |
+| `consultas.html` | Histórico veicular por placa (APiBrasil) |
+| `foto.html` | Editor de foto: remove fundo + composição padrão CNR |
 
 ---
 
-## 5. Conectores / Infra configurada
+## 5. Banco de Dados (Supabase)
 
-| Serviço | Status | Como usar |
-|---|---|---|
-| Supabase | Conectar via MCP (sugerido) | Banco de dados, auth, storage |
-| Vercel | MCP conectado ✅ | Deploy + API Routes (backend serverless) |
-| GitHub | Via git CLI na pasta | Versionamento — push dispara deploy no Vercel |
-| OpenRouter | Chave em env var (NUNCA no código) | IA pra gerar/parsear anúncios |
+### Tabelas principais
+- `veiculos` — ficha técnica, fotos (JSONB), avaliação (JSONB com scores por categoria), valor_compra, status
+- `vendas` — registro de vendas fechadas, taxa_intermediacao, comprador, anexos
+- `negociacoes` — lifecycle de negociações, motivo_match, motivo_descarte, historico (JSONB), valor_proposto
+- `compradores` — CRM: nome, telefone, tags, preferências
+- `eventos` — log imutável de tudo (event sourcing)
 
-> **Segurança das chaves:** a chave do OpenRouter (e qualquer outra) NUNCA vai no `index.html` nem em código que sobe pro GitHub, porque o código é público. Ela mora só como variável de ambiente secreta no painel do Vercel. Quem digita a chave é o Yuri.
+### Status válidos em negociacoes
+`primeiro-contato` | `respondeu` | `negociando` | `aguardando` | `comprado` | `descartado`
 
-> Se algum conector cair ou pedir login, o Claude deve sugerir reconectar.
-
----
-
-## 6. Próximos Passos
-
-### Gerador (curto prazo)
-- [ ] Corrigir upload do `index.html` v4 no GitHub (subiu como `index-1.html`)
-- [ ] Testar modo "Colar Anúncio" com anúncios reais de parceiros
-- [ ] Validar FIPE carregando no link publicado
-
-### Projeto completo (médio prazo)
-- [ ] Migrar para Next.js + Vercel
-- [ ] Integrar Supabase (histórico de anúncios, cadastro de compradores, estoque)
-- [ ] Definir estrutura do banco de dados
-- [ ] Desenvolvimento assistido por IA configurado nesta pasta
+### Motivos estruturados (reason codes)
+**Descarte:** `PRECO_ALTO` | `NAO_E_O_PERFIL` | `SEM_MERCADO` | `DOCUMENTO` | `VENDEU_POR_FORA` | `OUTRO`
+**Match:** `HISTORICO_PERFIL` | `PAGA_RAPIDO` | `CLIENTE_RECORRENTE` | `MELHOR_MARGEM` | `INTUICAO`
 
 ---
 
-## 7. Conteúdo Instagram (@carronarederepasses)
+## 6. Visão Estratégica (fase atual: Ferramenta → Copiloto)
 
-- **Segunda:** Post educativo (dicas sobre repasse, mercado)
-- **Quarta:** Tip ou destaque de mercado (alternando)
-- **Sexta:** Carrossel de 5 slides com notícias automotivas (fonte inline)
+O ativo real não é o software — é o **dataset proprietário** de transações reais do mercado de repasse do litoral de SC. O software é o mecanismo de captura.
 
-**Tom de voz:** direto, social proof (comprovantes, narrativa deadline→venda), CTA via DM/WhatsApp, português natural.
+**Princípio norteador:** cada funcionalidade deve responder 4 perguntas:
+1. O que aconteceu? (evento)
+2. Qual foi o resultado? (output)
+3. Por que essa decisão foi tomada? (contexto)
+4. O sistema consegue aprender com isso? (aprendizado)
 
-**Audiências:** (1) pessoa física frustrada com OLX/Webmotors, (2) dealers com trade-ins fora do perfil, (3) investidores e revendedores.
+Se uma feature responde só 1 e 2, ela registra operação. Se responde as 4, ela constrói inteligência.
+
+**Critério de saída da Fase 1 (Ferramenta):** 30+ transações reais no banco com dados completos.
+**Critério de entrada na Fase 2 (Copiloto):** Motor de Match acertando comprador certo em ≥60% dos casos.
 
 ---
 
-## 8. Referência de mercado — Vaapty
+## 7. Próximos Passos
 
-Intermediadora C2B no modelo franqueadora (350 franquias em 2024, rebranding 2025 para C2B2C). Carro na Rede tem modelo C2B similar, mas com vantagem de conhecimento local profundo, relacionamento direto e operação independente (sem franqueadora).
+### Prioritário agora
+- [ ] **Retroalimentar histórico:** usar "⚡ Histórico rápido" em vendas.html para logar as últimas 20–30 transações que o Yuri tem na cabeça — isso é o combustível do Motor de Match
+- [ ] Testar modo "Colar Anúncio" do gerador com anúncios reais de parceiros
+- [ ] Validar FIPE carregando no link publicado (https://gerador-cnr.vercel.app)
+
+### Médio prazo (Fase 2 — Copiloto)
+- [ ] Motor de Match baseado em histórico real (quando tiver 30+ transações)
+- [ ] Sugestão de preço baseada em transações similares
+- [ ] Alerta de timing: "esse perfil de carro costuma vender em X dias"
 
 ---
 
-*Briefing original gerado em sessão com Claude — Maio 2026. Mantenha este arquivo atualizado conforme o projeto evolui.*
+## 8. URLs
+
+- **App publicado:** https://gerador-cnr.vercel.app
+- **GitHub:** https://github.com/Carronarederepasses/gerador-cnr
+- **GitHub Pages (NÃO usar — FIPE quebrada sem serverless):** https://carronarederepasses.github.io/gerador-cnr/
+
+---
+
+*Atualizado em julho/2026. Manter este arquivo atualizado conforme o projeto evolui.*
