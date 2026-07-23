@@ -102,6 +102,8 @@ Se uma feature responde só 1 e 2, ela registra operação. Se responde as 4, el
 
 **Princípio do Timing:** "Nenhuma melhoria de arquitetura vale mais do que dados reais entrando no sistema."
 
+**Princípio da Abstração:** "Toda abstração deve nascer de um caso real, nunca de uma hipótese." (complementa a Estrutura Emergente: um fala sobre dados, o outro sobre código e arquitetura.)
+
 **Critério de saída da Fase 1 (Ferramenta):** 30+ transações reais no banco com dados completos.
 **Critério de entrada na Fase 2 (Copiloto):** Motor de Match acertando comprador certo em ≥60% dos casos.
 
