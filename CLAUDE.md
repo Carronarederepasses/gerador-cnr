@@ -110,6 +110,8 @@ Se uma feature responde só 1 e 2, ela registra operação. Se responde as 4, el
 
 **Princípio da Abstração:** "Toda abstração deve nascer de um caso real, nunca de uma hipótese." (complementa a Estrutura Emergente: um fala sobre dados, o outro sobre código e arquitetura.)
 
+**Regra de fechamento de sprint:** "Toda decisão estratégica do CNR deve terminar em uma ação operacional que aumente a qualidade do dataset." Princípio sem ação é filosofia. Ação sem princípio é ruído. A ponte entre os dois é o que faz o flywheel girar.
+
 **Critério de saída da Fase 1 (Ferramenta):** 30+ transações reais no banco com dados completos.
 **Critério de entrada na Fase 2 (Copiloto):** Motor de Match acertando comprador certo em ≥60% dos casos.
 
