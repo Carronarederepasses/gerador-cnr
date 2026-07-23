@@ -457,7 +457,7 @@ async function carregarVendas() {
   try {
     const r = await fetch('/api/vendas');
     if (!r.ok) throw new Error();
-    const vendas = await r.json();
+    const vendas = (await r.json()).filter(v => v.canal_origem !== 'historico');
 
     const agora = new Date();
     const mes = agora.getMonth();
@@ -545,7 +545,8 @@ async function carregarRelatorio() {
 
   try {
     const [rCat, rVend] = await Promise.all([fetch('/api/catalogo'), fetch('/api/vendas')]);
-    const [catalogo, vendas] = await Promise.all([rCat.json(), rVend.json()]);
+    const [catalogo, _vendasRaw] = await Promise.all([rCat.json(), rVend.json()]);
+    const vendas = _vendasRaw.filter(v => v.canal_origem !== 'historico');
 
     const captados = catalogo.filter(v => {
       const d = new Date(v.created_at || '');
@@ -683,7 +684,8 @@ async function toggleHist12() {
   el.innerHTML = '<div class="loading">carregando...</div>';
   try {
     const [rC, rV] = await Promise.all([fetch('/api/catalogo'), fetch('/api/vendas')]);
-    const [catalogo, vendas] = await Promise.all([rC.json(), rV.json()]);
+    const [catalogo, _vendasRaw2] = await Promise.all([rC.json(), rV.json()]);
+    const vendas = _vendasRaw2.filter(v => v.canal_origem !== 'historico');
     const NOMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     const agora = new Date();
     const linhas = [];
