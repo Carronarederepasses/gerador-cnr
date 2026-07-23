@@ -96,6 +96,12 @@ O ativo real não é o software — é o **dataset proprietário** de transaçõ
 
 Se uma feature responde só 1 e 2, ela registra operação. Se responde as 4, ela constrói inteligência.
 
+**Princípio da Estrutura Emergente:** nenhum dado deve virar campo estruturado porque parece importante. Ele vira campo estruturado quando sua ausência começa a limitar a inteligência do sistema. O gatilho não é volume — é fricção. Texto livre primeiro. Estrutura depois, e só quando a realidade exigir.
+
+**Princípio do Sprint:** "O que o sistema saberá fazer depois desta sprint que hoje só o Yuri sabe?"
+
+**Princípio do Timing:** "Nenhuma melhoria de arquitetura vale mais do que dados reais entrando no sistema."
+
 **Critério de saída da Fase 1 (Ferramenta):** 30+ transações reais no banco com dados completos.
 **Critério de entrada na Fase 2 (Copiloto):** Motor de Match acertando comprador certo em ≥60% dos casos.
 
@@ -104,9 +110,10 @@ Se uma feature responde só 1 e 2, ela registra operação. Se responde as 4, el
 ## 7. Próximos Passos
 
 ### Prioritário agora
-- [ ] **Retroalimentar histórico:** usar "⚡ Histórico rápido" em vendas.html para logar as últimas 20–30 transações que o Yuri tem na cabeça — isso é o combustível do Motor de Match
-- [ ] Testar modo "Colar Anúncio" do gerador com anúncios reais de parceiros
-- [ ] Validar FIPE carregando no link publicado (https://gerador-cnr.vercel.app)
+- [ ] **Preencher perfis dos compradores** — marcas, faixa de preço e "O que sabemos" em compradores.html. Isso desbloqueia o Motor de Match.
+- [ ] **Retroalimentar mais histórico** — 20 registros feitos via ⚡, meta é 30+ transações reais.
+- [x] Testar modo "Colar Anúncio" — validado e funcionando
+- [x] Validar FIPE no app publicado — confirmado funcionando
 
 ### Médio prazo (Fase 2 — Copiloto)
 - [ ] Motor de Match baseado em histórico real (quando tiver 30+ transações)
