@@ -85,6 +85,14 @@
   .btn-danger{background:none;border:1px solid color-mix(in srgb,var(--severity-crit) 40%,transparent);color:var(--severity-crit);padding:.85rem 1.2rem;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:400;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .15s}
   .btn-danger:hover{background:color-mix(in srgb,var(--severity-crit) 10%,transparent)}
 
+  /* Motivos estruturados (tap pills) */
+  .motivo-sec{margin-bottom:.8rem}
+  .motivo-sec label{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mid);display:block;margin-bottom:.4rem}
+  .motivo-grid{display:flex;flex-wrap:wrap;gap:.35rem}
+  .motivo-pill{font-size:.75rem;padding:.28rem .65rem;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:none;color:var(--light);font-family:'DM Sans',sans-serif;transition:all .15s}
+  .motivo-pill:hover{border-color:rgba(245,243,238,.4)}
+  .motivo-pill.on{background:var(--white);color:var(--black);border-color:var(--white)}
+
   /* HISTÓRICO DENTRO DO MODAL */
   .hist-list{margin-top:.4rem;display:flex;flex-direction:column;gap:.35rem;max-height:180px;overflow-y:auto}
   .hist-item{font-size:.78rem;color:var(--mid);padding:.3rem 0;border-bottom:1px solid rgba(245,243,238,.06);line-height:1.5}
@@ -220,6 +228,12 @@
       <textarea id="m-obs" rows="3" placeholder="ex: Pediu R$ 92.000, ofereci R$ 88.000. Disse que ia pensar." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
     </div>
 
+    <!-- Motivo do match (por que esse comprador) — só em novo registro -->
+    <div class="motivo-sec" id="match-sec" style="display:none">
+      <label>Por que esse comprador? (opcional)</label>
+      <div class="motivo-grid" id="match-pills"></div>
+    </div>
+
     <!-- Histórico (só no editar) -->
     <div id="hist-wrap" style="display:none;margin-bottom:.8rem">
       <label style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--light);display:block;margin-bottom:.4rem">Histórico</label>
@@ -230,6 +244,18 @@
       <button class="btn-primary" onclick="salvar()">Salvar</button>
       <button class="btn-secondary" onclick="fecharModal()">Cancelar</button>
       <button class="btn-danger" id="btn-excluir" onclick="excluir()" style="display:none">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOTIVO DESCARTE -->
+<div class="overlay" id="overlay-motivo" style="display:none">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">Por que descartou?</div>
+    <div class="motivo-grid" id="descarte-pills"></div>
+    <div class="modal-btns" style="margin-top:1rem">
+      <button class="btn-primary" onclick="confirmarDescarte()">Confirmar</button>
+      <button class="btn-secondary" onclick="cancelarDescarte()">Pular</button>
     </div>
   </div>
 </div>
@@ -366,6 +392,46 @@ let dados = [];
 let editId = null;
 let filtroAtual = '';
 let COMPRADORES_NEG = [];
+
+// ── Motivos estruturados ───────────────────────────────────────
+const MOTIVOS_DESCARTE = [
+  { code: 'PRECO_ALTO',       label: 'Preço alto' },
+  { code: 'NAO_E_O_PERFIL',  label: 'Não é o perfil' },
+  { code: 'SEM_MERCADO',     label: 'Sem mercado' },
+  { code: 'DOCUMENTO',       label: 'Documento' },
+  { code: 'VENDEU_POR_FORA', label: 'Vendeu por fora' },
+  { code: 'OUTRO',           label: 'Outro' },
+];
+const MOTIVOS_MATCH = [
+  { code: 'HISTORICO_PERFIL',  label: 'Histórico com esse perfil' },
+  { code: 'PAGA_RAPIDO',       label: 'Paga rápido' },
+  { code: 'CLIENTE_RECORRENTE',label: 'Cliente recorrente' },
+  { code: 'MELHOR_MARGEM',     label: 'Melhor margem' },
+  { code: 'INTUICAO',          label: 'Intuição' },
+];
+
+let _motivoSelecionado = null;
+let _descarteId = null;
+let _descarteStatus = null;
+
+function renderPills(containerId, lista, selected) {
+  _motivoSelecionado = selected || null;
+  const el = document.getElementById(containerId);
+  el.innerHTML = lista.map(m =>
+    `<button class="motivo-pill${_motivoSelecionado === m.code ? ' on' : ''}"
+      onclick="selecionarMotivo(this,'${m.code}','${containerId}')">${m.label}</button>`
+  ).join('');
+}
+
+function selecionarMotivo(btn, code, containerId) {
+  document.getElementById(containerId).querySelectorAll('.motivo-pill').forEach(b => b.classList.remove('on'));
+  if (_motivoSelecionado === code) {
+    _motivoSelecionado = null; // toggle off
+  } else {
+    btn.classList.add('on');
+    _motivoSelecionado = code;
+  }
+}
 
 // Carrega compradores em background para o autocomplete
 (async () => {
@@ -529,6 +595,8 @@ function abrirNova() {
   document.getElementById('m-obs').value = '';
   document.getElementById('hist-wrap').style.display = 'none';
   document.getElementById('btn-excluir').style.display = 'none';
+  document.getElementById('match-sec').style.display = '';
+  renderPills('match-pills', MOTIVOS_MATCH, null);
   document.getElementById('overlay').classList.add('show');
   setTimeout(() => document.getElementById('m-veiculo').focus(), 100);
 }
@@ -547,6 +615,7 @@ function abrirEditar(id) {
   document.getElementById('m-data').value = n.ultimo_contato || hoje();
   document.getElementById('m-obs').value = n.observacoes || '';
   document.getElementById('btn-excluir').style.display = '';
+  document.getElementById('match-sec').style.display = 'none';
 
   if (n.historico && n.historico.length > 0) {
     document.getElementById('hist-wrap').style.display = 'block';
@@ -592,16 +661,20 @@ async function salvar() {
       if (n && (n.status !== status || n.observacoes !== observacoes)) {
         historico.push({ data: n.ultimo_contato || hoje(), status: n.status, obs: n.observacoes || '' });
       }
+      const patchBody = { veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico };
+      if (status === 'descartado' && _motivoSelecionado) patchBody.motivo_descarte = _motivoSelecionado;
       await fetch('/api/compradores?neg=1&id=' + editId, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico }),
+        body: JSON.stringify(patchBody),
       });
     } else {
+      const motivo_match = _motivoSelecionado || null;
       await fetch('/api/compradores?neg=1', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico: [] }),
+        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico: [], motivo_match }),
       });
     }
+    _motivoSelecionado = null;
     await load();
     fecharModal();
     renderAlerta();
@@ -643,18 +716,42 @@ function abrirStatusMenu(event, id) {
 }
 
 async function mudarStatusRapido(id, novoStatus) {
+  fecharStatusMenu();
+  if (novoStatus === 'descartado') {
+    _descarteId = id;
+    _descarteStatus = novoStatus;
+    renderPills('descarte-pills', MOTIVOS_DESCARTE, null);
+    document.getElementById('overlay-motivo').style.display = 'flex';
+    return;
+  }
+  await _aplicarStatus(id, novoStatus, null);
+}
+
+async function confirmarDescarte() {
+  document.getElementById('overlay-motivo').style.display = 'none';
+  await _aplicarStatus(_descarteId, _descarteStatus, _motivoSelecionado);
+  _descarteId = null; _descarteStatus = null; _motivoSelecionado = null;
+}
+
+function cancelarDescarte() {
+  document.getElementById('overlay-motivo').style.display = 'none';
+  _descarteId = null; _descarteStatus = null; _motivoSelecionado = null;
+}
+
+async function _aplicarStatus(id, novoStatus, motivo_descarte) {
   const n = dados.find(x => x.id === id);
   if (!n) return;
   const historico = [...(n.historico || [])];
   if (n.status !== novoStatus) {
     historico.push({ data: n.ultimo_contato || hoje(), status: n.status, obs: n.observacoes || '' });
   }
+  const body = { status: novoStatus, ultimo_contato: hoje(), historico };
+  if (motivo_descarte) body.motivo_descarte = motivo_descarte;
   await fetch('/api/compradores?neg=1&id=' + id, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: novoStatus, ultimo_contato: hoje(), historico }),
+    body: JSON.stringify(body),
   });
   await load();
-  fecharStatusMenu();
   renderAlerta();
   renderLista();
 }

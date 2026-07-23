@@ -77,3 +77,7 @@ create index if not exists negociacoes_updated_at_idx on negociacoes(updated_at 
 -- 6. Campo valor_compra na tabela de veículos (custo de captação — uso interno)
 -- Rode no Supabase SQL Editor:
 alter table veiculos add column if not exists valor_compra numeric;
+
+-- 7. Motivos estruturados nas negociações (por que descartou / por que escolheu esse comprador)
+alter table negociacoes add column if not exists motivo_descarte text;
+alter table negociacoes add column if not exists motivo_match text;

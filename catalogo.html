@@ -161,6 +161,14 @@
   .av-sub{margin-top:.45rem;padding-left:.2rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
   .av-sub .subnm{font-size:.74rem;color:var(--text-mid)}
   .av-acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem;position:sticky;bottom:0;background:var(--surface-raise);padding-top:.6rem}
+  .score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.55rem;margin-top:.4rem}
+  .score-row .sr-lbl{font-size:.72rem;font-weight:600;color:var(--text);margin-bottom:.25rem}
+  .score-pills{display:flex;gap:.28rem;flex-wrap:wrap}
+  .score-pill{font-size:.68rem;padding:.2rem .5rem;border:1px solid var(--line);border-radius:20px;cursor:pointer;background:none;color:var(--text-mid);font-family:'DM Sans',sans-serif;transition:all .15s}
+  .score-pill:hover{border-color:var(--accent);color:var(--text)}
+  .score-pill.on.ex,.score-pill.on.bm{background:color-mix(in srgb,var(--severity-ok) 15%,transparent);border-color:var(--severity-ok);color:var(--severity-ok)}
+  .score-pill.on.rg{background:color-mix(in srgb,#e8a000 15%,transparent);border-color:#e8a000;color:#e8a000}
+  .score-pill.on.ru{background:color-mix(in srgb,var(--severity-crit) 15%,transparent);border-color:var(--severity-crit);color:var(--severity-crit)}
   .av-foto-avaria{margin-top:.45rem;display:none;align-items:center;gap:.5rem;flex-wrap:wrap}
   .av-foto-avaria.show{display:flex}
   .av-foto-btn{font-size:.72rem;background:color-mix(in srgb, var(--severity-warn) 12%, var(--surface-raise));border:1px solid color-mix(in srgb, var(--severity-warn) 40%, transparent);border-radius:7px;color:var(--severity-warn);padding:.3rem .6rem;cursor:pointer;font-family:'DM Sans',sans-serif}
@@ -371,6 +379,10 @@
     <div class="sub2">Estado geral do veículo — entra junto das fotos do catálogo</div>
     <input type="hidden" id="av-veiculo-id" />
     <div id="av-secoes"></div>
+    <div class="av-sec">
+      <div class="stit">Resumo por categoria</div>
+      <div class="score-grid" id="av-scores"></div>
+    </div>
     <div class="av-sec">
       <div class="stit">Conclusão</div>
       <div style="margin-bottom:.6rem">
@@ -1109,6 +1121,46 @@ async function remover(id) {
 
 // ── Avaliação do veículo (checklist simplificado) ───────────────
 const NOTA_AV = { acima: 'Acima', media: 'Média', abaixo: 'Abaixo' };
+
+const SCORE_CATS = [
+  { id: 'lataria',      label: 'Lataria' },
+  { id: 'pintura',      label: 'Pintura' },
+  { id: 'mecanica',     label: 'Mecânica' },
+  { id: 'interior',     label: 'Interior' },
+  { id: 'documentacao', label: 'Documentação' },
+];
+const SCORE_OPTS = [
+  { code: 'ex', label: 'Excelente' },
+  { code: 'bm', label: 'Bom' },
+  { code: 'rg', label: 'Regular' },
+  { code: 'ru', label: 'Ruim' },
+];
+let _avalScores = {};
+
+function renderAvalScores() {
+  $('av-scores').innerHTML = SCORE_CATS.map(cat => `
+    <div class="score-row">
+      <div class="sr-lbl">${cat.label}</div>
+      <div class="score-pills">
+        ${SCORE_OPTS.map(o => {
+          const on = _avalScores[cat.id] === o.code;
+          return `<button class="score-pill${on ? ' on ' + o.code : ''}"
+            onclick="toggleScore('${cat.id}','${o.code}',this)">${o.label}</button>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleScore(catId, code, btn) {
+  const row = btn.closest('.score-pills');
+  row.querySelectorAll('.score-pill').forEach(b => b.className = 'score-pill');
+  if (_avalScores[catId] === code) {
+    delete _avalScores[catId];
+  } else {
+    _avalScores[catId] = code;
+    btn.className = `score-pill on ${code}`;
+  }
+}
 const AVAL = [
   { id:'documentacao', titulo:'Documentação', itens:[
     { id:'situacao', nome:'Situação', opts:['OK','Pendência'] },
@@ -1152,9 +1204,11 @@ function abrirAval(id){
   $('av-titulo').textContent = 'Avaliação — ' + nomeVeiculo(v);
   const a = (v.avaliacao && typeof v.avaliacao === 'object') ? v.avaliacao : {};
   AVAL_RES = a.resultado ? JSON.parse(JSON.stringify(a.resultado)) : {};
+  _avalScores = a.scores ? JSON.parse(JSON.stringify(a.scores)) : {};
   $('av-nota').value = a.nota || '';
   $('av-obs').value = a.obs || '';
   renderAvalSecoes();
+  renderAvalScores();
   $('av-modal').classList.add('show');
 }
 function fecharAval(){ $('av-modal').classList.remove('show'); }
@@ -1275,7 +1329,7 @@ function setAvSub(sec, item, val, btn){
 }
 async function salvarAval(){
   const id = $('av-veiculo-id').value;
-  const avaliacao = { nota: $('av-nota').value, obs: $('av-obs').value, resultado: AVAL_RES };
+  const avaliacao = { nota: $('av-nota').value, obs: $('av-obs').value, resultado: AVAL_RES, scores: _avalScores };
   try {
     const r = await fetch('/api/catalogo?id=' + id, {
       method: 'PATCH',
