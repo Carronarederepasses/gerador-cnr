@@ -170,6 +170,18 @@
   .av-foto-del:hover{text-decoration:underline}
   .card .rodape button.aval{background:var(--text);color:var(--surface);border-color:var(--text)}
 
+  /* Modal edição de dados */
+  .ed-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;z-index:65;padding:2rem 1rem;overflow-y:auto}
+  .ed-modal.show{display:flex}
+  .ed-box{background:var(--surface-raise);border-radius:16px;max-width:520px;width:100%;padding:1.4rem;margin:auto 0}
+  .ed-box h2{font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:1rem}
+  .ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  .ed-grid .full{grid-column:1/-1}
+  .ed-acoes{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem}
+  .ed-label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);margin-bottom:.3rem;font-weight:500}
+  .h3-edit{cursor:pointer;text-decoration-style:dotted;text-underline-offset:3px}
+  .h3-edit:hover{text-decoration:underline}
+
   /* Modal consulta placa */
   .placa-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:70;padding:1.5rem 1rem}
   .placa-modal.show{display:flex}
@@ -278,6 +290,67 @@
   <div class="st-menu-item" onclick="aplicarStatus('disponivel')"><span class="dot disponivel"></span>Disponível</div>
   <div class="st-menu-item" onclick="aplicarStatus('reservado')"><span class="dot reservado"></span>Reservado</div>
   <div class="st-menu-item" onclick="aplicarStatus('vendido')"><span class="dot vendido"></span>Vendido</div>
+</div>
+
+<!-- Modal Edição de Dados -->
+<div class="ed-modal" id="ed-modal">
+  <div class="ed-box">
+    <h2>✏️ Editar veículo</h2>
+    <input type="hidden" id="ed-id">
+    <div class="ed-grid">
+      <div class="full">
+        <label class="ed-label">Marca</label>
+        <input id="ed-marca" type="text" placeholder="Ex: Volkswagen">
+      </div>
+      <div class="full">
+        <label class="ed-label">Modelo</label>
+        <input id="ed-modelo" type="text" placeholder="Ex: Virtus">
+      </div>
+      <div class="full">
+        <label class="ed-label">Versão</label>
+        <input id="ed-versao" type="text" placeholder="Ex: Sense 1.0 Flex">
+      </div>
+      <div>
+        <label class="ed-label">Ano</label>
+        <input id="ed-ano" type="number" placeholder="2024">
+      </div>
+      <div>
+        <label class="ed-label">KM</label>
+        <input id="ed-km" type="number" placeholder="0">
+      </div>
+      <div>
+        <label class="ed-label">Valor repasse (R$)</label>
+        <input id="ed-valor" type="text" placeholder="Ex: 85.000">
+      </div>
+      <div>
+        <label class="ed-label">Combustível</label>
+        <select id="ed-combustivel">
+          <option value="">—</option>
+          <option>Flex</option>
+          <option>Gasolina</option>
+          <option>Diesel</option>
+          <option>Elétrico</option>
+          <option>Híbrido</option>
+        </select>
+      </div>
+      <div>
+        <label class="ed-label">Cor</label>
+        <input id="ed-cor" type="text" placeholder="Ex: Branco">
+      </div>
+      <div class="full">
+        <label class="ed-label">Região</label>
+        <input id="ed-regiao" type="text" placeholder="Ex: Garopaba-SC">
+      </div>
+      <div class="full">
+        <label class="ed-label">Complemento</label>
+        <input id="ed-complemento" type="text" placeholder="Ex: Único dono, revisado">
+      </div>
+    </div>
+    <div class="ed-acoes">
+      <button class="btn ghost" onclick="fecharEdicao()">Cancelar</button>
+      <button class="btn" onclick="salvarEdicao()">💾 Salvar</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Consulta Placa -->
@@ -411,7 +484,7 @@ function card(v) {
   return `
   <div class="card">
     <div class="topo">
-      <h3>${esc(nomeVeiculo(v))}</h3>
+      <h3 class="h3-edit" title="Clique para editar" onclick="abrirEdicao('${v.id}')">${esc(nomeVeiculo(v))}</h3>
       <div style="display:flex;gap:.3rem;align-items:center">
         ${(v.avaliacao && v.avaliacao.nota) ? `<span class="nota-badge ${v.avaliacao.nota}" title="Nota da avaliação">${NOTA_AV[v.avaliacao.nota]}</span>` : ''}
         <span class="badge ${v.status}">${v.status}</span>
@@ -642,6 +715,51 @@ async function editarValorCompra(id) {
     if (!r.ok) throw new Error((await r.json()).error || 'erro');
     carregar();
   } catch (e) { alert('Falha ao salvar: ' + e.message); }
+}
+
+function abrirEdicao(id) {
+  const v = CACHE[id]; if (!v) return;
+  $('ed-id').value = id;
+  $('ed-marca').value        = v.marca        || '';
+  $('ed-modelo').value       = v.modelo       || '';
+  $('ed-versao').value       = v.versao       || '';
+  $('ed-ano').value          = v.ano          || '';
+  $('ed-km').value           = v.km           != null ? v.km : '';
+  $('ed-valor').value        = v.valor        != null ? String(v.valor) : '';
+  $('ed-combustivel').value  = v.combustivel  || '';
+  $('ed-cor').value          = v.cor          || '';
+  $('ed-regiao').value       = v.regiao       || '';
+  $('ed-complemento').value  = v.complemento  || '';
+  $('ed-modal').classList.add('show');
+}
+function fecharEdicao() { $('ed-modal').classList.remove('show'); }
+$('ed-modal').addEventListener('click', e => { if (e.target === $('ed-modal')) fecharEdicao(); });
+
+async function salvarEdicao() {
+  const id = $('ed-id').value; if (!id) return;
+  const parseBR = s => { const l = s.trim().replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'); return l === '' ? null : parseFloat(l); };
+  const payload = {
+    marca:       $('ed-marca').value.trim()       || null,
+    modelo:      $('ed-modelo').value.trim()      || null,
+    versao:      $('ed-versao').value.trim()      || null,
+    ano:         $('ed-ano').value ? Number($('ed-ano').value) : null,
+    km:          $('ed-km').value !== '' ? Number($('ed-km').value) : null,
+    valor:       parseBR($('ed-valor').value),
+    combustivel: $('ed-combustivel').value        || null,
+    cor:         $('ed-cor').value.trim()         || null,
+    regiao:      $('ed-regiao').value.trim()      || null,
+    complemento: $('ed-complemento').value.trim() || null,
+  };
+  Object.keys(payload).forEach(k => { if (payload[k] === null) delete payload[k]; });
+  try {
+    const r = await fetch('/api/catalogo?id=' + id, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    fecharEdicao();
+    carregar();
+  } catch(e) { alert('Falha ao salvar: ' + e.message); }
 }
 
 async function editarPlaca(id) {
