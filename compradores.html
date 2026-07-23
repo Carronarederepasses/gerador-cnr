@@ -41,6 +41,8 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .toolbar select{font-family:'DM Sans',sans-serif;font-size:.82rem;padding:.55rem .7rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-raise);color:var(--text);cursor:pointer}
 .btn-add{font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:var(--text);color:var(--surface);border:none;border-radius:9px;padding:.6rem 1.1rem;cursor:pointer;white-space:nowrap}
 .btn-add:hover{opacity:.85}
+.btn-agenda{font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;background:none;border:1px solid var(--line);border-radius:9px;padding:.6rem .9rem;cursor:pointer;color:var(--text-mid);white-space:nowrap;transition:all .15s}
+.btn-agenda:hover{border-color:var(--accent);color:var(--text)}
 
 /* Lista */
 .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.8rem}
@@ -133,6 +135,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <option value="compras">Mais compras</option>
       <option value="taxa">Maior taxa CNR</option>
     </select>
+    <button class="btn-agenda" onclick="importarAgenda()" title="Importar contatos da agenda do celular">📒 Agenda</button>
     <button class="btn-add" onclick="abrirModal()">+ Novo comprador</button>
   </div>
 
@@ -265,6 +268,42 @@ let HIST_COMP = {}; // id ou nome → { count, taxa, total }
 async function init() {
   await carregar();
   renderMarcasTags();
+}
+
+// ── Importar da agenda do celular (Contact Picker API — Android Chrome) ──
+async function importarAgenda() {
+  if (!('contacts' in navigator && 'ContactsManager' in window)) {
+    alert('Disponível apenas no Chrome do Android.\n\nNo computador, use o botão "+ Novo comprador".');
+    return;
+  }
+  try {
+    const contatos = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+    if (!contatos.length) return;
+    let importados = 0;
+    let duplicados = 0;
+    for (const c of contatos) {
+      const nome = c.name?.[0]?.trim();
+      const tel  = (c.tel?.[0] || '').trim();
+      if (!nome) continue;
+      const jaExiste = TODOS.some(t =>
+        t.nome.toLowerCase() === nome.toLowerCase() ||
+        (tel && t.telefone && t.telefone.replace(/\D/g,'') === tel.replace(/\D/g,''))
+      );
+      if (jaExiste) { duplicados++; continue; }
+      const r = await fetch('/api/compradores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, telefone: tel, tipo: 'pessoa_fisica' }),
+      });
+      if (r.ok) importados++;
+    }
+    let msg = `✓ ${importados} contato${importados !== 1 ? 's' : ''} importado${importados !== 1 ? 's' : ''}`;
+    if (duplicados) msg += ` · ${duplicados} já existia${duplicados !== 1 ? 'm' : ''}`;
+    toast(msg);
+    await carregar();
+  } catch (e) {
+    // usuário cancelou a seleção — ignora silenciosamente
+  }
 }
 
 async function carregar() {
