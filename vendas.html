@@ -153,6 +153,7 @@
     <button class="btn" id="btn-nova">+ Nova venda</button>
     <button class="btn ghost" onclick="abrirRapida()" style="white-space:nowrap">⚡ Histórico rápido</button>
     <button class="btn ghost" onclick="exportarCSV()" style="white-space:nowrap">📥 CSV</button>
+    <button class="btn ghost" id="btn-historico" onclick="toggleHistorico()" style="white-space:nowrap;opacity:.6">👁 Histórico</button>
   </div>
 
   <div class="meta-linha" style="display:flex;justify-content:space-between;align-items:center"><span id="contador"></span><button id="btn-ordem" class="btn ghost" style="font-size:.74rem;padding:.4rem .7rem">⬇ Mais recentes</button></div>
@@ -470,13 +471,26 @@ function mesLabel(dataStr) {
   return MESES[parseInt(mes, 10) - 1] + '/' + ano;
 }
 
+let _mostrarHistorico = false;
+function toggleHistorico() {
+  _mostrarHistorico = !_mostrarHistorico;
+  const btn = $('btn-historico');
+  btn.style.opacity = _mostrarHistorico ? '1' : '.6';
+  btn.textContent = _mostrarHistorico ? '🙈 Ocultar histórico' : '👁 Histórico';
+  render();
+}
+
 function render() {
-  $('contador').textContent = VENDAS.length ? `${VENDAS.length} venda(s)` : '';
-  if (!VENDAS.length) {
-    $('lista').innerHTML = '<div class="vazio"><div class="ico">📋</div>Nenhuma venda registrada ainda.<br>Clique em <b>+ Nova venda</b> pra começar.</div>';
+  const visiveis = _mostrarHistorico ? VENDAS : VENDAS.filter(v => v.canal_origem !== 'historico');
+  $('contador').textContent = visiveis.length ? `${visiveis.length} venda(s)` : '';
+  if (!visiveis.length) {
+    const temHistorico = VENDAS.some(v => v.canal_origem === 'historico');
+    $('lista').innerHTML = temHistorico && !_mostrarHistorico
+      ? '<div class="vazio"><div class="ico">📋</div>Nenhuma venda real registrada ainda.<br><small style="opacity:.6">Clique em 👁 Histórico para ver os registros de retroalimentação.</small></div>'
+      : '<div class="vazio"><div class="ico">📋</div>Nenhuma venda registrada ainda.<br>Clique em <b>+ Nova venda</b> pra começar.</div>';
     return;
   }
-  const sorted = ordenar(VENDAS);
+  const sorted = ordenar(visiveis);
   let html = '', mesAtual = null;
   for (const v of sorted) {
     const mes = mesLabel(v.data_venda);
@@ -602,6 +616,7 @@ async function salvarRapida(continuar) {
     valor_venda: parseBRv($('r-valor').value),
     taxa_intermediacao: parseBRv($('r-taxa').value),
     status: 'concluida',
+    canal_origem: 'historico',
   };
   try {
     const r = await fetch('/api/vendas', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
