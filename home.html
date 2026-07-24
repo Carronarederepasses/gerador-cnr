@@ -167,9 +167,37 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <a href="/negociacoes.html">🤝 Negociações</a>
     <a href="/consultas.html">🔍 Consulta</a>
     <a href="/busca.html">🔎 Busca</a>
+    <button type="button" onclick="abrirMeusDados()" title="Meus dados bancários" style="font-size:.7rem;font-weight:600;letter-spacing:.06em;padding:.38rem .7rem">📋 Meus dados</button>
     <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema"></button>
   </div>
 </header>
+
+<!-- Modal meus dados bancários -->
+<div id="md-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)fecharMeusDados()">
+  <div style="background:var(--surface-raise);border:1px solid var(--line);border-radius:16px;padding:1.4rem;width:100%;max-width:380px;display:flex;flex-direction:column;gap:.9rem">
+    <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700">Meus dados bancários</div>
+    <pre id="md-preview" style="font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.9rem"></pre>
+    <div style="display:flex;gap:.5rem">
+      <button onclick="copiarMeusDados()" style="flex:1;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;padding:.65rem;border-radius:10px;border:none;background:var(--text);color:var(--surface);cursor:pointer">📋 Copiar</button>
+      <button onclick="editarMeusDados()" style="font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:10px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✏️ Editar</button>
+      <button onclick="fecharMeusDados()" style="font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:10px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✕</button>
+    </div>
+    <!-- Formulário de edição (oculto por padrão) -->
+    <div id="md-form" style="display:none;flex-direction:column;gap:.6rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+        <div><label style="font-size:.68rem;color:var(--text-mid)">Nome</label><input id="mdf-nome" type="text" style="width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem"></div>
+        <div><label style="font-size:.68rem;color:var(--text-mid)">Banco</label><input id="mdf-banco" type="text" style="width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem"></div>
+        <div><label style="font-size:.68rem;color:var(--text-mid)">Agência</label><input id="mdf-agencia" type="text" style="width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem"></div>
+        <div><label style="font-size:.68rem;color:var(--text-mid)">Conta (C/C)</label><input id="mdf-conta" type="text" style="width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem"></div>
+      </div>
+      <div><label style="font-size:.68rem;color:var(--text-mid)">Chave Pix</label><input id="mdf-pix" type="text" style="width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem"></div>
+      <div style="display:flex;gap:.5rem;margin-top:.2rem">
+        <button onclick="salvarMeusDados()" style="flex:1;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:700;padding:.55rem;border-radius:8px;border:none;background:var(--text);color:var(--surface);cursor:pointer">Salvar</button>
+        <button onclick="editarMeusDados()" style="font-family:'DM Sans',sans-serif;font-size:.82rem;padding:.55rem .8rem;border-radius:8px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="wrap">
 
@@ -725,6 +753,76 @@ carregarVendas();
 carregarCompradores();
 carregarRelatorio();
 carregarNegociacoes();
+
+// ── Meus dados bancários ──────────────────────────────────────────────
+const MD_DEFAULT = {
+  nome: 'Yuri Pellegrinelli',
+  banco: 'Itaú',
+  agencia: '5799',
+  conta: '03048-6',
+  pix: '17996670304',
+};
+
+function getMeusDados() {
+  try { return JSON.parse(localStorage.getItem('cnr_meus_dados')) || MD_DEFAULT; }
+  catch { return MD_DEFAULT; }
+}
+
+function mdTexto(d) {
+  return [
+    d.nome,
+    '',
+    `Banco: ${d.banco}`,
+    `Ag: ${d.agencia} / C/C: ${d.conta}`,
+    `Pix: ${d.pix}`,
+  ].join('\n');
+}
+
+function abrirMeusDados() {
+  const d = getMeusDados();
+  document.getElementById('md-preview').textContent = mdTexto(d);
+  document.getElementById('md-form').style.display = 'none';
+  const bg = document.getElementById('md-bg');
+  bg.style.display = 'flex';
+}
+
+function fecharMeusDados() {
+  document.getElementById('md-bg').style.display = 'none';
+}
+
+function copiarMeusDados() {
+  const texto = document.getElementById('md-preview').textContent;
+  navigator.clipboard.writeText(texto)
+    .then(() => { document.querySelector('#md-bg button').textContent = '✓ Copiado!'; setTimeout(() => document.querySelector('#md-bg button').textContent = '📋 Copiar', 1800); })
+    .catch(() => alert('Erro ao copiar'));
+}
+
+function editarMeusDados() {
+  const form = document.getElementById('md-form');
+  const visivel = form.style.display === 'flex';
+  if (visivel) { form.style.display = 'none'; return; }
+  const d = getMeusDados();
+  document.getElementById('mdf-nome').value    = d.nome;
+  document.getElementById('mdf-banco').value   = d.banco;
+  document.getElementById('mdf-agencia').value = d.agencia;
+  document.getElementById('mdf-conta').value   = d.conta;
+  document.getElementById('mdf-pix').value     = d.pix;
+  form.style.display = 'flex';
+  form.style.flexDirection = 'column';
+}
+
+function salvarMeusDados() {
+  const d = {
+    nome:    document.getElementById('mdf-nome').value.trim(),
+    banco:   document.getElementById('mdf-banco').value.trim(),
+    agencia: document.getElementById('mdf-agencia').value.trim(),
+    conta:   document.getElementById('mdf-conta').value.trim(),
+    pix:     document.getElementById('mdf-pix').value.trim(),
+  };
+  localStorage.setItem('cnr_meus_dados', JSON.stringify(d));
+  document.getElementById('md-preview').textContent = mdTexto(d);
+  document.getElementById('md-form').style.display = 'none';
+}
 </script>
 </body>
 </html>
