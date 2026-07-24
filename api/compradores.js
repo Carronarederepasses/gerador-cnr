@@ -28,6 +28,7 @@ const CAMPOS_COMPRADOR = [
   'razao_social','cnpj','ie',
   'cpf','rg','data_nascimento',
   'cep','estado','logradouro','numero','complemento_end','bairro',
+  'banco','agencia','conta','tipo_conta','pix_tipo','pix_chave',
 ];
 const CAMPOS_EVENTO    = ['tipo','veiculo_id','venda_id','comprador_id','usuario','dados','origem'];
 

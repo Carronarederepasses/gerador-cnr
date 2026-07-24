@@ -264,6 +264,37 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       </div>
     </div>
 
+    <!-- Dados bancários -->
+    <div style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados bancários</div>
+      <div class="g2">
+        <div class="field"><label>Banco</label><input id="m-banco" type="text" placeholder="ex: Itaú, Nubank, Sicoob"></div>
+        <div class="field"><label>Tipo de conta</label>
+          <select id="m-tipo_conta">
+            <option value="corrente">Corrente</option>
+            <option value="poupanca">Poupança</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="field"><label>Agência</label><input id="m-agencia" type="text" inputmode="numeric" placeholder="1234"></div>
+        <div class="field"><label>Conta</label><input id="m-conta" type="text" inputmode="numeric" placeholder="56789-0"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><label>Tipo da chave Pix</label>
+          <select id="m-pix_tipo">
+            <option value="">— sem Pix —</option>
+            <option value="cpf">CPF</option>
+            <option value="cnpj">CNPJ</option>
+            <option value="email">E-mail</option>
+            <option value="telefone">Telefone</option>
+            <option value="aleatoria">Chave aleatória</option>
+          </select>
+        </div>
+        <div class="field"><label>Chave Pix</label><input id="m-pix_chave" type="text" placeholder="cole a chave aqui"></div>
+      </div>
+    </div>
+
     <!-- Preferências de compra — no fim para não atrapalhar o fluxo -->
     <div style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
       <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Preferências de compra</div>
@@ -443,6 +474,7 @@ function renderLista(lista) {
       ${c.ativo ? `<div class="card-acoes" onclick="event.stopPropagation()">
         ${wa ? `<a class="btn-acao verde" href="https://wa.me/55${wa}" target="_blank">💬 WhatsApp</a>` : ''}
         ${wa ? `<a class="btn-acao" href="tel:+55${wa}">📞 Ligar</a>` : ''}
+        ${(c.banco || c.pix_chave) ? `<button class="btn-acao" onclick="copiarDadosBancarios('${c.id}')">📋 Banco</button>` : ''}
         <button class="btn-acao" onclick="abrirModal('${c.id}')">✏️ Editar</button>
       </div>` : '<div style="font-size:.68rem;color:var(--text-faint);text-align:center;padding:.3rem 0">Inativo</div>'}
     </div>`;
@@ -509,6 +541,13 @@ function abrirModal(id) {
   document.getElementById('m-complemento_end').value = c?.complemento_end || '';
   document.getElementById('m-bairro').value        = c?.bairro || '';
   document.getElementById('m-cidade2').value       = c?.cidade || '';
+  // Banco
+  document.getElementById('m-banco').value      = c?.banco || '';
+  document.getElementById('m-agencia').value    = c?.agencia || '';
+  document.getElementById('m-conta').value      = c?.conta || '';
+  document.getElementById('m-tipo_conta').value = c?.tipo_conta || 'corrente';
+  document.getElementById('m-pix_tipo').value   = c?.pix_tipo || '';
+  document.getElementById('m-pix_chave').value  = c?.pix_chave || '';
   marcasSel = c?.marcas ? [...c.marcas] : [];
   atualizarMarcas();
   atualizarBlocoFat(c?.tipo || 'loja');
@@ -615,6 +654,13 @@ async function salvar() {
     numero:         document.getElementById('m-numero').value.trim() || null,
     complemento_end: document.getElementById('m-complemento_end').value.trim() || null,
     bairro:         document.getElementById('m-bairro').value.trim() || null,
+    // Banco
+    banco:      document.getElementById('m-banco').value.trim() || null,
+    agencia:    document.getElementById('m-agencia').value.trim() || null,
+    conta:      document.getElementById('m-conta').value.trim() || null,
+    tipo_conta: document.getElementById('m-tipo_conta').value || 'corrente',
+    pix_tipo:   document.getElementById('m-pix_tipo').value || null,
+    pix_chave:  document.getElementById('m-pix_chave').value.trim() || null,
     ativo: true,
   };
   const url    = editId ? `/api/compradores?id=${editId}` : '/api/compradores';
@@ -687,6 +733,31 @@ async function buscarCNPJ() {
                         document.getElementById('m-nome').value         = d.nome_fantasia;
     st.textContent = '✓ Dados preenchidos automaticamente.';
   } catch(_) { st.textContent = '✗ Erro ao buscar. Tente novamente.'; }
+}
+
+function copiarDadosBancarios(id) {
+  const c = TODOS.find(x => x.id === id);
+  if (!c) return;
+  const lines = [`Dados bancários — ${c.nome}`, ''];
+  if (c.banco) {
+    lines.push(`Banco: ${c.banco}`);
+    const tipo = c.tipo_conta === 'poupanca' ? 'Poupança' : 'Corrente';
+    const parts = [c.agencia && `Ag: ${c.agencia}`, c.conta && `Conta: ${c.conta} (${tipo})`].filter(Boolean);
+    if (parts.length) lines.push(parts.join(' / '));
+  }
+  if (c.pix_chave) {
+    const tipoMap = {cpf:'CPF',cnpj:'CNPJ',email:'E-mail',telefone:'Telefone',aleatoria:'Aleatória'};
+    const label = c.pix_tipo ? ` (${tipoMap[c.pix_tipo] || c.pix_tipo})` : '';
+    lines.push(`Pix: ${c.pix_chave}${label}`);
+  }
+  lines.push('');
+  if (c.razao_social) lines.push(`Razão social: ${c.razao_social}`);
+  else lines.push(`Nome: ${c.proprietario || c.nome}`);
+  if (c.cnpj) lines.push(`CNPJ: ${c.cnpj}`);
+  else if (c.cpf) lines.push(`CPF: ${c.cpf}`);
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => toast('📋 Dados bancários copiados!'))
+    .catch(() => toast('Erro ao copiar', true));
 }
 
 async function buscarCep(cep) {
