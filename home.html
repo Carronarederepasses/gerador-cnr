@@ -405,12 +405,20 @@ function saudacao() {
   const h = new Date().getHours();
   const s = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
   document.getElementById('saudacao-txt').textContent = s + ', Yuri 👋';
+}
+
+function atualizarDataHora() {
   const dias = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
   document.getElementById('saudacao-sub').textContent =
-    `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} de ${now.getFullYear()}`;
+    `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} de ${now.getFullYear()} · ${hh}:${mm}:${ss}`;
 }
+atualizarDataHora();
+setInterval(atualizarDataHora, 1000);
 
 let _catalogoLista = [];
 
