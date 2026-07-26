@@ -93,6 +93,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
     <a href="/home.html">🏠 Painel</a>
     <a href="/index.html">📝 Gerador</a>
     <a href="/catalogo.html">📂 Catálogo</a>
+    <button type="button" onclick="copiarMeusDadosNav(this)" title="Meus dados bancários" style="font-size:.7rem;font-weight:600;letter-spacing:.06em;padding:.38rem .7rem">📋 Meus dados</button>
     <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema"></button>
   </div>
 </header>
@@ -470,6 +471,16 @@ function downloadFoto() {
   link.download = 'cnr-foto.jpg';
   link.href = canvas.toDataURL('image/jpeg', 0.92);
   link.click();
+}
+
+function copiarMeusDadosNav(btn) {
+  const D = {nome:'Yuri Pellegrinelli',banco:'Itaú',agencia:'5799',conta:'03048-6',pix:'17996670304'};
+  let d; try { d = JSON.parse(localStorage.getItem('cnr_meus_dados')) || D; } catch { d = D; }
+  const txt = [d.nome,'',`Banco: ${d.banco}`,`Ag: ${d.agencia} / C/C: ${d.conta}`,`Pix: ${d.pix}`].join('\n');
+  navigator.clipboard.writeText(txt).then(() => {
+    const orig = btn.textContent; btn.textContent = '✓ Copiado!';
+    setTimeout(() => btn.textContent = orig, 1800);
+  }).catch(() => {});
 }
 </script>
 </body>
