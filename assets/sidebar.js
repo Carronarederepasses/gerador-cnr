@@ -71,10 +71,20 @@
     backdrop.id = 'cnr-backdrop';
     document.body.appendChild(backdrop);
 
-    function abrir() { aside.classList.add('open'); backdrop.classList.add('open'); }
-    function fechar() { aside.classList.remove('open'); backdrop.classList.remove('open'); }
+    function abrir() {
+      aside.classList.add('open');
+      backdrop.classList.add('open');
+      ham.textContent = '✕';
+    }
+    function fechar() {
+      aside.classList.remove('open');
+      backdrop.classList.remove('open');
+      ham.textContent = '☰';
+    }
 
-    ham.addEventListener('click', abrir);
+    ham.addEventListener('click', function () {
+      aside.classList.contains('open') ? fechar() : abrir();
+    });
     backdrop.addEventListener('click', fechar);
 
     // Fecha ao navegar (link clicado no mobile)

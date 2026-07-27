@@ -126,4 +126,6 @@
   #cnr-sidebar.open { transform: translateX(0); }
   #cnr-ham { display: flex; }
   body { padding-top: 3.6rem !important; }
+  /* Empurra o logo para não ficar sob o botão hamburguer */
+  .cnr-sb-logo { padding-left: 3.5rem; }
 }
