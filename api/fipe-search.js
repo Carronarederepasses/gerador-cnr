@@ -19,11 +19,18 @@ async function fipeGet(path, retries = 3) {
 }
 
 // Palavras que indicam variante específica — penaliza se estão no modelo mas NÃO no texto do usuário
-const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','híb','hybrid','phev'];
+const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','hib','hybrid','phev'];
 
-function score(haystack, needle) {
-  const hRaw = haystack.toLowerCase();
-  const nRaw = needle.toLowerCase();
+// Remove acentos para comparação neutra ("híbrido" ↔ "hibrido", etc.)
+const normalize = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+// skipBasePenaltyFor: palavras de marca removidas do haystack — não penalizar se o
+// modelo começa com elas (ex: GWM tem modelos "Haval H6 …", após alias "haval"→"gwm"
+// a base seria "gwm" que nunca aparece no texto do usuário porque foi removida junto
+// com as demais palavras da marca).
+function score(haystack, needle, skipBasePenaltyFor = []) {
+  const hRaw = normalize(haystack.toLowerCase());
+  const nRaw = normalize(needle.toLowerCase());
   // Separa letra grudada de número: "Furgão16V" → "furgão 16v", "T270" → "t 270".
   // A FIPE às vezes cola o motor no nome (ex: "Grand Furgão16V"), o que impedia o
   // match de "Furgão". Aplicado igual nos dois lados para ficar justo.
@@ -32,9 +39,9 @@ function score(haystack, needle) {
   const sep = s => s
     .replace(/([a-záàâãéêíóôõúüç])(\d)/g, '$1 $2')
     .replace(/(\d)([a-záàâãéêíóôõúüç])/g, '$1 $2');
-  const words  = sep(nRaw).split(/[\s\-\/.]+/).filter(w => w.length > 0);
+  const words  = sep(nRaw).split(/[\s\-\/.()\[\]{}]+/).filter(w => w.length > 0);
   const h      = sep(hRaw);
-  const hWords = h.split(/[\s\-\/.]+/).filter(Boolean); // palavras isoladas do texto
+  const hWords = h.split(/[\s\-\/.()\[\]{}]+/).filter(Boolean); // palavras isoladas do texto
 
   let pts = words.reduce((acc, w) => {
     if (w.length > 2) return acc + (h.includes(w) ? w.length : 0);
@@ -54,7 +61,9 @@ function score(haystack, needle) {
   // Evita casar "Fit ... Aut" quando o usuário falou "WR-V ..." (mesmos opcionais no nome).
   const base = words[0];
   if (base && base.length >= 2 && !hWords.includes(base) && !h.includes(base)) {
-    pts -= 8;
+    if (!skipBasePenaltyFor.includes(base)) {
+      pts -= 8;
+    }
   }
 
   return pts;
@@ -113,7 +122,15 @@ module.exports = async (req, res) => {
       let semM = vLower;
       palavras.forEach(p => { semM = semM.replace(new RegExp(p, 'gi'), ''); });
       return mods
-        .map(m => ({ marca, modelo: m, score: score(semM.trim(), m.nome) }))
+        .map(m => {
+          // Aplica aliases de marca no nome do modelo antes do scoring.
+          // Corrige o caso GWM: todos os modelos começam com "Haval" (ex: "Haval H6 GT"),
+          // mas o texto do usuário já teve "haval" convertido para "gwm" pelo alias.
+          // Sem esta normalização, a penalidade de base dispara porque "haval" não aparece
+          // em semM (que tem "gwm" removido), e o score vai negativo — modelo descartado.
+          const nomeNorm = BRAND_ALIASES.reduce((s, [re, rep]) => s.replace(re, rep), m.nome.toLowerCase());
+          return { marca, modelo: m, score: score(semM.trim(), nomeNorm, palavras) };
+        })
         .filter(x => x.score > 0)
         .sort((a, b) => b.score - a.score);
     }
