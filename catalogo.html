@@ -18,6 +18,8 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);line-height:1.5;padding:1.5rem 1rem 4rem}
@@ -214,21 +216,8 @@
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <h1>Catálogo de Oportunidades</h1>
-      <div class="sub">Carro na Rede Repasses — banco interno de veículos</div>
-    </div>
-    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-      <a class="voltar" href="/home.html">🏠 Painel</a>
-      <a class="voltar" href="/index.html">📝 Gerador</a>
-      <a class="voltar" href="/compradores.html">👥 Compradores</a>
-      <a class="voltar" href="/foto.html">📸 Editor de Foto</a>
-      <a class="voltar" href="/vendas.html">📋 Vendas</a>
-      <a class="voltar" href="/consultas.html">🔍 Consulta</a>
-      <a class="voltar" href="/busca.html">🔎 Busca</a>
-      <button type="button" onclick="copiarMeusDadosNav(this)" title="Meus dados bancários" style="font-size:.7rem;font-weight:600;letter-spacing:.06em;padding:.35rem .7rem;border:1px solid var(--line);border-radius:8px;background:none;color:var(--text-mid);cursor:pointer">📋 Meus dados</button>
-      <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro" style="font-size:.9rem;background:none;border:1px solid var(--line);border-radius:8px;color:var(--text-mid);padding:.35rem .55rem;cursor:pointer;line-height:1"></button>
-    </div>
+    <h1>Catálogo de Oportunidades</h1>
+    <div class="sub">Carro na Rede Repasses — banco interno de veículos</div>
   </header>
 
   <div class="filtros">
@@ -1749,18 +1738,8 @@ function mostrarPreviewPDF() {
 // Enter na busca livre dispara a pesquisa
 $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); });
 
-document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 Promise.all([carregarCompradores(), carregarVendasMap()]).then(() => carregar());
 
-function copiarMeusDadosNav(btn) {
-  const D = {nome:'Yuri Pellegrinelli',banco:'Itaú',agencia:'5799',conta:'03048-6',pix:'17996670304'};
-  let d; try { d = JSON.parse(localStorage.getItem('cnr_meus_dados')) || D; } catch { d = D; }
-  const txt = [d.nome,'',`Banco: ${d.banco}`,`Ag: ${d.agencia} / C/C: ${d.conta}`,`Pix: ${d.pix}`].join('\n');
-  navigator.clipboard.writeText(txt).then(() => {
-    const orig = btn.textContent; btn.textContent = '✓ Copiado!';
-    setTimeout(() => btn.textContent = orig, 1800);
-  }).catch(() => {});
-}
 </script>
 
 <!-- Modal Preview PDF -->

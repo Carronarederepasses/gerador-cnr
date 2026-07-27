@@ -12,6 +12,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);min-height:100vh;padding-bottom:3rem}
@@ -60,19 +62,6 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 </head>
 <body>
 
-<header>
-  <div class="logo">Carro na Rede <span>Busca Global</span></div>
-  <div class="nav">
-    <a href="/home.html">🏠 Painel</a>
-    <a href="/catalogo.html">📂 Catálogo</a>
-    <a href="/vendas.html">📋 Vendas</a>
-    <a href="/negociacoes.html">🤝 Negociações</a>
-    <a href="/compradores.html">👥 Compradores</a>
-    <a href="/busca.html" class="ativo">🔍 Busca</a>
-    <button type="button" onclick="copiarMeusDadosNav(this)" title="Meus dados bancários" style="font-size:.7rem;font-weight:600;letter-spacing:.06em;padding:.38rem .7rem">📋 Meus dados</button>
-    <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema"></button>
-  </div>
-</header>
 
 <div class="wrap">
 
@@ -91,7 +80,6 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 </div>
 
 <script>
-document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 
 const $ = id => document.getElementById(id);
 
@@ -232,15 +220,6 @@ function grupo(titulo, count, rows) {
   </div>`;
 }
 
-function copiarMeusDadosNav(btn) {
-  const D = {nome:'Yuri Pellegrinelli',banco:'Itaú',agencia:'5799',conta:'03048-6',pix:'17996670304'};
-  let d; try { d = JSON.parse(localStorage.getItem('cnr_meus_dados')) || D; } catch { d = D; }
-  const txt = [d.nome,'',`Banco: ${d.banco}`,`Ag: ${d.agencia} / C/C: ${d.conta}`,`Pix: ${d.pix}`].join('\n');
-  navigator.clipboard.writeText(txt).then(() => {
-    const orig = btn.textContent; btn.textContent = '✓ Copiado!';
-    setTimeout(() => btn.textContent = orig, 1800);
-  }).catch(() => {});
-}
 </script>
 </body>
 </html>

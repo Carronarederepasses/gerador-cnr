@@ -14,6 +14,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -141,20 +143,14 @@
 </head>
 <body>
 
-<header>
-  <div class="logo">Carro na Rede <span>Negociações</span></div>
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-    <a href="/home.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🏠 Painel</a>
-    <a href="/" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">📝 Gerador</a>
-    <a href="/busca.html" style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--light);text-decoration:none;border:1px solid var(--border);padding:.5rem .8rem">🔎 Busca</a>
-    <button type="button" onclick="copiarMeusDadosNav(this)" title="Meus dados bancários" style="font-size:.7rem;font-weight:600;letter-spacing:.06em;padding:.5rem .7rem;background:none;border:1px solid var(--border);color:var(--light);cursor:pointer">📋 Meus dados</button>
-    <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema" style="font-size:.9rem;background:none;border:1px solid var(--border);color:var(--light);padding:.5rem .7rem;cursor:pointer;line-height:1"></button>
+
+<div class="main">
+
+  <!-- AÇÕES -->
+  <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-bottom:1rem;flex-wrap:wrap">
     <button onclick="exportarCSV()" style="background:none;border:1px solid var(--border);color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.62rem;font-weight:400;letter-spacing:.13em;text-transform:uppercase;padding:.5rem .8rem;cursor:pointer">⬇ CSV</button>
     <button class="btn-novo" onclick="abrirNova()">+ Nova negociação</button>
   </div>
-</header>
-
-<div class="main">
 
   <!-- ALERTA -->
   <div class="alert-banner" id="alert-banner"></div>
@@ -1058,22 +1054,12 @@ ${(d.test1_nome || d.test2_nome) ? `
 }
 
 // Init
-document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 load().then(() => {
   renderAlerta();
   renderLista();
   lerParams();
 });
 
-function copiarMeusDadosNav(btn) {
-  const D = {nome:'Yuri Pellegrinelli',banco:'Itaú',agencia:'5799',conta:'03048-6',pix:'17996670304'};
-  let d; try { d = JSON.parse(localStorage.getItem('cnr_meus_dados')) || D; } catch { d = D; }
-  const txt = [d.nome,'',`Banco: ${d.banco}`,`Ag: ${d.agencia} / C/C: ${d.conta}`,`Pix: ${d.pix}`].join('\n');
-  navigator.clipboard.writeText(txt).then(() => {
-    const orig = btn.textContent; btn.textContent = '✓ Copiado!';
-    setTimeout(() => btn.textContent = orig, 1800);
-  }).catch(() => {});
-}
 </script>
 </body>
 </html>

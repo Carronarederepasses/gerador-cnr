@@ -14,6 +14,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);min-height:100vh;padding-bottom:3rem}
@@ -156,21 +158,6 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 </head>
 <body>
 
-<header>
-  <div class="logo">Carro na Rede <span>Painel</span></div>
-  <div class="nav">
-    <a href="/home.html" class="ativo">🏠 Painel</a>
-    <a href="/index.html">📝 Gerador</a>
-    <a href="/catalogo.html">📂 Catálogo</a>
-    <a href="/compradores.html">👥 Compradores</a>
-    <a href="/vendas.html">📋 Vendas</a>
-    <a href="/negociacoes.html">🤝 Negociações</a>
-    <a href="/consultas.html">🔍 Consulta</a>
-    <a href="/busca.html">🔎 Busca</a>
-    <button type="button" onclick="abrirMeusDados()" title="Meus dados bancários" style="font-size:.7rem;font-weight:600;letter-spacing:.06em;padding:.38rem .7rem">📋 Meus dados</button>
-    <button type="button" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema"></button>
-  </div>
-</header>
 
 <!-- Modal meus dados bancários -->
 <div id="md-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)fecharMeusDados()">
@@ -204,6 +191,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   <div class="saudacao">
     <h1 id="saudacao-txt">Carregando...</h1>
     <div class="sub" id="saudacao-sub"></div>
+    <button onclick="abrirMeusDados()" style="margin-top:.6rem;font-size:.72rem;background:none;border:1px solid var(--line);border-radius:8px;color:var(--text-mid);padding:.35rem .7rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500">✏️ Editar meus dados</button>
   </div>
 
   <!-- KPIs -->
@@ -365,7 +353,6 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 </div>
 
 <script>
-document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 
 const moeda = n => n != null ? Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}) : '—';
 const dataBR = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '';

@@ -17,6 +17,8 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/tokens.css">
   <script src="/assets/theme-toggle.js"></script>
+  <link rel="stylesheet" href="/assets/sidebar.css">
+  <script src="/assets/sidebar.js" defer></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px}
@@ -100,13 +102,6 @@
 </head>
 <body>
 
-<div class="nav">
-  <a href="/home.html">🏠 Painel</a>
-  <a href="/index.html">📝 Gerador</a>
-  <a href="/catalogo.html">📂 Catálogo</a>
-  <a href="/vendas.html">📋 Vendas</a>
-  <button type="button" class="conf" id="cnr-theme-btn" onclick="cnrToggleTheme()" title="Alternar tema claro/escuro"></button>
-</div>
 
 <header>
   <div class="marca">Carro na Rede Repasses</div>
@@ -221,7 +216,6 @@
 
 
 <script>
-document.getElementById('cnr-theme-btn').textContent = cnrThemeIcon();
 let uf = 'SC';
 
 // ── Estado ──────────────────────────────────────────────────────

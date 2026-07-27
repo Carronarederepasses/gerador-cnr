@@ -2,7 +2,7 @@
   "name": "Carro na Rede — Gerador",
   "short_name": "Carro na Rede",
   "description": "Gerador de anúncios e catálogo de oportunidades — Carro na Rede Repasses",
-  "start_url": "/",
+  "start_url": "/home.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
