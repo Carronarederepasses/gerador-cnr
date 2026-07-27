@@ -18,16 +18,99 @@
     return path === href || path.endsWith(href);
   }
 
-  function copiarDados(btn) {
-    var D = { nome: 'Yuri Pellegrinelli', banco: 'Itaú', agencia: '5799', conta: '03048-6', pix: '17996670304' };
-    var d;
-    try { d = JSON.parse(localStorage.getItem('cnr_meus_dados')) || D; } catch (e) { d = D; }
-    var txt = [d.nome, '', 'Banco: ' + d.banco, 'Ag: ' + d.agencia + ' / C/C: ' + d.conta, 'Pix: ' + d.pix].join('\n');
-    navigator.clipboard.writeText(txt).then(function () {
-      var orig = btn.textContent;
+  // ── Meus dados bancários ────────────────────────────────────────────
+  var MD_DEFAULT = { nome: 'Yuri Pellegrinelli', banco: 'Itaú', agencia: '5799', conta: '03048-6', pix: '17996670304' };
+
+  function getMeusDados() {
+    try { return JSON.parse(localStorage.getItem('cnr_meus_dados')) || MD_DEFAULT; } catch (e) { return MD_DEFAULT; }
+  }
+
+  function mdTexto(d) {
+    return [d.nome, '', 'Banco: ' + d.banco, 'Ag: ' + d.agencia + ' / C/C: ' + d.conta, 'Pix: ' + d.pix].join('\n');
+  }
+
+  function abrirMeusDados() {
+    var d = getMeusDados();
+    document.getElementById('cnr-md-preview').textContent = mdTexto(d);
+    document.getElementById('cnr-md-form').style.display = 'none';
+    document.getElementById('cnr-md-bg').style.display = 'flex';
+  }
+
+  function fecharMeusDados() {
+    document.getElementById('cnr-md-bg').style.display = 'none';
+  }
+
+  function copiarMeusDados() {
+    var texto = document.getElementById('cnr-md-preview').textContent;
+    var btn = document.getElementById('cnr-md-copiar');
+    navigator.clipboard.writeText(texto).then(function () {
       btn.textContent = '✓ Copiado!';
-      setTimeout(function () { btn.textContent = orig; }, 1800);
+      setTimeout(function () { btn.textContent = '📋 Copiar'; }, 1800);
     }).catch(function () {});
+  }
+
+  function editarMeusDados() {
+    var form = document.getElementById('cnr-md-form');
+    if (form.style.display === 'flex') { form.style.display = 'none'; return; }
+    var d = getMeusDados();
+    document.getElementById('cnr-mdf-nome').value    = d.nome;
+    document.getElementById('cnr-mdf-banco').value   = d.banco;
+    document.getElementById('cnr-mdf-agencia').value = d.agencia;
+    document.getElementById('cnr-mdf-conta').value   = d.conta;
+    document.getElementById('cnr-mdf-pix').value     = d.pix;
+    form.style.display = 'flex';
+    form.style.flexDirection = 'column';
+  }
+
+  function salvarMeusDados() {
+    var d = {
+      nome:    document.getElementById('cnr-mdf-nome').value.trim(),
+      banco:   document.getElementById('cnr-mdf-banco').value.trim(),
+      agencia: document.getElementById('cnr-mdf-agencia').value.trim(),
+      conta:   document.getElementById('cnr-mdf-conta').value.trim(),
+      pix:     document.getElementById('cnr-mdf-pix').value.trim(),
+    };
+    localStorage.setItem('cnr_meus_dados', JSON.stringify(d));
+    document.getElementById('cnr-md-preview').textContent = mdTexto(d);
+    document.getElementById('cnr-md-form').style.display = 'none';
+  }
+
+  function buildModal() {
+    var inp = 'width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:.82rem;box-sizing:border-box';
+    var lbl = 'font-size:.68rem;color:var(--text-mid)';
+    var el = document.createElement('div');
+    el.id = 'cnr-md-bg';
+    el.setAttribute('style', 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:1rem');
+    el.innerHTML =
+      '<div style="background:var(--surface-raise);border:1px solid var(--line);border-radius:16px;padding:1.4rem;width:100%;max-width:380px;display:flex;flex-direction:column;gap:.9rem">'
+      + '<div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700">Meus dados bancários</div>'
+      + '<pre id="cnr-md-preview" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;line-height:1.6;white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.9rem;margin:0"></pre>'
+      + '<div style="display:flex;gap:.5rem">'
+      +   '<button id="cnr-md-copiar" style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:.85rem;font-weight:700;padding:.65rem;border-radius:10px;border:none;background:var(--text);color:var(--surface);cursor:pointer">📋 Copiar</button>'
+      +   '<button id="cnr-md-editar" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:10px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✏️ Editar</button>'
+      +   '<button id="cnr-md-fechar" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:10px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✕</button>'
+      + '</div>'
+      + '<div id="cnr-md-form" style="display:none;flex-direction:column;gap:.6rem">'
+      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">'
+      +     '<div><label style="' + lbl + '">Nome</label><input id="cnr-mdf-nome" type="text" style="' + inp + '"></div>'
+      +     '<div><label style="' + lbl + '">Banco</label><input id="cnr-mdf-banco" type="text" style="' + inp + '"></div>'
+      +     '<div><label style="' + lbl + '">Agência</label><input id="cnr-mdf-agencia" type="text" style="' + inp + '"></div>'
+      +     '<div><label style="' + lbl + '">Conta (C/C)</label><input id="cnr-mdf-conta" type="text" style="' + inp + '"></div>'
+      +   '</div>'
+      +   '<div><label style="' + lbl + '">Chave Pix</label><input id="cnr-mdf-pix" type="text" style="' + inp + '"></div>'
+      +   '<div style="display:flex;gap:.5rem;margin-top:.2rem">'
+      +     '<button id="cnr-md-salvar" style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:.82rem;font-weight:700;padding:.55rem;border-radius:8px;border:none;background:var(--text);color:var(--surface);cursor:pointer">Salvar</button>'
+      +     '<button id="cnr-md-cancelar" style="font-family:\'DM Sans\',sans-serif;font-size:.82rem;padding:.55rem .8rem;border-radius:8px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">Cancelar</button>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+    el.addEventListener('click', function (e) { if (e.target === el) fecharMeusDados(); });
+    document.body.appendChild(el);
+    document.getElementById('cnr-md-copiar').addEventListener('click', copiarMeusDados);
+    document.getElementById('cnr-md-editar').addEventListener('click', editarMeusDados);
+    document.getElementById('cnr-md-fechar').addEventListener('click', fecharMeusDados);
+    document.getElementById('cnr-md-salvar').addEventListener('click', salvarMeusDados);
+    document.getElementById('cnr-md-cancelar').addEventListener('click', editarMeusDados);
   }
 
   function buildHTML() {
@@ -44,6 +127,7 @@
       + '<div class="cnr-sb-footer">'
       + '<button class="cnr-sb-dados" id="cnr-sb-dados-btn">📋&nbsp; Meus dados</button>'
       + '</div>';
+
   }
 
   function init() {
@@ -53,11 +137,9 @@
     aside.innerHTML = buildHTML();
     document.body.prepend(aside);
 
-    // Botão meus dados
-    var dadosBtn = document.getElementById('cnr-sb-dados-btn');
-    if (dadosBtn) {
-      dadosBtn.addEventListener('click', function () { copiarDados(dadosBtn); });
-    }
+    // Modal meus dados
+    buildModal();
+    document.getElementById('cnr-sb-dados-btn').addEventListener('click', abrirMeusDados);
 
     // Hamburger
     var ham = document.createElement('button');
