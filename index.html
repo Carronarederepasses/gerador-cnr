@@ -537,6 +537,7 @@
         <select id="chave-reserva">
           <option value="">Não informar</option>
           <option value="tem">Tem</option>
+          <option value="nao-tem">Não tem</option>
           <option value="confirmar">A confirmar</option>
         </select>
       </div>
@@ -545,6 +546,7 @@
         <select id="manual-veiculo">
           <option value="">Não informar</option>
           <option value="tem">Tem</option>
+          <option value="nao-tem">Não tem</option>
           <option value="confirmar">A confirmar</option>
         </select>
       </div>
@@ -1281,7 +1283,8 @@ function linhaPneus() {
 // Item com estado "Tem" / "A confirmar" (chave reserva, manual)
 function linhaItemConfirmavel(selId, label, ico = '✅') {
   const v = (document.getElementById(selId) || {}).value || '';
-  if (v === 'tem')       return `${ico} ${label}`;
+  if (v === 'tem')      return `${ico} ${label}`;
+  if (v === 'nao-tem')  return `⚠️ Sem ${label.toLowerCase()}`;
   if (v === 'confirmar') return `🔎 ${label} (a confirmar)`;
   return null;
 }
@@ -1870,6 +1873,8 @@ async function processarIA() {
     fill('colet-regiao',  data.regiao);
     fill('colet-valor',   data.valor);
     fill('colet-combustivel', data.combustivel);
+    if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
+    if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
     fill('revisoes-km', data.revisoes_km ? Number(String(data.revisoes_km).replace(/\D/g,'')).toLocaleString('pt-BR') : null);
     fill('blind-marca', data.blindagem_marca);
     fill('blind-nivel', data.blindagem_nivel);
