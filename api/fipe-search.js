@@ -66,7 +66,8 @@ const BRAND_ALIASES = [
   [/\bgm\b/g,          'chevrolet'],
   [/\bvw\b/g,          'volkswagen'],
   [/\bhaval\b/g,       'gwm'],          // "Haval H6" → GWM no FIPE (marca atual)
-  [/\bgwm\b/g,         'great wall'],   // "GWM" → casa com "Great Wall" / "GWM" no FIPE
+  // Nota: NÃO converte gwm→great wall. GWM e Great Wall são marcas distintas no FIPE:
+  // Great Wall = carros 2009-2016; GWM = carros 2019+ (Haval H6, Jolion, etc.)
   [/\bmercedes\b/g,    'mercedes-benz'], // "Mercedes GLC" → casa com "Mercedes-Benz"
   [/\bland\s*rover\b/g,'land rover'],
 ];
