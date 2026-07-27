@@ -30,6 +30,7 @@ Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
   "chave_reserva": "tem | nao-tem | null. 'tem' se mencionar chave reserva, chave extra, chave cópia, manual e chave. 'nao-tem' se mencionar sem chave reserva, sem segunda chave, somente 1 chave. null se não mencionado.",
   "manual": "tem | nao-tem | null. 'tem' se mencionar manual do proprietário, manual do veículo, com manual. 'nao-tem' se mencionar sem manual. null se não mencionado.",
   "revisoes_km": "quilometragem até a qual as revisões foram feitas na concessionária, se mencionado (ex: '80000'). null se não mencionado.",
+  "gastos": "string com reparos, melhorias ou gastos que o vendedor menciona que o carro precisa ou que já foram feitos por conta do comprador (ex: 'precisa pintar para-choque', 'gasta pneus na frente', 'tem um gasto de R$ 800 no câmbio'). null se não mencionado.",
   "extras": "string com informações relevantes do anúncio que NÃO se encaixam nos opcionais acima. IMPORTANTE: NUNCA repita aqui itens que já estão em opcionais. Capture SEMPRE que mencionado: manual do proprietário, chave reserva, manual e chave, chave extra, chave cópia, pneus meia vida, revisão feita fora da concessionária, sinistrado, de leilão, motor retificado, para-choque batido, etc. null se não houver nenhuma informação desse tipo."
 }
 
