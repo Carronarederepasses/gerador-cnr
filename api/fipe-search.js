@@ -65,7 +65,8 @@ const BRAND_ALIASES = [
   [/\bchery\b/g,       'caoa cherry'],  // "Chery Tiggo" → casa com "CAOA Cherry" no FIPE
   [/\bgm\b/g,          'chevrolet'],
   [/\bvw\b/g,          'volkswagen'],
-  [/\bgwm\b/g,         'great wall'],
+  [/\bhaval\b/g,       'gwm'],          // "Haval H6" → GWM no FIPE (marca atual)
+  [/\bgwm\b/g,         'great wall'],   // "GWM" → casa com "Great Wall" / "GWM" no FIPE
   [/\bmercedes\b/g,    'mercedes-benz'], // "Mercedes GLC" → casa com "Mercedes-Benz"
   [/\bland\s*rover\b/g,'land rover'],
 ];
@@ -73,7 +74,7 @@ const BRAND_ALIASES = [
 const MARCAS_POPULARES_IDS = [
   'fiat','chevrolet','volkswagen','hyundai','toyota','honda',
   'renault','jeep','ford','nissan','kia','mitsubishi','peugeot','citroen',
-  'caoa','cherry','byd','great wall','jac',
+  'caoa','cherry','byd','great wall','gwm','haval','jac',
   'mercedes','bmw','audi','volvo','land rover','porsche','jaguar',
 ];
 

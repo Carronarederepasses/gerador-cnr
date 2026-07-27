@@ -1873,7 +1873,8 @@ async function processarIA() {
     if (data.blindagem_marca || data.blindagem_nivel || data.blindagem_vidro) {
       document.getElementById('blind-wrap').classList.add('show');
     }
-    // Não preenche FIPE do texto — sempre busca o valor oficial na API abaixo
+    // Pré-preenche FIPE do texto como fallback (API pode sobrescrever com valor oficial)
+    if (data.fipe) fill('colet-fipe', data.fipe);
     // Extras: informações que não têm toggle — vai para Observação personalizada
     // Filtro defensivo: remove menções a itens que já são opcionais (evita duplicatas)
     if (data.extras) {
