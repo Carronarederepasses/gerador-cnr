@@ -19,7 +19,7 @@ async function fipeGet(path, retries = 3) {
 }
 
 // Palavras que indicam variante específica — penaliza se estão no modelo mas NÃO no texto do usuário
-const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','hib','hybrid','phev'];
+const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','hybrid','phev'];
 
 // Remove acentos para comparação neutra ("híbrido" ↔ "hibrido", etc.)
 const normalize = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -53,7 +53,7 @@ function score(haystack, needle, skipBasePenaltyFor = []) {
   // (usa o texto cru, sem separar dígitos, p/ casar "4x4", "awd" etc.)
   for (const v of PALAVRAS_VARIANTE) {
     if (nRaw.includes(v) && !hRaw.includes(v)) {
-      pts -= 3;
+      pts -= 2;
     }
   }
 
@@ -75,6 +75,7 @@ const BRAND_ALIASES = [
   [/\bgm\b/g,          'chevrolet'],
   [/\bvw\b/g,          'volkswagen'],
   [/\bhaval\b/g,       'gwm'],          // "Haval H6" → GWM no FIPE (marca atual)
+  [/\bgmw\b/g,         'gwm'],          // typo comum: "GMW" → "GWM"
   // Nota: NÃO converte gwm→great wall. GWM e Great Wall são marcas distintas no FIPE:
   // Great Wall = carros 2009-2016; GWM = carros 2019+ (Haval H6, Jolion, etc.)
   [/\bmercedes\b/g,    'mercedes-benz'], // "Mercedes GLC" → casa com "Mercedes-Benz"
@@ -164,13 +165,19 @@ module.exports = async (req, res) => {
     {
       const sepFn = s => s.replace(/([a-záàâãéêíóôõúüç])(\d)/g, '$1 $2');
       const brandWords = new Set((melhorMarca?.nome || '').toLowerCase().split(/[\s\-\/]+/).filter(w => w.length >= 3));
+      // Mínimo 2 chars: captura sufixos de versão curtos como "gt", "rs", "s"
       const palavrasChave = sepFn(vLower).split(/[\s\-\/]+/)
-        .filter(w => w.length >= 3 && !/^\d+$/.test(w) && !brandWords.has(w));
+        .filter(w => w.length >= 2 && !/^\d+$/.test(w) && !brandWords.has(w));
       if (palavrasChave.length > 0) {
-        const topNome = sepFn(candidatos[0].modelo.nome.toLowerCase());
-        const bate = palavrasChave.some(w => topNome.includes(w));
-        if (!bate) {
-          console.log(`fipe-search: "${veiculo}" rejeitado — palavras [${palavrasChave}] não batem com "${candidatos[0].modelo.nome}"`);
+        // Filtra TODOS os candidatos que não contêm nenhuma palavra-chave — não rejeita
+        // só o topo, porque o certo pode estar logo abaixo (ex: H6 GT AWD atrás do H6 sem AWD)
+        const antes = candidatos.length;
+        candidatos = candidatos.filter(c => {
+          const nomeC = sepFn(c.modelo.nome.toLowerCase());
+          return palavrasChave.some(w => nomeC.includes(w));
+        });
+        if (candidatos.length === 0) {
+          console.log(`fipe-search: "${veiculo}" sem candidato para [${palavrasChave}]`);
           return res.status(200).json({ found: false, reason: 'modelo não encontrado na FIPE' });
         }
       }
