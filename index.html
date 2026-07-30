@@ -1994,7 +1994,7 @@ async function processarParceiro() {
     }
 
     setParcSt('✓ Campos preenchidos. Confira e ajuste se necessário.', 'ok');
-    showToast('Dados extraídos com sucesso!');
+    toast('Dados extraídos com sucesso!');
   } catch (err) {
     setParcSt('Erro: ' + err.message, 'err');
   } finally {
