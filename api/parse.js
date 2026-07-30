@@ -40,11 +40,11 @@ Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
   "blindagem_nivel": null,
   "blindagem_vidro": null,
   "opcionais": ["array com itens confirmados na imagem ou no laudo. Use exatamente estes nomes: ar-condicionado, ar-condicionado digital, direcao-eletrica, vidros-eletricos, travas-eletricas, retrovisores-eletricos, comandos-no-volante, multimidia, android-auto-carplay, piloto-automatico, bancos-em-couro, teto-solar, teto-panoramico, keyless, partida-remota, freio-abs, airbag, controle-de-tracao, sensor-estacionamento, camera-re, cambio-manual, cambio-automatico, cambio-cvt, tracao-4x4, rodas-liga-leve, farol-led-xenon, pneus-zero, unico-dono, ipva-pago, sem-multas-debitos, revisoes-concessionaria, na-garantia, blindado, cautelar-aprovada"],
-  "chave_reserva": "tem | nao-tem | null — procure no laudo ou no card se há menção à chave reserva",
-  "manual": "tem | nao-tem | null — procure no laudo ou no card se há menção ao manual do proprietário",
+  "chave_reserva": "tem | nao-tem | null — IMPORTANTE: se na imagem aparecer duas chaves (ou '2 chaves', 'chave extra', 'chave reserva', ícone de duas chaves), retorne 'tem'. Se aparecer uma chave só ou 'sem chave reserva', retorne 'nao-tem'. null se não der pra saber",
+  "manual": "tem | nao-tem | null — se houver menção a manual do proprietário ou ícone de livro/manual no card, retorne 'tem'. null se não der pra saber",
   "revisoes_km": "km até onde as revisões foram feitas, se mencionado. null se não encontrado",
-  "gastos": "reparos ou pendências identificados no laudo (ex: 'laudo reprovado em faróis'). null se tudo ok",
-  "extras": "informações relevantes do laudo que não se encaixam nos campos acima (ex: restrições, avisos). null se não houver"
+  "gastos": "Liste aqui os itens reprovados ou com ressalvas no laudo cautelar, com os valores de reparo se informados (ex: 'Laudo: para-choque traseiro amassado R$400, pneu dianteiro esquerdo gasto R$300'). Se o laudo mostrar custo total de reparos, inclua também. null se laudo não tiver reprovações ou não houver laudo",
+  "extras": "informações relevantes do laudo que não se encaixam nos campos acima (ex: restrições administrativas, débitos, avisos). null se não houver"
 }
 
 JSON:`;
