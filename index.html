@@ -450,6 +450,26 @@
         <span class="parc-drop-nm" id="parc-pdf-nm"></span>
       </div>
     </div>
+    <!-- Confirmação visual — itens que a IA não lê de PDF com fotos -->
+    <div style="margin:.8rem 0 .6rem;font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--mid)">Confirme pelo laudo antes de processar</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.9rem">
+      <div class="field">
+        <label>Chave reserva</label>
+        <select id="parc-chave-reserva">
+          <option value="">— não sei</option>
+          <option value="tem">✓ Tem (2 chaves)</option>
+          <option value="nao-tem">✗ Não tem</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Manual do proprietário</label>
+        <select id="parc-manual">
+          <option value="">— não sei</option>
+          <option value="tem">✓ Tem manual</option>
+          <option value="nao-tem">✗ Não tem</option>
+        </select>
+      </div>
+    </div>
     <button class="btn-parse" id="btn-parc-proc" onclick="processarParceiro()" disabled>▶ Processar com IA</button>
     <div class="parc-st" id="parc-proc-st"></div>
   </div>
@@ -1992,10 +2012,13 @@ async function processarParceiro() {
       });
     }
 
-    if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
-    if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
-    if (data.gastos)        { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
-    if (data.extras)        { const e = document.getElementById('obs-extra'); if (e && !e.value) e.value = data.extras; }
+    // Chave e manual: toggles manuais têm prioridade sobre a IA (PDF tem fotos, não texto)
+    const chaveManual = document.getElementById('parc-chave-reserva').value;
+    const manualManual = document.getElementById('parc-manual').value;
+    document.getElementById('chave-reserva').value = chaveManual || data.chave_reserva || '';
+    document.getElementById('manual-veiculo').value = manualManual || data.manual || '';
+    if (data.gastos)  { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
+    if (data.extras)  { const e = document.getElementById('obs-extra'); if (e && !e.value) e.value = data.extras; }
 
     setParcSt('✓ Campos preenchidos. Buscando FIPE...', 'ok');
 
