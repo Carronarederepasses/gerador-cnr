@@ -699,6 +699,13 @@ function cnpjMask(el) {
   el.value = v;
 }
 
+function toTitleCase(str) {
+  const prep = new Set(['de','da','do','das','dos','e','em','com','por','a','o','as','os']);
+  return str.toLowerCase().replace(/\S+/g, (w, i) =>
+    (i === 0 || !prep.has(w)) ? w[0].toUpperCase() + w.slice(1) : w
+  );
+}
+
 async function buscarCNPJ() {
   const cnpj = document.getElementById('m-cnpj').value.replace(/\D/g,'');
   const st   = document.getElementById('cnpj-st');
@@ -708,18 +715,19 @@ async function buscarCNPJ() {
     const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
     if (!r.ok) { st.textContent = '✗ CNPJ não encontrado.'; return; }
     const d = await r.json();
-    if (d.razao_social) document.getElementById('m-razao_social').value = d.razao_social;
-    if (d.logradouro)   document.getElementById('m-logradouro').value   = `${d.logradouro}${d.numero ? ', '+d.numero : ''}`;
-    if (d.bairro)       document.getElementById('m-bairro').value       = d.bairro;
+    if (d.razao_social) document.getElementById('m-razao_social').value = toTitleCase(d.razao_social);
+    if (d.logradouro)   document.getElementById('m-logradouro').value   = `${toTitleCase(d.logradouro)}${d.numero ? ', '+d.numero : ''}`;
+    if (d.bairro)       document.getElementById('m-bairro').value       = toTitleCase(d.bairro);
     if (d.municipio) {
-      document.getElementById('m-cidade2').value = d.municipio;
+      const cidade = toTitleCase(d.municipio);
+      document.getElementById('m-cidade2').value = cidade;
       if (!document.getElementById('m-cidade').value)
-        document.getElementById('m-cidade').value = d.municipio;
+        document.getElementById('m-cidade').value = cidade;
     }
     if (d.uf)           document.getElementById('m-estado').value       = d.uf;
     if (d.cep)          document.getElementById('m-cep').value          = d.cep.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2');
     if (d.nome_fantasia && !document.getElementById('m-nome').value)
-                        document.getElementById('m-nome').value         = d.nome_fantasia;
+                        document.getElementById('m-nome').value         = toTitleCase(d.nome_fantasia);
     st.textContent = '✓ Dados preenchidos automaticamente.';
   } catch(_) { st.textContent = '✗ Erro ao buscar. Tente novamente.'; }
 }
