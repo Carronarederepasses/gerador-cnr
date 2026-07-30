@@ -10,6 +10,43 @@ const MODELS = [
   'openai/gpt-oss-120b:free',
 ];
 
+// Modelos com suporte a visão (imagem) — usados no modo parceiro
+const MODELS_VISION = [
+  'openai/gpt-4o-mini',
+  'google/gemini-2.5-flash',
+];
+
+const PROMPT_PARCEIRO = (laudoTexto) => `Você analisa o card de um site de revendedora de veículos (imagem) e um laudo cautelar (texto extraído do PDF).
+
+REGRA OBRIGATÓRIA: se a quilometragem da imagem e do laudo cautelar forem diferentes, use SEMPRE a km do laudo cautelar — ele é mais confiável.
+
+Laudo cautelar (texto extraído):
+${laudoTexto || '(não fornecido)'}
+
+Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
+
+{
+  "veiculo": "marca + modelo + versão completa. Se a marca não estiver visível, infira pelo modelo",
+  "ano": "ano do veículo em YYYY. Quando aparecer no formato 'XXXX/YYYY', use SEMPRE o segundo ano",
+  "km": "quilometragem do odômetro. Se houver divergência entre imagem e laudo, USE A DO LAUDO. Formato sem 'km' (ex: 29.254)",
+  "cor": "cor do veículo (null se não visível)",
+  "regiao": null,
+  "valor": "preço pedido sem R$ e sem pontos (ex: 79758)",
+  "fipe": null,
+  "combustivel": "Flex, Gasolina, Álcool, Diesel, Híbrido, Elétrico, GNV ou null",
+  "blindagem_marca": null,
+  "blindagem_nivel": null,
+  "blindagem_vidro": null,
+  "opcionais": [],
+  "chave_reserva": null,
+  "manual": null,
+  "revisoes_km": null,
+  "gastos": null,
+  "extras": null
+}
+
+JSON:`;
+
 const PROMPT = (texto) => `Você extrai dados de anúncios de veículos em texto livre (português brasileiro informal, WhatsApp, OLX, etc.).
 
 Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
@@ -73,6 +110,45 @@ async function tryModel(apiKey, model, texto) {
   return JSON.parse(jsonMatch[0]);
 }
 
+async function tryModelParceiro(apiKey, model, imagemBase64, laudoTexto) {
+  const content = [
+    { type: 'image_url', image_url: { url: imagemBase64 } },
+    { type: 'text', text: PROMPT_PARCEIRO(laudoTexto) },
+  ];
+
+  const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://crr-gerador.vercel.app',
+      'X-Title': 'CRR Gerador de Anúncio',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content }],
+      temperature: 0,
+      max_tokens: 512,
+    }),
+  });
+
+  if (resp.status === 429 || resp.status === 503) throw new Error(`rate_limit:${resp.status}`);
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    let parsed; try { parsed = JSON.parse(err); } catch { parsed = {}; }
+    if (parsed?.error?.message?.includes('Provider returned error') ||
+        parsed?.error?.message?.includes('No endpoints')) throw new Error(`rate_limit:${resp.status}`);
+    throw new Error(`http_error:${resp.status}`);
+  }
+
+  const data = await resp.json();
+  const content2 = data.choices?.[0]?.message?.content || '';
+  const jsonMatch = content2.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('no_json');
+  return JSON.parse(jsonMatch[0]);
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
@@ -80,6 +156,26 @@ module.exports = async (req, res) => {
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OPENROUTER_API_KEY não configurada' });
+
+  // Modo parceiro: imagem do site + texto do laudo cautelar
+  if (req.query.parceiro === '1') {
+    const { imagem, laudoTexto } = req.body || {};
+    if (!imagem) return res.status(400).json({ error: 'Campo imagem obrigatório' });
+
+    let lastErr = '';
+    for (const model of MODELS_VISION) {
+      try {
+        const parsed = await tryModelParceiro(apiKey, model, imagem, laudoTexto || '');
+        console.log(`parceiro OK com modelo: ${model}`);
+        return res.status(200).json(parsed);
+      } catch (err) {
+        lastErr = err.message;
+        console.error(`parceiro falhou em ${model}: ${err.message}`);
+        continue;
+      }
+    }
+    return res.status(500).json({ error: 'Serviço temporariamente indisponível. Tente novamente.' });
+  }
 
   const { texto } = req.body || {};
   if (!texto?.trim()) return res.status(400).json({ error: 'Campo texto obrigatório' });
