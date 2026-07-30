@@ -450,26 +450,6 @@
         <span class="parc-drop-nm" id="parc-pdf-nm"></span>
       </div>
     </div>
-    <!-- Confirmação visual — itens que a IA não lê de PDF com fotos -->
-    <div style="margin:.8rem 0 .6rem;font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--mid)">Confirme pelo laudo antes de processar</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.9rem">
-      <div class="field">
-        <label>Chave reserva</label>
-        <select id="parc-chave-reserva">
-          <option value="">— não sei</option>
-          <option value="tem">✓ Tem (2 chaves)</option>
-          <option value="nao-tem">✗ Não tem</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Manual do proprietário</label>
-        <select id="parc-manual">
-          <option value="">— não sei</option>
-          <option value="tem">✓ Tem manual</option>
-          <option value="nao-tem">✗ Não tem</option>
-        </select>
-      </div>
-    </div>
     <button class="btn-parse" id="btn-parc-proc" onclick="processarParceiro()" disabled>▶ Processar com IA</button>
     <div class="parc-st" id="parc-proc-st"></div>
   </div>
@@ -1912,10 +1892,24 @@ function _loadParcImg(file) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
-    _parcImgData = ev.target.result; // data:image/...;base64,...
-    document.getElementById('parc-img-nm').textContent = file.name;
-    document.getElementById('parc-drop-img').classList.add('ok');
-    _atualizaBtnParc();
+    // Comprime para max 1200px e qualidade 80% — evita estourar limite do Vercel (4.5MB)
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      _parcImgData = canvas.toDataURL('image/jpeg', 0.80);
+      document.getElementById('parc-img-nm').textContent = file.name;
+      document.getElementById('parc-drop-img').classList.add('ok');
+      _atualizaBtnParc();
+    };
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -2012,11 +2006,8 @@ async function processarParceiro() {
       });
     }
 
-    // Chave e manual: toggles manuais têm prioridade sobre a IA (PDF tem fotos, não texto)
-    const chaveManual = document.getElementById('parc-chave-reserva').value;
-    const manualManual = document.getElementById('parc-manual').value;
-    document.getElementById('chave-reserva').value = chaveManual || data.chave_reserva || '';
-    document.getElementById('manual-veiculo').value = manualManual || data.manual || '';
+    if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
+    if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
     if (data.gastos)  { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
     if (data.extras)  { const e = document.getElementById('obs-extra'); if (e && !e.value) e.value = data.extras; }
 
