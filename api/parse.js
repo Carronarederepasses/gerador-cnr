@@ -16,33 +16,35 @@ const MODELS_VISION = [
   'google/gemini-2.5-flash',
 ];
 
-const PROMPT_PARCEIRO = (laudoTexto) => `Você analisa o card de um site de revendedora de veículos (imagem) e um laudo cautelar (texto extraído do PDF).
+const PROMPT_PARCEIRO = (laudoTexto) => `Você analisa o card de um site de revendedora de veículos (imagem) e um laudo cautelar (texto extraído do PDF abaixo).
 
-REGRA OBRIGATÓRIA: se a quilometragem da imagem e do laudo cautelar forem diferentes, use SEMPRE a km do laudo cautelar — ele é mais confiável.
+REGRA OBRIGATÓRIA: se a quilometragem da imagem e do laudo cautelar forem diferentes, use SEMPRE a km do laudo cautelar — ele é o documento oficial.
 
-Laudo cautelar (texto extraído):
+Analise AMBAS as fontes (imagem + laudo) para preencher os campos abaixo.
+
+Laudo cautelar (texto extraído do PDF):
 ${laudoTexto || '(não fornecido)'}
 
 Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
 
 {
-  "veiculo": "marca + modelo + versão completa. Se a marca não estiver visível, infira pelo modelo",
-  "ano": "ano do veículo em YYYY. Quando aparecer no formato 'XXXX/YYYY', use SEMPRE o segundo ano",
-  "km": "quilometragem do odômetro. Se houver divergência entre imagem e laudo, USE A DO LAUDO. Formato sem 'km' (ex: 29.254)",
-  "cor": "cor do veículo (null se não visível)",
+  "veiculo": "marca + modelo + versão completa visível no card. Se marca não estiver explícita, infira pelo modelo",
+  "ano": "ano em YYYY. Quando aparecer 'XXXX/YYYY', use SEMPRE o segundo ano",
+  "km": "quilometragem do odômetro. Se houver divergência entre imagem e laudo, USE A DO LAUDO. Sem 'km' (ex: 29.254)",
+  "cor": "cor do veículo",
   "regiao": null,
   "valor": "preço pedido sem R$ e sem pontos (ex: 79758)",
   "fipe": null,
-  "combustivel": "Flex, Gasolina, Álcool, Diesel, Híbrido, Elétrico, GNV ou null",
+  "combustivel": "Flex, Gasolina, Álcool, Diesel, Híbrido, Elétrico ou GNV. Infira pela versão se não estiver explícito",
   "blindagem_marca": null,
   "blindagem_nivel": null,
   "blindagem_vidro": null,
-  "opcionais": [],
-  "chave_reserva": null,
-  "manual": null,
-  "revisoes_km": null,
-  "gastos": null,
-  "extras": null
+  "opcionais": ["array com itens confirmados na imagem ou no laudo. Use exatamente estes nomes: ar-condicionado, ar-condicionado digital, direcao-eletrica, vidros-eletricos, travas-eletricas, retrovisores-eletricos, comandos-no-volante, multimidia, android-auto-carplay, piloto-automatico, bancos-em-couro, teto-solar, teto-panoramico, keyless, partida-remota, freio-abs, airbag, controle-de-tracao, sensor-estacionamento, camera-re, cambio-manual, cambio-automatico, cambio-cvt, tracao-4x4, rodas-liga-leve, farol-led-xenon, pneus-zero, unico-dono, ipva-pago, sem-multas-debitos, revisoes-concessionaria, na-garantia, blindado, cautelar-aprovada"],
+  "chave_reserva": "tem | nao-tem | null — procure no laudo ou no card se há menção à chave reserva",
+  "manual": "tem | nao-tem | null — procure no laudo ou no card se há menção ao manual do proprietário",
+  "revisoes_km": "km até onde as revisões foram feitas, se mencionado. null se não encontrado",
+  "gastos": "reparos ou pendências identificados no laudo (ex: 'laudo reprovado em faróis'). null se tudo ok",
+  "extras": "informações relevantes do laudo que não se encaixam nos campos acima (ex: restrições, avisos). null se não houver"
 }
 
 JSON:`;

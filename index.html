@@ -1983,17 +1983,27 @@ async function processarParceiro() {
     fill('colet-cor',     data.cor);
     fill('colet-valor',   data.valor);
     fill('colet-combustivel', data.combustivel);
-    if (data.fipe) fill('colet-fipe', data.fipe);
 
-    // Preencher opcionais detectados
+    // Opcionais detectados na imagem e/ou laudo
     if (Array.isArray(data.opcionais)) {
-      data.opcionais.forEach(id => {
-        const tog = document.querySelector(`.tog[data-id="${id}"]`);
+      data.opcionais.forEach(opc => {
+        const tog = document.querySelector(`.tog[data-id="${opc}"]`);
         if (tog && !tog.classList.contains('on')) tog.click();
       });
     }
 
-    setParcSt('✓ Campos preenchidos. Confira e ajuste se necessário.', 'ok');
+    if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
+    if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
+    if (data.gastos)        { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
+    if (data.extras)        { const e = document.getElementById('obs-extra'); if (e && !e.value) e.value = data.extras; }
+
+    setParcSt('✓ Campos preenchidos. Buscando FIPE...', 'ok');
+
+    // Dispara busca FIPE igual ao fluxo "Texto / Link"
+    if (data.veiculo && data.ano) {
+      await buscarFIPEColetados(data.veiculo, data.ano, false, data.combustivel);
+    }
+
     toast('Dados extraídos com sucesso!');
   } catch (err) {
     setParcSt('Erro: ' + err.message, 'err');
