@@ -111,14 +111,16 @@ async function anexoHandler(req, res, q) {
       if (!vendaId) return res.status(400).json({ error: 'vendaId obrigatório.' });
       const ext = EXT[mimeType] || (nome && nome.includes('.') ? nome.split('.').pop().toLowerCase() : 'bin');
       const objPath = `${vendaId}/${tipo}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/upload/${BUCKET}/${objPath}`, {
+      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${BUCKET}/${objPath}`, {
         method: 'POST',
         headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
-      return res.status(200).json({ path: objPath, uploadUrl: `${SUPABASE_URL}/storage/v1${data.url}` });
+      // Supabase retorna { url: '/storage/v1/object/upload/sign/...' }
+      const uploadUrl = data.url.startsWith('http') ? data.url : `${SUPABASE_URL}/storage/v1${data.url}`;
+      return res.status(200).json({ path: objPath, uploadUrl });
     }
     // confirm-upload: registra o arquivo no campo anexos após upload direto
     if (q.action === 'confirm-upload') {
