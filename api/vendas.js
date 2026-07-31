@@ -151,6 +151,20 @@ module.exports = async (req, res) => {
     // Rota de anexos
     if (q.anexo !== undefined) return await anexoHandler(req, res, q);
 
+    // Importação em lote (só POST)
+    if (q.import === '1') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'POST obrigatório.' });
+      const registros = Array.isArray(req.body) ? req.body : (req.body?.registros || []);
+      if (!registros.length) return res.status(400).json({ error: 'Nenhum registro enviado.' });
+      const limpos = registros.map(b => limpar(b)).filter(b => Object.keys(b).length > 0);
+      const r = await sb(TABLE, {
+        method: 'POST', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(limpos),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      return res.status(201).json({ importados: limpos.length });
+    }
+
     if (req.method === 'GET') {
       const parts = ['select=*', 'order=created_at.desc', ...filtros(q)];
       const r = await sb(`${TABLE}?${parts.join('&')}`);
