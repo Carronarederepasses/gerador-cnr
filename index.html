@@ -435,7 +435,7 @@
   <div id="parc-sub-print" style="display:none">
   <div class="fsec">
     <div class="fsec-title">Print do site + Laudo Cautelar</div>
-    <div class="fsec-hint">Sobe a imagem do card do parceiro e o PDF da cautelar. A IA lê os dois e preenche os campos abaixo. Em caso de divergência na km, prevalece a km do laudo.</div>
+    <div class="fsec-hint">Sobe o print do card e/ou o PDF da cautelar. Pode usar só um dos dois. A IA lê e preenche os campos abaixo — em caso de divergência na km, prevalece o laudo.</div>
     <div class="parc-upload-row">
       <div class="parc-drop" id="parc-drop-img" ondragover="parcDrag(event,'parc-drop-img')" ondragleave="parcDragLeave('parc-drop-img')" ondrop="parcDropImg(event)">
         <input type="file" accept="image/*" id="parc-img-input" onchange="parcImgChange(event)">
@@ -1878,8 +1878,9 @@ function parcTab(sub) {
 function parcDrag(e, id) { e.preventDefault(); document.getElementById(id).classList.add('drag'); }
 function parcDragLeave(id) { document.getElementById(id).classList.remove('drag'); }
 
-let _parcImgData = null; // base64 da imagem
-let _parcPdfText = null; // texto extraído do PDF
+let _parcImgData  = null; // base64 da imagem do card
+let _parcPdfText  = null; // texto extraído do PDF
+let _parcPdfImg   = null; // página 1 do PDF renderizada como imagem (fallback quando não há card)
 
 function parcImgChange(e) { _loadParcImg(e.target.files[0]); }
 function parcDropImg(e) {
@@ -1925,20 +1926,65 @@ function _loadParcPdf(file) {
   if (!file) return;
   document.getElementById('parc-pdf-nm').textContent = file.name;
   document.getElementById('parc-drop-pdf').classList.add('ok');
-  setParcSt('Extraindo texto do laudo...', 'loading');
-  _extrairTextoPdf(file).then(txt => {
+  setParcSt('Lendo laudo...', 'loading');
+
+  // Extrai texto e renderiza como imagem em paralelo
+  Promise.all([
+    _extrairTextoPdf(file).catch(() => ''),
+    _renderPdfParaImagem(file).catch(() => null),
+  ]).then(([txt, img]) => {
     _parcPdfText = txt;
-    setParcSt('Laudo carregado — ' + txt.length + ' caracteres extraídos.', 'ok');
+    _parcPdfImg  = img;
     _atualizaBtnParc();
-  }).catch(() => {
-    _parcPdfText = '';
-    setParcSt('Não foi possível ler o PDF — a IA usará só a imagem.', '');
-    _atualizaBtnParc();
+    const temTexto = txt && txt.trim().length > 20;
+    setParcSt(
+      img
+        ? 'Laudo pronto' + (temTexto ? ' (texto + imagem).' : ' (imagem renderizada).')
+        : 'Laudo carregado.',
+      'ok'
+    );
   });
 }
 
+async function _renderPdfParaImagem(file) {
+  if (!window.pdfjsLib) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const buf  = await file.arrayBuffer();
+  const pdf  = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  const nPgs = Math.min(pdf.numPages, 2);
+
+  const canvases = [];
+  for (let i = 1; i <= nPgs; i++) {
+    const pg       = await pdf.getPage(i);
+    const viewport = pg.getViewport({ scale: 1.2 });
+    const c = document.createElement('canvas');
+    c.width  = viewport.width;
+    c.height = viewport.height;
+    await pg.render({ canvasContext: c.getContext('2d'), viewport }).promise;
+    canvases.push(c);
+  }
+
+  const totalH = canvases.reduce((s, c) => s + c.height, 0);
+  const final  = document.createElement('canvas');
+  final.width  = canvases[0].width;
+  final.height = totalH;
+  const ctx    = final.getContext('2d');
+  let y = 0;
+  for (const c of canvases) { ctx.drawImage(c, 0, y); y += c.height; }
+
+  return final.toDataURL('image/jpeg', 0.80);
+}
+
 function _atualizaBtnParc() {
-  document.getElementById('btn-parc-proc').disabled = !_parcImgData;
+  document.getElementById('btn-parc-proc').disabled = !(_parcImgData || _parcPdfImg);
 }
 
 async function _extrairTextoPdf(file) {
@@ -1972,19 +2018,20 @@ function setParcSt(msg, cls) {
 }
 
 async function processarParceiro() {
-  if (!_parcImgData) { setParcSt('Suba a imagem do print primeiro.'); return; }
+  const imagem = _parcImgData || _parcPdfImg;
+  if (!imagem) { setParcSt('Suba o print ou o laudo primeiro.'); return; }
 
   const btn = document.getElementById('btn-parc-proc');
   btn.disabled = true;
   btn.classList.add('loading');
   btn.textContent = '⏳ Processando...';
-  setParcSt('Enviando imagem para a IA...', 'loading');
+  setParcSt('Enviando para a IA...', 'loading');
 
   try {
     const resp = await fetch('/api/parse?parceiro=1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imagem: _parcImgData, laudoTexto: _parcPdfText || '' }),
+      body: JSON.stringify({ imagem, laudoTexto: _parcPdfText || '' }),
     });
 
     const data = await resp.json();

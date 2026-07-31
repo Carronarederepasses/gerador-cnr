@@ -12,13 +12,14 @@ const MODELS = [
 
 // Modelos com suporte a visão (imagem) — usados no modo parceiro
 const MODELS_VISION = [
+  'anthropic/claude-3-haiku',
   'openai/gpt-4o-mini',
   'google/gemini-2.5-flash',
 ];
 
-const PROMPT_PARCEIRO = (laudoTexto) => `Você analisa o card de um site de revendedora de veículos (imagem) e um laudo cautelar (texto extraído do PDF abaixo).
+const PROMPT_PARCEIRO = (laudoTexto) => `Você analisa imagem(ns) de veículo — pode ser o card de um site de revendedora OU páginas do laudo cautelar renderizadas — e, quando disponível, o texto extraído do laudo cautelar abaixo.
 
-REGRA OBRIGATÓRIA: se a quilometragem da imagem e do laudo cautelar forem diferentes, use SEMPRE a km do laudo cautelar — ele é o documento oficial.
+REGRA OBRIGATÓRIA: se a quilometragem da imagem e do laudo cautelar forem diferentes, use SEMPRE a km do laudo cautelar — ele é o documento oficial. Se só houver laudo, use a km nele registrada.
 
 Analise AMBAS as fontes (imagem + laudo) para preencher os campos abaixo.
 
