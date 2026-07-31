@@ -103,8 +103,33 @@ async function anexoHandler(req, res, q) {
     const { signedURL } = await r.json();
     return res.status(200).json({ url: `${SUPABASE_URL}/storage/v1${signedURL}` });
   }
-  // POST → upload
+  // POST → upload via base64 OU preparar upload direto OU confirmar upload direto
   if (req.method === 'POST') {
+    // prepare-upload: gera URL assinada para upload direto (sem passar pelo Vercel)
+    if (q.action === 'prepare-upload') {
+      const { vendaId, tipo = 'outro', mimeType = 'application/octet-stream', nome } = req.body || {};
+      if (!vendaId) return res.status(400).json({ error: 'vendaId obrigatório.' });
+      const ext = EXT[mimeType] || (nome && nome.includes('.') ? nome.split('.').pop().toLowerCase() : 'bin');
+      const objPath = `${vendaId}/${tipo}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/upload/${BUCKET}/${objPath}`, {
+        method: 'POST',
+        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      return res.status(200).json({ path: objPath, uploadUrl: `${SUPABASE_URL}/storage/v1${data.url}` });
+    }
+    // confirm-upload: registra o arquivo no campo anexos após upload direto
+    if (q.action === 'confirm-upload') {
+      const { vendaId, tipo = 'outro', path, mimeType = 'application/octet-stream', nome } = req.body || {};
+      if (!vendaId || !path) return res.status(400).json({ error: 'vendaId e path obrigatórios.' });
+      const anexos = await getAnexos(vendaId);
+      anexos.push({ tipo, path, nome: nome || path.split('/').pop(), mimeType, uploadedAt: new Date().toISOString() });
+      await setAnexos(vendaId, anexos);
+      return res.status(200).json({ anexos });
+    }
+    // upload via base64 (arquivos pequenos, mantido por compatibilidade)
     const { vendaId, tipo = 'outro', fileBase64, mimeType = 'application/octet-stream', nome } = req.body || {};
     if (!vendaId || !fileBase64) return res.status(400).json({ error: 'vendaId e fileBase64 obrigatórios.' });
     const ext = EXT[mimeType] || (nome && nome.includes('.') ? nome.split('.').pop().toLowerCase() : 'bin');

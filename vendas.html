@@ -812,26 +812,27 @@ $('file-input').addEventListener('change', async (e) => {
   try {
     for (const f of files) {
       $('contador').textContent = 'Enviando ' + f.name + '...';
-      const b64 = await fileToBase64(f);
-      const r = await fetch('/api/vendas?anexo=1', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, fileBase64: b64, mimeType: f.type || 'application/octet-stream', nome: f.name }),
+      const mimeType = f.type || 'application/octet-stream';
+      // 1. obter URL assinada para upload direto (sem limite de tamanho no Vercel)
+      const prep = await fetch('/api/vendas?anexo=1&action=prepare-upload', {
+        method: 'POST', headers: headers(),
+        body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, mimeType, nome: f.name }),
       });
-      if (!r.ok) throw new Error((await r.json()).error || 'erro');
+      if (!prep.ok) throw new Error((await prep.json()).error || 'erro ao preparar');
+      const { path, uploadUrl } = await prep.json();
+      // 2. upload direto ao Supabase Storage (bypass do Vercel)
+      const up = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: f });
+      if (!up.ok) throw new Error('Falha no upload direto ao storage');
+      // 3. registrar no banco
+      const conf = await fetch('/api/vendas?anexo=1&action=confirm-upload', {
+        method: 'POST', headers: headers(),
+        body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, path, mimeType, nome: f.name }),
+      });
+      if (!conf.ok) throw new Error((await conf.json()).error || 'erro ao confirmar');
     }
     carregar();
   } catch (err) { mostrarErro('Falha ao anexar: ' + err.message); carregar(); }
 });
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result.split(',')[1]);
-    fr.onerror = reject;
-    fr.readAsDataURL(file);
-  });
-}
 
 async function abrirAnexo(vendaId, path) {
   try {
