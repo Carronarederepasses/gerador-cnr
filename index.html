@@ -1959,12 +1959,12 @@ async function _renderPdfParaImagem(file) {
   }
   const buf  = await file.arrayBuffer();
   const pdf  = await window.pdfjsLib.getDocument({ data: buf }).promise;
-  const nPgs = Math.min(pdf.numPages, 3);
+  const nPgs = Math.min(pdf.numPages, 2);
 
   const canvases = [];
   for (let i = 1; i <= nPgs; i++) {
     const pg       = await pdf.getPage(i);
-    const viewport = pg.getViewport({ scale: 1.2 });
+    const viewport = pg.getViewport({ scale: 2.0 });
     const c = document.createElement('canvas');
     c.width  = viewport.width;
     c.height = viewport.height;
