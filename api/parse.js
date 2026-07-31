@@ -12,7 +12,7 @@ const MODELS = [
 
 // Modelos com suporte a visão (imagem) — usados no modo parceiro
 const MODELS_VISION = [
-  'anthropic/claude-3-haiku',
+  'anthropic/claude-sonnet-4-5',
   'openai/gpt-4o-mini',
   'google/gemini-2.5-flash',
 ];
