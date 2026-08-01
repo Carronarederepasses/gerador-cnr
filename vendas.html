@@ -223,7 +223,7 @@
         <div><label>Nome do vendedor</label><input id="m-vendedor_nome" /></div>
       </div>
       <div class="grid2">
-        <div><label>CPF / CNPJ</label><input id="m-vendedor_cpf" inputmode="numeric" /></div>
+        <div><label>CPF / CNPJ</label><input id="m-vendedor_cpf" /></div>
         <div><label>Telefone</label><input id="m-vendedor_telefone" inputmode="tel" /></div>
       </div>
     </div>
@@ -242,7 +242,7 @@
         </div>
       </div>
       <div class="grid2">
-        <div><label>CPF / CNPJ</label><input id="m-comprador_cpf" inputmode="numeric" /></div>
+        <div><label>CPF / CNPJ</label><input id="m-comprador_cpf" /></div>
         <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" /></div>
       </div>
       <div style="margin-top:.6rem"><label>Por que esse comprador? — alimenta o Motor de Match</label>
@@ -768,6 +768,8 @@ $('m-salvar').onclick = async () => {
     if (['km','valor_venda','valor_fipe','taxa_intermediacao'].includes(c)) val = val === '' ? null : Number(val);
     body[c] = val;
   });
+  const btn = $('m-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     const url = id ? '/api/vendas?id=' + id : '/api/vendas';
     const r = await fetch(url, { method: id ? 'PATCH' : 'POST', headers: headers(), body: JSON.stringify(body) });
@@ -786,7 +788,11 @@ $('m-salvar').onclick = async () => {
     fecharModal();
     await carregar();
     toast(id ? '✓ Venda atualizada!' : '✓ Venda registrada com sucesso!');
-  } catch (e) { mostrarErro('Falha ao salvar: ' + e.message); }
+  } catch (e) {
+    toast('Falha ao salvar: ' + e.message, 'erro', 6000);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar venda';
+  }
 };
 
 async function apagar(id) {

@@ -2,7 +2,7 @@
 // POST /api/placa   body: { placa: "ABC1234" }
 // Env var: APIBRASIL_TOKEN
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { placa } = req.body || {};
