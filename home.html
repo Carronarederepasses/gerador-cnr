@@ -787,10 +787,10 @@ function _pct(num, den) { return den > 0 ? num / den * 100 : null; }
 function _kcrCor(p)  { return p === null ? 'neutro' : p >= 80 ? 'verde' : p >= 60 ? 'amarelo' : 'crit'; }
 function _kcrTxt(p)  { return p >= 80 ? 'Boa' : p >= 60 ? 'Atenção' : 'Ação necessária'; }
 function _kcrMarco(p) {
-  if (p >= 90) return { msg: 'Capital de Conhecimento consolidado.', cor: 'var(--severity-ok)' };
-  if (p >= 75) return { msg: 'Dataset rico o suficiente para recomendações avançadas.', cor: 'var(--severity-ok)' };
-  if (p >= 50) return { msg: 'Motor de Match começa a aprender padrões.', cor: 'var(--severity-warn)' };
-  if (p >= 25) return { msg: 'Base inicial formada.', cor: 'var(--severity-warn)' };
+  if (p >= 90) return { msg: 'O CNR aprende com a operação quase em tempo real.', cor: 'var(--severity-ok)' };
+  if (p >= 75) return { msg: 'O conhecimento acumulado vira vantagem competitiva.', cor: 'var(--severity-ok)' };
+  if (p >= 50) return { msg: 'O sistema começa a fazer recomendações consistentes.', cor: 'var(--severity-warn)' };
+  if (p >= 25) return { msg: 'O conhecimento começa a sair da cabeça do Yuri.', cor: 'var(--severity-warn)' };
   return null;
 }
 
