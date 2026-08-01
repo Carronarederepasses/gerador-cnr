@@ -184,6 +184,39 @@ module.exports = async (req, res) => {
       return res.status(405).json({ error: 'Método não permitido' });
     }
 
+    // ── CAPITAL DE CONHECIMENTO (KCR) ─────────────────────────
+    if ('saude' in q) {
+      const [rComp, rNeg, rVend] = await Promise.all([
+        sb('compradores?ativo=eq.true&select=marcas,preco_min,preco_max,observacoes'),
+        sb('negociacoes?select=status,motivo_descarte'),
+        sb('vendas?select=valor_compra,motivo_match'),
+      ]);
+      if (!rComp.ok) throw new Error('Erro ao buscar compradores');
+      if (!rNeg.ok)  throw new Error('Erro ao buscar negociações');
+      if (!rVend.ok) throw new Error('Erro ao buscar vendas');
+      const comps = await rComp.json();
+      const negs  = await rNeg.json();
+      const vends = await rVend.json();
+      const descartadas = negs.filter(n => n.status === 'descartado');
+      return res.status(200).json({
+        compradores: {
+          total:      comps.length,
+          com_marcas: comps.filter(c => Array.isArray(c.marcas) && c.marcas.length > 0).length,
+          com_preco:  comps.filter(c => c.preco_min != null && c.preco_max != null).length,
+          com_obs:    comps.filter(c => c.observacoes && c.observacoes.trim().length > 0).length,
+        },
+        negociacoes: {
+          descartadas:         descartadas.length,
+          com_motivo_descarte: descartadas.filter(n => n.motivo_descarte != null && n.motivo_descarte !== '').length,
+        },
+        vendas: {
+          total:            vends.length,
+          com_valor_compra: vends.filter(v => v.valor_compra != null).length,
+          com_motivo_match: vends.filter(v => v.motivo_match != null && v.motivo_match !== '').length,
+        },
+      });
+    }
+
     // ── MATCH ─────────────────────────────────────────────────
     if ('match' in q) {
       const r = await sb('compradores?select=*&ativo=eq.true&order=nome.asc');

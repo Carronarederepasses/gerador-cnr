@@ -154,6 +154,35 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .parado-dias.warn{background:color-mix(in srgb,#e8a000 15%,transparent);color:#e8a000}
 .parado-dias.crit{background:color-mix(in srgb,var(--severity-crit) 15%,transparent);color:var(--severity-crit)}
 .parado-link{font-size:.72rem;color:var(--accent);text-decoration:none;flex-shrink:0}
+
+/* Capital de Conhecimento */
+.kcr-panel{background:var(--surface-raise);border:1px solid var(--line);border-radius:14px;padding:1.2rem 1.3rem}
+.kcr-top{display:flex;align-items:center;gap:1.2rem;margin-bottom:1.1rem;flex-wrap:wrap}
+.kcr-score-wrap{flex-shrink:0}
+.kcr-num{font-family:'Playfair Display',serif;font-size:2.6rem;font-weight:900;line-height:1}
+.kcr-num.verde{color:var(--severity-ok)}.kcr-num.amarelo{color:var(--severity-warn)}.kcr-num.crit{color:var(--severity-crit)}
+.kcr-status-lbl{font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:.2rem}
+.kcr-status-lbl.verde{color:var(--severity-ok)}.kcr-status-lbl.amarelo{color:var(--severity-warn)}.kcr-status-lbl.crit{color:var(--severity-crit)}
+.kcr-barra-wrap{flex:1;min-width:140px}
+.kcr-barra{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:.4rem}
+.kcr-barra-fill{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.22,1,.36,1)}
+.kcr-barra-fill.verde{background:var(--severity-ok)}.kcr-barra-fill.amarelo{background:var(--severity-warn)}.kcr-barra-fill.crit{background:var(--severity-crit)}
+.kcr-barra-sub{font-size:.67rem;color:var(--text-faint);line-height:1.4}
+.kcr-grid{display:flex;flex-direction:column;gap:.15rem}
+.kcr-item{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:.4rem .9rem;padding:.38rem .45rem;border-radius:7px;transition:background .12s}
+.kcr-item:hover{background:var(--surface)}
+.kcr-item-main{min-width:0}
+.kcr-item-nome{font-size:.8rem;font-weight:500;color:var(--text)}
+.kcr-item-cap{font-size:.67rem;color:var(--text-faint)}
+.kcr-item-pct{font-size:.8rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:2.4rem;text-align:right}
+.kcr-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.kcr-item.verde .kcr-item-pct{color:var(--severity-ok)}.kcr-item.verde .kcr-dot{background:var(--severity-ok)}
+.kcr-item.amarelo .kcr-item-pct{color:var(--severity-warn)}.kcr-item.amarelo .kcr-dot{background:var(--severity-warn)}
+.kcr-item.crit .kcr-item-pct{color:var(--severity-crit)}.kcr-item.crit .kcr-dot{background:var(--severity-crit)}
+.kcr-item.neutro .kcr-item-pct{color:var(--text-faint)}.kcr-item.neutro .kcr-dot{background:var(--text-faint)}
+.kcr-acao{margin-top:.9rem;padding:.55rem .75rem;background:color-mix(in srgb,var(--severity-warn) 8%,transparent);border:1px solid color-mix(in srgb,var(--severity-warn) 22%,transparent);border-radius:8px;font-size:.76rem;color:var(--text-mid);display:flex;align-items:center;gap:.4rem}
+.kcr-acao a{color:var(--accent);text-decoration:none;font-weight:500}
+.kcr-acao a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -198,6 +227,12 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div class="val" id="kpi-neg">—</div>
       <div class="sub" id="kpi-neg-sub">em andamento</div>
     </div>
+  </div>
+
+  <!-- Capital de Conhecimento -->
+  <div class="secao">
+    <div class="secao-titulo">Capital de Conhecimento · Prontidão para IA</div>
+    <div id="kcr-panel" class="kcr-panel"><div class="loading">carregando...</div></div>
   </div>
 
   <!-- Pipeline -->
@@ -715,6 +750,60 @@ async function toggleHist12() {
 }
 
 saudacao();
+// ── Capital de Conhecimento ────────────────────────────────────
+const KCR_IND = [
+  { nome:'Compradores com marcas de interesse', cap:'Motor de Match',         pct: d => _pct(d.compradores.com_marcas,         d.compradores.total),         link:'/compradores.html', acao:'Preencher marcas de interesse nos compradores' },
+  { nome:'Compradores com faixa de preço',      cap:'Motor de Match',         pct: d => _pct(d.compradores.com_preco,          d.compradores.total),         link:'/compradores.html', acao:'Preencher preço mínimo e máximo nos compradores' },
+  { nome:'Compradores com observações',         cap:'Conhecimento tácito',    pct: d => _pct(d.compradores.com_obs,            d.compradores.total),         link:'/compradores.html', acao:'Adicionar "O que sabemos" nos compradores ativos' },
+  { nome:'Descartes com motivo registrado',     cap:'Aprender rejeições',     pct: d => _pct(d.negociacoes.com_motivo_descarte,d.negociacoes.descartadas),   link:'/negociacoes.html', acao:'Registrar motivo ao descartar negociações' },
+  { nome:'Vendas com motivo de match',          cap:'Aprender recomendações', pct: d => _pct(d.vendas.com_motivo_match,        d.vendas.total),              link:'/vendas.html',      acao:'Preencher "Por que esse comprador?" nas vendas' },
+  { nome:'Vendas com valor de compra',          cap:'Calcular margem real',   pct: d => _pct(d.vendas.com_valor_compra,        d.vendas.total),              link:'/vendas.html',      acao:'Preencher valor de compra nas vendas registradas' },
+];
+function _pct(num, den) { return den > 0 ? num / den * 100 : null; }
+function _kcrCor(p)  { return p === null ? 'neutro' : p >= 80 ? 'verde' : p >= 60 ? 'amarelo' : 'crit'; }
+function _kcrTxt(p)  { return p >= 80 ? 'Boa' : p >= 60 ? 'Atenção' : 'Ação necessária'; }
+
+async function carregarKCR() {
+  const panel = document.getElementById('kcr-panel');
+  try {
+    const r = await fetch('/api/compradores?saude=1');
+    if (!r.ok) throw new Error('erro');
+    const d = await r.json();
+    const pcts = KCR_IND.map(i => i.pct(d)).filter(p => p !== null);
+    const kcr  = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length) : 0;
+    const cor  = _kcrCor(kcr);
+    let piorInd = null, piorP = Infinity;
+    KCR_IND.forEach(i => { const p = i.pct(d); if (p !== null && p < piorP) { piorP = p; piorInd = i; } });
+    const itens = KCR_IND.map(i => {
+      const p = i.pct(d), c = _kcrCor(p);
+      return `<div class="kcr-item ${c}">
+        <div class="kcr-item-main"><div class="kcr-item-nome">${i.nome}</div><div class="kcr-item-cap">${i.cap}</div></div>
+        <span class="kcr-item-pct">${p === null ? '—' : Math.round(p)+'%'}</span>
+        <span class="kcr-dot"></span>
+      </div>`;
+    }).join('');
+    const acao = (piorInd && piorP < 80)
+      ? `<div class="kcr-acao">⚡ <span><b>Próxima ação:</b> ${piorInd.acao} — <a href="${piorInd.link}">ir agora →</a></span></div>`
+      : '';
+    panel.innerHTML = `
+      <div class="kcr-top">
+        <div class="kcr-score-wrap">
+          <div class="kcr-num ${cor}">${kcr}%</div>
+          <div class="kcr-status-lbl ${cor}">${_kcrTxt(kcr)}</div>
+        </div>
+        <div class="kcr-barra-wrap">
+          <div class="kcr-barra"><div class="kcr-barra-fill ${cor}" style="width:0%"></div></div>
+          <div class="kcr-barra-sub">Índice de Captura de Conhecimento — quanto do que você sabe já está no sistema</div>
+        </div>
+      </div>
+      <div class="kcr-grid">${itens}</div>${acao}`;
+    requestAnimationFrame(() => { const f = panel.querySelector('.kcr-barra-fill'); if(f) f.style.width = kcr+'%'; });
+  } catch(e) {
+    panel.innerHTML = '<div class="vazio">Não foi possível carregar o índice.</div>';
+  }
+}
+
+carregarKCR();
 carregarCatalogo();
 carregarVendas();
 carregarCompradores();
