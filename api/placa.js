@@ -23,7 +23,6 @@ module.exports = async (req, res) => {
   });
 
   const data = await response.json();
-  console.log('[placa] veiculo:', JSON.stringify(data?.data?.veiculo || data?.data || {}).slice(0, 600));
 
   if (!response.ok) {
     return res.status(response.status).json({ error: data?.message || 'Erro na consulta', raw: data });
