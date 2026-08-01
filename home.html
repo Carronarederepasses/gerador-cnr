@@ -183,6 +183,28 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .kcr-acao{margin-top:.9rem;padding:.55rem .75rem;background:color-mix(in srgb,var(--severity-warn) 8%,transparent);border:1px solid color-mix(in srgb,var(--severity-warn) 22%,transparent);border-radius:8px;font-size:.76rem;color:var(--text-mid);display:flex;align-items:center;gap:.4rem}
 .kcr-acao a{color:var(--accent);text-decoration:none;font-weight:500}
 .kcr-acao a:hover{text-decoration:underline}
+
+/* KCR — trend e capacidades */
+.kcr-trend{display:flex;align-items:center;gap:.35rem;margin-top:.4rem;flex-wrap:wrap}
+.kcr-pill{font-size:.68rem;font-weight:600;color:var(--text-mid);background:var(--line);border-radius:4px;padding:.1rem .38rem;font-variant-numeric:tabular-nums}
+.kcr-pill.atual{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.kcr-arrow{font-size:.66rem;color:var(--text-faint)}
+.kcr-delta{font-size:.68rem;color:var(--severity-ok);font-weight:600;margin-left:.15rem}
+
+.kcr-caps{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1.4rem;margin:.9rem 0 .7rem}
+@media(max-width:540px){.kcr-caps{grid-template-columns:1fr;gap:.6rem}}
+.kcr-cap-title{font-size:.6rem;text-transform:uppercase;letter-spacing:.09em;color:var(--text-faint);font-weight:700;margin-bottom:.38rem}
+.kcr-cap-item{font-size:.8rem;padding:.22rem 0;display:flex;align-items:baseline;gap:.35rem;flex-wrap:wrap;line-height:1.45}
+.kcr-cap-item.verde{color:var(--severity-ok)}
+.kcr-cap-item.amarelo{color:var(--severity-warn)}
+.kcr-cap-item.crit,.kcr-cap-item.neutro{color:var(--text-mid)}
+.kcr-cap-pct{font-size:.68rem;opacity:.65;font-variant-numeric:tabular-nums}
+.kcr-cap-link{font-size:.68rem;color:var(--accent);text-decoration:none;flex-shrink:0;margin-left:auto}
+.kcr-cap-link:hover{text-decoration:underline}
+
+.kcr-details{margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem}
+.kcr-details summary{font-size:.7rem;color:var(--text-faint);cursor:pointer;list-style:none;margin-bottom:.4rem;user-select:none}
+.kcr-details summary:hover{color:var(--text-mid)}
 </style>
 </head>
 <body>
@@ -752,16 +774,67 @@ async function toggleHist12() {
 saudacao();
 // ── Capital de Conhecimento ────────────────────────────────────
 const KCR_IND = [
-  { nome:'Compradores com marcas de interesse', cap:'Motor de Match',         pct: d => _pct(d.compradores.com_marcas,         d.compradores.total),         link:'/compradores.html', acao:'Preencher marcas de interesse nos compradores' },
-  { nome:'Compradores com faixa de preço',      cap:'Motor de Match',         pct: d => _pct(d.compradores.com_preco,          d.compradores.total),         link:'/compradores.html', acao:'Preencher preço mínimo e máximo nos compradores' },
-  { nome:'Compradores com observações',         cap:'Conhecimento tácito',    pct: d => _pct(d.compradores.com_obs,            d.compradores.total),         link:'/compradores.html', acao:'Adicionar "O que sabemos" nos compradores ativos' },
-  { nome:'Descartes com motivo registrado',     cap:'Aprender rejeições',     pct: d => _pct(d.negociacoes.com_motivo_descarte,d.negociacoes.descartadas),   link:'/negociacoes.html', acao:'Registrar motivo ao descartar negociações' },
-  { nome:'Vendas com motivo de match',          cap:'Aprender recomendações', pct: d => _pct(d.vendas.com_motivo_match,        d.vendas.total),              link:'/vendas.html',      acao:'Preencher "Por que esse comprador?" nas vendas' },
-  { nome:'Vendas com valor de compra',          cap:'Calcular margem real',   pct: d => _pct(d.vendas.com_valor_compra,        d.vendas.total),              link:'/vendas.html',      acao:'Preencher valor de compra nas vendas registradas' },
+  { nome:'Compradores com marcas de interesse', cap:'Motor de Match',         capacidade:'Recomendar compradores por marca',              pct: d => _pct(d.compradores.com_marcas,         d.compradores.total),       link:'/compradores.html', acao:'Preencher marcas de interesse nos compradores' },
+  { nome:'Compradores com faixa de preço',      cap:'Motor de Match',         capacidade:'Filtrar compradores por faixa de preço',        pct: d => _pct(d.compradores.com_preco,          d.compradores.total),       link:'/compradores.html', acao:'Preencher preço mínimo e máximo nos compradores' },
+  { nome:'Compradores com observações',         cap:'Conhecimento tácito',    capacidade:'Usar conhecimento tácito no match',             pct: d => _pct(d.compradores.com_obs,            d.compradores.total),       link:'/compradores.html', acao:'Adicionar "O que sabemos" nos compradores ativos' },
+  { nome:'Descartes com motivo registrado',     cap:'Aprender rejeições',     capacidade:'Aprender por que negócios não fecham',          pct: d => _pct(d.negociacoes.com_motivo_descarte,d.negociacoes.descartadas), link:'/negociacoes.html', acao:'Registrar motivo ao descartar negociações' },
+  { nome:'Vendas com motivo de match',          cap:'Aprender recomendações', capacidade:'Entender o que gera boas recomendações',        pct: d => _pct(d.vendas.com_motivo_match,        d.vendas.total),            link:'/vendas.html',      acao:'Preencher "Por que esse comprador?" nas vendas' },
+  { nome:'Vendas com valor de compra',          cap:'Calcular margem real',   capacidade:'Calcular margem real por operação',             pct: d => _pct(d.vendas.com_valor_compra,        d.vendas.total),            link:'/vendas.html',      acao:'Preencher valor de compra nas vendas registradas' },
 ];
+
 function _pct(num, den) { return den > 0 ? num / den * 100 : null; }
 function _kcrCor(p)  { return p === null ? 'neutro' : p >= 80 ? 'verde' : p >= 60 ? 'amarelo' : 'crit'; }
 function _kcrTxt(p)  { return p >= 80 ? 'Boa' : p >= 60 ? 'Atenção' : 'Ação necessária'; }
+
+function _kcrSaveHistory(kcr) {
+  const CHAVE = 'cnr_kcr_history';
+  const hoje = new Date().toISOString().slice(0, 10);
+  const hist = JSON.parse(localStorage.getItem(CHAVE) || '[]');
+  if (!hist.length || hist[hist.length - 1].d !== hoje) {
+    hist.push({ d: hoje, v: kcr });
+    if (hist.length > 30) hist.shift();
+    localStorage.setItem(CHAVE, JSON.stringify(hist));
+  }
+  return hist;
+}
+
+function _kcrTrendHTML(hist, kcrAtual) {
+  if (hist.length < 2) return '';
+  const ultimos = hist.slice(-4);
+  const pills = ultimos.map((h, i) =>
+    `<span class="kcr-pill${i === ultimos.length - 1 ? ' atual' : ''}">${h.v}%</span>`
+  ).join('<span class="kcr-arrow">→</span>');
+  const primeiro = hist[0];
+  const delta = kcrAtual - primeiro.v;
+  const dias = Math.max(1, Math.round((Date.now() - new Date(primeiro.d)) / 86400000));
+  const deltaStr = delta > 0 ? `<span class="kcr-delta">↑ +${delta}% em ${dias} dia${dias > 1 ? 's' : ''}</span>` : '';
+  return `<div class="kcr-trend">${pills}${deltaStr}</div>`;
+}
+
+function _kcrCapsHTML(d) {
+  const desbloqueados = KCR_IND.filter(i => { const p = i.pct(d); return p !== null && p >= 80; });
+  const proximos = KCR_IND
+    .filter(i => { const p = i.pct(d); return p === null || p < 80; })
+    .sort((a, b) => (b.pct(d) ?? -1) - (a.pct(d) ?? -1));
+
+  const ativoHTML = desbloqueados.length ? `
+    <div>
+      <div class="kcr-cap-title">Hoje o sistema consegue</div>
+      ${desbloqueados.map(i => `<div class="kcr-cap-item verde">✓ ${i.capacidade}</div>`).join('')}
+    </div>` : '';
+
+  const proximosHTML = proximos.length ? `
+    <div>
+      <div class="kcr-cap-title">Próximos desbloqueios</div>
+      ${proximos.slice(0, 4).map(i => {
+        const p = i.pct(d);
+        const pStr = p !== null ? `<span class="kcr-cap-pct">${Math.round(p)}%</span>` : '';
+        return `<div class="kcr-cap-item ${_kcrCor(p)}">→ ${i.capacidade} ${pStr} <a class="kcr-cap-link" href="${i.link}">preencher →</a></div>`;
+      }).join('')}
+    </div>` : '';
+
+  return `<div class="kcr-caps">${ativoHTML}${proximosHTML}</div>`;
+}
 
 async function carregarKCR() {
   const panel = document.getElementById('kcr-panel');
@@ -772,6 +845,7 @@ async function carregarKCR() {
     const pcts = KCR_IND.map(i => i.pct(d)).filter(p => p !== null);
     const kcr  = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length) : 0;
     const cor  = _kcrCor(kcr);
+    const hist = _kcrSaveHistory(kcr);
     let piorInd = null, piorP = Infinity;
     KCR_IND.forEach(i => { const p = i.pct(d); if (p !== null && p < piorP) { piorP = p; piorInd = i; } });
     const itens = KCR_IND.map(i => {
@@ -794,9 +868,15 @@ async function carregarKCR() {
         <div class="kcr-barra-wrap">
           <div class="kcr-barra"><div class="kcr-barra-fill ${cor}" style="width:0%"></div></div>
           <div class="kcr-barra-sub">Índice de Captura de Conhecimento — quanto do que você sabe já está no sistema</div>
+          ${_kcrTrendHTML(hist, kcr)}
         </div>
       </div>
-      <div class="kcr-grid">${itens}</div>${acao}`;
+      ${_kcrCapsHTML(d)}
+      <details class="kcr-details">
+        <summary>Ver todos os indicadores</summary>
+        <div class="kcr-grid" style="margin-top:.6rem">${itens}</div>
+      </details>
+      ${acao}`;
     requestAnimationFrame(() => { const f = panel.querySelector('.kcr-barra-fill'); if(f) f.style.width = kcr+'%'; });
   } catch(e) {
     panel.innerHTML = '<div class="vazio">Não foi possível carregar o índice.</div>';
