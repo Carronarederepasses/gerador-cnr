@@ -2176,6 +2176,7 @@ async function processarIA() {
     if (data.veiculo && data.ano) {
       buscarFIPEColetados(data.veiculo, data.ano, linkParcial, data.combustivel);
     }
+    mostrarMatchPopup(data.veiculo ? data.veiculo.split(' ')[0] : null, data.valor);
 
   } catch (err) {
     setParseSt('Erro: ' + err.message, 'err');
