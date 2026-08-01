@@ -92,7 +92,11 @@ Novas features de backend devem reutilizar funções existentes via query params
 
 ## 6. Visão Estratégica (fase atual: Ferramenta → Copiloto)
 
-O ativo real não é o software — é o **dataset proprietário** de transações reais do mercado de repasse do litoral de SC. O software é o mecanismo de captura.
+O ativo real não é o software — é a **capacidade de transformar operação em conhecimento reutilizável**. O dataset é o registro. O processo que o gera é o diferencial.
+
+**Meta-princípio (Calibração):** A Constituição existe para servir à realidade, não para substituí-la. Quando a operação mostrar, de forma consistente, que um princípio precisa evoluir, evolua o princípio. A única coisa imutável é o compromisso de aprender com a realidade.
+
+---
 
 **Princípio norteador:** cada funcionalidade deve responder 5 perguntas:
 1. O que aconteceu? (evento)
