@@ -94,13 +94,14 @@ Novas features de backend devem reutilizar funções existentes via query params
 
 O ativo real não é o software — é o **dataset proprietário** de transações reais do mercado de repasse do litoral de SC. O software é o mecanismo de captura.
 
-**Princípio norteador:** cada funcionalidade deve responder 4 perguntas:
+**Princípio norteador:** cada funcionalidade deve responder 5 perguntas:
 1. O que aconteceu? (evento)
 2. Qual foi o resultado? (output)
 3. Por que essa decisão foi tomada? (contexto)
 4. O sistema consegue aprender com isso? (aprendizado)
+5. Que capacidade esse dado desbloqueia? (alavancagem)
 
-Se uma feature responde só 1 e 2, ela registra operação. Se responde as 4, ela constrói inteligência.
+Se uma feature responde só 1 e 2, ela registra operação. Se responde as 5, ela constrói inteligência.
 
 **Princípio da Estrutura Emergente:** nenhum dado deve virar campo estruturado porque parece importante. Ele vira campo estruturado quando sua ausência começa a limitar a inteligência do sistema. O gatilho não é volume — é fricção. Texto livre primeiro. Estrutura depois, e só quando a realidade exigir.
 

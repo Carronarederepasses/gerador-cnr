@@ -205,6 +205,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .kcr-details{margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem}
 .kcr-details summary{font-size:.7rem;color:var(--text-faint);cursor:pointer;list-style:none;margin-bottom:.4rem;user-select:none}
 .kcr-details summary:hover{color:var(--text-mid)}
+.kcr-marco{font-size:.7rem;font-weight:600;margin-top:.35rem;padding:.18rem .5rem;border-radius:4px;display:inline-block;background:color-mix(in srgb,currentColor 12%,transparent)}
 </style>
 </head>
 <body>
@@ -785,6 +786,13 @@ const KCR_IND = [
 function _pct(num, den) { return den > 0 ? num / den * 100 : null; }
 function _kcrCor(p)  { return p === null ? 'neutro' : p >= 80 ? 'verde' : p >= 60 ? 'amarelo' : 'crit'; }
 function _kcrTxt(p)  { return p >= 80 ? 'Boa' : p >= 60 ? 'Atenção' : 'Ação necessária'; }
+function _kcrMarco(p) {
+  if (p >= 90) return { msg: 'Capital de Conhecimento consolidado.', cor: 'var(--severity-ok)' };
+  if (p >= 75) return { msg: 'Dataset rico o suficiente para recomendações avançadas.', cor: 'var(--severity-ok)' };
+  if (p >= 50) return { msg: 'Motor de Match começa a aprender padrões.', cor: 'var(--severity-warn)' };
+  if (p >= 25) return { msg: 'Base inicial formada.', cor: 'var(--severity-warn)' };
+  return null;
+}
 
 function _kcrSaveHistory(kcr) {
   const CHAVE = 'cnr_kcr_history';
@@ -845,7 +853,8 @@ async function carregarKCR() {
     const pcts = KCR_IND.map(i => i.pct(d)).filter(p => p !== null);
     const kcr  = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length) : 0;
     const cor  = _kcrCor(kcr);
-    const hist = _kcrSaveHistory(kcr);
+    const hist  = _kcrSaveHistory(kcr);
+    const marco = _kcrMarco(kcr);
     let piorInd = null, piorP = Infinity;
     KCR_IND.forEach(i => { const p = i.pct(d); if (p !== null && p < piorP) { piorP = p; piorInd = i; } });
     const itens = KCR_IND.map(i => {
@@ -864,6 +873,7 @@ async function carregarKCR() {
         <div class="kcr-score-wrap">
           <div class="kcr-num ${cor}">${kcr}%</div>
           <div class="kcr-status-lbl ${cor}">${_kcrTxt(kcr)}</div>
+          ${marco ? `<div class="kcr-marco" style="color:${marco.cor}">★ ${marco.msg}</div>` : ''}
         </div>
         <div class="kcr-barra-wrap">
           <div class="kcr-barra"><div class="kcr-barra-fill ${cor}" style="width:0%"></div></div>
