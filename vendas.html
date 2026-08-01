@@ -720,8 +720,10 @@ async function buscarPlacaVenda() {
     const marca   = fipe.marca   || '';
     const modelo  = fipe.modelo  || '';
     const ano     = fipe.anoModelo ? String(fipe.anoModelo) : '';
-    const cor     = vei.cor      || '';
+    const corRaw  = vei.cor || '';
+    const cor     = (corRaw && corRaw.toLowerCase() !== 'desconhecida') ? corRaw : '';
     const chassi  = vei.chassi   || '';
+    const renavam = vei.renavam  || '';
     const fipeVal = fipe.valor   ? String(Math.round(Number(fipe.valor))) : '';
 
     // Ativa modo manual e preenche campos
@@ -732,6 +734,7 @@ async function buscarPlacaVenda() {
     $('m-ano').value        = ano;
     $('m-cor').value        = cor;
     $('m-chassi').value     = chassi;
+    $('m-renavam').value    = renavam;
     $('m-placa').value      = placa;
     if (fipeVal) $('m-valor_fipe').value = fipeVal;
 
