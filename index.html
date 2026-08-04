@@ -506,7 +506,7 @@
     </div>
     <div class="field" style="margin-top:.7rem">
       <label>FIPE (R$) — opcional</label>
-      <input type="text" id="colet-fipe" placeholder="—">
+      <input type="text" id="colet-fipe" placeholder="—" oninput="_coletFipeManual = true">
     </div>
     <div class="fipe-st" id="cml-st" style="cursor:pointer"></div>
 
@@ -1286,6 +1286,8 @@ async function cascataVersao(cfg) {
     const data = await fipeGet(`/marcas/${marca}/modelos/${modeloCod}/anos/${anoCod}`);
     const limpo = (data.Valor || '').replace('R$', '').trim();
     document.getElementById(cfg.fipe).value = limpo;
+    // Marca que o usuário selecionou a FIPE manualmente pela cascata
+    if (cfg.fipe === 'colet-fipe') _coletFipeManual = true;
     cSetSt(cfg, `✓ FIPE ${data.MesReferencia || 'atual'}: ${data.Valor}`, 'ok');
     // Busca preços no Mercado Livre para contexto de mercado
     const marcaNome = document.getElementById(cfg.marca).selectedOptions[0]?.text || '';
@@ -1608,7 +1610,10 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel)
       abrirCascataColet();
       return;
     }
-    document.getElementById('colet-fipe').value = data.valorNumerico;
+    // Só sobrescreve se o usuário não corrigiu manualmente
+    if (!_coletFipeManual) {
+      document.getElementById('colet-fipe').value = data.valorNumerico;
+    }
     // Preenche o combustível caso a IA não tenha identificado no texto
     const combEl = document.getElementById('colet-combustivel');
     if (combEl && !combEl.value && data.combustivel) combEl.value = data.combustivel;
@@ -2102,6 +2107,7 @@ async function processarParceiro() {
 
     // Dispara busca FIPE igual ao fluxo "Texto / Link"
     if (data.veiculo && data.ano) {
+      _coletFipeManual = false; // novo processamento → permite busca automática
       await buscarFIPEColetados(data.veiculo, data.ano, false, data.combustivel);
     }
 
@@ -2214,6 +2220,7 @@ async function processarIA() {
     // Busca FIPE automaticamente se não veio no texto
     // Sempre busca FIPE na API — ignora valor do texto (pode estar arredondado)
     if (data.veiculo && data.ano) {
+      _coletFipeManual = false; // novo processamento → permite busca automática
       buscarFIPEColetados(data.veiculo, data.ano, linkParcial, data.combustivel);
     }
     mostrarMatchPopup(data.veiculo ? data.veiculo.split(' ')[0] : null, data.valor);
@@ -2720,6 +2727,8 @@ function limparRascunho() {
 }
 
 let _limpezaTimer = null;
+// Flag: usuário corrigiu a FIPE manualmente → buscarFIPEColetados não sobrescreve
+let _coletFipeManual = false;
 function agendarLimpeza() {
   if (_limpezaTimer) return; // já agendado
   let seg = 8;
