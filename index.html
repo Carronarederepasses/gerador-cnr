@@ -298,6 +298,27 @@
     .fsec{margin-bottom:1.4rem}
   }
 
+  /* BOTÃO GERAR FLUTUANTE (mobile) */
+  #btn-gerar-float{
+    display:none;
+    position:fixed;
+    bottom:0;left:0;right:0;
+    z-index:150;
+    padding:.75rem 1rem;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+  }
+  #btn-gerar-float button{
+    width:100%;background:var(--white);color:var(--black);border:none;
+    padding:.9rem;font-family:'DM Sans',sans-serif;font-size:.78rem;
+    font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
+  }
+  @media(max-width:767px){
+    #btn-gerar-float{display:block}
+    /* espaço para o botão flutuante não cobrir conteúdo */
+    .form-side{padding-bottom:5rem}
+  }
+
   /* TOAST */
   #cnr-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--surface);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.65rem 1.2rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;z-index:9999;white-space:nowrap}
   #cnr-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -307,6 +328,10 @@
 <body>
 <div id="cnr-toast"></div>
 
+<!-- BOTÃO GERAR FLUTUANTE (mobile) -->
+<div id="btn-gerar-float" style="display:none">
+  <button onclick="gerar()">▶ Gerar Anúncio</button>
+</div>
 
 <!-- AVISO DADOS DO CARRO ANTERIOR -->
 <div id="aviso-rascunho" style="display:none;background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent);padding:.7rem 1.5rem;font-size:.8rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
@@ -1157,7 +1182,8 @@ async function cascataMarca(cfg) {
   document.getElementById(cfg.fipe).value = '';
   cfg.data = null;
   if (!marca) { cSetSt(cfg, ''); return; }
-  cSetSt(cfg, 'Buscando modelos...', 'loading');
+  const marcaNome = document.getElementById(cfg.marca).selectedOptions[0]?.text || '';
+  cSetSt(cfg, `Buscando modelos de ${marcaNome}...`, 'loading');
   try {
     const data = await fipeGet(`/marcas/${marca}/modelos`);
     const modelos = data.modelos || [];
@@ -1183,7 +1209,8 @@ async function cascataModelo(cfg) {
   document.getElementById(cfg.fipe).value = '';
   cfg.data = null;
   if (!base) return;
-  cSetSt(cfg, '⏳ Buscando anos e versões... (alguns segundos)', 'loading');
+  const marcaNomeM = document.getElementById(cfg.marca).selectedOptions[0]?.text || '';
+  cSetSt(cfg, `⏳ Buscando "${base}" em ${marcaNomeM}...`, 'loading');
   try {
     const r = await fetch(`/api/fipe?marca=${encodeURIComponent(marca)}&base=${encodeURIComponent(base.toLowerCase())}`);
     const data = await r.json();
@@ -1267,7 +1294,9 @@ async function cascataVersao(cfg) {
     if (marcaNome && modeloBase && anoNum && cfg.ml)
       buscarMercadoML(`${marcaNome} ${modeloBase} ${anoNum}`, cfg.ml);
   } catch(e) {
-    cSetSt(cfg, 'Não encontrado — preencha a FIPE manualmente', 'err');
+    const marcaNomeV = document.getElementById(cfg.marca).selectedOptions[0]?.text || '?';
+    const modeloBaseV = document.getElementById(cfg.modelo).value || '?';
+    cSetSt(cfg, `Não encontrado (${marcaNomeV} ${modeloBaseV}) — use a busca manual abaixo`, 'err');
   }
 }
 
@@ -1805,6 +1834,8 @@ function setMode(mode) {
   document.getElementById('btn-captacao').classList.toggle('active',  mode === 'captacao');
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
+  // Botão flutuante só no modo captação/coletados, aba anúncio
+  _atualizarBtnFloat();
   // No modo Foto o preview-side não faz sentido
   const previewSide = document.querySelector('.preview-side');
   const appEl       = document.querySelector('.app');
@@ -2841,9 +2872,17 @@ async function trocarAba(n) {
   if (bloc) bloc.style.display = n===0 ? '' : 'none';
   if (a1)   a1.style.display   = n===1 ? '' : 'none';
   if (a2)   a2.style.display   = n===2 ? '' : 'none';
+  _atualizarBtnFloat();
   if (n !== 0) await autoSalvar();
   if (n === 1) await carregarFotosExistentes();
   if (n === 2) { await carregarChecklistExistente(); renderAvalLocal(); }
+}
+
+function _atualizarBtnFloat() {
+  const el = document.getElementById('btn-gerar-float');
+  if (!el) return;
+  const visivel = (currentMode === 'captacao' || currentMode === 'coletados') && capAbaAtual === 0;
+  el.style.display = visivel ? 'block' : 'none';
 }
 
 async function autoSalvar() {
@@ -2903,8 +2942,18 @@ function renderCapFotos() {
 }
 
 async function onCapFotos(input) {
-  const files = Array.from(input.files);
+  const MAX_FOTOS = 15;
+  let files = Array.from(input.files);
   if (!files.length) return;
+  if (capFotosCache.length >= MAX_FOTOS) {
+    toast(`Limite de ${MAX_FOTOS} fotos atingido. Remova algumas antes de adicionar novas.`, 'erro', 4000);
+    input.value = ''; return;
+  }
+  const disponivel = MAX_FOTOS - capFotosCache.length;
+  if (files.length > disponivel) {
+    toast(`${files.length} selecionadas, mas só ${disponivel} cabem (limite ${MAX_FOTOS}). Enviando as primeiras ${disponivel}.`, '', 5000);
+    files = files.slice(0, disponivel);
+  }
   if (!catalogoId) { await autoSalvar(); }
   if (!catalogoId) { alert('Preencha ao menos a marca/modelo antes de adicionar fotos.'); return; }
   const st = document.getElementById('cap-foto-st');
