@@ -292,8 +292,10 @@
   /* MOBILE */
   @media(max-width:768px){
     .app{grid-template-columns:1fr}
-    .form-side{border-right:none;border-bottom:1px solid var(--border)}
+    .form-side{border-right:none;border-bottom:1px solid var(--border);padding:1rem}
     .g2,.g3,.g4,.tog-grid{grid-template-columns:1fr}
+    .preview-side{padding:1rem}
+    .fsec{margin-bottom:1.4rem}
   }
 
   /* TOAST */
@@ -1641,6 +1643,13 @@ function mostrarShare(texto) {
 
   if (navigator.share) {
     document.getElementById('btn-share').style.display = 'flex';
+  }
+
+  // No mobile, rola automaticamente até o botão do WhatsApp
+  if (window.innerWidth < 768) {
+    setTimeout(() => {
+      document.getElementById('share-row').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
   }
 }
 
