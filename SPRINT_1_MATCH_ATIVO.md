@@ -60,6 +60,19 @@ Jeep Renegade cadastrado. Sistema sugeriu comprador que Yuri teria chamado de ca
 Comprador confirmou interesse. Negociação em andamento.
 → **Top 3: acertou. Top 1: a confirmar.**
 
+## Critérios de Encerramento da Sprint
+
+A Sprint será considerada encerrada quando:
+
+- [ ] Pelo menos **5 veículos** tiverem utilizado o Match Ativo
+- [ ] Todos os contatos tiverem resultado registrado (nenhum "Notifiquei" sem resposta pendente)
+- [ ] A taxa de acerto do Top 1 for calculada
+- [ ] A taxa de acerto do Top 3 for calculada
+- [ ] As observações qualitativas forem revisadas
+- [ ] Houver uma decisão explícita abaixo
+
+> Sem esses 6 critérios cumpridos, a Sprint não fecha — mesmo que o período de tempo acabe.
+
 ## Decisão (preencher ao fim do período)
 
 - [ ] Manter como está
