@@ -34,6 +34,7 @@ Até: ____/____/______
 | Vendas originadas | |
 | **Top 1 acertou?** (1º sugerido era o certo) | |
 | **Top 3 acertou?** (certo estava entre os 3) | |
+| **Compradores contatados por veículo** (média até 1º interesse) | |
 
 > A distinção Top 1 vs Top 3 revela se o algoritmo **encontra** as pessoas certas
 > mas ainda precisa melhorar a **ordenação** — ou se o problema é mais profundo.
