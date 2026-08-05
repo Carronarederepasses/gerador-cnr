@@ -123,6 +123,25 @@
   .match-wa:hover{background:color-mix(in srgb,var(--severity-ok) 10%,transparent)}
   .match-vazio{font-size:.72rem;color:var(--text-faint);font-style:italic}
 
+  /* Match Ativo — Sprint 1 */
+  .match-comprador{border-bottom:1px dashed var(--line);padding-bottom:.6rem;margin-bottom:.5rem}
+  .match-comprador:last-child{border-bottom:none;padding-bottom:0;margin-bottom:0}
+  .match-razoes{display:flex;flex-wrap:wrap;gap:.2rem;margin:.1rem 0 .35rem}
+  .match-razao{font-size:.6rem;color:var(--severity-ok);background:color-mix(in srgb,var(--severity-ok) 10%,transparent);border-radius:4px;padding:.1rem .35rem}
+  .match-btns{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.1rem}
+  .match-btn-copy,.match-btn-notif{font-family:'DM Sans',sans-serif;font-size:.65rem;background:none;border:1px solid var(--line);color:var(--text-mid);border-radius:6px;padding:.15rem .4rem;cursor:pointer;white-space:nowrap;transition:all .15s}
+  .match-btn-copy:hover{border-color:var(--text);color:var(--text)}
+  .match-btn-notif{border-color:color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent)}
+  .match-btn-notif:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  .match-msg-hidden{position:absolute;left:-9999px;opacity:0;width:1px;height:1px}
+  .match-resultado{margin-top:.4rem}
+  .match-res-titulo{font-size:.62rem;color:var(--text-mid);margin-bottom:.3rem}
+  .match-res-opcoes{display:flex;flex-wrap:wrap;gap:.25rem}
+  .match-res-btn{font-family:'DM Sans',sans-serif;font-size:.63rem;background:var(--surface);border:1px solid var(--line);color:var(--text-mid);border-radius:6px;padding:.2rem .45rem;cursor:pointer;transition:all .12s}
+  .match-res-btn:hover{border-color:var(--text);color:var(--text)}
+  .match-notificado{opacity:.5}
+  .match-notif-ok{font-size:.65rem;color:var(--severity-ok);margin-top:.3rem}
+
   /* Timeline de eventos */
   .timeline{border-top:1px solid var(--line);padding:.5rem 0 .1rem;display:none;margin-top:.2rem}
   .timeline.show{display:block}
@@ -588,24 +607,113 @@ function calcScore(c, marca, valor) {
   return Math.min(s, 100);
 }
 
+function calcRazoes(c, marca, valor) {
+  const razoes = [];
+  const v = parseFloat(valor) || 0;
+  const min = parseFloat(c.preco_min) || 0;
+  const max = parseFloat(c.preco_max) || Infinity;
+  const marcas = (c.marcas || []).map(m => m.toLowerCase());
+  if (v > 0 && v >= min && v <= max) razoes.push('Faixa de preço');
+  else if (v > 0 && max < Infinity && v <= max) razoes.push('Abaixo do máximo');
+  if (marca && marcas.includes(marca.toLowerCase())) razoes.push('Marca ' + marca);
+  return razoes;
+}
+
 function renderMatch(v) {
   if (!COMPRADORES.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Cadastre compradores para ver sugestões</div>';
   const scored = COMPRADORES
-    .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor) }))
+    .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor), razoes: calcRazoes(c, v.marca, v.valor) }))
+    .filter(c => c.score > 10)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
+  if (!scored.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>';
+
+  const nomeCarro = [v.marca, v.versao || v.modelo, v.ano].filter(Boolean).join(' ');
+  const kmFmt    = v.km    ? Number(v.km).toLocaleString('pt-BR') + ' km' : '';
+  const valorFmt = v.valor ? 'R$ ' + Number(v.valor).toLocaleString('pt-BR') : '';
+  const detalhes = [kmFmt, v.cor, valorFmt].filter(Boolean).join(', ');
+
   const rows = scored.map(c => {
-    const wa = c.telefone ? c.telefone.replace(/\D/g,'') : '';
-    const cls = c.score >= 70 ? '' : c.score >= 40 ? ' med' : ' baixo';
-    const msg = encodeURIComponent(`Olá ${c.nome}! Tenho um ${v.marca || ''} ${v.modelo || ''} ${v.ano || ''} aqui que pode te interessar. Posso te passar os detalhes?`);
-    return `<div class="match-row">
-      <span class="match-nome">${esc(c.nome)}</span>
-      <div class="match-bar-wrap"><div class="match-bar${cls}" style="width:${c.score}%"></div></div>
-      <span class="match-score">${c.score}%</span>
-      ${wa ? `<a class="match-wa" href="https://wa.me/55${wa}?text=${msg}" target="_blank">💬</a>` : ''}
+    const wa    = c.telefone ? c.telefone.replace(/\D/g, '') : '';
+    const cls   = c.score >= 70 ? '' : c.score >= 40 ? ' med' : ' baixo';
+    const msgTexto = `Olá ${c.nome}! Entrou um ${nomeCarro}${detalhes ? ' — ' + detalhes : ''}. Achei que combinava com o que você procura. Te aviso antes de abrir pra todo mundo. Tem interesse?`;
+    const msgId = `cmsg-${v.id}-${c.id}`;
+    const mcId  = `mc-${v.id}-${c.id}`;
+    const razaoHtml = c.razoes.map(r => `<span class="match-razao">✓ ${r}</span>`).join('');
+    const waHtml = wa ? `<a class="match-wa" href="https://wa.me/55${wa}?text=${encodeURIComponent(msgTexto)}" target="_blank">💬 WhatsApp</a>` : '';
+    return `<div class="match-comprador" id="${mcId}">
+      <div class="match-row">
+        <span class="match-nome">${esc(c.nome)}</span>
+        <div class="match-bar-wrap"><div class="match-bar${cls}" style="width:${c.score}%"></div></div>
+        <span class="match-score">${c.score}%</span>
+      </div>
+      ${razaoHtml ? `<div class="match-razoes">${razaoHtml}</div>` : ''}
+      <div class="match-btns">
+        <button class="match-btn-copy" onclick="copiarMsgMatch('${msgId}',this)">📋 Copiar</button>
+        ${waHtml}
+        <button class="match-btn-notif" onclick="notificouMatch('${v.id}','${c.id}','${mcId}')">✓ Notifiquei</button>
+      </div>
+      <textarea class="match-msg-hidden" id="${msgId}">${msgTexto}</textarea>
     </div>`;
   }).join('');
   return `<div class="match-titulo">👥 Possíveis compradores</div>${rows}`;
+}
+
+async function copiarMsgMatch(msgId, btn) {
+  const el = document.getElementById(msgId);
+  if (!el) return;
+  try { await navigator.clipboard.writeText(el.value); }
+  catch(e) { el.select(); document.execCommand('copy'); }
+  if (btn) { const t = btn.textContent; btn.textContent = '✓ Copiado!'; setTimeout(() => btn.textContent = t, 2000); }
+}
+
+function notificouMatch(veiculoId, compradorId, mcId) {
+  const container = document.getElementById(mcId);
+  if (!container) return;
+  const btns = container.querySelector('.match-btns');
+  if (btns) btns.style.display = 'none';
+  const res = document.createElement('div');
+  res.className = 'match-resultado';
+  res.innerHTML = `<div class="match-res-titulo">Resultado do contato:</div>
+    <div class="match-res-opcoes">
+      <button class="match-res-btn" onclick="registrarResultado('${veiculoId}','${compradorId}','${mcId}','respondeu_interessado')">👍 Interessado</button>
+      <button class="match-res-btn" onclick="registrarResultado('${veiculoId}','${compradorId}','${mcId}','nao_serve')">👎 Não serve</button>
+      <button class="match-res-btn" onclick="registrarResultado('${veiculoId}','${compradorId}','${mcId}','ja_comprou_outro')">🚗 Já comprou outro</button>
+      <button class="match-res-btn" onclick="registrarResultado('${veiculoId}','${compradorId}','${mcId}','nao_respondeu')">🔇 Não respondeu</button>
+      <button class="match-res-btn" onclick="registrarResultado('${veiculoId}','${compradorId}','${mcId}','ligar_depois')">📅 Ligar depois</button>
+    </div>`;
+  container.appendChild(res);
+}
+
+const RESULTADO_LABEL = {
+  respondeu_interessado: '👍 Interessado',
+  nao_serve:            '👎 Não serve',
+  ja_comprou_outro:     '🚗 Já comprou outro',
+  nao_respondeu:        '🔇 Não respondeu',
+  ligar_depois:         '📅 Ligar depois',
+};
+
+async function registrarResultado(veiculoId, compradorId, mcId, resultado) {
+  const container = document.getElementById(mcId);
+  container?.querySelector('.match-resultado')?.remove();
+  const ok = document.createElement('div');
+  ok.className = 'match-notif-ok';
+  ok.textContent = '✓ ' + (RESULTADO_LABEL[resultado] || resultado);
+  container?.appendChild(ok);
+  container?.classList.add('match-notificado');
+  try {
+    await fetch('/api/compradores?evento=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo:         'match_notificado',
+        veiculo_id:   veiculoId,
+        comprador_id: compradorId,
+        dados:        { resultado },
+        origem:       'catalogo',
+      }),
+    });
+  } catch(e) { console.error('registrarResultado:', e); }
 }
 
 function renderVendido(v) {
