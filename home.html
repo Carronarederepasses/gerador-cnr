@@ -206,6 +206,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .kcr-details summary{font-size:.7rem;color:var(--text-faint);cursor:pointer;list-style:none;margin-bottom:.4rem;user-select:none}
 .kcr-details summary:hover{color:var(--text-mid)}
 .kcr-marco{font-size:.7rem;font-weight:600;margin-top:.35rem;padding:.18rem .5rem;border-radius:4px;display:inline-block;background:color-mix(in srgb,currentColor 12%,transparent)}
+
+/* FAB — botão flutuante novo veículo */
+.fab-novo{position:fixed;bottom:1.4rem;right:1.4rem;z-index:999;
+  background:var(--text);color:var(--surface);border:none;border-radius:50px;
+  padding:.7rem 1.2rem .7rem 1rem;font-family:'DM Sans',sans-serif;font-size:.82rem;
+  font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.45rem;
+  box-shadow:0 4px 18px rgba(0,0,0,.22);text-decoration:none;
+  transition:transform .15s,box-shadow .15s}
+.fab-novo:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(0,0,0,.28)}
+.fab-novo svg{flex-shrink:0}
 </style>
 </head>
 <body>
@@ -381,6 +391,12 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   </div>
 
 </div>
+
+<!-- FAB: novo veículo -->
+<a class="fab-novo" href="/index.html">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  Novo veículo
+</a>
 
 <script>
 

@@ -106,6 +106,9 @@
   /* BOTÃO GERAR */
   .btn-gen{width:100%;background:var(--white);color:var(--black);border:none;padding:.95rem;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .2s;margin-top:.3rem}
   .btn-gen:hover{background:var(--light)}
+  .btn-gen.btn-sec{background:transparent;color:var(--white);border:1px solid rgba(245,243,238,.18)}
+  .btn-gen.btn-sec:hover{background:rgba(245,243,238,.07);border-color:rgba(245,243,238,.35)}
+  .btns-form{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.3rem}
 
   /* PREVIEW */
   .preview-side{padding:2rem;display:flex;flex-direction:column;gap:1rem}
@@ -667,7 +670,12 @@
     </div>
   </div>
 
-  <button class="btn-gen" onclick="gerar()">▶ Gerar Anúncio</button>
+  <div class="btns-form">
+    <button class="btn-gen" onclick="salvarNoCatalogo(this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.35rem"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Salvar no catálogo
+    </button>
+    <button class="btn-gen btn-sec" onclick="gerar()">▶ Gerar Anúncio</button>
+  </div>
   </div><!-- /blocos-anuncio -->
 
   <!-- ── ABA FOTOS ── -->
@@ -1735,12 +1743,12 @@ function coletarFichaVeiculo() {
   };
 }
 
-async function salvarNoCatalogo() {
-  const btn = document.getElementById('btn-catalogo');
+async function salvarNoCatalogo(btnEl) {
+  const btn = btnEl || document.getElementById('btn-catalogo');
   const ficha = coletarFichaVeiculo();
   const nome = [ficha.marca, ficha.versao || ficha.modelo].filter(Boolean).join(' ');
-  if (!nome && !ficha.anuncio_texto) {
-    alert('Gere o anúncio antes de salvar no catálogo.');
+  if (!nome) {
+    alert('Preencha ao menos a marca e o modelo antes de salvar.');
     return;
   }
   const original = btn.innerHTML;
