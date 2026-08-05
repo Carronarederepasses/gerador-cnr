@@ -738,7 +738,7 @@ function renderMatch(v) {
   if (!COMPRADORES.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Cadastre compradores para ver sugestões</div>';
   const scored = COMPRADORES
     .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor, v.id), razoes: calcRazoes(c, v.marca, v.valor) }))
-    .filter(c => c.score > 10)
+    .filter(c => c.score > 40)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
   if (!scored.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>';
@@ -828,8 +828,15 @@ async function registrarResultado(veiculoId, compradorId, mcId, resultado) {
         tipo:         'match_notificado',
         veiculo_id:   veiculoId,
         comprador_id: compradorId,
-        dados:        { resultado, score_match: score, motivos_match: motivos, mensagem_gerada: mensagem },
-        origem:       'catalogo',
+        dados:        {
+          resultado,
+          score_match:      score,
+          motivos_match:    motivos,
+          mensagem_gerada:  mensagem,
+          veiculo_criado_em: CACHE[veiculoId]?.created_at || null,
+          contato_em:        new Date().toISOString(),
+        },
+        origem: 'catalogo',
       }),
     });
   } catch(e) { console.error('registrarResultado:', e); }
