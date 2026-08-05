@@ -12,8 +12,14 @@ mostrando os compradores certos no momento em que um carro entra no sistema.
 - Botão Notifiquei → 5 opções de resultado → registra evento no banco
 - Evento salvo: `score_match`, `motivos_match`, `mensagem_gerada`, `resultado`
 
+## Definição de acerto
+Um match é considerado **acertado** quando pelo menos um dos 3 compradores sugeridos
+inicia uma negociação ou demonstra interesse qualificado após o contato.
+
+> Essa definição não muda durante o período de validação.
+
 ## Período
-De: ____/____/______
+De: 05/08/2026
 Até: ____/____/______
 
 ## Métricas
@@ -23,9 +29,14 @@ Até: ____/____/______
 | Veículos cadastrados no período | |
 | Matches gerados (Top 3 exibidos) | |
 | Mensagens enviadas (clicou Notifiquei) | |
-| Respostas recebidas | |
+| Compradores que responderam | |
 | Negociações iniciadas | |
 | Vendas originadas | |
+| **Top 1 acertou?** (1º sugerido era o certo) | |
+| **Top 3 acertou?** (certo estava entre os 3) | |
+
+> A distinção Top 1 vs Top 3 revela se o algoritmo **encontra** as pessoas certas
+> mas ainda precisa melhorar a **ordenação** — ou se o problema é mais profundo.
 
 ## Observações da semana
 
@@ -44,7 +55,12 @@ Até: ____/____/______
 - **Usei naturalmente ou precisei lembrar que existia?**
   > 
 
-## Decisão
+## Primeiro teste (05/08/2026)
+Jeep Renegade cadastrado. Sistema sugeriu comprador que Yuri teria chamado de cabeça.
+Comprador confirmou interesse. Negociação em andamento.
+→ **Top 3: acertou. Top 1: a confirmar.**
+
+## Decisão (preencher ao fim do período)
 
 - [ ] Manter como está
 - [ ] Ajustar algoritmo de score
