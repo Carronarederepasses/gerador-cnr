@@ -51,24 +51,76 @@ function limpar(body, campos) {
   return out;
 }
 
-// Score de match: 0-100
-// 40 pts — valor dentro da faixa de preço
-// 30 pts — marca na lista de interesse
-// 20 pts — valor abaixo do máximo (mas fora da faixa)
-// 10 pts — base (qualquer comprador ativo)
-function calcScore(comprador, { marca, valor }) {
+// Score de match (0–100)
+// Camada 1 — estática (perfil):
+//   40 pts — valor dentro da faixa de preço
+//   30 pts — marca na lista de interesse
+//   20 pts — valor abaixo do máximo (mas fora da faixa)
+//   10 pts — base (qualquer comprador ativo)
+// Camada 2 — histórico de compras (tabela vendas):
+//   +5/10/15 pts — qtd de compras no CNR
+//   +15 pts — já comprou a mesma marca
+//   +5/10 pts — ticket médio próximo do valor
+//   +3/6/10 pts — recência da última compra
+// Camada 3 — comportamento nos eventos de match:
+//   +5/20 pts — engajamento recente
+//   -8/-15/-25 pts — recusas recentes
+//   -40 pts — já notificado neste veículo (evita spam)
+function calcScore(comprador, { marca, valor, veiculo_id = null }) {
   let score = 10;
   const v = parseFloat(valor) || 0;
   const min = parseFloat(comprador.preco_min) || 0;
   const max = parseFloat(comprador.preco_max) || Infinity;
   const marcas = (comprador.marcas || []).map(m => m.toLowerCase());
+  const compras  = comprador.compras  || [];
+  const eventos  = comprador.eventos  || [];
+  const agora    = Date.now();
 
+  // — Camada 1: perfil estático —
   if (v > 0 && v >= min && v <= max) score += 40;
   else if (v > 0 && max < Infinity && v <= max) score += 20;
-
   if (marca && marcas.includes(marca.toLowerCase())) score += 30;
 
-  return Math.min(score, 100);
+  // — Camada 2: histórico de compras —
+  const qtd = compras.length;
+  if (qtd >= 5) score += 15;
+  else if (qtd >= 3) score += 10;
+  else if (qtd >= 1) score += 5;
+
+  if (marca && compras.some(p => p.marca && p.marca.toLowerCase() === marca.toLowerCase())) score += 15;
+
+  if (qtd > 0 && v > 0) {
+    const ticket = compras.reduce((s, p) => s + (parseFloat(p.valor_venda) || 0), 0) / qtd;
+    const diff = Math.abs(ticket - v) / v;
+    if (diff <= 0.15) score += 10;
+    else if (diff <= 0.30) score += 5;
+  }
+
+  if (qtd > 0) {
+    const ultima = Math.max(...compras.map(p => new Date(p.data_venda).getTime()));
+    const dias = (agora - ultima) / 86400000;
+    if (dias <= 30) score += 10;
+    else if (dias <= 60) score += 6;
+    else if (dias <= 90) score += 3;
+  }
+
+  // — Camada 3: comportamento nos eventos —
+  const eventosRecentes = eventos.filter(e => (agora - new Date(e.created_at).getTime()) / 86400000 <= 21);
+  const respondeuRecente = eventosRecentes.some(e => ['respondeu_interessado', 'ligar_depois'].includes(e.resultado));
+  if (respondeuRecente) score += 20;
+  else if (eventosRecentes.length > 0) score += 5;
+
+  const recusasRecentes = eventos.filter(e => {
+    const dias = (agora - new Date(e.created_at).getTime()) / 86400000;
+    return dias <= 30 && ['nao_serve', 'nao_respondeu'].includes(e.resultado);
+  });
+  if (recusasRecentes.length >= 3) score -= 25;
+  else if (recusasRecentes.length === 2) score -= 15;
+  else if (recusasRecentes.length === 1) score -= 8;
+
+  if (veiculo_id && eventos.some(e => e.veiculo_id === veiculo_id)) score -= 40;
+
+  return Math.max(0, Math.min(score, 100));
 }
 
 module.exports = async (req, res) => {
@@ -217,13 +269,66 @@ module.exports = async (req, res) => {
       });
     }
 
+    // ── COMPRADORES ENRIQUECIDOS (com histórico e eventos de match) ──
+    if ('enriquecido' in q && req.method === 'GET') {
+      const [rComp, rVendas, rEventos] = await Promise.all([
+        sb('compradores?select=*&ativo=eq.true&order=nome.asc'),
+        sb('vendas?select=comprador_id,marca,valor_venda,data_venda&comprador_id=not.is.null'),
+        sb('eventos?select=comprador_id,resultado,created_at,veiculo_id&tipo=eq.match_notificado'),
+      ]);
+      if (!rComp.ok) throw new Error(await rComp.text());
+      const compradores  = await rComp.json();
+      const todasVendas  = rVendas.ok  ? await rVendas.json()  : [];
+      const todosEventos = rEventos.ok ? await rEventos.json() : [];
+
+      const vendasMap  = {};
+      const eventosMap = {};
+      for (const v of todasVendas) {
+        if (!vendasMap[v.comprador_id]) vendasMap[v.comprador_id] = [];
+        vendasMap[v.comprador_id].push(v);
+      }
+      for (const e of todosEventos) {
+        if (!eventosMap[e.comprador_id]) eventosMap[e.comprador_id] = [];
+        eventosMap[e.comprador_id].push(e);
+      }
+
+      return res.status(200).json(compradores.map(c => ({
+        ...c,
+        compras: vendasMap[c.id]  || [],
+        eventos: eventosMap[c.id] || [],
+      })));
+    }
+
     // ── MATCH ─────────────────────────────────────────────────
     if ('match' in q) {
-      const r = await sb('compradores?select=*&ativo=eq.true&order=nome.asc');
-      if (!r.ok) throw new Error(await r.text());
-      const lista = await r.json();
-      const scored = lista
-        .map(c => ({ ...c, score: calcScore(c, { marca: q.marca, valor: q.valor }) }))
+      const [rComp, rVendas, rEventos] = await Promise.all([
+        sb('compradores?select=*&ativo=eq.true&order=nome.asc'),
+        sb('vendas?select=comprador_id,marca,valor_venda,data_venda&comprador_id=not.is.null'),
+        sb('eventos?select=comprador_id,resultado,created_at,veiculo_id&tipo=eq.match_notificado'),
+      ]);
+      if (!rComp.ok) throw new Error(await rComp.text());
+      const compradores  = await rComp.json();
+      const todasVendas  = rVendas.ok  ? await rVendas.json()  : [];
+      const todosEventos = rEventos.ok ? await rEventos.json() : [];
+
+      const vendasMap  = {};
+      const eventosMap = {};
+      for (const v of todasVendas) {
+        if (!vendasMap[v.comprador_id]) vendasMap[v.comprador_id] = [];
+        vendasMap[v.comprador_id].push(v);
+      }
+      for (const e of todosEventos) {
+        if (!eventosMap[e.comprador_id]) eventosMap[e.comprador_id] = [];
+        eventosMap[e.comprador_id].push(e);
+      }
+
+      const scored = compradores
+        .map(c => ({
+          ...c,
+          compras: vendasMap[c.id]  || [],
+          eventos: eventosMap[c.id] || [],
+        }))
+        .map(c => ({ ...c, score: calcScore(c, { marca: q.marca, valor: q.valor, veiculo_id: q.veiculo_id || null }) }))
         .sort((a, b) => b.score - a.score);
       return res.status(200).json(scored);
     }
