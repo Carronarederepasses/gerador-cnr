@@ -26,6 +26,11 @@ Intermediação de veículos (repasse), modelo **C2B**:
 
 **Diferencial:** conhecimento profundo do mercado regional do litoral de SC, rede ativa de compradores, operação sem vitrine pública, velocidade.
 
+**Elevator pitch:** "Carro na Rede Repasses é a ponte privada entre veículos certos e compradores certos, com velocidade de repasse e distribuição qualificada."
+
+**Posicionamento de mercado:**
+Carro na Rede Repasses é uma operação de intermediação de veículos no litoral de Santa Catarina, focada em repasse rápido entre vendedores e uma rede qualificada de compradores B2B. A empresa não trabalha com estoque próprio nem vitrine pública: o ativo é a curadoria, o relacionamento e a velocidade de fechamento. Cada carro entra com avaliação estruturada e é distribuído para os compradores com maior aderência ao perfil. O resultado é menos ruído, mais assertividade e venda em menor prazo — normalmente em cerca de 48 horas. Na prática, o CNR transforma repasse em uma experiência privada, segmentada e móvel, em vez de depender de grupos, listas ou marketplace aberto.
+
 ---
 
 ## 2. Identidade Visual
@@ -93,6 +98,14 @@ Novas features de backend devem reutilizar funções existentes via query params
 ## 6. Visão Estratégica (fase atual: Ferramenta → Copiloto)
 
 O ativo real não é o software — é a **capacidade de transformar operação em conhecimento reutilizável**. O dataset é o registro. O processo que o gera é o diferencial.
+
+**Evolução do sistema em 3 fases:**
+- **Fase 1 — Registrar conhecimento** ✅ 112 vendas reais, compradores com perfil, catálogo estruturado
+- **Fase 2 — Usar o conhecimento para ajudar o Yuri a decidir** ✅ Match Ativo (Sprint 1 em validação)
+- **Fase 3 — Entregar valor diretamente ao comprador** 🔜 Vitrine Pessoal — link único por comprador, sem login, sem app, atualizado automaticamente pelo Motor de Match
+
+**Vitrine Pessoal (próxima evolução — não construir antes de validar Sprint 1):**
+Cada comprador recebe um link permanente (`cnr.com.br/u/ABC123`). Ao abrir, vê apenas os carros compatíveis com seu perfil, ordenados por score de match. Sem login, sem app, sem mudança de hábito. O WhatsApp continua como ativador ("Tem novidade — veja aqui"). O link é o destino. O CNR aprende com quem abriu, quem visualizou, quem clicou.
 
 **Meta-princípio (Calibração):** A Constituição existe para servir à realidade, não para substituí-la. Quando a operação mostrar, de forma consistente, que um princípio precisa evoluir, evolua o princípio. A única coisa imutável é o compromisso de aprender com a realidade.
 
