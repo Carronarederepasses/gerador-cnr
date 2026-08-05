@@ -641,7 +641,7 @@ function renderMatch(v) {
     const mcId  = `mc-${v.id}-${c.id}`;
     const razaoHtml = c.razoes.map(r => `<span class="match-razao">✓ ${r}</span>`).join('');
     const waHtml = wa ? `<a class="match-wa" href="https://wa.me/55${wa}?text=${encodeURIComponent(msgTexto)}" target="_blank">💬 WhatsApp</a>` : '';
-    return `<div class="match-comprador" id="${mcId}" data-score="${c.score}" data-razoes="${c.razoes.join('|')}">
+    return `<div class="match-comprador" id="${mcId}" data-score="${c.score}" data-razoes="${c.razoes.join('|')}" data-msg="${msgTexto.replace(/"/g,'&quot;')}">
       <div class="match-row">
         <span class="match-nome">${esc(c.nome)}</span>
         <div class="match-bar-wrap"><div class="match-bar${cls}" style="width:${c.score}%"></div></div>
@@ -701,9 +701,10 @@ async function registrarResultado(veiculoId, compradorId, mcId, resultado) {
   ok.textContent = '✓ ' + (RESULTADO_LABEL[resultado] || resultado);
   container?.appendChild(ok);
   container?.classList.add('match-notificado');
-  // Lê score e motivos do DOM para enriquecer o evento
-  const score   = container ? parseInt(container.dataset.score  || '0') : 0;
-  const motivos = container ? (container.dataset.razoes || '').split('|').filter(Boolean) : [];
+  // Lê score, motivos e mensagem do DOM para enriquecer o evento
+  const score    = container ? parseInt(container.dataset.score  || '0') : 0;
+  const motivos  = container ? (container.dataset.razoes || '').split('|').filter(Boolean) : [];
+  const mensagem = container ? (container.dataset.msg || '') : '';
   try {
     await fetch('/api/compradores?evento=1', {
       method: 'POST',
@@ -712,7 +713,7 @@ async function registrarResultado(veiculoId, compradorId, mcId, resultado) {
         tipo:         'match_notificado',
         veiculo_id:   veiculoId,
         comprador_id: compradorId,
-        dados:        { resultado, score_match: score, motivos_match: motivos },
+        dados:        { resultado, score_match: score, motivos_match: motivos, mensagem_gerada: mensagem },
         origem:       'catalogo',
       }),
     });
