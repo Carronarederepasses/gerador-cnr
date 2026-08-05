@@ -716,7 +716,8 @@ async function buscarCNPJ() {
     if (!r.ok) { st.textContent = '✗ CNPJ não encontrado.'; return; }
     const d = await r.json();
     if (d.razao_social) document.getElementById('m-razao_social').value = toTitleCase(d.razao_social);
-    if (d.logradouro)   document.getElementById('m-logradouro').value   = `${toTitleCase(d.logradouro)}${d.numero ? ', '+d.numero : ''}`;
+    if (d.logradouro)   document.getElementById('m-logradouro').value   = toTitleCase(d.logradouro);
+    if (d.numero)       document.getElementById('m-numero').value        = d.numero;
     if (d.bairro)       document.getElementById('m-bairro').value       = toTitleCase(d.bairro);
     if (d.municipio) {
       const cidade = toTitleCase(d.municipio);
