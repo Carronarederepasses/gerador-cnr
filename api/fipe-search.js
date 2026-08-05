@@ -80,6 +80,8 @@ const BRAND_ALIASES = [
   // Great Wall = carros 2009-2016; GWM = carros 2019+ (Haval H6, Jolion, etc.)
   [/\bmercedes\b/g,    'mercedes-benz'], // "Mercedes GLC" → casa com "Mercedes-Benz"
   [/\bland\s*rover\b/g,'land rover'],
+  [/\bjourney\b/g,     'dodge journey'], // "Journey" sem marca → Dodge
+  [/\bdurango\b/g,     'dodge durango'], // "Durango" sem marca → Dodge
 ];
 
 const MARCAS_POPULARES_IDS = [
@@ -87,6 +89,7 @@ const MARCAS_POPULARES_IDS = [
   'renault','jeep','ford','nissan','kia','mitsubishi','peugeot','citroen',
   'caoa','cherry','byd','great wall','gwm','haval','jac',
   'mercedes','bmw','audi','volvo','land rover','porsche','jaguar',
+  'dodge','chrysler','ram','subaru','suzuki','lexus','infiniti',
 ];
 
 module.exports = async (req, res) => {
