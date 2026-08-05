@@ -2184,6 +2184,15 @@ async function processarIA() {
     fill('blind-vidro', data.blindagem_vidro);
     if (data.blindagem_marca || data.blindagem_nivel || data.blindagem_vidro) {
       document.getElementById('blind-wrap').classList.add('show');
+      // Garantir que o toggle "blindado" também fica marcado quando a IA detectou blindagem
+      document.querySelectorAll('.tog[data-id="blindado"]').forEach(tog => {
+        if (!tog.classList.contains('on')) {
+          tog.classList.add('on');
+          const box = tog.querySelector('.togbox');
+          if (box) box.textContent = '✓';
+        }
+      });
+      atualizaContagemOpc();
     }
     // Pré-preenche FIPE do texto como fallback (API pode sobrescrever com valor oficial)
     if (data.fipe) fill('colet-fipe', data.fipe);
