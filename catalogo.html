@@ -685,6 +685,55 @@ function calcRazoes(c, marca, valor) {
   return razoes;
 }
 
+function gerarMensagemMatch(c, nomeCarro, detalhes, razoes) {
+  const carro   = detalhes ? `${nomeCarro} — ${detalhes}` : nomeCarro;
+  const compras = c.compras || [];
+  const eventos = c.eventos || [];
+  const agora   = Date.now();
+
+  // 1. Já comprou a mesma marca
+  const comprouMarca = razoes.find(r => r.startsWith('Já comprou '));
+  if (comprouMarca) {
+    const marca = comprouMarca.replace('Já comprou ', '');
+    return `Lembrei de você porque você já pegou ${marca} com a gente. Entrou um ${carro}. Quer que eu te mande as fotos?`;
+  }
+
+  // 2. Muitas compras (≥5)
+  if (compras.length >= 5) {
+    return `Você é um dos que mais fecha com a gente, então priorizei te avisar. Entrou um ${carro}. Quer ver as fotos?`;
+  }
+
+  // 3. Compra recente (≤45 dias)
+  if (compras.length > 0) {
+    const ultima = Math.max(...compras.map(p => new Date(p.data_venda).getTime()));
+    if ((agora - ultima) / 86400000 <= 45) {
+      return `Vi que você fechou há pouco tempo, mas esse aqui me lembrou seu perfil. ${carro}. Quer que eu te mande?`;
+    }
+  }
+
+  // 4. Respondeu recentemente (≤21 dias)
+  const respondeuRecente = eventos.some(e => {
+    const dias = (agora - new Date(e.created_at).getTime()) / 86400000;
+    return dias <= 21 && ['respondeu_interessado', 'ligar_depois'].includes(e.resultado);
+  });
+  if (respondeuRecente) {
+    return `Como você respondeu rápido da última vez, te mandei esse na frente. ${carro}. Interessado?`;
+  }
+
+  // 5. Faixa de preço + marca
+  if (razoes.includes('Faixa de preço') && razoes.some(r => r.startsWith('Marca '))) {
+    return `Encaixou exatamente no que você costuma procurar. ${carro}. Quer as fotos?`;
+  }
+
+  // 6. Abaixo do máximo
+  if (razoes.includes('Abaixo do máximo')) {
+    return `Achei que valia te avisar porque está abaixo do que você costuma olhar. ${carro}. Quer ver?`;
+  }
+
+  // Fallback
+  return `Entrou um ${carro} que encaixa no seu perfil. Quer que eu te mande as fotos?`;
+}
+
 function renderMatch(v) {
   if (!COMPRADORES.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Cadastre compradores para ver sugestões</div>';
   const scored = COMPRADORES
@@ -702,7 +751,7 @@ function renderMatch(v) {
   const rows = scored.map(c => {
     const wa    = c.telefone ? c.telefone.replace(/\D/g, '') : '';
     const cls   = c.score >= 70 ? '' : c.score >= 40 ? ' med' : ' baixo';
-    const msgTexto = `Olá ${c.nome}! Entrou um ${nomeCarro}${detalhes ? ' — ' + detalhes : ''}. Achei que combinava com o que você procura. Te aviso antes de abrir pra todo mundo. Tem interesse?`;
+    const msgTexto = gerarMensagemMatch(c, nomeCarro, detalhes, c.razoes);
     const msgId = `cmsg-${v.id}-${c.id}`;
     const mcId  = `mc-${v.id}-${c.id}`;
     const razaoHtml = c.razoes.map(r => `<span class="match-razao">✓ ${r}</span>`).join('');
