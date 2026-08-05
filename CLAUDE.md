@@ -29,7 +29,20 @@ Intermediação de veículos (repasse), modelo **C2B**:
 **Elevator pitch:** "Carro na Rede Repasses é a ponte privada entre veículos certos e compradores certos, com velocidade de repasse e distribuição qualificada."
 
 **Posicionamento de mercado:**
-Carro na Rede Repasses é uma operação de intermediação de veículos no litoral de Santa Catarina, focada em repasse rápido entre vendedores e uma rede qualificada de compradores B2B. A empresa não trabalha com estoque próprio nem vitrine pública: o ativo é a curadoria, o relacionamento e a velocidade de fechamento. Cada carro entra com avaliação estruturada e é distribuído para os compradores com maior aderência ao perfil. O resultado é menos ruído, mais assertividade e venda em menor prazo — normalmente em cerca de 48 horas. Na prática, o CNR transforma repasse em uma experiência privada, segmentada e móvel, em vez de depender de grupos, listas ou marketplace aberto.
+O Carro na Rede Repasses é uma operação de intermediação de veículos focada em conectar vendedores a uma rede qualificada de compradores profissionais. O CNR não compete como marketplace aberto nem como revenda de estoque próprio. Seu diferencial está na combinação entre relacionamento, inteligência operacional e distribuição direcionada. Cada veículo é analisado, estruturado e apresentado aos compradores com maior aderência ao seu perfil, reduzindo ruído, acelerando negociações e aumentando a probabilidade de fechamento. Na prática, o CNR transforma o processo de repasse em uma experiência privada, segmentada e orientada por dados.
+
+**O que estamos construindo:**
+O Gerador CNR deixou de ser apenas um gerador de anúncios. Hoje, ele evolui para um sistema operacional da operação de repasse. Sua função não é apenas registrar informações, mas ajudar a responder continuamente: **Qual é a próxima melhor ação?**
+- Qual comprador devo contatar primeiro?
+- Qual veículo merece atenção agora?
+- Qual negociação está esfriando?
+- Qual oportunidade não pode ser perdida?
+
+**Princípio central:** O CNR não existe para distribuir anúncios. O CNR existe para distribuir oportunidades. O anúncio é apenas um dos formatos pelos quais uma oportunidade é apresentada.
+
+**Ativo estratégico:** O principal ativo do CNR não é o software, nem o canal de comunicação. É o conhecimento acumulado sobre compradores, veículos, negociações, comportamento do mercado e resultados das decisões tomadas. Cada interação registrada torna o sistema mais capaz de recomendar a próxima ação correta.
+
+**Visão de longo prazo:** O objetivo não é substituir WhatsApp, e-mail ou qualquer outro canal — os canais mudam, o conhecimento permanece. O CNR será a camada de inteligência que identifica a oportunidade certa e a entrega pelo canal mais adequado para cada comprador.
 
 ---
 
@@ -166,4 +179,4 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 
 ---
 
-*Atualizado em julho/2026. Manter este arquivo atualizado conforme o projeto evolui.*
+*Atualizado em agosto/2026. Manter este arquivo atualizado conforme o projeto evolui.*
