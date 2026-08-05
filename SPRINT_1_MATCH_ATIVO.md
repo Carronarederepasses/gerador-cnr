@@ -85,4 +85,15 @@ A Sprint será considerada encerrada quando:
 
 ---
 
+## Lições Aprendidas (preencher ao encerrar a Sprint)
+
+> Uma página só. Não técnico. Para o Yuri do futuro.
+
+- **O que imaginávamos:** 
+- **O que realmente aconteceu:** 
+- **O que nos surpreendeu:** 
+- **O que faremos diferente na Sprint 2:** 
+
+---
+
 *Criado em 04/08/2026 — preencher ao fim do período de observação*
