@@ -404,6 +404,7 @@ function selecionarCRM(id) {
   document.getElementById('m-comprador_nome').value = c.nome;
   document.getElementById('m-comprador_id').value = c.id;
   if (c.telefone) document.getElementById('m-comprador_telefone').value = c.telefone;
+  if (c.cnpj || c.cpf) document.getElementById('m-comprador_cpf').value = c.cnpj || c.cpf;
   document.getElementById('crm-drop').classList.remove('show');
 }
 
