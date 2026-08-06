@@ -515,7 +515,8 @@ function selecionarCRM(i) {
   document.getElementById('m-comprador_id').value   = c.id || '';
   if (c.telefone)     document.getElementById('m-comprador_telefone').value = c.telefone;
   if (_extrairDoc(c)) document.getElementById('m-comprador_cpf').value      = _extrairDoc(c);
-  const loc = [c.cidade, c.estado].filter(Boolean).join('-');
+  const _cidade = (c.cidade || '').replace(/[-\s]+[A-Z]{2}$/, '').trim();
+  const loc = [_cidade, c.estado].filter(Boolean).join('-');
   if (loc && !document.getElementById('m-destino').value) document.getElementById('m-destino').value = loc;
   document.getElementById('crm-drop').classList.remove('show');
 }
