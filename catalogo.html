@@ -1247,7 +1247,7 @@ async function adicionarDoc(id) {
       try {
         const r = await fetch('/api/catalogo?doc=1', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-cnr-key': KEY || '' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ veiculoId: id, fileBase64: b64, mimeType: file.type }),
         });
         if (!r.ok) throw new Error((await r.json()).error || 'Erro');
@@ -1267,7 +1267,7 @@ async function removerDoc(id, url) {
   if (!confirm('Remover este documento?')) return;
   const r = await fetch('/api/catalogo?doc=1', {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', 'x-cnr-key': KEY || '' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ veiculoId: id, url }),
   });
   if (!r.ok) { alert('Erro ao remover.'); return; }
