@@ -1255,7 +1255,6 @@ async function adicionarDoc(id) {
         CACHE[id].documentos = documentos;
         const box = $('docs-' + id);
         if (box) box.innerHTML = renderDocItems(id, documentos);
-        toast('📄 CRLV anexado!');
       } catch(e) { alert('Erro ao anexar: ' + e.message); if (btn) { btn.disabled = false; btn.textContent = '📄 Anexar CRLV'; } }
     };
     reader.readAsDataURL(file);
@@ -1278,7 +1277,10 @@ async function removerDoc(id, url) {
 }
 
 function copiarDocLink(url) {
-  navigator.clipboard.writeText(url).then(() => toast('🔗 Link copiado!'));
+  navigator.clipboard.writeText(url).then(() => {
+    const btns = document.querySelectorAll('.doc-item button');
+    btns.forEach(b => { if (b.textContent === '🔗') { const t = b.textContent; b.textContent = '✓'; setTimeout(() => b.textContent = t, 1800); }});
+  });
 }
 
 async function pacoteWhatsApp(id) {
