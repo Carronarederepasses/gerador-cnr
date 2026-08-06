@@ -135,6 +135,7 @@
       <select id="f-status">
         <option value="">Todos</option>
         <option value="negociando">Negociando</option>
+        <option value="fechada">Fechada</option>
         <option value="pago">Pago</option>
         <option value="retirado">Retirado</option>
         <option value="concluido">Concluído</option>
@@ -627,7 +628,7 @@ async function salvarRapida(continuar) {
     data_venda: $('r-data').value || new Date().toISOString().slice(0,10),
     valor_venda: parseBRv($('r-valor').value),
     taxa_intermediacao: parseBRv($('r-taxa').value),
-    status: 'concluida',
+    status: 'concluido',
     canal_origem: 'historico',
   };
   try {
