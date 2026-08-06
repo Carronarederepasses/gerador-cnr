@@ -263,10 +263,10 @@
     <div class="form-sec">
       <div class="stit">Valores</div>
       <div class="grid3">
-        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="number" inputmode="numeric" placeholder="ex: 2000" /></div>
-        <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="number" inputmode="numeric" /></div>
-        <div><label>Valor de compra — quanto o vendedor recebeu (R$)</label><input id="m-valor_compra" type="number" inputmode="numeric" /></div>
-        <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="number" inputmode="numeric" /></div>
+        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="text" inputmode="numeric" placeholder="ex: 1.500,00" /></div>
+        <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="text" inputmode="numeric" placeholder="ex: 85.000" /></div>
+        <div><label>Valor de compra — quanto o vendedor recebeu (R$)</label><input id="m-valor_compra" type="text" inputmode="numeric" placeholder="ex: 83.000" /></div>
+        <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="text" inputmode="numeric" placeholder="ex: 87.500" /></div>
         <div><label>Forma de pagamento</label><input id="m-forma_pagamento" placeholder="PIX, financiamento..." /></div>
         <div><label>Canal de origem — como chegou esse carro</label>
           <select id="m-canal_origem">
@@ -789,7 +789,7 @@ $('m-salvar').onclick = async () => {
   CAMPOS_FORM.forEach(c => {
     const el = $('m-' + c); if (!el) return;
     let val = el.value;
-    if (['km','valor_venda','valor_fipe','taxa_intermediacao'].includes(c)) val = val === '' ? null : Number(val);
+    if (['km','valor_venda','valor_fipe','taxa_intermediacao','valor_compra'].includes(c)) val = parseBRv(val);
     body[c] = val;
   });
   const btn = $('m-salvar');
