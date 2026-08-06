@@ -28,6 +28,7 @@ const CATALOGO_KEY = process.env.CATALOGO_KEY; // opcional
 const TABLE = 'veiculos';
 const BUCKET = 'veiculos';
 const EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const EXT_DOC = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/webp': 'webp' };
 
 // Campos aceitos no POST/PATCH (whitelist — ignora o resto)
 const CAMPOS = [
@@ -115,6 +116,56 @@ async function avariaHandler(req, res) {
   return res.status(201).json({ url });
 }
 
+// ── Documentos (CRLV, etc.) ──────────────────────────────────────
+async function getDocumentos(veiculoId) {
+  const r = await sb(`veiculos?id=eq.${veiculoId}&select=documentos`);
+  if (!r.ok) throw new Error(await r.text());
+  const rows = await r.json();
+  if (!rows.length) throw new Error('Veículo não encontrado.');
+  return Array.isArray(rows[0].documentos) ? rows[0].documentos : [];
+}
+async function setDocumentos(veiculoId, documentos) {
+  const r = await sb(`veiculos?id=eq.${veiculoId}`, {
+    method: 'PATCH', headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ documentos }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return documentos;
+}
+async function docHandler(req, res) {
+  if (req.method === 'POST') {
+    const { veiculoId, fileBase64, mimeType = 'application/pdf' } = req.body || {};
+    if (!veiculoId || !fileBase64) return res.status(400).json({ error: 'veiculoId e fileBase64 obrigatórios.' });
+    const ext = EXT_DOC[mimeType] || 'pdf';
+    const objPath = `${veiculoId}/docs/${Date.now()}.${ext}`;
+    const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
+      method: 'POST',
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': mimeType, 'x-upsert': 'true' },
+      body: Buffer.from(fileBase64, 'base64'),
+    });
+    if (!up.ok) throw new Error(await up.text());
+    const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${objPath}`;
+    const documentos = await getDocumentos(veiculoId);
+    documentos.push(url);
+    await setDocumentos(veiculoId, documentos);
+    return res.status(201).json({ documentos });
+  }
+  if (req.method === 'DELETE') {
+    const { veiculoId, url } = req.body || {};
+    if (!veiculoId || !url) return res.status(400).json({ error: 'veiculoId e url obrigatórios.' });
+    const objPath = pathFromUrl(url);
+    if (objPath) {
+      await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
+        method: 'DELETE', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+      });
+    }
+    const documentos = (await getDocumentos(veiculoId)).filter(u => u !== url);
+    await setDocumentos(veiculoId, documentos);
+    return res.status(200).json({ documentos });
+  }
+  return res.status(405).json({ error: 'Método não permitido.' });
+}
+
 async function fotoHandler(req, res) {
   if (req.method === 'POST') {
     const { veiculoId, imageBase64, mimeType = 'image/jpeg' } = req.body || {};
@@ -168,6 +219,8 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try {
+    // Rota de documentos (CRLV)
+    if (q.doc !== undefined) return await docHandler(req, res);
     // Rota de fotos do catálogo
     if (q.foto !== undefined) return await fotoHandler(req, res);
     // Rota de fotos de avaria (avaliação — não entra no array fotos)

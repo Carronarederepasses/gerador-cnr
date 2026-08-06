@@ -76,6 +76,15 @@
   .fotos .add{flex:0 0 auto;height:72px;width:72px;border:1px dashed var(--line);border-radius:8px;background:var(--surface);color:var(--text-mid);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .fotos .add:hover{border-color:var(--accent);color:var(--accent)}
 
+  /* Documentos (CRLV) */
+  .doc-section{margin:.3rem 0 .1rem;display:flex;flex-wrap:wrap;align-items:center;gap:.3rem}
+  .doc-item{display:inline-flex;align-items:center;gap:.25rem;padding:.2rem .45rem;border-radius:6px;border:1px solid var(--line);font-size:.72rem;background:var(--surface-raise)}
+  .doc-item a{color:var(--text);text-decoration:none;font-weight:500}
+  .doc-item a:hover{color:var(--accent)}
+  .doc-item button{border:none;background:none;cursor:pointer;padding:0;line-height:1;font-size:.68rem}
+  .doc-add-btn{font-size:.72rem;padding:.2rem .5rem;border:1px dashed var(--line);border-radius:6px;background:none;color:var(--text-mid);cursor:pointer}
+  .doc-add-btn:hover{border-color:var(--accent);color:var(--accent)}
+
   /* Modo seleção de fotos */
   .thumb .check{position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:var(--surface-raise);border:1.5px solid var(--line);color:transparent;display:none;align-items:center;justify-content:center;font-size:.72rem;font-weight:700}
   .fotos.selmode .thumb .check{display:flex}
@@ -532,6 +541,7 @@ function card(v) {
       <button class="link-sel" id="selbtn-${v.id}" onclick="toggleSelMode('${v.id}',this)">Selecionar fotos</button>
       <button class="link-del" id="del-${v.id}" style="display:none" disabled onclick="apagarSelecionadas('${v.id}')">Apagar selecionadas (0)</button>
     </div>` : ''}
+    <div class="doc-section" id="docs-${v.id}">${renderDocItems(v.id, Array.isArray(v.documentos) ? v.documentos : [])}</div>
     <div class="precos">
       <div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Repasse</div><span class="v">${fmtR(v.valor)}</span></div>
       ${v.fipe != null ? `<div><div style="font-size:.68rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span></div>` : ''}
@@ -1207,6 +1217,70 @@ async function apagarSelecionadas(id) {
 
 // ── Pacote WhatsApp: texto + fotos ─────────────────────────────
 // A seleção de fotos é feita pelo link "Selecionar fotos". Este botão só envia.
+// ── Documentos (CRLV) ────────────────────────────────────────────
+function renderDocItems(id, docs) {
+  const items = docs.map((u, i) => {
+    const isPdf = u.toLowerCase().endsWith('.pdf');
+    const label = isPdf ? `CRLV ${docs.length > 1 ? i+1 : ''}`.trim() : `Doc ${i+1}`;
+    return `<span class="doc-item">
+      ${isPdf ? '📄' : '🖼️'} <a href="${esc(u)}" target="_blank" rel="noopener">${label}</a>
+      <button onclick="copiarDocLink('${esc(u)}')" title="Copiar link para compartilhar">🔗</button>
+      <button onclick="removerDoc('${esc(id)}','${esc(u)}')" title="Remover" style="color:#e55">✕</button>
+    </span>`;
+  }).join('');
+  return items + `<button class="doc-add-btn" id="docadd-${id}" onclick="adicionarDoc('${id}')">${docs.length ? '📄 +doc' : '📄 Anexar CRLV'}</button>`;
+}
+
+async function adicionarDoc(id) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/pdf,image/*';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Arquivo muito grande (máx 10 MB).'); return; }
+    const btn = $('docadd-' + id);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Enviando...'; }
+    const reader = new FileReader();
+    reader.onload = async e => {
+      const b64 = e.target.result.split(',')[1];
+      try {
+        const r = await fetch('/api/catalogo?doc=1', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-cnr-key': KEY || '' },
+          body: JSON.stringify({ veiculoId: id, fileBase64: b64, mimeType: file.type }),
+        });
+        if (!r.ok) throw new Error((await r.json()).error || 'Erro');
+        const { documentos } = await r.json();
+        CACHE[id].documentos = documentos;
+        const box = $('docs-' + id);
+        if (box) box.innerHTML = renderDocItems(id, documentos);
+        toast('📄 CRLV anexado!');
+      } catch(e) { alert('Erro ao anexar: ' + e.message); if (btn) { btn.disabled = false; btn.textContent = '📄 Anexar CRLV'; } }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+async function removerDoc(id, url) {
+  if (!confirm('Remover este documento?')) return;
+  const r = await fetch('/api/catalogo?doc=1', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'x-cnr-key': KEY || '' },
+    body: JSON.stringify({ veiculoId: id, url }),
+  });
+  if (!r.ok) { alert('Erro ao remover.'); return; }
+  const { documentos } = await r.json();
+  CACHE[id].documentos = documentos;
+  const box = $('docs-' + id);
+  if (box) box.innerHTML = renderDocItems(id, documentos);
+}
+
+function copiarDocLink(url) {
+  navigator.clipboard.writeText(url).then(() => toast('🔗 Link copiado!'));
+}
+
 async function pacoteWhatsApp(id) {
   const v = CACHE[id];
   if (!v) return;
