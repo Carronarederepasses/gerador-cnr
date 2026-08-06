@@ -276,8 +276,11 @@
         <div><label>Valor de compra — quanto o vendedor recebeu (R$)</label><input id="m-valor_compra" type="text" inputmode="numeric" placeholder="ex: 83.000" /></div>
         <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="text" inputmode="numeric" placeholder="ex: 87.500" /></div>
         <div><label>Forma de pagamento</label>
-          <input id="m-forma_pagamento" list="dl-pagamento" placeholder="Pix, TED...">
-          <datalist id="dl-pagamento"><option value="Pix"><option value="TED"></datalist>
+          <select id="m-forma_pagamento">
+            <option value="">Selecionar...</option>
+            <option value="Pix">Pix</option>
+            <option value="TED">TED</option>
+          </select>
         </div>
         <div><label>Canal de origem — como chegou esse carro</label>
           <select id="m-canal_origem">
