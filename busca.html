@@ -163,7 +163,7 @@ function renderVendas(lista) {
   const rows = lista.slice(0,10).map(v => {
     const nome = [v.marca, v.versao||v.modelo].filter(Boolean).join(' ') || 'Venda';
     const sub  = [v.placa, v.comprador_nome, v.data_venda, fmtR(v.taxa_intermediacao)].filter(Boolean).join(' · ');
-    return `<a class="resultado" href="/vendas.html">
+    return `<a class="resultado" href="/vendas.html?id=${v.id}">
       <div class="res-ico">📋</div>
       <div class="res-body">
         <div class="res-titulo">${esc(nome)}</div>

@@ -434,6 +434,27 @@ document.addEventListener('click', e => {
     if (veiculo.comprador_telefone) document.getElementById('m-comprador_telefone').value = veiculo.comprador_telefone;
     history.replaceState({}, '', '/vendas.html');
   }
+
+  // Vindo da busca global via ?id= → rola até a venda e destaca
+  const alvoId = p.get('id');
+  if (alvoId && !temDados) {
+    let el = document.getElementById('venda-' + alvoId);
+    if (!el) {
+      // Pode ser histórico (oculto por padrão) — mostra e re-renderiza
+      _mostrarHistorico = true;
+      $('btn-historico').style.opacity = '1';
+      $('btn-historico').textContent = '🙈 Ocultar histórico';
+      render();
+      el = document.getElementById('venda-' + alvoId);
+    }
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.transition = 'box-shadow .3s';
+      el.style.boxShadow = '0 0 0 2px var(--accent)';
+      setTimeout(() => { el.style.boxShadow = ''; }, 2500);
+    }
+    history.replaceState({}, '', '/vendas.html');
+  }
 })();
 
 // ── Carregar / filtrar ─────────────────────────────────────────
@@ -531,7 +552,7 @@ function cardHTML(v) {
     return `<div class="grupo"><div class="gtit">${rotulo}</div><div class="anexo-chips">${chips}<span class="add-anexo" onclick="addAnexo('${v.id}','${tipo}')">+ anexar</span></div></div>`;
   }).join('');
 
-  return `<div class="card">
+  return `<div class="card" id="venda-${v.id}">
     <div class="topo">
       <h3>${esc(nomeCarro(v))}${v.placa ? ' · <span style="font-weight:400;color:var(--text-mid)">'+esc(v.placa)+'</span>' : ''}</h3>
       <span class="badge ${v.status}">${esc(v.status)}</span>
