@@ -221,7 +221,14 @@
       <div class="stit">Vendedor / Origem (de quem veio o carro)</div>
       <div class="grid2" style="margin-bottom:.7rem">
         <div><label>Origem (cidade / de onde veio)</label><input id="m-origem" placeholder="ex: Garopaba - Paulo" /></div>
-        <div><label>Nome do vendedor</label><input id="m-vendedor_nome" /></div>
+        <div><label>Nome do vendedor</label>
+          <div class="crm-combo" id="vend-combo">
+            <input id="m-vendedor_nome" autocomplete="off" placeholder="Buscar no histórico ou digitar..."
+              oninput="filtrarVendedor(this.value)" onfocus="filtrarVendedor(this.value)"
+              onchange="if(!this.value){}" >
+            <div class="crm-drop" id="vend-drop"></div>
+          </div>
+        </div>
       </div>
       <div class="grid2">
         <div><label>CPF / CNPJ</label><input id="m-vendedor_cpf" /></div>
@@ -369,8 +376,13 @@ function headers(extra) {
 }
 
 
-// ── CRM Autocomplete ────────────────────────────────────────────
+// ── Autocomplete: Comprador (CRM + histórico) e Vendedor (histórico) ──
 let COMPRADORES_CRM = [];
+let COMPRADORES_HIST = [];
+let VENDEDORES_HIST  = [];
+let _CRM_MATCHES  = [];
+let _VEND_MATCHES = [];
+
 (async () => {
   try {
     const r = await fetch('/api/compradores?ativo=true');
@@ -378,19 +390,49 @@ let COMPRADORES_CRM = [];
   } catch(_) {}
 })();
 
+function buildHist() {
+  // Vendedores únicos do histórico de vendas
+  const vMap = {};
+  VENDAS.forEach(v => {
+    if (!v.vendedor_nome) return;
+    const k = v.vendedor_nome.toLowerCase().trim();
+    if (!vMap[k]) vMap[k] = { nome: v.vendedor_nome, cpf: v.vendedor_cpf || '', telefone: v.vendedor_telefone || '' };
+  });
+  VENDEDORES_HIST = Object.values(vMap);
+
+  // Compradores do histórico que não estão no CRM
+  const crmNomes = new Set(COMPRADORES_CRM.map(c => c.nome.toLowerCase().trim()));
+  const cMap = {};
+  VENDAS.forEach(v => {
+    if (!v.comprador_nome) return;
+    const k = v.comprador_nome.toLowerCase().trim();
+    if (crmNomes.has(k) || cMap[k]) return;
+    cMap[k] = { nome: v.comprador_nome, cpf: v.comprador_cpf || '', telefone: v.comprador_telefone || '' };
+  });
+  COMPRADORES_HIST = Object.values(cMap);
+}
+
+// ── Comprador ──
 function filtrarCRM(q) {
   const drop = document.getElementById('crm-drop');
   const term = (q || '').toLowerCase().trim();
-  const matches = term
-    ? COMPRADORES_CRM.filter(c => c.nome.toLowerCase().includes(term))
-    : COMPRADORES_CRM;
-  if (!matches.length) { drop.classList.remove('show'); return; }
   const moedaK = n => n ? 'R$' + Math.round(Number(n)/1000) + 'k' : '?';
-  drop.innerHTML = matches.slice(0, 8).map(c => {
-    const faixa = (c.preco_min || c.preco_max) ? moedaK(c.preco_min) + '–' + moedaK(c.preco_max) : '';
-    const marcas = (c.marcas || []).slice(0, 3).join(', ');
-    const info = [c.tipo?.toUpperCase(), faixa, marcas].filter(Boolean).join(' · ');
-    return `<div class="crm-opt" onmousedown="selecionarCRM('${c.id}')">
+
+  const crmM = term ? COMPRADORES_CRM.filter(c => c.nome.toLowerCase().includes(term)) : COMPRADORES_CRM;
+  const histM = COMPRADORES_HIST.filter(c => !term || c.nome.toLowerCase().includes(term));
+  _CRM_MATCHES = [...crmM, ...histM].slice(0, 8);
+
+  if (!_CRM_MATCHES.length) { drop.classList.remove('show'); return; }
+  drop.innerHTML = _CRM_MATCHES.map((c, i) => {
+    let info;
+    if (c.id) {
+      const faixa = (c.preco_min || c.preco_max) ? moedaK(c.preco_min) + '–' + moedaK(c.preco_max) : '';
+      const marcas = (c.marcas || []).slice(0, 3).join(', ');
+      info = [c.tipo?.toUpperCase(), faixa, marcas].filter(Boolean).join(' · ');
+    } else {
+      info = ['Histórico', c.cpf, c.telefone].filter(Boolean).join(' · ');
+    }
+    return `<div class="crm-opt" onmousedown="selecionarCRM(${i})">
       <div class="crm-opt-nome">${esc(c.nome)}</div>
       ${info ? `<div class="crm-opt-info">${info}</div>` : ''}
     </div>`;
@@ -398,18 +440,47 @@ function filtrarCRM(q) {
   drop.classList.add('show');
 }
 
-function selecionarCRM(id) {
-  const c = COMPRADORES_CRM.find(x => x.id === id);
+function selecionarCRM(i) {
+  const c = _CRM_MATCHES[i];
   if (!c) return;
-  document.getElementById('m-comprador_nome').value = c.nome;
-  document.getElementById('m-comprador_id').value = c.id;
+  document.getElementById('m-comprador_nome').value  = c.nome;
+  document.getElementById('m-comprador_id').value    = c.id || '';
   if (c.telefone) document.getElementById('m-comprador_telefone').value = c.telefone;
   if (c.cnpj || c.cpf) document.getElementById('m-comprador_cpf').value = c.cnpj || c.cpf;
   document.getElementById('crm-drop').classList.remove('show');
 }
 
+// ── Vendedor ──
+function filtrarVendedor(q) {
+  const drop = document.getElementById('vend-drop');
+  const term = (q || '').toLowerCase().trim();
+  _VEND_MATCHES = (term
+    ? VENDEDORES_HIST.filter(v => v.nome.toLowerCase().includes(term))
+    : VENDEDORES_HIST
+  ).slice(0, 8);
+  if (!_VEND_MATCHES.length) { drop.classList.remove('show'); return; }
+  drop.innerHTML = _VEND_MATCHES.map((v, i) => {
+    const info = [v.cpf, v.telefone].filter(Boolean).join(' · ');
+    return `<div class="crm-opt" onmousedown="selecionarVendedor(${i})">
+      <div class="crm-opt-nome">${esc(v.nome)}</div>
+      ${info ? `<div class="crm-opt-info">${info}</div>` : ''}
+    </div>`;
+  }).join('');
+  drop.classList.add('show');
+}
+
+function selecionarVendedor(i) {
+  const v = _VEND_MATCHES[i];
+  if (!v) return;
+  document.getElementById('m-vendedor_nome').value  = v.nome;
+  if (v.cpf)      document.getElementById('m-vendedor_cpf').value      = v.cpf;
+  if (v.telefone) document.getElementById('m-vendedor_telefone').value  = v.telefone;
+  document.getElementById('vend-drop').classList.remove('show');
+}
+
 document.addEventListener('click', e => {
-  if (!e.target.closest('#crm-combo')) document.getElementById('crm-drop').classList.remove('show');
+  if (!e.target.closest('#crm-combo'))  document.getElementById('crm-drop').classList.remove('show');
+  if (!e.target.closest('#vend-combo')) document.getElementById('vend-drop').classList.remove('show');
 });
 
 (async function boot(){
@@ -417,6 +488,7 @@ document.addEventListener('click', e => {
   try { r = await fetch('/api/vendas', { headers: headers() }); } catch(e) { return; }
   if (!r.ok) return;
   VENDAS = await r.json();
+  buildHist();
   render();
 
   // Vindo do catálogo ou negociações via "Registrar Venda" → abre modal pré-preenchido
