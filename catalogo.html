@@ -508,7 +508,7 @@ function card(v) {
   ).join('');
 
   return `
-  <div class="card">
+  <div class="card" id="vcard-${v.id}">
     <div class="topo">
       <h3 class="h3-edit" title="Clique para editar" onclick="abrirEdicao('${v.id}')">${esc(nomeVeiculo(v))}</h3>
       <div style="display:flex;gap:.3rem;align-items:center">
@@ -569,7 +569,7 @@ function registrarVenda(id) {
   if (v.km)      p.set('km',      v.km);
   if (v.valor)   p.set('valor_venda', v.valor);
   if (v.fipe)    p.set('valor_fipe',  v.fipe);
-  window.location.href = '/vendas?' + p.toString();
+  window.location.href = '/vendas.html?' + p.toString();
 }
 
 let CACHE = {};
@@ -1335,7 +1335,7 @@ function negocia(id) {
   const v = CACHE[id];
   if (!v) return;
   const nome = nomeVeiculo(v);
-  window.location.href = '/negociacoes.html?veiculo=' + encodeURIComponent(nome);
+  window.location.href = '/negociacoes.html?veiculo=' + encodeURIComponent(nome) + '&veiculo_id=' + encodeURIComponent(id);
 }
 
 async function remover(id) {
@@ -1972,7 +1972,21 @@ function mostrarPreviewPDF() {
 // Enter na busca livre dispara a pesquisa
 $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); });
 
-Promise.all([carregarCompradores(), carregarVendasMap()]).then(() => carregar());
+Promise.all([carregarCompradores(), carregarVendasMap()]).then(async () => {
+  await carregar();
+  // Deep-link: vindo de busca global ou home com ?id=
+  const _pId = new URLSearchParams(location.search).get('id');
+  if (_pId) {
+    const el = document.getElementById('vcard-' + _pId);
+    if (el) {
+      history.replaceState({}, '', '/catalogo.html');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.transition = 'box-shadow .3s';
+      el.style.boxShadow = '0 0 0 2px var(--accent)';
+      setTimeout(() => { el.style.boxShadow = ''; }, 2500);
+    }
+  }
+});
 
 </script>
 

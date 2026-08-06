@@ -146,7 +146,7 @@ function renderCatalogo(lista) {
   const rows = lista.slice(0,10).map(v => {
     const nome = [v.marca, v.versao||v.modelo].filter(Boolean).join(' ') || 'Veículo';
     const sub  = [v.ano_int||v.ano, v.placa, v.regiao, fmtR(v.valor)].filter(Boolean).join(' · ');
-    return `<a class="resultado" href="/catalogo.html">
+    return `<a class="resultado" href="/catalogo.html?id=${v.id}">
       <div class="res-ico">🚗</div>
       <div class="res-body">
         <div class="res-titulo">${esc(nome)}</div>
@@ -183,7 +183,7 @@ function renderNeg(lista) {
   };
   const rows = lista.slice(0,10).map(n => {
     const sub = [n.comprador_nome, n.contato_telefone, n.valor_proposto ? fmtR(n.valor_proposto) : ''].filter(Boolean).join(' · ');
-    return `<a class="resultado" href="/negociacoes.html">
+    return `<a class="resultado" href="/negociacoes.html?id=${n.id}">
       <div class="res-ico">🤝</div>
       <div class="res-body">
         <div class="res-titulo">${esc(n.veiculo_nome||'Negociação')}</div>
@@ -201,7 +201,7 @@ function renderComp(lista) {
     const faixa = c.preco_min && c.preco_max ? fmtR(c.preco_min) + ' – ' + fmtR(c.preco_max) : '';
     const sub   = [c.cidade, faixa, (c.marcas||[]).slice(0,3).join(', ')].filter(Boolean).join(' · ');
     const tipo  = {loja:'Loja',pessoa_fisica:'PF',investidor:'Investidor',revendedor:'Revendedor'}[c.tipo]||c.tipo;
-    return `<a class="resultado" href="/compradores.html">
+    return `<a class="resultado" href="/compradores.html?id=${c.id}">
       <div class="res-ico">👤</div>
       <div class="res-body">
         <div class="res-titulo">${esc(c.nome)}</div>

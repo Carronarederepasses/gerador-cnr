@@ -508,7 +508,7 @@ async function carregarCatalogo() {
         return `<div class="parado-row">
           <span class="parado-nome">${nome}</span>
           <span class="parado-dias ${cls}">${txt} parado</span>
-          <a class="parado-link" href="/catalogo.html">ver →</a>
+          <a class="parado-link" href="/catalogo.html?id=${v.id}">ver →</a>
         </div>`;
       }).join('');
     } else {
@@ -724,7 +724,7 @@ async function carregarNegociacoes() {
     el.innerHTML = sorted.slice(0, 8).map(n => {
       const [label, cls] = STATUS_LABEL[n.status] || [n.status, 'pc'];
       const urg = urgente(n);
-      return `<div class="neg-row" onclick="window.location='/negociacoes.html'">
+      return `<div class="neg-row" onclick="window.location='/negociacoes.html?id=${n.id}'">
         <div class="neg-vei">${n.veiculo_nome || '—'}</div>
         ${n.comprador_nome ? `<div class="neg-comp">${n.comprador_nome}</div>` : ''}
         <span class="neg-status ${cls}">${label}</span>

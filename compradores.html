@@ -772,7 +772,14 @@ async function buscarCep(cep) {
   } catch(_) {}
 }
 
-init();
+init().then(() => {
+  // Deep-link: vindo da busca global com ?id=
+  const _pId = new URLSearchParams(location.search).get('id');
+  if (_pId) {
+    history.replaceState({}, '', '/compradores.html');
+    abrirModal(_pId);
+  }
+});
 
 </script>
 </body>

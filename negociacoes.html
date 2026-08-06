@@ -184,6 +184,7 @@
       <input type="text" id="m-veiculo" placeholder="ex: Corolla XEi 2021">
     </div>
     <input type="hidden" id="m-comprador-id">
+    <input type="hidden" id="m-veiculo-id">
     <div class="g2">
       <div class="field">
         <label>Contato (nome)</label>
@@ -587,6 +588,7 @@ function abrirNova() {
   editId = null;
   document.getElementById('modal-title').textContent = 'Nova Negociação';
   document.getElementById('m-veiculo').value = '';
+  document.getElementById('m-veiculo-id').value = '';
   document.getElementById('m-contato').value = '';
   document.getElementById('m-telefone').value = '';
   document.getElementById('m-comprador-id').value = '';
@@ -608,6 +610,7 @@ function abrirEditar(id) {
   editId = id;
   document.getElementById('modal-title').textContent = 'Editar Negociação';
   document.getElementById('m-veiculo').value = n.veiculo_nome || '';
+  document.getElementById('m-veiculo-id').value = n.veiculo_id || '';
   document.getElementById('m-contato').value = n.comprador_nome || '';
   document.getElementById('m-telefone').value = n.contato_telefone || '';
   document.getElementById('m-comprador-id').value = n.comprador_id || '';
@@ -649,6 +652,7 @@ async function salvar() {
   const comprador_nome   = document.getElementById('m-contato').value.trim();
   const contato_telefone = document.getElementById('m-telefone').value.trim();
   const comprador_id     = document.getElementById('m-comprador-id').value || null;
+  const veiculo_id       = document.getElementById('m-veiculo-id').value || null;
   const valor_raw        = document.getElementById('m-valor').value;
   const valor_proposto   = valor_raw !== '' ? Number(valor_raw) : null;
 
@@ -662,7 +666,7 @@ async function salvar() {
       if (n && (n.status !== status || n.observacoes !== observacoes)) {
         historico.push({ data: n.ultimo_contato || hoje(), status: n.status, obs: n.observacoes || '' });
       }
-      const patchBody = { veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico };
+      const patchBody = { veiculo_nome, veiculo_id, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico };
       if (status === 'descartado' && _motivoSelecionado) patchBody.motivo_descarte = _motivoSelecionado;
       await fetch('/api/compradores?neg=1&id=' + editId, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -672,7 +676,7 @@ async function salvar() {
       const motivo_match = _motivoSelecionado || null;
       await fetch('/api/compradores?neg=1', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ veiculo_nome, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico: [], motivo_match }),
+        body: JSON.stringify({ veiculo_nome, veiculo_id, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico: [], motivo_match }),
       });
     }
     _motivoSelecionado = null;
@@ -795,11 +799,27 @@ function exportarCSV() {
 
 function lerParams() {
   const p = new URLSearchParams(location.search);
-  const veiculo = p.get('veiculo');
+  const deepId    = p.get('id');
+  const veiculo   = p.get('veiculo');
+  const veiculoId = p.get('veiculo_id');
+
+  if (deepId) {
+    // Vindo da busca global ou home → abre modal da negociação específica
+    history.replaceState({}, '', '/negociacoes.html');
+    const tentarAbrir = (n) => {
+      if (dados.find(x => x.id === deepId)) { abrirEditar(deepId); }
+      else if (n < 15) setTimeout(() => tentarAbrir(n + 1), 150);
+    };
+    tentarAbrir(0);
+    return;
+  }
+
   if (veiculo) {
+    // Vindo do catálogo via "Negociar"
     history.replaceState({}, '', '/negociacoes.html');
     abrirNova();
     document.getElementById('m-veiculo').value = decodeURIComponent(veiculo);
+    if (veiculoId) document.getElementById('m-veiculo-id').value = veiculoId;
   }
 }
 
