@@ -494,17 +494,35 @@ function selecionarCRM(i) {
   document.getElementById('crm-drop').classList.remove('show');
 }
 
-// ── Vendedor ──
+// ── Vendedor ── (busca no CRM de compradores + histórico de vendas)
 function filtrarVendedor(q) {
   const drop = document.getElementById('vend-drop');
   const term = (q || '').toLowerCase().trim();
-  _VEND_MATCHES = (term
-    ? VENDEDORES_HIST.filter(v => v.nome.toLowerCase().includes(term))
-    : VENDEDORES_HIST
-  ).slice(0, 8);
+  const moedaK = n => n ? 'R$' + Math.round(Number(n)/1000) + 'k' : '?';
+
+  // CRM de compradores (tem dados completos)
+  const crmM = term
+    ? COMPRADORES_CRM.filter(c => c.nome.toLowerCase().includes(term))
+    : COMPRADORES_CRM;
+
+  // Histórico de vendas (vendedores sem cadastro no CRM)
+  const crmNomes = new Set(COMPRADORES_CRM.map(c => _normKey(c.nome)));
+  const histM = VENDEDORES_HIST.filter(v =>
+    !crmNomes.has(_normKey(v.nome)) && (!term || v.nome.toLowerCase().includes(term))
+  );
+
+  _VEND_MATCHES = [...crmM, ...histM].slice(0, 8);
   if (!_VEND_MATCHES.length) { drop.classList.remove('show'); return; }
+
   drop.innerHTML = _VEND_MATCHES.map((v, i) => {
-    const info = [v.cpf, v.telefone].filter(Boolean).join(' · ');
+    let info;
+    if (v.id) {
+      const faixa = (v.preco_min || v.preco_max) ? moedaK(v.preco_min) + '–' + moedaK(v.preco_max) : '';
+      const marcas = (v.marcas || []).slice(0, 3).join(', ');
+      info = [v.tipo?.toUpperCase(), faixa, marcas].filter(Boolean).join(' · ');
+    } else {
+      info = [v.cpf, v.telefone].filter(Boolean).join(' · ');
+    }
     return `<div class="crm-opt" data-idx="${i}">
       <div class="crm-opt-nome">${esc(v.nome)}</div>
       ${info ? `<div class="crm-opt-info">${info}</div>` : ''}
@@ -516,9 +534,11 @@ function filtrarVendedor(q) {
 function selecionarVendedor(i) {
   const v = _VEND_MATCHES[i];
   if (!v) return;
-  document.getElementById('m-vendedor_nome').value  = v.nome;
-  if (v.cpf)      document.getElementById('m-vendedor_cpf').value      = v.cpf;
-  if (v.telefone) document.getElementById('m-vendedor_telefone').value  = v.telefone;
+  document.getElementById('m-vendedor_nome').value = v.nome;
+  // Se veio do CRM, usa cnpj/cpf do cadastro; senão usa o do histórico
+  const doc = v.cnpj || v.cpf || '';
+  if (doc)      document.getElementById('m-vendedor_cpf').value      = doc;
+  if (v.telefone) document.getElementById('m-vendedor_telefone').value = v.telefone;
   document.getElementById('vend-drop').classList.remove('show');
 }
 
