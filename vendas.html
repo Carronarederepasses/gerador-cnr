@@ -390,26 +390,70 @@ let _VEND_MATCHES = [];
   } catch(_) {}
 })();
 
+// Normaliza chave de deduplicação: strip de " - Cidade", " / Info", etc.
+function _normKey(n) { return n.replace(/\s*[-\/|]\s*.+$/, '').toLowerCase().trim(); }
+
+// Mescla entradas com prefixo comum (ex: "V11 Motors" e "V11 Motors Palhoça" → 1 entrada)
+function _mergePrefix(map) {
+  const keys = Object.keys(map);
+  keys.forEach(k => {
+    keys.forEach(k2 => {
+      if (k !== k2 && k2.startsWith(k + ' ') && map[k] && map[k2]) {
+        if (!map[k].cpf && map[k2].cpf) map[k].cpf = map[k2].cpf;
+        if (!map[k].telefone && map[k2].telefone) map[k].telefone = map[k2].telefone;
+        delete map[k2];
+      }
+    });
+  });
+  return map;
+}
+
 function buildHist() {
-  // Vendedores únicos do histórico de vendas
+  // Vendedores únicos — deduplicados por nome normalizado, dados acumulados
   const vMap = {};
   VENDAS.forEach(v => {
     if (!v.vendedor_nome) return;
-    const k = v.vendedor_nome.toLowerCase().trim();
-    if (!vMap[k]) vMap[k] = { nome: v.vendedor_nome, cpf: v.vendedor_cpf || '', telefone: v.vendedor_telefone || '' };
+    const k = _normKey(v.vendedor_nome);
+    if (!vMap[k]) {
+      vMap[k] = { nome: v.vendedor_nome, cpf: v.vendedor_cpf || '', telefone: v.vendedor_telefone || '' };
+    } else {
+      if (!vMap[k].cpf && v.vendedor_cpf) vMap[k].cpf = v.vendedor_cpf;
+      if (!vMap[k].telefone && v.vendedor_telefone) vMap[k].telefone = v.vendedor_telefone;
+    }
   });
+  _mergePrefix(vMap);
   VENDEDORES_HIST = Object.values(vMap);
 
-  // Compradores do histórico que não estão no CRM
-  const crmNomes = new Set(COMPRADORES_CRM.map(c => c.nome.toLowerCase().trim()));
+  // Compradores do histórico — mesma lógica, excluindo quem já está no CRM
+  const crmNomes = new Set(COMPRADORES_CRM.map(c => _normKey(c.nome)));
   const cMap = {};
   VENDAS.forEach(v => {
     if (!v.comprador_nome) return;
-    const k = v.comprador_nome.toLowerCase().trim();
-    if (crmNomes.has(k) || cMap[k]) return;
-    cMap[k] = { nome: v.comprador_nome, cpf: v.comprador_cpf || '', telefone: v.comprador_telefone || '' };
+    const k = _normKey(v.comprador_nome);
+    if (crmNomes.has(k)) return;
+    if (!cMap[k]) {
+      cMap[k] = { nome: v.comprador_nome, cpf: v.comprador_cpf || '', telefone: v.comprador_telefone || '' };
+    } else {
+      if (!cMap[k].cpf && v.comprador_cpf) cMap[k].cpf = v.comprador_cpf;
+      if (!cMap[k].telefone && v.comprador_telefone) cMap[k].telefone = v.comprador_telefone;
+    }
   });
+  _mergePrefix(cMap);
   COMPRADORES_HIST = Object.values(cMap);
+
+  // Event delegation para os dropdowns (mais robusto que onmousedown inline)
+  document.getElementById('vend-drop').addEventListener('mousedown', e => {
+    const opt = e.target.closest('.crm-opt');
+    if (!opt) return;
+    e.preventDefault();
+    selecionarVendedor(parseInt(opt.dataset.idx));
+  });
+  document.getElementById('crm-drop').addEventListener('mousedown', e => {
+    const opt = e.target.closest('.crm-opt');
+    if (!opt) return;
+    e.preventDefault();
+    selecionarCRM(parseInt(opt.dataset.idx));
+  });
 }
 
 // ── Comprador ──
@@ -432,7 +476,7 @@ function filtrarCRM(q) {
     } else {
       info = ['Histórico', c.cpf, c.telefone].filter(Boolean).join(' · ');
     }
-    return `<div class="crm-opt" onmousedown="selecionarCRM(${i})">
+    return `<div class="crm-opt" data-idx="${i}">
       <div class="crm-opt-nome">${esc(c.nome)}</div>
       ${info ? `<div class="crm-opt-info">${info}</div>` : ''}
     </div>`;
@@ -461,7 +505,7 @@ function filtrarVendedor(q) {
   if (!_VEND_MATCHES.length) { drop.classList.remove('show'); return; }
   drop.innerHTML = _VEND_MATCHES.map((v, i) => {
     const info = [v.cpf, v.telefone].filter(Boolean).join(' · ');
-    return `<div class="crm-opt" onmousedown="selecionarVendedor(${i})">
+    return `<div class="crm-opt" data-idx="${i}">
       <div class="crm-opt-nome">${esc(v.nome)}</div>
       ${info ? `<div class="crm-opt-info">${info}</div>` : ''}
     </div>`;
