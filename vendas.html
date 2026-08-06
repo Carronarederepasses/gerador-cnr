@@ -102,10 +102,10 @@
   .crm-combo{position:relative}
   .crm-drop{position:absolute;z-index:300;left:0;right:0;background:var(--surface-raise);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);max-height:200px;overflow-y:auto;display:none;top:calc(100% + 2px)}
   .crm-drop.show{display:block}
-  .crm-opt{padding:.45rem .75rem;cursor:pointer;font-size:.82rem}
+  .crm-opt{padding:.45rem .75rem;cursor:pointer;font-size:.82rem;user-select:none}
   .crm-opt:hover{background:var(--line)}
-  .crm-opt-nome{font-weight:600}
-  .crm-opt-info{font-size:.68rem;color:var(--text-mid);margin-top:.08rem}
+  .crm-opt-nome{font-weight:600;pointer-events:none}
+  .crm-opt-info{font-size:.68rem;color:var(--text-mid);margin-top:.08rem;pointer-events:none}
 
   @media(max-width:560px){h1{font-size:1.5rem}.card .partes,.grid2,.grid3{grid-template-columns:1fr}}
 
