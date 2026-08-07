@@ -675,7 +675,7 @@
 
   <div class="btns-form" style="grid-template-columns:1fr 1fr">
     <button class="btn-gen btn-sec" onclick="gerar()">▶ Gerar Anúncio</button>
-    <button id="btn-salvar-catalogo" class="btn-gen" onclick="salvarNoCatalogo(this)" style="display:none">
+    <button id="btn-salvar-catalogo" class="btn-gen" onclick="salvarNoCatalogo(this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.35rem"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Salvar no catálogo
     </button>
   </div>
@@ -1856,10 +1856,6 @@ function setMode(mode) {
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
   // Salvar no catálogo só faz sentido em captação
-  const btnSalvar = document.getElementById('btn-salvar-catalogo');
-  if (btnSalvar) btnSalvar.style.display = mode === 'captacao' ? '' : 'none';
-  const btnCatalogo = document.getElementById('btn-catalogo');
-  if (btnCatalogo) btnCatalogo.style.display = mode === 'captacao' ? '' : 'none';
   // Botão flutuante só no modo captação/coletados, aba anúncio
   _atualizarBtnFloat();
   // No modo Foto o preview-side não faz sentido
