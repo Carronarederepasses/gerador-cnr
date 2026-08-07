@@ -109,6 +109,9 @@
   .btn-gen.btn-sec{background:transparent;color:var(--white);border:1px solid rgba(245,243,238,.18)}
   .btn-gen.btn-sec:hover{background:rgba(245,243,238,.07);border-color:rgba(245,243,238,.35)}
   .btns-form{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.3rem}
+  body[data-mode="coletados"] #btn-salvar-catalogo,
+  body[data-mode="coletados"] #btn-catalogo{display:none!important}
+  body[data-mode="coletados"] .btns-form{grid-template-columns:1fr}
 
   /* PREVIEW */
   .preview-side{padding:2rem;display:flex;flex-direction:column;gap:1rem}
@@ -1828,6 +1831,7 @@ let currentMode = 'captacao';
 
 function setMode(mode) {
   currentMode = mode;
+  document.body.dataset.mode = mode;
   // Ao sair da captação, volta para aba 0 sem animar
   if (mode !== 'captacao' && capAbaAtual !== 0) {
     capAbaAtual = 0;
