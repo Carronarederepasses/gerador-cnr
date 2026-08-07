@@ -1854,6 +1854,8 @@ function setMode(mode) {
   // Salvar no catálogo só faz sentido em captação
   const btnSalvar = document.getElementById('btn-salvar-catalogo');
   if (btnSalvar) btnSalvar.style.display = mode === 'coletados' ? 'none' : '';
+  const btnCatalogo = document.getElementById('btn-catalogo');
+  if (btnCatalogo) btnCatalogo.style.display = mode === 'coletados' ? 'none' : '';
   // Botão flutuante só no modo captação/coletados, aba anúncio
   _atualizarBtnFloat();
   // No modo Foto o preview-side não faz sentido
