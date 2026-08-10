@@ -56,7 +56,16 @@
   .card .valores .v .num{font-weight:700;font-size:1rem}
   .card .datas{font-size:.8rem;color:var(--text-mid);display:flex;gap:1.2rem;flex-wrap:wrap}
 
-  .placa-tag{font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:.15rem .45rem;color:var(--text-mid);vertical-align:middle;white-space:nowrap;margin-left:.3rem}
+  /* ── Mini-placa ─────────────────────────────────────────────── */
+  .placa-tag{display:inline-flex;flex-direction:column;border-radius:4px;overflow:hidden;vertical-align:middle;margin-left:.55rem;border:1.5px solid rgba(0,0,0,.22);box-shadow:0 1px 3px rgba(0,0,0,.12);line-height:1;transform:translateY(-2px);white-space:nowrap;text-decoration:none}
+  .placa-tag .ptopo{font-family:'DM Sans',sans-serif;font-size:.38rem;font-weight:700;letter-spacing:.13em;text-align:center;padding:.13rem .5rem;text-transform:uppercase}
+  .placa-tag .pcorpo{font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:900;letter-spacing:.07em;padding:.13rem .5rem;text-transform:uppercase;text-align:center}
+  /* Mercosul: faixa azul + fundo branco */
+  .placa-tag.mercosul .ptopo{background:#1a4fad;color:#fff}
+  .placa-tag.mercosul .pcorpo{background:#fff;color:#111}
+  /* Antiga: faixa cinza + corpo cinza claro */
+  .placa-tag.antiga .ptopo{background:#7a7a7a;color:#f0f0f0}
+  .placa-tag.antiga .pcorpo{background:#c8c8c8;color:#1a1a1a}
   .badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:.25rem .6rem;border-radius:20px;white-space:nowrap}
   .badge.negociando{background:color-mix(in srgb, var(--accent) 15%, transparent);color:var(--accent)}
   .badge.pago{background:color-mix(in srgb, var(--severity-ok) 15%, transparent);color:var(--severity-ok)}
@@ -679,6 +688,15 @@ $('btn-ordem').onclick = () => {
   render();
 };
 
+function renderPlaca(placa) {
+  if (!placa) return '';
+  const p = placa.replace(/\s/g,'').toUpperCase();
+  const isMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(p);
+  const tipo = isMercosul ? 'mercosul' : 'antiga';
+  const topo = isMercosul ? '🇧🇷 BRASIL' : 'BRASIL';
+  return `<span class="placa-tag ${tipo}"><span class="ptopo">${topo}</span><span class="pcorpo">${esc(p)}</span></span>`;
+}
+
 function nomeCarro(v) {
   return [v.marca, v.versao || v.modelo, v.ano].filter(Boolean).join(' ') || 'Veículo sem identificação';
 }
@@ -695,7 +713,7 @@ function cardHTML(v) {
 
   return `<div class="card" id="venda-${v.id}">
     <div class="topo">
-      <h3>${esc(nomeCarro(v))}${v.placa ? '<span class="placa-tag">'+esc(v.placa)+'</span>' : ''}</h3>
+      <h3>${esc(nomeCarro(v))}${renderPlaca(v.placa)}</h3>
       <span class="badge ${v.status}">${esc(v.status)}</span>
     </div>
     <div class="partes">
