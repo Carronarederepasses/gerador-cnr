@@ -67,7 +67,7 @@
   .placa-tag.antiga .ptopo{background:#7a7a7a;color:#f0f0f0}
   .placa-tag.antiga .pcorpo{background:#c8c8c8;color:#1a1a1a}
   /* ── Emblema de marca ───────────────────────────────────────── */
-  .brand-logo{width:22px;height:22px;object-fit:contain;margin-right:.4rem;vertical-align:middle;transform:translateY(-1px);display:inline-block}
+  .brand-logo{width:30px;height:30px;object-fit:contain;margin-right:.5rem;vertical-align:middle;transform:translateY(-1px);display:inline-block}
   .badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:.25rem .6rem;border-radius:20px;white-space:nowrap}
   .badge.negociando{background:color-mix(in srgb, var(--accent) 15%, transparent);color:var(--accent)}
   .badge.pago{background:color-mix(in srgb, var(--severity-ok) 15%, transparent);color:var(--severity-ok)}
@@ -691,34 +691,41 @@ $('btn-ordem').onclick = () => {
 };
 
 const CDN_LOGO = 'https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/';
+// chaves normalizadas: lowercase + sem acento + só alfanumérico
 const BRAND_LOGO = {
-  'Acura':'acura','Agrale':null,'Alfa Romeo':'alfa-romeo','ASTON MARTIN':'aston-martin',
-  'Audi':'audi','BMW':'bmw','BYD':'byd','Cadillac':'cadillac',
-  'CHANA':null,'CHANGAN':'changan','Caoa Changan':'changan',
-  'Caoa Chery':'chery','Caoa Chery/Chery':'chery','Chrysler':'chrysler',
-  'Citroën':'citroen','Cross Lander':null,'D2D Motors':null,
-  'Daewoo':'daewoo','Daihatsu':'daihatsu','Denza':null,'DFSK':null,
-  'Dodge':'dodge','EFFA':null,'Ferrari':'ferrari','Fiat':'fiat',
-  'Ford':'ford','FOTON':'foton','GAC':'gac','GEELY':'geely',
-  'GM - Chevrolet':'chevrolet','GREAT WALL':'great-wall','GWM':'gwm',
-  'HAFEI':null,'Honda':'honda','Hyundai':'hyundai','Isuzu':'isuzu',
-  'IVECO':'iveco','JAC':'jac','Jaecoo':null,'Jaguar':'jaguar','Jeep':'jeep',
-  'Jetour':null,'JINBEI':null,'Kia Motors':'kia','Lada':'lada',
-  'LAMBORGHINI':'lamborghini','Land Rover':'land-rover','Leapmotor':null,
-  'Lexus':'lexus','LIFAN':'lifan','Lotus':'lotus','Mahindra':'mahindra',
-  'Maserati':'maserati','Mazda':'mazda','Mclaren':'mclaren','McLaren':'mclaren',
-  'Mercedes-Benz':'mercedes-benz','Mercury':'mercury','MG':'mg','MINI':'mini',
-  'Mitsubishi':'mitsubishi','NETA':null,'Nissan':'nissan','Omoda':null,
-  'Peugeot':'peugeot','Pontiac':'pontiac','Porsche':'porsche','RAM':'ram',
-  'RELY':null,'Renault':'renault','Rolls-Royce':'rolls-royce','Rover':'rover',
-  'Saab':'saab','Seat':'seat','SERES':null,'SHINERAY':null,'smart':'smart',
-  'SSANGYONG':'ssangyong','Subaru':'subaru','Suzuki':'suzuki',
-  'Toyota':'toyota','Troller':null,'Volvo':'volvo','VW - VolksWagen':'volkswagen',
-  'ZEEKR':null
+  'acura':'acura','alfaromeo':'alfa-romeo','astonmartin':'aston-martin',
+  'audi':'audi','bmw':'bmw','byd':'byd','cadillac':'cadillac',
+  'changan':'changan','caoachanagn':'changan',
+  'chery':'chery','caoacherychery':'chery','caoacherychery':'chery',
+  'chrysler':'chrysler','citroen':'citroen',
+  'daewoo':'daewoo','daihatsu':'daihatsu','dodge':'dodge',
+  'ferrari':'ferrari','fiat':'fiat','ford':'ford','foton':'foton',
+  'gac':'gac','geely':'geely',
+  'chevrolet':'chevrolet','gmchevrolet':'chevrolet',
+  'greatwall':'great-wall','gwm':'gwm',
+  'honda':'honda','hyundai':'hyundai','isuzu':'isuzu','iveco':'iveco',
+  'jac':'jac','jaguar':'jaguar','jeep':'jeep',
+  'kia':'kia','kiamotors':'kia',
+  'lada':'lada','lamborghini':'lamborghini','landrover':'land-rover',
+  'lexus':'lexus','lifan':'lifan','lotus':'lotus','mahindra':'mahindra',
+  'maserati':'maserati','mazda':'mazda','mclaren':'mclaren',
+  'mercedesbenz':'mercedes-benz','mercedes':'mercedes-benz',
+  'mercury':'mercury','mg':'mg','mini':'mini','mitsubishi':'mitsubishi',
+  'nissan':'nissan','peugeot':'peugeot','pontiac':'pontiac','porsche':'porsche',
+  'ram':'ram','renault':'renault','rollsroyce':'rolls-royce','rover':'rover',
+  'saab':'saab','seat':'seat','smart':'smart','ssangyong':'ssangyong',
+  'subaru':'subaru','suzuki':'suzuki','toyota':'toyota',
+  'volvo':'volvo','volkswagen':'volkswagen','vwvolkswagen':'volkswagen',
+  'zeekr':'zeekr'
 };
+function normMarca(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'') // tira acentos
+    .replace(/[^a-z0-9]/g,'');                        // só alfanumérico
+}
 function brandLogo(marca) {
   if (!marca) return '';
-  const slug = BRAND_LOGO[marca];
+  const slug = BRAND_LOGO[normMarca(marca)];
   if (!slug) return '';
   return `<img class="brand-logo" src="${CDN_LOGO}${slug}.png" alt="${esc(marca)}" onerror="this.style.display='none'">`;
 }
