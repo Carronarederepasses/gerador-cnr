@@ -1430,6 +1430,67 @@ function pushSecao(linhas, titulo, texto) {
 }
 
 // ══════════════════════════════════════════════
+// MONTAR TEXTO (usado por gerar() e pelo salvar direto)
+// ══════════════════════════════════════════════
+function montarTextoAnuncio() {
+  const mNome     = getSelTxt('sel-marca');
+  const versaoTxt = getSelTxt('sel-versao');
+  const modNome   = !badSel(versaoTxt) ? versaoTxt : getSelTxt('sel-modelo');
+  const anoNome   = getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
+  const compl     = document.getElementById('complemento').value.trim();
+  const kmRaw     = document.getElementById('km').value.trim();
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
+  const cor       = document.getElementById('cor').value.trim();
+  const regiao    = document.getElementById('regiao').value.trim();
+  const valor     = document.getElementById('valor').value.trim();
+  const fipeDigit = document.getElementById('fipe-val').value.trim();
+  const avaliacao   = document.getElementById('avaliacao').value.trim();
+  const gastos      = document.getElementById('gastos').value.trim();
+  const obsCustom   = document.getElementById('obs-custom').value.trim();
+  const combustivel = document.getElementById('combustivel').value.trim();
+  const onIds  = getAllOnIds();
+  const obsIds = getOnIds('#obs-grid');
+  const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
+
+  let linhas = [];
+  const partes = [!badSel(mNome)?mNome:'', !badSel(modNome)?modNome:'', compl].filter(Boolean);
+  const nomeVeic = partes.join(' ');
+  let l1 = '';
+  if (nomeVeic) l1 += `*${nomeVeic}*`;
+  const det = [!badSel(anoNome)?anoNome:'', combustivel, km, cor?cor.toLowerCase():''].filter(Boolean);
+  if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
+  if (l1) linhas.push(l1);
+  if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
+  const itensOn = onIds.filter(id => id !== 'blindado');
+  const extras = linhasExtras();
+  if (itensOn.length || onIds.includes('blindado') || extras.length) {
+    linhas.push('');
+    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
+    extras.forEach(l => linhas.push(l));
+    if (onIds.includes('blindado')) {
+      const bM = document.getElementById('blind-marca').value.trim();
+      const bN = document.getElementById('blind-nivel').value.trim();
+      const bV = document.getElementById('blind-vidro').value.trim();
+      let bl = '🛡️ Blindado';
+      if (bM) bl += ` — ${bM}`;
+      if (bN) bl += `, ${bN}`;
+      if (bV) bl += ` (${bV})`;
+      linhas.push(bl);
+    }
+  }
+  pushSecao(linhas, 'AVALIAÇÃO', avaliacao);
+  pushSecao(linhas, 'GASTOS', gastos);
+  if (obsIds.length) { linhas.push(''); obsIds.forEach(id => linhas.push(obsMap[id] || id)); }
+  if (obsCustom) { linhas.push(''); linhas.push(obsCustom); }
+  linhas.push('');
+  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
+  if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
+  linhas.push('');
+  linhas.push('https://instagram.com/carronarederepasses');
+  return linhas.join('\n');
+}
+
+// ══════════════════════════════════════════════
 // GERAR
 // ══════════════════════════════════════════════
 function gerar() {
@@ -1742,7 +1803,7 @@ function coletarFichaVeiculo() {
     fipe:         numFromR(document.getElementById('fipe-val').value),
     opcionais,
     observacoes:  obs.length ? obs.join('; ') : null,
-    anuncio_texto: document.getElementById('btn-wa').dataset.texto || '',
+    anuncio_texto: document.getElementById('btn-wa').dataset.texto || montarTextoAnuncio(),
     status:       'disponivel',
   };
 }
