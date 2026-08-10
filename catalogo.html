@@ -1362,10 +1362,37 @@ async function pacoteWhatsApp(id) {
   }
 }
 
+function gerarTextoAnuncio(v) {
+  const linhas = [];
+  const nome = [v.marca, v.modelo, v.versao].filter(Boolean).join(' ');
+  const det  = [
+    v.ano,
+    v.combustivel,
+    v.km ? v.km.toLocaleString('pt-BR') + ' km' : null,
+    v.cor ? v.cor.toLowerCase() : null
+  ].filter(Boolean);
+  let l1 = '';
+  if (nome) l1 += `*${nome}*`;
+  if (det.length) l1 += (nome ? ', ' : '') + det.join(', ');
+  if (l1) linhas.push(l1);
+  if (v.regiao) linhas.push(`\n📍 Carro na região de ${v.regiao}`);
+  if (Array.isArray(v.opcionais) && v.opcionais.length) {
+    linhas.push('');
+    v.opcionais.forEach(o => linhas.push(`✅ ${o}`));
+  }
+  if (v.observacoes) { linhas.push(''); linhas.push(v.observacoes); }
+  linhas.push('');
+  if (v.valor) linhas.push(`*VALOR: ${fmtR(v.valor)}*`);
+  if (v.fipe)  linhas.push(`*FIPE: ${fmtR(v.fipe)}*`);
+  linhas.push('');
+  linhas.push('https://instagram.com/carronarederepasses');
+  return linhas.join('\n');
+}
+
 function copiarAnuncio(id) {
   const v = CACHE[id];
   if (!v) return;
-  navigator.clipboard.writeText(v.anuncio_texto || nomeVeiculo(v));
+  navigator.clipboard.writeText(v.anuncio_texto || gerarTextoAnuncio(v));
 }
 
 let statusMenuId = null;
