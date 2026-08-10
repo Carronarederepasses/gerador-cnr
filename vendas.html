@@ -56,6 +56,7 @@
   .card .valores .v .num{font-weight:700;font-size:1rem}
   .card .datas{font-size:.8rem;color:var(--text-mid);display:flex;gap:1.2rem;flex-wrap:wrap}
 
+  .placa-tag{font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:.15rem .45rem;color:var(--text-mid);vertical-align:middle;white-space:nowrap;margin-left:.3rem}
   .badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:.25rem .6rem;border-radius:20px;white-space:nowrap}
   .badge.negociando{background:color-mix(in srgb, var(--accent) 15%, transparent);color:var(--accent)}
   .badge.pago{background:color-mix(in srgb, var(--severity-ok) 15%, transparent);color:var(--severity-ok)}
@@ -694,7 +695,7 @@ function cardHTML(v) {
 
   return `<div class="card" id="venda-${v.id}">
     <div class="topo">
-      <h3>${esc(nomeCarro(v))}${v.placa ? ' · <span style="font-weight:400;color:var(--text-mid)">'+esc(v.placa)+'</span>' : ''}</h3>
+      <h3>${esc(nomeCarro(v))}${v.placa ? '<span class="placa-tag">'+esc(v.placa)+'</span>' : ''}</h3>
       <span class="badge ${v.status}">${esc(v.status)}</span>
     </div>
     <div class="partes">
