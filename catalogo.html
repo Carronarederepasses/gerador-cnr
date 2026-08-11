@@ -1002,7 +1002,6 @@ async function salvarEdicao() {
     regiao:      $('ed-regiao').value.trim()      || null,
     complemento: $('ed-complemento').value.trim() || null,
   };
-  Object.keys(payload).forEach(k => { if (payload[k] === null) delete payload[k]; });
   try {
     const r = await fetch('/api/catalogo?id=' + id, {
       method: 'PATCH', headers: {'Content-Type':'application/json'},

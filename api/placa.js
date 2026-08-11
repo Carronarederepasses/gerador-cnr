@@ -13,20 +13,25 @@ module.exports = async (req, res) => {
 
   const placaLimpa = placa.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
-  const response = await fetch('https://gateway.apibrasil.io/api/v2/consulta/veiculos/credits', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ tipo: 'fipe', placa: placaLimpa, homolog: false }),
-  });
+  try {
+    const response = await fetch('https://gateway.apibrasil.io/api/v2/consulta/veiculos/credits', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ tipo: 'fipe', placa: placaLimpa, homolog: false }),
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    return res.status(response.status).json({ error: data?.message || 'Erro na consulta', raw: data });
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data?.message || 'Erro na consulta', raw: data });
+    }
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('placa error:', err.message);
+    return res.status(500).json({ error: 'Não foi possível consultar a placa. Tente novamente.' });
   }
-
-  return res.status(200).json(data);
 }
