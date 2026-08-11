@@ -1916,7 +1916,8 @@ function setMode(mode) {
   document.getElementById('campo-avaliacao').style.display  = mode === 'captacao'  ? '' : 'none';
   document.getElementById('btn-captacao').classList.toggle('active',  mode === 'captacao');
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
-  document.getElementById('btn-editor').classList.toggle('active',    mode === 'editor');
+  const btnEditor = document.getElementById('btn-editor');
+  if (btnEditor) btnEditor.classList.toggle('active', mode === 'editor');
   // Salvar no catálogo só faz sentido em captação
   // Botão flutuante só no modo captação/coletados, aba anúncio
   _atualizarBtnFloat();
