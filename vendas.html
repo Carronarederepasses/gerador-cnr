@@ -886,7 +886,7 @@ async function vModelo(){
   if(!base) return;
   fipeSt('⏳ Buscando anos e versões... (alguns segundos)');
   try {
-    const r=await fetch(`/api/fipe-anos-versoes?marca=${encodeURIComponent(cod)}&base=${encodeURIComponent(base.toLowerCase())}`);
+    const r=await fetch(`/api/fipe?marca=${encodeURIComponent(cod)}&base=${encodeURIComponent(base.toLowerCase())}`);
     const data=await r.json(); if(!r.ok||data.error) throw new Error(data.error||'erro');
     cascData=data;
     const sA=$('m-sel-ano'); sA.innerHTML='<option value="">Selecione o ano</option>';

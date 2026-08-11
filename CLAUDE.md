@@ -68,9 +68,10 @@ O Gerador CNR deixou de ser apenas um gerador de anúncios. Hoje, ele evolui par
 > **Segurança:** chaves NUNCA vão no código. Somente em variáveis de ambiente no painel do Vercel. Quem digita é o Yuri.
 
 ### Funções serverless deployadas no Vercel — `api/`
-`api/`: catalogo.js, compradores.js, consulta.js, fetch-anuncio.js, fipe-anos-versoes.js, fipe-search.js, fipe.js, ia-compor.js, parse.js, placa.js, remove-bg.js, utils.js, vendas.js
+`api/`: catalogo.js, compradores.js, consulta.js, fetch-anuncio.js, fipe-search.js, fipe.js, ia-compor.js, parse.js, placa.js, remove-bg.js, utils.js, vendas.js
 
-> Total: 13 funções. Limite do plano Hobby é 12 — confirmar se o projeto está no plano Pro ou se o limite foi revisado pelo Vercel.
+> Total: 12 funções. Limite do plano Hobby é 12 — não adicionar novas funções sem antes fundir em uma existente via query param.
+> `fipe.js` já absorveu o modo anos/versões: `?marca=<codigo>&base=<modelo_base>` → retorna anos e versões disponíveis (usado em vendas.html cascata FIPE).
 
 Novas features de backend devem reutilizar funções existentes via query params (ex: `?neg=1`, `?foto=1`, `?evento=1`, `?match=1`).
 
