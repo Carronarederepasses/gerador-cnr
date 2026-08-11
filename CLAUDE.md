@@ -67,10 +67,16 @@ O Gerador CNR deixou de ser apenas um gerador de anúncios. Hoje, ele evolui par
 
 > **Segurança:** chaves NUNCA vão no código. Somente em variáveis de ambiente no painel do Vercel. Quem digita é o Yuri.
 
-### Limite crítico — Vercel 12 funções serverless (já no limite)
-`api/`: catalogo.js, compradores.js, consulta.js, fetch-anuncio.js, fipe-search.js, fipe.js, ia-compor.js, parse.js, placa.js, remove-bg.js, utils.js, vendas.js
+### Funções serverless deployadas no Vercel — `api/`
+`api/`: catalogo.js, compradores.js, consulta.js, fetch-anuncio.js, fipe-anos-versoes.js, fipe-search.js, fipe.js, ia-compor.js, parse.js, placa.js, remove-bg.js, utils.js, vendas.js
+
+> Total: 13 funções. Limite do plano Hobby é 12 — confirmar se o projeto está no plano Pro ou se o limite foi revisado pelo Vercel.
 
 Novas features de backend devem reutilizar funções existentes via query params (ex: `?neg=1`, `?foto=1`, `?evento=1`, `?match=1`).
+
+> **Arquivos locais não deployados (não commitar sem revisão):**
+> - `api/ping.js` — duplicata morta de `utils.js?type=ping`; o cron do vercel.json bate em `/api/utils?type=ping`
+> - `netlify/functions/` — resquícios da migração Netlify→Vercel; formato incompatível com Vercel (Netlify handler). Harmlessos, Vercel ignora.
 
 ---
 
