@@ -1536,15 +1536,7 @@ let AVAL_RES = {};
 function avCel(sec, item){ if(!AVAL_RES[sec]) AVAL_RES[sec]={}; if(!AVAL_RES[sec][item]) AVAL_RES[sec][item]={}; return AVAL_RES[sec][item]; }
 
 function abrirAval(id){
-  // DIAG temporário — remover após confirmação do Elo 5
-  console.group('[CNR-DIAG] abrirAval');
-  console.log('1. id recebido:', id);
-  console.log('2. CACHE[id]:', CACHE[id]);
-  console.log('3. CACHE[id].avaliacao:', CACHE[id] ? CACHE[id].avaliacao : '(CACHE[id] nulo)');
-  console.log('4. CACHE[id].avaliacao.inspecao:', (CACHE[id] && CACHE[id].avaliacao) ? CACHE[id].avaliacao.inspecao : '(avaliacao ausente)');
-  console.log('5. #av-sec-inspecao:', document.getElementById('av-sec-inspecao'));
-  // fim DIAG parcial
-  const v = CACHE[id]; if(!v){ console.groupEnd(); return; }
+  const v = CACHE[id]; if(!v) return;
   $('av-veiculo-id').value = id;
   $('av-titulo').textContent = 'Avaliação — ' + nomeVeiculo(v);
   const a = (v.avaliacao && typeof v.avaliacao === 'object') ? v.avaliacao : {};
@@ -1555,7 +1547,6 @@ function abrirAval(id){
   $('av-obs').value = a.obs || '';
   const secInsp = document.getElementById('av-sec-inspecao');
   const txtInsp = document.getElementById('av-inspecao-texto');
-  console.log('6. secInsp.style.display ANTES do if:', secInsp ? secInsp.style.display : '(elemento null)');
   if (a.inspecao) {
     txtInsp.textContent = a.inspecao;
     secInsp.style.display = '';
@@ -1563,9 +1554,6 @@ function abrirAval(id){
     txtInsp.textContent = '';
     secInsp.style.display = 'none';
   }
-  console.log('7. secInsp.style.display DEPOIS do if:', secInsp ? secInsp.style.display : '(elemento null)');
-  console.groupEnd();
-  // fim DIAG
   renderAvalSecoes();
   renderAvalScores();
   $('av-modal').classList.add('show');
