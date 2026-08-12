@@ -393,6 +393,12 @@
       <div id="placa-st" style="font-size:.72rem;min-height:1rem;margin-top:.35rem;color:var(--mid)"></div>
     </div>
 
+    <div class="field" style="margin-bottom:.7rem">
+      <label>RENAVAM <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— preenchido automaticamente pela consulta de placa</span></label>
+      <input type="text" id="renavam" placeholder="00000000000" maxlength="11" inputmode="numeric"
+             oninput="this.value=this.value.replace(/\D/g,'').slice(0,11)">
+    </div>
+
     <div class="g2" style="margin-bottom:.7rem">
       <div class="field">
         <label>Marca</label>
@@ -1088,7 +1094,10 @@ async function buscarPlacaGerador() {
     const inner = data.data || {};
     const fipe  = (inner.data || []).find(f => f.principal) || (inner.data || [])[0] || {};
     const vei   = inner.veiculo || {};
-    placaRenavam = vei.renavam || null; // captura RENAVAM para persistir no catálogo
+    if (vei.renavam) {
+      const renavEl = document.getElementById('renavam');
+      if (renavEl) renavEl.value = vei.renavam; // APiBrasil → campo RENAVAM (não limpa se vazio)
+    }
 
     // Preenche cor
     const corEl = document.getElementById('cor');
@@ -1607,6 +1616,7 @@ function gerar() {
     fipe:         parseFloat((fipeDigit||'').replace(/\./g,'').replace(',','.')) || null,
     opcionais:    getAllOnIds().map(id => id === 'blindado' ? 'Blindado' : getLblById(id)),
     anuncio_texto: texto,
+    ...((document.getElementById('renavam')?.value || '').trim() ? { renavam: (document.getElementById('renavam').value).trim() } : {}),
   });
 }
 
@@ -1804,7 +1814,7 @@ function coletarFichaVeiculo() {
     fipe:         numFromR(document.getElementById('fipe-val').value),
     opcionais,
     observacoes:  obs.length ? obs.join('; ') : null,
-    renavam:      placaRenavam,
+    ...(txtOrNull(document.getElementById('renavam')?.value) ? { renavam: txtOrNull(document.getElementById('renavam').value) } : {}),
     gastos:       txtOrNull(document.getElementById('gastos').value),
     ...(txtOrNull(document.getElementById('avaliacao').value)
         ? { avaliacao: { inspecao: txtOrNull(document.getElementById('avaliacao').value) } }
@@ -2727,7 +2737,7 @@ function downloadFoto() {
 // AUTO-SAVE — preserva o preenchimento se a aba recarregar (comum no celular)
 // ══════════════════════════════════════════════
 const SAVE_KEY = 'cnr_form_v1';
-const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','placa','valor','fipe-val','combustivel',
+const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','placa','renavam','valor','fipe-val','combustivel',
   'texto-colado','colet-veiculo','colet-km','colet-cor','colet-ano','colet-regiao','colet-valor','colet-fipe','colet-combustivel',
   'avaliacao','gastos','obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km'];
 const CAMPOS_CASCATA = ['sel-marca','sel-modelo','sel-ano','sel-versao'];
@@ -2930,7 +2940,7 @@ function resyncSearchables() { Object.values(_ssSync).forEach(fn => fn()); }
 // ══════════════════════════════════════════════
 let catalogoId   = null;
 let capAbaAtual  = 0;
-let placaRenavam = null; // RENAVAM capturado da APiBrasil na consulta de placa
+
 
 const AVAL_LOCAL = [
   { id:'documentacao', titulo:'Documentação', itens:[
