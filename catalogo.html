@@ -151,6 +151,17 @@
   .match-notificado{opacity:.5}
   .match-notif-ok{font-size:.70rem;color:var(--severity-ok);margin-top:.3rem}
 
+  /* Card info — Avaliação da Captação e Gastos */
+  .card-info{border-top:1px dashed var(--line);padding-top:.5rem}
+  .card-info-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);font-weight:700;margin-bottom:.2rem}
+  .card-info-txt{font-size:.82rem;color:var(--text-mid);line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-info-txt.expanded{white-space:pre-wrap;overflow:visible;text-overflow:clip}
+  .card-info-ver{background:none;border:none;font-size:.72rem;color:var(--accent);cursor:pointer;padding:.1rem 0 0;font-family:'DM Sans',sans-serif;display:none}
+  .card-info-ver.visivel{display:block}
+  /* Match colapsível */
+  .match-coll-btn{width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);padding:.5rem 0 .1rem;font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;justify-content:space-between;align-items:center}
+  .match-coll-btn:hover{color:var(--text)}
+
   /* Timeline de eventos */
   .timeline{border-top:1px solid var(--line);padding:.5rem 0 .1rem;display:none;margin-top:.2rem}
   .timeline.show{display:block}
@@ -555,7 +566,11 @@ function card(v) {
     <div class="dias-estoque" id="dias-${v.id}">${diasEstoque(v.created_at)}</div>
     ${(() => { const s = v.avaliacao?.scores; if (!s || !Object.keys(s).length) return ''; const SLBL = {lataria:'Lat',pintura:'Pin',mecanica:'Mec',interior:'Int',documentacao:'Doc'}; return '<div class="score-resumo">' + Object.entries(s).map(([k,c]) => `<span class="sr-chip ${c}">${SLBL[k]||k}: ${c==='ex'?'Exc':c==='bm'?'Bom':c==='rg'?'Reg':'Ruim'}</span>`).join('') + '</div>'; })()}
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
-    <div class="match-box">${v.status === 'vendido' ? renderVendido(v) : renderMatch(v)}</div>
+    ${infoSection('📝','Avaliação da Captação', v.avaliacao?.inspecao||null)}
+    ${infoSection('🔧','Gastos', v.gastos||null)}
+    ${v.status === 'vendido'
+      ? `<div class="match-box">${renderVendido(v)}</div>`
+      : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)">👥 Possíveis compradores <span class="marrow">▾</span></button><div id="matchbody-${v.id}" style="display:none">${renderMatch(v)}</div></div>`}
     <div class="timeline" id="hist-${v.id}"></div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
@@ -749,13 +764,13 @@ function gerarMensagemMatch(c, nomeCarro, detalhes, razoes) {
 }
 
 function renderMatch(v) {
-  if (!COMPRADORES.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Cadastre compradores para ver sugestões</div>';
+  if (!COMPRADORES.length) return '<div class="match-vazio">Cadastre compradores para ver sugestões</div>';
   const scored = COMPRADORES
     .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor, v.id), razoes: calcRazoes(c, v.marca, v.valor) }))
     .filter(c => c.score > 40)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
-  if (!scored.length) return '<div class="match-titulo">👥 Match</div><div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>';
+  if (!scored.length) return '<div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>';
 
   const nomeCarro = [v.marca, v.versao || v.modelo, v.ano].filter(Boolean).join(' ');
   const kmFmt    = v.km    ? Number(v.km).toLocaleString('pt-BR') + ' km' : '';
@@ -785,7 +800,38 @@ function renderMatch(v) {
       <textarea class="match-msg-hidden" id="${msgId}">${msgTexto}</textarea>
     </div>`;
   }).join('');
-  return `<div class="match-titulo">👥 Possíveis compradores</div>${rows}`;
+  return rows;
+}
+
+function infoSection(emoji, lbl, txt) {
+  if (!txt || !txt.trim()) return '';
+  return `<div class="card-info">
+    <div class="card-info-lbl">${emoji} ${lbl}</div>
+    <div class="card-info-txt">${esc(txt)}</div>
+    <button class="card-info-ver" onclick="toggleCardInfo(this)">ver mais ↓</button>
+  </div>`;
+}
+function toggleCardInfo(btn) {
+  const txt = btn.previousElementSibling;
+  const expandido = txt.classList.contains('expanded');
+  txt.classList.toggle('expanded', !expandido);
+  btn.textContent = expandido ? 'ver mais ↓' : 'ver menos ↑';
+}
+function toggleMatch(id, btn) {
+  const body = document.getElementById('matchbody-' + id);
+  if (!body) return;
+  const abrindo = body.style.display === 'none';
+  body.style.display = abrindo ? '' : 'none';
+  const arrow = btn.querySelector('.marrow');
+  if (arrow) arrow.textContent = abrindo ? '▴' : '▾';
+}
+function ajustarCardInfo() {
+  document.querySelectorAll('.card-info-txt').forEach(el => {
+    if (el.scrollWidth > el.clientWidth) {
+      const btn = el.nextElementSibling;
+      if (btn) btn.classList.add('visivel');
+    }
+  });
 }
 
 async function copiarMsgMatch(msgId, btn) {
@@ -932,6 +978,7 @@ async function carregar() {
       return;
     }
     $('grid').innerHTML = lista.map(card).join('');
+    ajustarCardInfo();
   } catch (e) {
     $('contador').textContent = '';
     $('erro').textContent = 'Não consegui carregar o catálogo: ' + e.message;
