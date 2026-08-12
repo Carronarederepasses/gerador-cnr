@@ -179,7 +179,7 @@
   .nota-badge.abaixo{background:color-mix(in srgb, var(--severity-crit) 15%, transparent);color:var(--severity-crit)}
   .av-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:2rem 1rem;overflow-y:auto}
   .av-modal.show{display:flex}
-  .av-box{background:var(--surface-raise);border-radius:16px;max-width:620px;width:100%;padding:1.4rem;margin:auto 0}
+  .av-box{background:var(--surface-raise);border-radius:16px;max-width:780px;width:100%;padding:1.4rem;margin:auto 0}
   .av-box h2{font-family:'Playfair Display',serif;font-size:1.35rem;margin-bottom:.2rem}
   .av-box .sub2{font-size:.82rem;color:var(--text-mid);margin-bottom:1rem}
   .av-sec{margin-bottom:1rem}
@@ -401,6 +401,10 @@
     <h2 id="av-titulo">Avaliação</h2>
     <div class="sub2">Estado geral do veículo — entra junto das fotos do catálogo</div>
     <input type="hidden" id="av-veiculo-id" />
+    <div class="av-sec" id="av-sec-inspecao" style="display:none">
+      <div class="stit">Avaliação da Captação</div>
+      <p id="av-inspecao-texto" style="font-size:.88rem;color:var(--text-mid);white-space:pre-wrap;margin:0"></p>
+    </div>
     <div id="av-secoes"></div>
     <div class="av-sec">
       <div class="stit">Resumo por categoria</div>
@@ -1541,6 +1545,15 @@ function abrirAval(id){
   _avalData   = a.data || null;
   $('av-nota').value = a.nota || '';
   $('av-obs').value = a.obs || '';
+  const secInsp = document.getElementById('av-sec-inspecao');
+  const txtInsp = document.getElementById('av-inspecao-texto');
+  if (a.inspecao) {
+    txtInsp.textContent = a.inspecao;
+    secInsp.style.display = '';
+  } else {
+    txtInsp.textContent = '';
+    secInsp.style.display = 'none';
+  }
   renderAvalSecoes();
   renderAvalScores();
   $('av-modal').classList.add('show');
