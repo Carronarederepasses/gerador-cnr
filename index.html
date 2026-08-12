@@ -1803,6 +1803,7 @@ function coletarFichaVeiculo() {
     fipe:         numFromR(document.getElementById('fipe-val').value),
     opcionais,
     observacoes:  obs.length ? obs.join('; ') : null,
+    gastos:       txtOrNull(document.getElementById('gastos').value),
     anuncio_texto: document.getElementById('btn-wa').dataset.texto || montarTextoAnuncio(),
     status:       'disponivel',
   };
@@ -2956,6 +2957,8 @@ const AVAL_LOCAL = [
 ];
 
 let AVAL_RES_LOCAL = {};
+let AVAL_SCORES_LOCAL = {};  // scores por categoria, carregados do banco e preservados no save
+let AVAL_DATA_LOCAL   = null; // ISO string da 1ª avaliação; preservado em edições subsequentes
 function avCelLocal(sec,item){ if(!AVAL_RES_LOCAL[sec]) AVAL_RES_LOCAL[sec]={}; if(!AVAL_RES_LOCAL[sec][item]) AVAL_RES_LOCAL[sec][item]={}; return AVAL_RES_LOCAL[sec][item]; }
 function sevAvLocal(opts,idx){ if(idx===0) return 'bom'; if(idx===opts.length-1&&opts.length>=3) return 'ruim'; return 'alerta'; }
 
@@ -3115,6 +3118,8 @@ async function carregarChecklistExistente() {
       const v = await r.json();
       if (v && v.avaliacao && v.avaliacao.resultado) {
         AVAL_RES_LOCAL = v.avaliacao.resultado;
+        if (v.avaliacao.scores) AVAL_SCORES_LOCAL = v.avaliacao.scores;
+        if (v.avaliacao.data)   AVAL_DATA_LOCAL   = v.avaliacao.data;
         if (v.avaliacao.nota) document.getElementById('cap-av-nota').value = v.avaliacao.nota;
         if (v.avaliacao.obs)  document.getElementById('cap-av-obs').value  = v.avaliacao.obs;
       }
@@ -3219,7 +3224,7 @@ function removerFotoAvLocal(sec, item) {
 async function salvarChecklist() {
   if (!catalogoId) { await autoSalvar(); }
   if (!catalogoId) { alert('Preencha ao menos a marca/modelo (aba Anúncio) antes de salvar o checklist.'); return; }
-  const avaliacao = { nota: document.getElementById('cap-av-nota').value, obs: document.getElementById('cap-av-obs').value, resultado: AVAL_RES_LOCAL };
+  const avaliacao = { nota: document.getElementById('cap-av-nota').value, obs: document.getElementById('cap-av-obs').value, resultado: AVAL_RES_LOCAL, scores: AVAL_SCORES_LOCAL, data: AVAL_DATA_LOCAL || new Date().toISOString() };
   try {
     const r = await fetch('/api/catalogo?id='+catalogoId, {
       method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({avaliacao}),

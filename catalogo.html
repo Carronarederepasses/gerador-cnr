@@ -1468,6 +1468,7 @@ const SCORE_OPTS = [
   { code: 'ru', label: 'Ruim' },
 ];
 let _avalScores = {};
+let _avalData   = null; // ISO string da 1ª avaliação; preservado em edições subsequentes
 
 function renderAvalScores() {
   $('av-scores').innerHTML = SCORE_CATS.map(cat => `
@@ -1537,6 +1538,7 @@ function abrirAval(id){
   const a = (v.avaliacao && typeof v.avaliacao === 'object') ? v.avaliacao : {};
   AVAL_RES = a.resultado ? JSON.parse(JSON.stringify(a.resultado)) : {};
   _avalScores = a.scores ? JSON.parse(JSON.stringify(a.scores)) : {};
+  _avalData   = a.data || null;
   $('av-nota').value = a.nota || '';
   $('av-obs').value = a.obs || '';
   renderAvalSecoes();
@@ -1661,7 +1663,7 @@ function setAvSub(sec, item, val, btn){
 }
 async function salvarAval(){
   const id = $('av-veiculo-id').value;
-  const avaliacao = { nota: $('av-nota').value, obs: $('av-obs').value, resultado: AVAL_RES, scores: _avalScores };
+  const avaliacao = { nota: $('av-nota').value, obs: $('av-obs').value, resultado: AVAL_RES, scores: _avalScores, data: _avalData || new Date().toISOString() };
   try {
     const r = await fetch('/api/catalogo?id=' + id, {
       method: 'PATCH',

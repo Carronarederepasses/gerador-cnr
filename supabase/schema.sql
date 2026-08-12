@@ -28,6 +28,7 @@ create table if not exists public.veiculos (
   -- Conteúdo
   opcionais     jsonb not null default '[]'::jsonb,  -- array de strings
   observacoes   text,
+  gastos        text,          -- despesas de preparação (uso interno — não entra no anúncio)
   anuncio_texto text,          -- texto pronto do anúncio (WhatsApp)
 
   -- Gestão
