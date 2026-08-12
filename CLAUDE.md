@@ -106,6 +106,18 @@ Novas features de backend devem reutilizar funções existentes via query params
 - `compradores` — CRM: nome, telefone, tags, preferências
 - `eventos` — log imutável de tudo (event sourcing)
 
+### Estrutura de `veiculos.avaliacao` (JSONB)
+
+O campo `avaliacao` em `veiculos` é um JSONB com chaves distintas por origem. Nunca sobrescrever uma chave sem incluir as demais no mesmo PATCH — PostgREST substitui o campo inteiro.
+
+| Chave | Origem | Descrição |
+|---|---|---|
+| `inspecao` | `index.html` — Captação/Anúncio | Texto livre de inspeção comercial digitado pelo Yuri antes de cadastrar |
+| `nota` | `catalogo.html` — Checklist | Nota global da avaliação estruturada (`acima` / `media` / `abaixo`) |
+| `scores` | `catalogo.html` — Checklist | Scores numéricos por categoria (documentação, lataria, mecânica, etc.) |
+| `resultado` | `catalogo.html` — Checklist | Estado de cada item do checklist (`{ sec: { item: { status, sub, foto } } }`) |
+| `data` | Qualquer save do Checklist | ISO 8601 da **primeira** avaliação; preservado em edições subsequentes |
+
 ### Status válidos em negociacoes
 `primeiro-contato` | `respondeu` | `negociando` | `aguardando` | `comprado` | `descartado`
 
