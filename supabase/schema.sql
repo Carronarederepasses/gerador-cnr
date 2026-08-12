@@ -22,6 +22,7 @@ create table if not exists public.veiculos (
   cor           text,
   regiao        text,
   placa         text,          -- USO INTERNO: nunca entra no texto do anúncio
+  renavam       text,          -- RENAVAM capturado da APiBrasil na consulta de placa (uso interno)
   valor         numeric,       -- preço de repasse (R$)
   fipe          numeric,       -- valor FIPE (R$)
 

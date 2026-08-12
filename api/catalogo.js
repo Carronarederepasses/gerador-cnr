@@ -35,7 +35,7 @@ const CAMPOS = [
   'marca', 'modelo', 'versao', 'complemento', 'ano', 'ano_int',
   'km', 'cor', 'combustivel', 'regiao', 'placa', 'valor', 'fipe',
   'opcionais', 'observacoes', 'anuncio_texto', 'status', 'fotos', 'documentos', 'avaliacao',
-  'valor_compra', 'gastos',
+  'valor_compra', 'gastos', 'renavam',
 ];
 
 function sb(path, opts = {}) {

@@ -1088,6 +1088,7 @@ async function buscarPlacaGerador() {
     const inner = data.data || {};
     const fipe  = (inner.data || []).find(f => f.principal) || (inner.data || [])[0] || {};
     const vei   = inner.veiculo || {};
+    placaRenavam = vei.renavam || null; // captura RENAVAM para persistir no catálogo
 
     // Preenche cor
     const corEl = document.getElementById('cor');
@@ -1803,6 +1804,7 @@ function coletarFichaVeiculo() {
     fipe:         numFromR(document.getElementById('fipe-val').value),
     opcionais,
     observacoes:  obs.length ? obs.join('; ') : null,
+    renavam:      placaRenavam,
     gastos:       txtOrNull(document.getElementById('gastos').value),
     anuncio_texto: document.getElementById('btn-wa').dataset.texto || montarTextoAnuncio(),
     status:       'disponivel',
@@ -2923,8 +2925,9 @@ function resyncSearchables() { Object.values(_ssSync).forEach(fn => fn()); }
 // ══════════════════════════════════════════════
 // CAPTAÇÃO TABS — Anúncio / Fotos / Checklist
 // ══════════════════════════════════════════════
-let catalogoId = null;
-let capAbaAtual = 0;
+let catalogoId   = null;
+let capAbaAtual  = 0;
+let placaRenavam = null; // RENAVAM capturado da APiBrasil na consulta de placa
 
 const AVAL_LOCAL = [
   { id:'documentacao', titulo:'Documentação', itens:[
