@@ -3123,8 +3123,9 @@ async function carregarChecklistExistente() {
         AVAL_RES_LOCAL = v.avaliacao.resultado;
         if (v.avaliacao.scores) AVAL_SCORES_LOCAL = v.avaliacao.scores;
         if (v.avaliacao.data)   AVAL_DATA_LOCAL   = v.avaliacao.data;
-        if (v.avaliacao.nota) document.getElementById('cap-av-nota').value = v.avaliacao.nota;
-        if (v.avaliacao.obs)  document.getElementById('cap-av-obs').value  = v.avaliacao.obs;
+        if (v.avaliacao.nota)     document.getElementById('cap-av-nota').value = v.avaliacao.nota;
+        if (v.avaliacao.obs)      document.getElementById('cap-av-obs').value  = v.avaliacao.obs;
+        if (v.avaliacao.inspecao) document.getElementById('avaliacao').value   = v.avaliacao.inspecao;
       }
     }
   } catch {}
@@ -3227,7 +3228,7 @@ function removerFotoAvLocal(sec, item) {
 async function salvarChecklist() {
   if (!catalogoId) { await autoSalvar(); }
   if (!catalogoId) { alert('Preencha ao menos a marca/modelo (aba Anúncio) antes de salvar o checklist.'); return; }
-  const avaliacao = { nota: document.getElementById('cap-av-nota').value, obs: document.getElementById('cap-av-obs').value, resultado: AVAL_RES_LOCAL, scores: AVAL_SCORES_LOCAL, data: AVAL_DATA_LOCAL || new Date().toISOString() };
+  const avaliacao = { nota: document.getElementById('cap-av-nota').value, obs: document.getElementById('cap-av-obs').value, resultado: AVAL_RES_LOCAL, scores: AVAL_SCORES_LOCAL, data: AVAL_DATA_LOCAL || new Date().toISOString(), inspecao: document.getElementById('avaliacao').value.trim() || null };
   try {
     const r = await fetch('/api/catalogo?id='+catalogoId, {
       method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({avaliacao}),
