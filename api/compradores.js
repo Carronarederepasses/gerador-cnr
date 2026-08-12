@@ -18,7 +18,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const CAMPOS_NEG = [
-  'veiculo_nome','comprador_nome','comprador_id','contato_telefone',
+  'veiculo_id','veiculo_nome','comprador_nome','comprador_id','contato_telefone',
   'valor_proposto','status','ultimo_contato','historico','observacoes',
   'motivo_descarte','motivo_match',
 ];
