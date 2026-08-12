@@ -68,6 +68,7 @@
   .placa-linha b{letter-spacing:.06em}
   .placa-linha .edit{margin-left:auto;opacity:.5;font-size:.79rem}
   .placa-linha:hover{border-color:var(--accent)}.placa-linha:hover .edit{opacity:1}
+  .renavam-linha{font-size:.68rem;color:var(--text-mid);letter-spacing:.04em;margin-top:.25rem;padding:0 .1rem}
 
   /* Fotos */
   .fotos{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.2rem}
@@ -548,6 +549,7 @@ function card(v) {
       ${v.placa ? `<button class="placa-busca-btn" onclick="event.stopPropagation();buscarPlaca('${v.id}')">🔍 Buscar</button>` : ''}
       <span class="edit">✏️</span>
     </div>
+    ${v.renavam ? `<div class="renavam-linha">RENAVAM ${esc(v.renavam)}</div>` : ''}
     <div class="fotos" id="fotos-${v.id}">
       ${thumbs}
       <button class="add" title="Adicionar fotos" onclick="adicionarFotos('${v.id}')">+</button>
