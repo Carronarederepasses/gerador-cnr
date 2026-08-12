@@ -85,9 +85,9 @@ Novas features de backend devem reutilizar funções existentes via query params
 
 | Página | Descrição |
 |---|---|
-| `index.html` | Gerador de anúncio WhatsApp (modo manual + colar anúncio com IA, cascata FIPE) |
+| `index.html` | Gerador de anúncio WhatsApp (modo manual + colar anúncio com IA, cascata FIPE); campo RENAVAM com auto-preenchimento via APiBrasil e edição manual; persistência no localStorage |
 | `home.html` | Dashboard: pipeline, KPIs, carros parados, negociações ativas, relatório mensal, histórico 12 meses |
-| `catalogo.html` | Catálogo de veículos: fotos, avaliação estruturada com score por categoria, valor_compra + margem, dias em estoque, Motor de Match, edição inline |
+| `catalogo.html` | Catálogo de veículos: fotos, avaliação estruturada com score por categoria, valor_compra + margem, dias em estoque, Motor de Match (recolhível, fechado por padrão), edição inline; avaliação da captação e gastos no card (ellipsis + "ver mais"); RENAVAM no card quando disponível |
 | `negociacoes.html` | CRM de negociações: motivo do match, motivo do descarte (tap), contrato PDF, link para registrar venda |
 | `vendas.html` | Registro de vendas + entrada rápida de histórico (⚡), CSV, pré-preenchimento vindo das negociações |
 | `compradores.html` | CRM: histórico de compras, taxa acumulada, Motor de Match automático, ranking |
@@ -100,7 +100,7 @@ Novas features de backend devem reutilizar funções existentes via query params
 ## 5. Banco de Dados (Supabase)
 
 ### Tabelas principais
-- `veiculos` — ficha técnica, fotos (JSONB), avaliação (JSONB com scores por categoria), valor_compra, status
+- `veiculos` — ficha técnica, fotos (JSONB), avaliação (JSONB com scores por categoria), valor_compra, gastos, renavam, status
 - `vendas` — registro de vendas fechadas, taxa_intermediacao, comprador, anexos
 - `negociacoes` — lifecycle de negociações, motivo_match, motivo_descarte, historico (JSONB), valor_proposto
 - `compradores` — CRM: nome, telefone, tags, preferências
@@ -117,6 +117,11 @@ O campo `avaliacao` em `veiculos` é um JSONB com chaves distintas por origem. N
 | `scores` | `catalogo.html` — Checklist | Scores numéricos por categoria (documentação, lataria, mecânica, etc.) |
 | `resultado` | `catalogo.html` — Checklist | Estado de cada item do checklist (`{ sec: { item: { status, sub, foto } } }`) |
 | `data` | Qualquer save do Checklist | ISO 8601 da **primeira** avaliação; preservado em edições subsequentes |
+
+### Regras de persistência de campos especiais em `veiculos`
+
+- **`renavam`** — nunca enviar `null` no PATCH. A correção está na origem: `coletarFichaVeiculo()` e `autoSalvarParceiros()` em `index.html` usam spread condicional `...(val ? { renavam: val } : {})`. Se o campo `#renavam` estiver vazio, `renavam` simplesmente não entra no payload e o PostgREST não toca a coluna. A APiBrasil preenche o campo automaticamente quando disponível; se não retornar, o campo preserva o valor existente ou pode ser digitado manualmente.
+- **`avaliacao`** (JSONB) — o PATCH em `api/catalogo.js` faz GET do valor existente e shallow-merge antes de gravar, evitando que uma chave sobrescreva as demais. Nunca enviar `avaliacao` diretamente sem passar pela API.
 
 ### Status válidos em negociacoes
 `primeiro-contato` | `respondeu` | `negociando` | `aguardando` | `comprado` | `descartado`
@@ -181,14 +186,30 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 
 ### Prioritário agora
 - [ ] **Preencher perfis dos compradores** — marcas, faixa de preço e "O que sabemos" em compradores.html. Isso desbloqueia o Motor de Match.
-- [ ] **Retroalimentar mais histórico** — 20 registros feitos via ⚡, meta é 30+ transações reais.
+- [ ] **Retroalimentar mais histórico** — meta é 30+ transações reais.
 - [x] Testar modo "Colar Anúncio" — validado e funcionando
 - [x] Validar FIPE no app publicado — confirmado funcionando
+- [x] catalogo.html: avaliação da captação e gastos no card (ellipsis + "ver mais"), match recolhível fechado por padrão — commit `b4712d0`
+- [x] RENAVAM: campo manual na Captação, auto-preenchimento via APiBrasil, persistência correta no banco, exibição no catálogo — validado em produção (Polo `33790a05`, RENAVAM `01373903063`) — commits `49282d8`, `fe18726`
 
 ### Médio prazo (Fase 2 — Copiloto)
 - [ ] Motor de Match baseado em histórico real (quando tiver 30+ transações)
 - [ ] Sugestão de preço baseada em transações similares
 - [ ] Alerta de timing: "esse perfil de carro costuma vender em X dias"
+
+### Histórico de Reformas (agosto/2026)
+
+| Reforma | Descrição | Commit |
+|---|---|---|
+| 1–3 | Scores do checklist preservados; campo `gastos` no banco; data da primeira avaliação | `bfff583` |
+| 4 | RENAVAM: coluna no banco, captura via APiBrasil na variável `placaRenavam` | `242467f` |
+| 5 | `avaliacao.inspecao` persistido a partir da Captação (index.html) | `1e629d8` |
+| 6 | Modal do catálogo ampliado; seção "Avaliação da Captação" exibida | `f72d18b` |
+| 6b | Fix: PATCH de `avaliacao` faz merge na API para não perder nota/scores | `b290aa3` |
+| 7 | Fix crítico: colisão de nomes `salvarNoCatalogo` → renomeada para `autoSalvarParceiros` | `10c2b41` |
+| 8 | catalogo.html: avaliação da captação e gastos no card; match recolhível | `b4712d0` |
+| 9 | RENAVAM: campo manual na Captação, auto-preenchimento sem apagar valor existente, persistência no localStorage, `placaRenavam` removida | `49282d8` |
+| 9b | RENAVAM exibido no card do catálogo abaixo da placa | `fe18726` |
 
 ---
 
@@ -200,4 +221,4 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 
 ---
 
-*Atualizado em agosto/2026. Manter este arquivo atualizado conforme o projeto evolui.*
+*Atualizado em 12/agosto/2026 — Reformas 8, 9 e 9b concluídas. Manter este arquivo atualizado conforme o projeto evolui.*
