@@ -257,6 +257,14 @@ module.exports = async (req, res) => {
     if (req.method === 'PATCH') {
       if (!q.id) return res.status(400).json({ error: 'id obrigatório.' });
       const payload = limpar(req.body || {});
+      if (payload.avaliacao !== undefined) {
+        const cur = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}&select=avaliacao`);
+        if (cur.ok) {
+          const rows = await cur.json();
+          const existing = (rows[0] && rows[0].avaliacao) || {};
+          payload.avaliacao = { ...existing, ...payload.avaliacao };
+        }
+      }
       const r = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=representation' },

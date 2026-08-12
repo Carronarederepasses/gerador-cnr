@@ -1806,6 +1806,9 @@ function coletarFichaVeiculo() {
     observacoes:  obs.length ? obs.join('; ') : null,
     renavam:      placaRenavam,
     gastos:       txtOrNull(document.getElementById('gastos').value),
+    ...(txtOrNull(document.getElementById('avaliacao').value)
+        ? { avaliacao: { inspecao: txtOrNull(document.getElementById('avaliacao').value) } }
+        : {}),
     anuncio_texto: document.getElementById('btn-wa').dataset.texto || montarTextoAnuncio(),
     status:       'disponivel',
   };
