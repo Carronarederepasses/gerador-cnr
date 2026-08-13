@@ -73,7 +73,7 @@ Cada venda não gera só receita. Gera dado que melhora a próxima venda.
 
 Quantas vezes o sistema sugeriu o comprador certo e o Yuri concordou sem mudar?
 
-- Hoje: 0% (o sistema ainda não sugere)
+- Hoje: em medição — Match Ativo 2.0 em produção desde 05/08/2026 (Sprint 1 em validação)
 - Meta ano 1: 50%
 - Meta ano 2: 80%
 

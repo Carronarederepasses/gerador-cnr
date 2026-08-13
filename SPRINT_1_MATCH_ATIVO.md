@@ -1,16 +1,37 @@
 # Sprint 1 — Match Ativo
 
+**Status:** Implementação concluída — validação em produção em andamento
+
+---
+
 ## Hipótese
 O Match Ativo aumenta a velocidade e/ou a taxa de conversão dos veículos,
 mostrando os compradores certos no momento em que um carro entra no sistema.
 
-## O que foi construído
+## O que foi construído (versão original — Sprint 1 base)
 - Top 3 compradores por score (faixa de preço + marca)
 - Razões visíveis do match (✓ Faixa de preço, ✓ Marca Honda)
 - Mensagem personalizada com nome, carro, km, cor, valor e tom de exclusividade
 - Botão Copiar + Botão WhatsApp
 - Botão Notifiquei → 5 opções de resultado → registra evento no banco
 - Evento salvo: `score_match`, `motivos_match`, `mensagem_gerada`, `resultado`
+
+## Evoluções implementadas durante a Sprint (Match Ativo 2.0)
+
+### Fix de normalização de marca — commit `ee0a477`
+**Problema identificado em produção:** FIPE retorna "VW - VolksWagen", mas compradores cadastram "Volkswagen" → o match não pontuava a marca corretamente, gerando scores incorretos para veículos VW e GM.
+
+**Solução:** função `normMarca()` + dicionário `MARCA_ALIAS` aplicados nos 6 pontos de comparação de marca (4 em `catalogo.html`, 2 em `api/compradores.js`). Sem alteração de pesos ou lógica de score.
+
+### Oferta com 1 clique + negociação automática
+**Problema:** fluxo de 2 etapas (abre WA → volta pro app → clica "Notifiquei") gerava fricção e omissão de registros.
+
+**Solução implementada:**
+- Clicar "Ofertar" abre o WhatsApp E registra o evento + cria a negociação automaticamente em background (`Promise.all().catch()`)
+- "Não adequado" disponível antes de ofertar — registra `match_nao_adequado` sem criar negociação
+- Chips de resultado pós-oferta: **Interessado** / **Recusou** (+ sub-chips: preço alto / não é o perfil / sem mercado) / **Não respondeu**
+- Proteção contra duplo-clique (flag `dataset.ofertado`)
+- `veiculo_id` registrado em `negociacoes` (coluna adicionada via migration)
 
 ## Definição de acerto
 Um match é considerado **acertado** quando pelo menos um dos 3 compradores sugeridos
@@ -20,7 +41,7 @@ inicia uma negociação ou demonstra interesse qualificado após o contato.
 
 ## Período
 De: 05/08/2026
-Até: ____/____/______
+Até: ____/____/______ *(em andamento)*
 
 ## Métricas
 
@@ -56,10 +77,15 @@ Até: ____/____/______
 - **Usei naturalmente ou precisei lembrar que existia?**
   > 
 
-## Primeiro teste (05/08/2026)
+## Registros de uso
+
+### Primeiro teste (05/08/2026)
 Jeep Renegade cadastrado. Sistema sugeriu comprador que Yuri teria chamado de cabeça.
 Comprador confirmou interesse. Negociação em andamento.
 → **Top 3: acertou. Top 1: a confirmar.**
+
+> *Adicionar novos registros aqui conforme o Match for usado em produção.*
+> *Mínimo de 5 veículos com resultado registrado para fechar a sprint.*
 
 ## Critérios de Encerramento da Sprint
 
@@ -97,4 +123,5 @@ A Sprint será considerada encerrada quando:
 
 ---
 
-*Criado em 04/08/2026 — preencher ao fim do período de observação*
+*Criado em 04/08/2026 — atualizado em 12/08/2026 (Match Ativo 2.0 documentado)*
+*Preencher métricas e decisão ao encerrar formalmente a Sprint.*

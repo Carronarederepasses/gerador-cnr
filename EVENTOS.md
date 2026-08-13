@@ -44,11 +44,15 @@
 
 ## Match
 
-| Evento | Quando acontece | Quem gera | Dados capturados |
+> **Match Ativo 2.0** — em produção desde 05/08/2026 (Sprint 1 em validação). Fix normMarca incluído no commit `ee0a477`. Os eventos abaixo substituem os eventos conceituais anteriores (`match.sugerido`, `match.aceito`, `match.ignorado`) que nunca foram implementados no banco.
+
+> O cálculo do Top 3 é client-side — nenhum evento é gravado apenas por exibir o popup. Evento só é gravado quando o operador age.
+
+| Evento | Quando acontece | Quem gera | Dados capturados (`dados` JSON) |
 |---|---|---|---|
-| `match.sugerido` | Sistema recomenda compradores | Sistema | lista_compradores, scores, critérios usados |
-| `match.aceito` | Yuri escolhe o comprador sugerido | Usuário | comprador_escolhido, posição_na_lista (1º, 2º…), motivo (já compra modelo / paga rápido / melhor margem / confiança / região / outro) |
-| `match.ignorado` | Yuri escolhe comprador diferente do sugerido | Usuário | comprador_sugerido, comprador_escolhido, motivo |
+| `match_notificado` | Yuri clica "Ofertar" (abre WA + cria negociação automaticamente) | Usuário | `score_match` (score numérico), `motivos_match` (array), `mensagem_gerada`, `ofertado_em` |
+| `match_nao_adequado` | Yuri clica "Não adequado" antes de ofertar | Usuário | `registrado_em` |
+| `match_resultado` | Yuri registra chip pós-oferta (Interessado / Recusou / Não respondeu) | Usuário | `resultado`, `registrado_em` |
 
 ---
 
@@ -71,7 +75,7 @@ Com esses eventos registrados, o sistema calcula sem pedir nada ao usuário:
 - **Tempo de giro** = `veiculo.vendido.timestamp` − `veiculo.captado.timestamp`
 - **Tempo até primeira proposta** = `negociacao.proposta_recebida.timestamp` − `veiculo.publicado.timestamp`
 - **Desconto médio aceito** = média de (`preco_anunciado` − `valor_venda`) / `preco_anunciado`
-- **Taxa de Match Aceito** = `match.aceito` / (`match.aceito` + `match.ignorado`)
+- **Taxa de Match Efetivo** = `match_resultado[resultado=interessado]` / total de `match_notificado` (+ `match_nao_adequado` pré-oferta)
 - **Score de confiança do comprador** = baseado em `comprador.comprou`, `comprador.recusou`, `comprador.sumiu`, tempo_resposta
 - **Redução média de preço** = média de `preco.alterado.percentual`
 - **Canal de captação mais eficiente** = giro médio e margem por `canal_origem`

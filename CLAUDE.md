@@ -85,9 +85,9 @@ Novas features de backend devem reutilizar funções existentes via query params
 
 | Página | Descrição |
 |---|---|
-| `index.html` | Gerador de anúncio WhatsApp (modo manual + colar anúncio com IA, cascata FIPE); campo RENAVAM com auto-preenchimento via APiBrasil e edição manual; persistência no localStorage |
+| `index.html` | Gerador de anúncio WhatsApp (modo manual + colar anúncio com IA, cascata FIPE); campo RENAVAM com auto-preenchimento via APiBrasil e edição manual; persistência no localStorage. **Captação 2.0:** campos `#vendedor-nome`, `#vendedor-telefone`, `#valor-compra`, `#gastos-valor` e margem estimada em tempo real; AVALIAÇÃO e GASTOS removidos do texto WA (ficam só no banco); `salvarNoCatalogo()` faz PATCH se veículo já existe (sem duplicata) + painel pós-save com deep link `/catalogo.html?id=<uuid>` |
 | `home.html` | Dashboard: pipeline, KPIs, carros parados, negociações ativas, relatório mensal, histórico 12 meses |
-| `catalogo.html` | Catálogo de veículos: fotos, avaliação estruturada com score por categoria, valor_compra + margem, dias em estoque, Motor de Match (recolhível, fechado por padrão), edição inline; avaliação da captação e gastos no card (ellipsis + "ver mais"); RENAVAM no card quando disponível |
+| `catalogo.html` | Catálogo de veículos: fotos, avaliação estruturada com score por categoria, valor_compra + margem, dias em estoque, RENAVAM no card quando disponível; avaliação da captação e gastos no card (ellipsis + "ver mais"); **Match Ativo 2.0:** oferta com 1 clique (abre WA + registra evento + cria negociação automaticamente), chips de resultado (Interessado / Recusou / Não respondeu + sub-chips de motivo), "Não adequado" antes de ofertar; Motor de Match recolhível, fechado por padrão; deep link `?id=<uuid>` rola e destaca o card |
 | `negociacoes.html` | CRM de negociações: motivo do match, motivo do descarte (tap), contrato PDF, link para registrar venda |
 | `vendas.html` | Registro de vendas + entrada rápida de histórico (⚡), CSV, pré-preenchimento vindo das negociações |
 | `compradores.html` | CRM: histórico de compras, taxa acumulada, Motor de Match automático, ranking |
@@ -100,9 +100,9 @@ Novas features de backend devem reutilizar funções existentes via query params
 ## 5. Banco de Dados (Supabase)
 
 ### Tabelas principais
-- `veiculos` — ficha técnica, fotos (JSONB), avaliação (JSONB com scores por categoria), valor_compra, gastos, renavam, status
+- `veiculos` — ficha técnica, fotos (JSONB), avaliação (JSONB com scores por categoria), valor_compra, gastos (text), gastos_valor (numeric), vendedor_nome, vendedor_telefone, renavam, status
 - `vendas` — registro de vendas fechadas, taxa_intermediacao, comprador, anexos
-- `negociacoes` — lifecycle de negociações, motivo_match, motivo_descarte, historico (JSONB), valor_proposto
+- `negociacoes` — lifecycle de negociações, motivo_match, motivo_descarte, historico (JSONB), valor_proposto, veiculo_id
 - `compradores` — CRM: nome, telefone, tags, preferências
 - `eventos` — log imutável de tudo (event sourcing)
 
@@ -122,6 +122,14 @@ O campo `avaliacao` em `veiculos` é um JSONB com chaves distintas por origem. N
 
 - **`renavam`** — nunca enviar `null` no PATCH. A correção está na origem: `coletarFichaVeiculo()` e `autoSalvarParceiros()` em `index.html` usam spread condicional `...(val ? { renavam: val } : {})`. Se o campo `#renavam` estiver vazio, `renavam` simplesmente não entra no payload e o PostgREST não toca a coluna. A APiBrasil preenche o campo automaticamente quando disponível; se não retornar, o campo preserva o valor existente ou pode ser digitado manualmente.
 - **`avaliacao`** (JSONB) — o PATCH em `api/catalogo.js` faz GET do valor existente e shallow-merge antes de gravar, evitando que uma chave sobrescreva as demais. Nunca enviar `avaliacao` diretamente sem passar pela API.
+- **`valor_compra`, `gastos_valor`, `vendedor_nome`, `vendedor_telefone`** — coletados em `coletarFichaVeiculo()` (Captação 2.0), presentes no whitelist `CAMPOS` de `api/catalogo.js` e no `CAMPOS_SIMPLES` do localStorage. `gastos` (textarea de descrição textual) e `gastos_valor` (campo numérico para margem) são campos separados e independentes — nunca fundi-los.
+
+### Lógica de save sem duplicata em `salvarNoCatalogo()`
+- Se `_catalogoId` existe (veículo criado pelo auto-save de `gerar()`) → faz **PATCH** no mesmo ID
+- Se não existe → faz **POST**, captura `veiculoId` da resposta
+- Após o save: sincroniza `_catalogoId` e `catalogoId` (abas Fotos e Checklist continuam no mesmo veículo)
+- Exibe painel pós-save com link `/catalogo.html?id=<uuid>` e botão "Captar outro"
+- `iniciarNovaCaptacao()` limpa apenas localStorage + variáveis JS — não apaga o banco
 
 ### Status válidos em negociacoes
 `primeiro-contato` | `respondeu` | `negociando` | `aguardando` | `comprado` | `descartado`
@@ -138,7 +146,7 @@ O ativo real não é o software — é a **capacidade de transformar operação 
 
 **Evolução do sistema em 3 fases:**
 - **Fase 1 — Registrar conhecimento** ✅ 112 vendas reais, compradores com perfil, catálogo estruturado
-- **Fase 2 — Usar o conhecimento para ajudar o Yuri a decidir** ✅ Match Ativo (Sprint 1 em validação)
+- **Fase 2 — Usar o conhecimento para ajudar o Yuri a decidir** 🔄 Match Ativo 2.0 em produção desde 05/08/2026 — validação em andamento (≥5 veículos + resultados registrados para fechar a Sprint 1)
 - **Fase 3 — Entregar valor diretamente ao comprador** 🔜 Vitrine Pessoal — link único por comprador, sem login, sem app, atualizado automaticamente pelo Motor de Match
 
 **Vitrine Pessoal (próxima evolução — não construir antes de validar Sprint 1):**
@@ -185,17 +193,23 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 ## 7. Próximos Passos
 
 ### Prioritário agora
-- [ ] **Preencher perfis dos compradores** — marcas, faixa de preço e "O que sabemos" em compradores.html. Isso desbloqueia o Motor de Match.
-- [ ] **Retroalimentar mais histórico** — meta é 30+ transações reais.
-- [x] Testar modo "Colar Anúncio" — validado e funcionando
-- [x] Validar FIPE no app publicado — confirmado funcionando
-- [x] catalogo.html: avaliação da captação e gastos no card (ellipsis + "ver mais"), match recolhível fechado por padrão — commit `b4712d0`
-- [x] RENAVAM: campo manual na Captação, auto-preenchimento via APiBrasil, persistência correta no banco, exibição no catálogo — validado em produção (Polo `33790a05`, RENAVAM `01373903063`) — commits `49282d8`, `fe18726`
+- [ ] **Completar validação da Sprint 1 — Match Ativo**: usar em ≥5 veículos, registrar todos os resultados (chips pós-oferta), calcular taxa de acerto Top 1 e Top 3. Ver `SPRINT_1_MATCH_ATIVO.md`.
+- [ ] **Preencher perfis dos compradores** — marcas, faixa de preço e "O que sabemos" em compradores.html. Dados ricos melhoram diretamente o score do Match.
+- [ ] **Retroalimentar histórico** — meta é 30+ transações reais com dados completos.
 
-### Médio prazo (Fase 2 — Copiloto)
-- [ ] Motor de Match baseado em histórico real (quando tiver 30+ transações)
+### Concluído recentemente
+- [x] Captação 2.0: vendedor, valor_compra, gastos_valor, margem estimada, pós-save com deep link — commit `c5efbb6`
+- [x] Match Ativo 2.0: oferta 1 clique + negociação automática + chips de resultado — commits anteriores
+- [x] Fix Match: normMarca unifica VW-VolksWagen ↔ Volkswagen — commit `ee0a477`
+- [x] RENAVAM: campo manual, auto-preenchimento APiBrasil, exibição no catálogo — commits `49282d8`, `fe18726`
+- [x] catalogo.html: avaliação/gastos no card, match recolhível — commit `b4712d0`
+- [x] Testar modo "Colar Anúncio" e validar FIPE em produção — funcionando
+
+### Médio prazo (após Sprint 1 encerrada)
+- [ ] Ajuste de pesos/algoritmo do Motor de Match com base nos resultados da Sprint 1
 - [ ] Sugestão de preço baseada em transações similares
 - [ ] Alerta de timing: "esse perfil de carro costuma vender em X dias"
+- [ ] Vitrine Pessoal — link único por comprador (Fase 3)
 
 ### Histórico de Reformas (agosto/2026)
 
@@ -210,6 +224,8 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 8 | catalogo.html: avaliação da captação e gastos no card; match recolhível | `b4712d0` |
 | 9 | RENAVAM: campo manual na Captação, auto-preenchimento sem apagar valor existente, persistência no localStorage, `placaRenavam` removida | `49282d8` |
 | 9b | RENAVAM exibido no card do catálogo abaixo da placa | `fe18726` |
+| 10 | Fix Match Ativo: `normMarca()` unifica "VW - VolksWagen" ↔ "Volkswagen" nos 6 pontos de comparação (catalogo.html + api/compradores.js) | `ee0a477` |
+| 11 | Captação 2.0: `#vendedor-nome`, `#vendedor-telefone`, `#valor-compra`, `#gastos-valor`, margem estimada em tempo real; AVALIAÇÃO/GASTOS removidos do texto WA; `salvarNoCatalogo()` PATCH sem duplicata; painel pós-save com deep link | `c5efbb6` |
 
 ---
 
@@ -221,4 +237,4 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 
 ---
 
-*Atualizado em 12/agosto/2026 — Reformas 8, 9 e 9b concluídas. Manter este arquivo atualizado conforme o projeto evolui.*
+*Atualizado em 12/agosto/2026 — Reformas 10 e 11 concluídas. Match Ativo 2.0 em produção, Sprint 1 em validação. Manter este arquivo atualizado conforme o projeto evolui.*

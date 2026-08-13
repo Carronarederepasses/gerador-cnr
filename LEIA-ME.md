@@ -27,7 +27,7 @@ Para o **GitHub**, o Claude usa o git direto na pasta (repo `Carronarederepasses
 
 ## Links rápidos
 
-- Site publicado: https://carronarederepasses.github.io/gerador-cnr/
+- Site publicado: https://gerador-cnr.vercel.app
 - Repositório: https://github.com/Carronarederepasses/gerador-cnr
 - Instagram: https://instagram.com/carronarederepasses
 
