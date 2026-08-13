@@ -1154,11 +1154,16 @@ async function buscarPlacaGerador() {
     const resumo = partes.length ? partes.join(' • ') : 'Dados obtidos';
     const fipeStr = fipe.valor ? ' — FIPE R$ ' + Number(fipe.valor).toLocaleString('pt-BR') : '';
 
-    st.style.color = 'var(--green)';
     // Contador de créditos APiBrasil (sessão)
     const usado = (parseInt(sessionStorage.getItem('cnr_placa_count') || '0')) + 1;
     sessionStorage.setItem('cnr_placa_count', usado);
-    st.textContent = '✓ ' + resumo + fipeStr + ` (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
+    if (fipe.marca) {
+      st.style.color = 'var(--green)';
+      st.textContent = '✓ ' + resumo + fipeStr + ` (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
+    } else {
+      st.style.color = 'var(--yellow)';
+      st.textContent = `⚠️ FIPE não identificada para esta placa. Confira/preencha Marca e Modelo manualmente antes de gerar o anúncio. (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
+    }
   } catch (e) {
     st.style.color = 'var(--red)';
     st.textContent = '✗ ' + e.message;
