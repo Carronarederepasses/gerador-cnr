@@ -650,14 +650,23 @@
 
   <!-- AVALIAÇÃO / GASTOS / OBSERVAÇÃO LIVRE -->
   <div class="fsec">
+    <div class="g2" id="campo-vendedor" style="margin-bottom:.6rem">
+      <div class="field"><label>Nome do vendedor</label><input type="text" id="vendedor-nome" placeholder="ex: João Silva"></div>
+      <div class="field"><label>Telefone do vendedor</label><input type="text" id="vendedor-telefone" placeholder="ex: (48) 9 9999-9999"></div>
+    </div>
+
     <div class="field" id="campo-avaliacao">
       <label>Avaliação <span style="color:var(--light)">(carro de captação)</span></label>
       <textarea id="avaliacao" rows="4" placeholder="ex: Carro selado frente e traseira; pneus bons, bom de câmbio, motor e suspensão; riscos superficiais que saem no polimento." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
     </div>
 
     <div class="field" style="margin-top:.5rem">
-      <label>Gastos</label>
+      <label>Gastos — descrição</label>
       <textarea id="gastos" rows="3" placeholder="ex: Pintar para-choque dianteiro; higienização e preparação de loja." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+    <div class="field" id="campo-gastos-valor" style="margin-top:.4rem">
+      <label>Gastos (R$) <span style="color:var(--light)">↳ estimativa para cálculo de margem</span></label>
+      <input type="text" id="gastos-valor" placeholder="ex: 2.500,00" oninput="calcMargem()">
     </div>
 
     <div class="field" style="margin-top:.5rem">
@@ -675,8 +684,15 @@
   <div class="fsec" id="bloco-valores">
     <div class="fsec-title">Valores</div>
     <div class="g2">
-      <div class="field"><label>Valor de venda (R$)</label><input type="text" id="valor" placeholder="88.990,00"></div>
+      <div class="field"><label>Valor de venda (R$)</label><input type="text" id="valor" placeholder="88.990,00" oninput="calcMargem()"></div>
       <div class="field"><label>FIPE (R$) — preenchida auto</label><input type="text" id="fipe-val" placeholder="—"></div>
+    </div>
+    <div class="g2" id="bloco-captacao-valores" style="margin-top:.5rem">
+      <div class="field"><label>Valor de compra (R$) <span style="color:var(--light)">↳ pago ao vendedor</span></label><input type="text" id="valor-compra" placeholder="85.000,00" oninput="calcMargem()"></div>
+      <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end">
+        <label>Margem estimada</label>
+        <div id="margem-display" style="padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;font-size:.84rem;color:var(--light);min-height:2.4rem;display:flex;align-items:center">—</div>
+      </div>
     </div>
   </div>
 
@@ -686,6 +702,16 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.35rem"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Salvar no catálogo
     </button>
   </div>
+
+  <!-- PAINEL PÓS-SALVAMENTO -->
+  <div id="pos-save-panel" style="display:none;margin-top:.8rem;padding:.9rem 1rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;text-align:center">
+    <div style="font-size:.88rem;font-weight:600;color:#4caf50;margin-bottom:.7rem">✓ Veículo salvo no catálogo</div>
+    <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+      <a id="link-ver-catalogo" href="#" target="_blank" class="btn-gen" style="font-size:.75rem;padding:.45rem .9rem;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem">🚗 Ver no catálogo</a>
+      <button class="btn-gen btn-sec" onclick="iniciarNovaCaptacao()" style="font-size:.75rem;padding:.45rem .9rem">➕ Captar outro</button>
+    </div>
+  </div>
+
   </div><!-- /blocos-anuncio -->
 
   <!-- ── ABA FOTOS ── -->
@@ -1488,8 +1514,6 @@ function montarTextoAnuncio() {
       linhas.push(bl);
     }
   }
-  pushSecao(linhas, 'AVALIAÇÃO', avaliacao);
-  pushSecao(linhas, 'GASTOS', gastos);
   if (obsIds.length) { linhas.push(''); obsIds.forEach(id => linhas.push(obsMap[id] || id)); }
   if (obsCustom) { linhas.push(''); linhas.push(obsCustom); }
   linhas.push('');
@@ -1573,10 +1597,6 @@ function gerar() {
       linhas.push(bl);
     }
   }
-
-  // Avaliação (só captação) e Gastos — seções em negrito caixa-alta
-  pushSecao(linhas, 'AVALIAÇÃO', avaliacao);
-  pushSecao(linhas, 'GASTOS', gastos);
 
   // Observações finais (toggles pré-definidos) + observação livre
   if (obsIds.length) {
@@ -1812,6 +1832,10 @@ function coletarFichaVeiculo() {
     placa:        (txtOrNull(document.getElementById('placa').value) || '').toUpperCase() || null,
     valor:        numFromR(document.getElementById('valor').value),
     fipe:         numFromR(document.getElementById('fipe-val').value),
+    valor_compra:      numFromR(document.getElementById('valor-compra')?.value),
+    gastos_valor:      numFromR(document.getElementById('gastos-valor')?.value),
+    vendedor_nome:     txtOrNull(document.getElementById('vendedor-nome')?.value),
+    vendedor_telefone: txtOrNull(document.getElementById('vendedor-telefone')?.value),
     opcionais,
     observacoes:  obs.length ? obs.join('; ') : null,
     ...(txtOrNull(document.getElementById('renavam')?.value) ? { renavam: txtOrNull(document.getElementById('renavam').value) } : {}),
@@ -1824,8 +1848,29 @@ function coletarFichaVeiculo() {
   };
 }
 
+// Calcula e exibe a margem estimada em tempo real
+function calcMargem() {
+  const numFromR = v => {
+    if (!v) return null;
+    const n = parseFloat(String(v).replace(/\./g, '').replace(',', '.'));
+    return isNaN(n) ? null : n;
+  };
+  const vVenda  = numFromR(document.getElementById('valor')?.value);
+  const vCompra = numFromR(document.getElementById('valor-compra')?.value);
+  const vGastos = numFromR(document.getElementById('gastos-valor')?.value);
+  const el = document.getElementById('margem-display');
+  if (!el) return;
+  if (vVenda == null && vCompra == null && vGastos == null) {
+    el.textContent = '—'; el.style.color = 'var(--light)'; return;
+  }
+  const margem = (vVenda || 0) - (vCompra || 0) - (vGastos || 0);
+  const fmt = n => Math.abs(n).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  el.textContent = (margem >= 0 ? '▲ R$ ' : '▼ R$ ') + fmt(margem);
+  el.style.color = margem >= 0 ? '#4caf50' : '#e55';
+}
+
 async function salvarNoCatalogo(btnEl) {
-  const btn = btnEl || document.getElementById('btn-catalogo');
+  const btn = btnEl || document.getElementById('btn-salvar-catalogo');
   const ficha = coletarFichaVeiculo();
   const nome = [ficha.marca, ficha.versao || ficha.modelo].filter(Boolean).join(' ');
   if (!nome) {
@@ -1836,25 +1881,55 @@ async function salvarNoCatalogo(btnEl) {
   btn.disabled = true;
   btn.textContent = 'Salvando...';
   try {
-    const r = await fetch('/api/catalogo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ficha),
-    });
-    if (!r.ok) throw new Error((await r.json()).error || 'erro');
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Salvo no catálogo!';
+    let r, veiculoId;
+    if (_catalogoId) {
+      // Já foi criado pelo auto-save — só atualiza para não duplicar
+      r = await fetch('/api/catalogo?id=' + _catalogoId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ficha),
+      });
+      veiculoId = _catalogoId;
+    } else {
+      r = await fetch('/api/catalogo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ficha),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        veiculoId = (Array.isArray(j) ? j[0] : j)?.id || null;
+      }
+    }
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'erro');
+
+    // Sincroniza variáveis das abas Fotos e Checklist
+    _catalogoId = veiculoId;
+    catalogoId  = veiculoId;
+
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Salvo!';
     btn.classList.add('copied');
+
+    // Atualiza link do painel e exibe
+    const linkEl = document.getElementById('link-ver-catalogo');
+    if (linkEl && veiculoId) linkEl.href = '/catalogo.html?id=' + veiculoId;
+    const panel = document.getElementById('pos-save-panel');
+    if (panel) panel.style.display = '';
+
     mostrarMatchPopup(ficha.marca, ficha.valor);
-    setTimeout(() => {
-      try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
-      _catalogoId = null;
-      location.reload();
-    }, 2200);
   } catch (e) {
     alert('Não consegui salvar: ' + e.message);
     btn.innerHTML = original;
     btn.disabled = false;
   }
+}
+
+// Limpa o formulário para iniciar uma nova captação
+function iniciarNovaCaptacao() {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+  _catalogoId = null;
+  catalogoId  = null;
+  location.reload();
 }
 
 async function mostrarMatchPopup(marca, valor) {
@@ -1928,8 +2003,14 @@ function setMode(mode) {
   document.getElementById('blocos-anuncio').style.display   = mode === 'editor' ? 'none' : '';
   // O bloco "Valores" duplica os campos do Coletados (colet-valor/colet-fipe) — esconde lá
   document.getElementById('bloco-valores').style.display    = mode === 'coletados' ? 'none' : '';
-  // Avaliação só faz sentido em carro de captação
-  document.getElementById('campo-avaliacao').style.display  = mode === 'captacao'  ? '' : 'none';
+  // Avaliação + campos de captação só fazem sentido em carro de captação
+  document.getElementById('campo-avaliacao').style.display      = mode === 'captacao' ? '' : 'none';
+  document.getElementById('campo-vendedor').style.display        = mode === 'captacao' ? '' : 'none';
+  document.getElementById('campo-gastos-valor').style.display    = mode === 'captacao' ? '' : 'none';
+  document.getElementById('bloco-captacao-valores').style.display = mode === 'captacao' ? '' : 'none';
+  // Esconde painel pós-save ao trocar de modo
+  const _psp = document.getElementById('pos-save-panel');
+  if (_psp) _psp.style.display = 'none';
   document.getElementById('btn-captacao').classList.toggle('active',  mode === 'captacao');
   document.getElementById('btn-coletados').classList.toggle('active', mode === 'coletados');
   const btnEditor = document.getElementById('btn-editor');
@@ -2387,8 +2468,6 @@ function gerarColetados() {
     }
   }
 
-  pushSecao(linhas, 'GASTOS', gastos);
-
   if (obsIds.length) {
     linhas.push('');
     obsIds.forEach(id => linhas.push(obsMap[id] || id));
@@ -2739,7 +2818,8 @@ function downloadFoto() {
 const SAVE_KEY = 'cnr_form_v1';
 const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','placa','renavam','valor','fipe-val','combustivel',
   'texto-colado','colet-veiculo','colet-km','colet-cor','colet-ano','colet-regiao','colet-valor','colet-fipe','colet-combustivel',
-  'avaliacao','gastos','obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km'];
+  'avaliacao','gastos','obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km',
+  'valor-compra','vendedor-nome','vendedor-telefone','gastos-valor'];
 const CAMPOS_CASCATA = ['sel-marca','sel-modelo','sel-ano','sel-versao'];
 let _saveTimer = null;
 
