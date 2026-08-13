@@ -265,18 +265,6 @@
         <div><label>CPF / CNPJ</label><input id="m-comprador_cpf" /></div>
         <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" /></div>
       </div>
-      <div style="margin-top:.6rem"><label>Por que esse comprador? — alimenta o Motor de Match</label>
-        <select id="m-motivo_match">
-          <option value="">— selecione</option>
-          <option value="ja_compra_modelo">Já compra esse modelo</option>
-          <option value="paga_rapido">Paga rápido / confiável</option>
-          <option value="melhor_margem">Melhor margem</option>
-          <option value="confianca">Confiança / relacionamento</option>
-          <option value="regiao">Região / logística</option>
-          <option value="primeiro_contato">Foi o primeiro a contatar</option>
-          <option value="outro">Outro</option>
-        </select>
-      </div>
       <input type="hidden" id="m-comprador_id">
     </div>
 
@@ -787,7 +775,7 @@ const CAMPOS_FORM = ['marca','modelo','versao','ano','placa','cor','km','renavam
   'origem','vendedor_nome','vendedor_cpf','vendedor_telefone',
   'destino','comprador_nome','comprador_cpf','comprador_telefone',
   'valor_venda','valor_fipe','valor_compra','taxa_intermediacao','forma_pagamento','canal_origem',
-  'comprador_id','motivo_match',
+  'comprador_id',
   'data_venda','data_retirada','status','doc_status','observacoes'];
 
 function abrirModal(v) {
