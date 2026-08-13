@@ -912,6 +912,7 @@ const MOTOR_VERSAO = '2.0'; // incrementar ao mudar pesos ou lógica do calcScor
 // Helper compartilhado: registra evento match_notificado + cria negociação em background.
 // Usado por ofertarMatch (card do catálogo) e pela Central de Distribuição.
 function _registrarOferta(veiculoId, compradorId, score, motivos, mensagem, veiculoNome, compradorNome, compradorTel) {
+  _ofertadosNaSessao.add(`${veiculoId}:${compradorId}`); // memória de sessão — impede reoferta sem reload
   const agora = new Date().toISOString();
   Promise.all([
     fetch('/api/compradores?evento=1', {
@@ -1069,6 +1070,7 @@ function registrarResultadoMatch(veiculoId, compradorId, mcId, resultado) {
 const CENTRAL_MAX = 12; // máximo de compradores na fila — alterar aqui se necessário
 
 let _central = null; // estado da Central (resetado ao fechar)
+const _ofertadosNaSessao = new Set(); // chave: "veiculoId:compradorId" — memória da sessão para excluir reoferta
 
 // Abre a Central para um veículo específico.
 function abrirCentral(veiculoId) {
@@ -1082,7 +1084,7 @@ function abrirCentral(veiculoId) {
 
   // Fila: exclui compradores já ofertados, exige telefone válido, filtra score > 40
   const fila = COMPRADORES
-    .filter(c => !c.eventos.some(e => e.veiculo_id === veiculoId))
+    .filter(c => !c.eventos.some(e => e.veiculo_id === veiculoId) && !_ofertadosNaSessao.has(`${veiculoId}:${c.id}`))
     .filter(c => c.telefone && c.telefone.replace(/\D/g, '').length >= 10)
     .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor, veiculoId), razoes: calcRazoes(c, v.marca, v.valor) }))
     .filter(c => c.score > 40)
