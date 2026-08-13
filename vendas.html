@@ -266,6 +266,7 @@
         <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" /></div>
       </div>
       <input type="hidden" id="m-comprador_id">
+      <input type="hidden" id="m-veiculo_id">
     </div>
 
     <div class="form-sec">
@@ -567,6 +568,8 @@ document.addEventListener('click', e => {
     // Campos extras vindos de negociações
     if (p.has('comprador_nome'))    veiculo.comprador_nome      = p.get('comprador_nome');
     if (p.has('comprador_telefone')) veiculo.comprador_telefone = p.get('comprador_telefone');
+    if (p.has('veiculo_id'))        veiculo.veiculo_id          = p.get('veiculo_id');
+    if (p.has('comprador_id'))      veiculo.comprador_id        = p.get('comprador_id');
     veiculo._fromCatalogo = true;
     abrirModal(veiculo);
     // Preenche CRM após abrir o modal
@@ -775,7 +778,7 @@ const CAMPOS_FORM = ['marca','modelo','versao','ano','placa','cor','km','renavam
   'origem','vendedor_nome','vendedor_cpf','vendedor_telefone',
   'destino','comprador_nome','comprador_cpf','comprador_telefone',
   'valor_venda','valor_fipe','valor_compra','taxa_intermediacao','forma_pagamento','canal_origem',
-  'comprador_id',
+  'comprador_id','veiculo_id',
   'data_venda','data_retirada','status','doc_status','observacoes'];
 
 function abrirModal(v) {
@@ -994,7 +997,9 @@ $('m-salvar').onclick = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tipo: id ? 'venda_atualizada' : 'venda_registrada',
-        venda_id: vendaId,
+        venda_id:    vendaId,
+        comprador_id: body.comprador_id || null,
+        veiculo_id:   body.veiculo_id   || null,
         dados: { placa: body.placa, marca: body.marca, modelo: body.modelo, valor_venda: body.valor_venda },
       }),
     }).catch(() => {});

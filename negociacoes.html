@@ -774,10 +774,12 @@ function irParaVenda(id) {
   const n = dados.find(x => x.id === id);
   if (!n) return;
   const p = new URLSearchParams();
-  if (n.veiculo_nome)    p.set('modelo',        n.veiculo_nome);
-  if (n.comprador_nome)  p.set('comprador_nome', n.comprador_nome);
+  if (n.veiculo_nome)    p.set('modelo',             n.veiculo_nome);
+  if (n.comprador_nome)  p.set('comprador_nome',      n.comprador_nome);
   if (n.contato_telefone) p.set('comprador_telefone', n.contato_telefone);
-  if (n.valor_proposto)  p.set('valor_venda',   n.valor_proposto);
+  if (n.valor_proposto)  p.set('valor_venda',         n.valor_proposto);
+  if (n.veiculo_id)      p.set('veiculo_id',          n.veiculo_id);
+  if (n.comprador_id)    p.set('comprador_id',         n.comprador_id);
   window.location.href = '/vendas.html?' + p.toString();
 }
 
