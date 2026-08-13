@@ -848,17 +848,35 @@ function renderMatch(v) {
     const waHtml = wa
       ? `<a class="match-wa" href="https://wa.me/55${wa}?text=${encodeURIComponent(msgTexto)}" target="_blank" onclick="ofertarMatch('${v.id}','${c.id}','${mcId}')">💬 Ofertar</a>`
       : '';
-    return `<div class="match-comprador" id="${mcId}" data-score="${c.score}" data-razoes="${c.razoes.join('|')}" data-msg="${msgTexto.replace(/"/g,'&quot;')}" data-veiculo-nome="${veiculoNomeEsc}" data-comprador-nome="${compradorNomeEsc}" data-tel="${wa}">
+    const pendente = _isPendente(v.id, c.id);
+    const ofertadoLbl = pendente ? '<span class="match-ofertado-lbl">✓ Ofertado</span>' : '';
+    const btnsHtml = pendente
+      ? `<div class="match-chips-area">
+          <div class="match-chips-titulo">⏳ Aguardando resultado:</div>
+          <div class="match-chips">
+            <button class="match-chip" onclick="registrarResultadoMatch('${v.id}','${c.id}','${mcId}','respondeu_interessado')">👍 Interessado</button>
+            <button class="match-chip match-chip-recusa-toggle" onclick="toggleRecusaChips(this)">👎 Recusou ▾</button>
+            <button class="match-chip" onclick="registrarResultadoMatch('${v.id}','${c.id}','${mcId}','nao_respondeu')">🔇 Não respondeu</button>
+          </div>
+          <div class="match-sub-recusa">
+            <button class="match-chip match-chip-sub" onclick="registrarResultadoMatch('${v.id}','${c.id}','${mcId}','recusou_preco_alto')">Preço alto</button>
+            <button class="match-chip match-chip-sub" onclick="registrarResultadoMatch('${v.id}','${c.id}','${mcId}','recusou_nao_perfil')">Não é o perfil</button>
+            <button class="match-chip match-chip-sub" onclick="registrarResultadoMatch('${v.id}','${c.id}','${mcId}','recusou_sem_mercado')">Sem mercado</button>
+          </div>
+        </div>`
+      : `<button class="match-btn-copy" onclick="copiarMsgMatch('${msgId}',this)">📋 Copiar</button>
+         ${waHtml}
+         <button class="match-btn-na" onclick="naoAdequado('${v.id}','${c.id}','${mcId}')">🚫 Não adequado</button>`;
+    return `<div class="match-comprador" id="${mcId}" data-score="${c.score}" data-razoes="${c.razoes.join('|')}" data-msg="${msgTexto.replace(/"/g,'&quot;')}" data-veiculo-nome="${veiculoNomeEsc}" data-comprador-nome="${compradorNomeEsc}" data-tel="${wa}"${pendente ? ' data-ofertado="1"' : ''}>
       <div class="match-row">
         <span class="match-nome">${esc(c.nome)}</span>
         <div class="match-bar-wrap"><div class="match-bar${cls}" style="width:${c.score}%"></div></div>
         <span class="match-score">${c.score}%</span>
+        ${ofertadoLbl}
       </div>
       ${razaoHtml ? `<div class="match-razoes">${razaoHtml}</div>` : ''}
       <div class="match-btns">
-        <button class="match-btn-copy" onclick="copiarMsgMatch('${msgId}',this)">📋 Copiar</button>
-        ${waHtml}
-        <button class="match-btn-na" onclick="naoAdequado('${v.id}','${c.id}','${mcId}')">🚫 Não adequado</button>
+        ${btnsHtml}
       </div>
       <textarea class="match-msg-hidden" id="${msgId}">${msgTexto}</textarea>
     </div>`;
@@ -913,6 +931,7 @@ const MOTOR_VERSAO = '2.0'; // incrementar ao mudar pesos ou lógica do calcScor
 // Usado por ofertarMatch (card do catálogo) e pela Central de Distribuição.
 function _registrarOferta(veiculoId, compradorId, score, motivos, mensagem, veiculoNome, compradorNome, compradorTel) {
   _ofertadosNaSessao.add(`${veiculoId}:${compradorId}`); // memória de sessão — impede reoferta sem reload
+  _addPendente(veiculoId, compradorId); // persiste como pendente até o resultado ser registrado
   const agora = new Date().toISOString();
   Promise.all([
     fetch('/api/compradores?evento=1', {
@@ -1045,6 +1064,7 @@ const RESULTADO_LABEL_MA = {
 
 // Registra o resultado final da oferta como evento e exibe badge.
 function registrarResultadoMatch(veiculoId, compradorId, mcId, resultado) {
+  _removePendente(veiculoId, compradorId); // oferta resolvida — sai do estado pendente
   const container = document.getElementById(mcId);
   if (!container) return;
   const score   = parseInt(container.dataset.score  || '0');
@@ -1071,6 +1091,19 @@ const CENTRAL_MAX = 12; // máximo de compradores na fila — alterar aqui se ne
 
 let _central = null; // estado da Central (resetado ao fechar)
 const _ofertadosNaSessao = new Set(); // chave: "veiculoId:compradorId" — memória da sessão para excluir reoferta
+
+// Persistência de ofertas pendentes — sobrevive a reloads e fechamentos de aba.
+// Removido quando o operador registra o resultado (registrarResultadoMatch).
+const PENDENTES_KEY = 'cnr_ofertas_pendentes';
+function _addPendente(vid, cid) {
+  try { const s = new Set(JSON.parse(localStorage.getItem(PENDENTES_KEY)||'[]')); s.add(`${vid}:${cid}`); localStorage.setItem(PENDENTES_KEY, JSON.stringify([...s])); } catch(e) {}
+}
+function _removePendente(vid, cid) {
+  try { const s = new Set(JSON.parse(localStorage.getItem(PENDENTES_KEY)||'[]')); s.delete(`${vid}:${cid}`); localStorage.setItem(PENDENTES_KEY, JSON.stringify([...s])); } catch(e) {}
+}
+function _isPendente(vid, cid) {
+  try { return new Set(JSON.parse(localStorage.getItem(PENDENTES_KEY)||'[]')).has(`${vid}:${cid}`); } catch(e) { return false; }
+}
 
 // Abre a Central para um veículo específico.
 function abrirCentral(veiculoId) {
