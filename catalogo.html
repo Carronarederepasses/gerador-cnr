@@ -165,6 +165,10 @@
   .match-sub-recusa.show{display:flex}
   .match-final{font-size:.70rem;margin-top:.3rem;font-weight:600;color:var(--severity-ok)}
   .match-final.na{color:var(--text-faint);font-style:italic;font-weight:400;opacity:.7}
+  .match-na-form{margin-top:.35rem;display:flex;flex-direction:column;gap:.3rem}
+  .match-na-label{font-size:.68rem;color:var(--text-mid)}
+  .match-na-select{font-family:'DM Sans',sans-serif;font-size:.75rem;padding:.25rem .4rem;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text);width:100%}
+  .match-na-actions{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
 
   /* Card info — Avaliação da Captação e Gastos */
   .card-info{border-top:1px dashed var(--line);padding-top:.5rem}
@@ -875,6 +879,8 @@ async function copiarMsgMatch(msgId, btn) {
 
 // ── Match Ativo 2.0 ───────────────────────────────────────────────────────────
 
+const MOTOR_VERSAO = '2.0'; // incrementar ao mudar pesos ou lógica do calcScore
+
 // Chamada pelo onclick do link WA — o próprio <a> abre o WhatsApp.
 // Esta função registra o evento + negociação em background e atualiza a UI.
 function ofertarMatch(veiculoId, compradorId, mcId) {
@@ -910,9 +916,9 @@ function ofertarMatch(veiculoId, compradorId, mcId) {
         <button class="match-chip" onclick="registrarResultadoMatch('${veiculoId}','${compradorId}','${mcId}','nao_respondeu')">🔇 Não respondeu</button>
       </div>
       <div class="match-sub-recusa">
-        <button class="match-chip match-chip-sub" onclick="registrarResultadoMatch('${veiculoId}','${compradorId}','${mcId}','recusou_preco_alto')">Preço alto</button>
-        <button class="match-chip match-chip-sub" onclick="registrarResultadoMatch('${veiculoId}','${compradorId}','${mcId}','recusou_nao_perfil')">Não é o perfil</button>
-        <button class="match-chip match-chip-sub" onclick="registrarResultadoMatch('${veiculoId}','${compradorId}','${mcId}','recusou_sem_mercado')">Sem mercado</button>
+        <button class="match-chip match-chip-sub" onclick="recusarMatch('${veiculoId}','${compradorId}','${mcId}','recusou_preco_alto')">Preço alto</button>
+        <button class="match-chip match-chip-sub" onclick="recusarMatch('${veiculoId}','${compradorId}','${mcId}','recusou_nao_perfil')">Não é o perfil</button>
+        <button class="match-chip match-chip-sub" onclick="recusarMatch('${veiculoId}','${compradorId}','${mcId}','recusou_sem_mercado')">Sem mercado</button>
       </div>
     </div>`;
   }
@@ -932,6 +938,7 @@ function ofertarMatch(veiculoId, compradorId, mcId) {
           motivos_match:   motivos,
           mensagem_gerada: mensagem,
           ofertado_em:     agora,
+          versao_motor:    MOTOR_VERSAO,
         },
         origem: 'catalogo',
       }),
@@ -959,13 +966,41 @@ function ofertarMatch(veiculoId, compradorId, mcId) {
   ]).catch(err => console.error('ofertarMatch bg:', err));
 }
 
-// Marca como não adequado para este veículo — evento apenas, sem negociação.
+// Marca como não adequado — mostra select de motivo antes de disparar o evento.
 function naoAdequado(veiculoId, compradorId, mcId) {
   const container = document.getElementById(mcId);
-  if (!container || container.dataset.ofertado === '1') return;
+  if (!container || container.dataset.ofertado === '1' || container.dataset.naAberto === '1') return;
+  container.dataset.naAberto = '1';
+  const btns = container.querySelector('.match-btns');
+  if (!btns) return;
+  btns.innerHTML = `
+    <div class="match-na-form">
+      <label class="match-na-label">Por que não é adequado?</label>
+      <select class="match-na-select" id="na-select-${mcId}">
+        <option value="">— selecione —</option>
+        <option value="NAO_E_O_PERFIL">Não é o perfil</option>
+        <option value="PRECO_ALTO">Preço alto</option>
+        <option value="SEM_MERCADO">Sem mercado</option>
+        <option value="OUTRO">Outro</option>
+      </select>
+      <div class="match-na-actions">
+        <button class="match-chip" onclick="confirmarNaoAdequado('${veiculoId}','${compradorId}','${mcId}')">Confirmar</button>
+        <button class="match-btn-na" style="background:none;border:none;color:var(--light);cursor:pointer;font-size:.8rem" onclick="cancelarNaoAdequado('${mcId}')">cancelar</button>
+      </div>
+    </div>`;
+}
+
+function confirmarNaoAdequado(veiculoId, compradorId, mcId) {
+  const container = document.getElementById(mcId);
+  if (!container) return;
+  const sel = document.getElementById('na-select-' + mcId);
+  const motivo = sel ? sel.value : '';
+  if (!motivo) { if (sel) sel.style.outline = '2px solid #e55'; return; }
+  const score   = parseInt(container.dataset.score  || '0');
+  const motivos = (container.dataset.razoes || '').split('|').filter(Boolean);
   container.classList.add('match-notificado');
   const btns = container.querySelector('.match-btns');
-  if (btns) btns.innerHTML = '<div class="match-final na">🚫 Não adequado para este veículo</div>';
+  if (btns) btns.innerHTML = '<div class="match-final na">🚫 Não adequado — ' + ({ NAO_E_O_PERFIL:'Não é o perfil', PRECO_ALTO:'Preço alto', SEM_MERCADO:'Sem mercado', OUTRO:'Outro' }[motivo] || motivo) + '</div>';
   fetch('/api/compradores?evento=1', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -973,10 +1008,27 @@ function naoAdequado(veiculoId, compradorId, mcId) {
       tipo:         'match_nao_adequado',
       veiculo_id:   veiculoId,
       comprador_id: compradorId,
-      dados:        { registrado_em: new Date().toISOString() },
+      dados:        { motivo_codigo: motivo, score_match: score, motivos_match: motivos, versao_motor: MOTOR_VERSAO, registrado_em: new Date().toISOString() },
       origem:       'catalogo',
     }),
   }).catch(err => console.error('naoAdequado:', err));
+}
+
+function cancelarNaoAdequado(mcId) {
+  const container = document.getElementById(mcId);
+  if (!container) return;
+  delete container.dataset.naAberto;
+  const btns = container.querySelector('.match-btns');
+  const veiculoId = mcId.replace(/^mc-/, '').split('-')[0]; // best-effort — não usado aqui
+  // Restaura os botões originais lendo os data-* do container
+  const wa  = container.dataset.tel;
+  const msg = container.dataset.msg || '';
+  const cId = mcId.replace(/^mc-[^-]+-/, '');  // extrai compradorId do mcId
+  const vId = mcId.slice(3, mcId.length - cId.length - 1); // extrai veiculoId
+  if (btns) btns.innerHTML = `
+    <button class="match-btn-copy" onclick="copiarMsgMatch('cmsg-${vId}-${cId}',this)">📋 Copiar</button>
+    ${wa ? `<a class="match-wa" href="https://wa.me/55${wa}?text=${encodeURIComponent(msg)}" target="_blank" onclick="ofertarMatch('${vId}','${cId}','${mcId}')">💬 Ofertar</a>` : ''}
+    <button class="match-btn-na" onclick="naoAdequado('${vId}','${cId}','${mcId}')">🚫 Não adequado</button>`;
 }
 
 // Expande/recolhe sub-chips de recusa.
@@ -999,12 +1051,17 @@ const RESULTADO_LABEL_MA = {
 };
 
 // Registra o resultado final da oferta como evento e exibe badge.
-function registrarResultadoMatch(veiculoId, compradorId, mcId, resultado) {
+// preco_fecharia é opcional — só preenchido via recusarMatch().
+function registrarResultadoMatch(veiculoId, compradorId, mcId, resultado, preco_fecharia = null) {
   const container = document.getElementById(mcId);
   if (!container) return;
+  const score   = parseInt(container.dataset.score  || '0');
+  const motivos = (container.dataset.razoes || '').split('|').filter(Boolean);
   const btns = container.querySelector('.match-btns');
   if (btns) btns.innerHTML = `<div class="match-final">${RESULTADO_LABEL_MA[resultado] || resultado}</div>`;
   container.classList.add('match-notificado');
+  const dados = { resultado, score_match: score, motivos_match: motivos, versao_motor: MOTOR_VERSAO, registrado_em: new Date().toISOString() };
+  if (preco_fecharia !== null) dados.preco_fecharia = preco_fecharia;
   fetch('/api/compradores?evento=1', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1012,10 +1069,34 @@ function registrarResultadoMatch(veiculoId, compradorId, mcId, resultado) {
       tipo:         'match_resultado',
       veiculo_id:   veiculoId,
       comprador_id: compradorId,
-      dados:        { resultado, registrado_em: new Date().toISOString() },
+      dados,
       origem:       'catalogo',
     }),
   }).catch(err => console.error('registrarResultadoMatch:', err));
+}
+
+// Wrapper para chips de recusa — captura preco_fecharia opcional antes de registrar.
+function recusarMatch(veiculoId, compradorId, mcId, resultado) {
+  const container = document.getElementById(mcId);
+  if (!container) return;
+  const btns = container.querySelector('.match-btns');
+  if (!btns) return;
+  btns.innerHTML = `
+    <div class="match-na-form">
+      <label class="match-na-label">A que valor fecharia? <span style="color:var(--light);font-weight:400">(opcional)</span></label>
+      <input type="text" class="match-na-select" id="preco-input-${mcId}" placeholder="ex: 85.000" style="font-size:.85rem">
+      <div class="match-na-actions">
+        <button class="match-chip" onclick="confirmarRecusa('${veiculoId}','${compradorId}','${mcId}','${resultado}')">Registrar</button>
+        <button class="match-btn-na" style="background:none;border:none;color:var(--light);cursor:pointer;font-size:.8rem" onclick="confirmarRecusa('${veiculoId}','${compradorId}','${mcId}','${resultado}',true)">Pular</button>
+      </div>
+    </div>`;
+}
+
+function confirmarRecusa(veiculoId, compradorId, mcId, resultado, pular = false) {
+  const inp = document.getElementById('preco-input-' + mcId);
+  const raw = inp && !pular ? inp.value.trim() : '';
+  const num = raw ? parseFloat(raw.replace(/\./g, '').replace(',', '.')) : null;
+  registrarResultadoMatch(veiculoId, compradorId, mcId, resultado, isNaN(num) ? null : num);
 }
 
 function renderVendido(v) {
