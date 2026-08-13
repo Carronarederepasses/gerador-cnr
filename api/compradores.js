@@ -51,6 +51,17 @@ function limpar(body, campos) {
   return out;
 }
 
+// Aliases FIPE → forma canônica lowercase (para comparação de marca no Match)
+const MARCA_ALIAS = {
+  'vw - volkswagen': 'volkswagen',
+  'gm - chevrolet':  'chevrolet',
+};
+function normMarca(m) {
+  if (!m) return '';
+  const lower = m.toLowerCase().trim();
+  return MARCA_ALIAS[lower] || lower;
+}
+
 // Score de match (0–100)
 // Camada 1 — estática (perfil):
 //   40 pts — valor dentro da faixa de preço
@@ -79,7 +90,7 @@ function calcScore(comprador, { marca, valor, veiculo_id = null }) {
   // — Camada 1: perfil estático —
   if (v > 0 && v >= min && v <= max) score += 40;
   else if (v > 0 && max < Infinity && v <= max) score += 20;
-  if (marca && marcas.includes(marca.toLowerCase())) score += 30;
+  if (marca && marcas.includes(normMarca(marca))) score += 30;
 
   // — Camada 2: histórico de compras —
   const qtd = compras.length;
@@ -87,7 +98,7 @@ function calcScore(comprador, { marca, valor, veiculo_id = null }) {
   else if (qtd >= 3) score += 10;
   else if (qtd >= 1) score += 5;
 
-  if (marca && compras.some(p => p.marca && p.marca.toLowerCase() === marca.toLowerCase())) score += 15;
+  if (marca && compras.some(p => p.marca && normMarca(p.marca) === normMarca(marca))) score += 15;
 
   if (qtd > 0 && v > 0) {
     const ticket = compras.reduce((s, p) => s + (parseFloat(p.valor_venda) || 0), 0) / qtd;
