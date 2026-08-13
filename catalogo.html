@@ -296,6 +296,24 @@
   .placa-loading{color:var(--text-mid);font-size:.86rem;padding:.5rem 0}
   .placa-busca-btn{font-size:.7rem;background:color-mix(in srgb, var(--accent) 12%, var(--surface-raise));border:1px solid color-mix(in srgb, var(--accent) 40%, transparent);border-radius:7px;color:var(--accent);padding:.2rem .45rem;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:.3rem}
   .placa-busca-btn:hover{border-color:var(--accent)}
+  /* ── Reforma Visual Etapa 1 — Cards e Match ── */
+  .card h3{font-size:1.25rem}
+  .card .precos .v{font-size:1.35rem}
+  .fotos img{height:90px;width:115px}
+  .fotos .add{height:90px}
+  .placa-linha{font-size:.74rem;opacity:.78}
+  .renavam-linha{font-size:.63rem;opacity:.6}
+  .sr-chip{font-size:.7rem;padding:.18rem .45rem}
+  .match-nome{font-size:.92rem;font-weight:700}
+  .match-bar-wrap{width:90px;height:7px}
+  .match-score{font-size:.8rem;width:34px;color:var(--text)}
+  .match-razao{font-size:.68rem;padding:.15rem .4rem}
+  .match-wa{font-size:.8rem;font-weight:600;background:color-mix(in srgb,var(--severity-ok) 12%,transparent);border:1.5px solid var(--severity-ok);padding:.28rem .7rem}
+  .match-wa:hover{background:color-mix(in srgb,var(--severity-ok) 22%,transparent)}
+  .match-comprador.top-1{border-left:3px solid var(--severity-ok);padding-left:.5rem}
+  .match-top1-badge{font-size:.6rem;color:var(--severity-ok);font-weight:700;background:color-mix(in srgb,var(--severity-ok) 12%,transparent);border-radius:4px;padding:.08rem .3rem;flex-shrink:0;margin-right:.15rem}
+  .match-coll-teaser{font-size:.7rem;color:var(--severity-ok);font-weight:600;margin-left:.3rem;opacity:.9;text-transform:none;letter-spacing:normal}
+  .card .rodape button.venda{background:var(--accent);color:var(--surface);border-color:var(--accent);font-weight:600;flex-basis:100%;order:-1}
 </style>
 </head>
 <body>
@@ -577,6 +595,11 @@ function card(v) {
      </div>`
   ).join('');
 
+  const _match = renderMatch(v);
+  const _teaserHtml = _match.top
+    ? ' <span class="match-coll-teaser">· ' + esc(_match.top.nome.split(' ')[0]) + ' ' + _match.top.score + '%</span>'
+    : '';
+
   return `
   <div class="card" id="vcard-${v.id}">
     <div class="topo">
@@ -617,14 +640,14 @@ function card(v) {
     ${infoSection('🔧','Gastos', v.gastos||null)}
     ${v.status === 'vendido'
       ? `<div class="match-box">${renderVendido(v)}</div>`
-      : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)">👥 Possíveis compradores <span class="marrow">▾</span></button><div id="matchbody-${v.id}" style="display:none">${renderMatch(v)}</div></div>`}
+      : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)"><span>👥 Compradores${_teaserHtml}</span><span class="marrow"> ▾</span></button><div id="matchbody-${v.id}" style="display:none">${_match.html}</div></div>`}
     <div class="timeline" id="hist-${v.id}"></div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
-      <button onclick="registrarVenda('${v.id}')" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">💰 Registrar Venda</button>
+      <button class="venda" onclick="registrarVenda('${v.id}')">💰 Registrar Venda</button>
       <button onclick="abrirStatusMenu(event,'${v.id}')">Status ▾</button>
       <button onclick="toggleHistorico('${v.id}',this)">📜 Histórico</button>
       <button onclick="remover('${v.id}')">Excluir</button>
@@ -822,21 +845,22 @@ function gerarMensagemMatch(c, nomeCarro, detalhes, razoes) {
 }
 
 function renderMatch(v) {
-  if (!COMPRADORES.length) return '<div class="match-vazio">Cadastre compradores para ver sugestões</div>';
+  if (!COMPRADORES.length) return { html: '<div class="match-vazio">Cadastre compradores para ver sugestões</div>', top: null };
   const scored = COMPRADORES
     .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor, v.id), razoes: calcRazoes(c, v.marca, v.valor) }))
     .filter(c => c.score > 40)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
-  if (!scored.length) return '<div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>' +
-    `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`;
+  if (!scored.length) return { html: '<div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>' +
+    `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`, top: null };
 
   const nomeCarro = [v.marca, v.versao || v.modelo, v.ano].filter(Boolean).join(' ');
   const kmFmt    = v.km    ? Number(v.km).toLocaleString('pt-BR') + ' km' : '';
   const valorFmt = v.valor ? 'R$ ' + Number(v.valor).toLocaleString('pt-BR') : '';
   const detalhes = [kmFmt, v.cor, valorFmt].filter(Boolean).join(', ');
 
-  const rows = scored.map(c => {
+  const rows = scored.map((c, idx) => {
+    const isTop1 = idx === 0;
     const wa    = c.telefone ? c.telefone.replace(/\D/g, '') : '';
     const cls   = c.score >= 70 ? '' : c.score >= 40 ? ' med' : ' baixo';
     const msgTexto = gerarMensagemMatch(c, nomeCarro, detalhes, c.razoes);
@@ -864,11 +888,12 @@ function renderMatch(v) {
             <button class="match-chip match-chip-sub" onclick="registrarResultadoMatch('${v.id}','${c.id}','${mcId}','recusou_sem_mercado')">Sem mercado</button>
           </div>
         </div>`
-      : `<button class="match-btn-copy" onclick="copiarMsgMatch('${msgId}',this)">📋 Copiar</button>
-         ${waHtml}
+      : `${waHtml}
+         <button class="match-btn-copy" onclick="copiarMsgMatch('${msgId}',this)">📋 Copiar</button>
          <button class="match-btn-na" onclick="naoAdequado('${v.id}','${c.id}','${mcId}')">🚫 Não adequado</button>`;
-    return `<div class="match-comprador" id="${mcId}" data-score="${c.score}" data-razoes="${c.razoes.join('|')}" data-msg="${msgTexto.replace(/"/g,'&quot;')}" data-veiculo-nome="${veiculoNomeEsc}" data-comprador-nome="${compradorNomeEsc}" data-tel="${wa}"${pendente ? ' data-ofertado="1"' : ''}>
+    return `<div class="match-comprador${isTop1 ? ' top-1' : ''}" id="${mcId}" data-score="${c.score}" data-razoes="${c.razoes.join('|')}" data-msg="${msgTexto.replace(/"/g,'&quot;')}" data-veiculo-nome="${veiculoNomeEsc}" data-comprador-nome="${compradorNomeEsc}" data-tel="${wa}"${pendente ? ' data-ofertado="1"' : ''}>
       <div class="match-row">
+        ${isTop1 ? '<span class="match-top1-badge">★ #1</span>' : ''}
         <span class="match-nome">${esc(c.nome)}</span>
         <div class="match-bar-wrap"><div class="match-bar${cls}" style="width:${c.score}%"></div></div>
         <span class="match-score">${c.score}%</span>
@@ -881,7 +906,7 @@ function renderMatch(v) {
       <textarea class="match-msg-hidden" id="${msgId}">${msgTexto}</textarea>
     </div>`;
   }).join('');
-  return rows + `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`;
+  return { html: rows + `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`, top: scored[0] || null };
 }
 
 function infoSection(emoji, lbl, txt) {
