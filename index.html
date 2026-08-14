@@ -2478,7 +2478,7 @@ function gerarColetados() {
     linhas.push('');
     linhas.push(obsCustom);
   }
-  if (gastos) { linhas.push(''); linhas.push(gastos); }
+  if (gastos) { linhas.push(''); linhas.push('GASTOS: ' + gastos); }
 
   linhas.push('');
   if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
