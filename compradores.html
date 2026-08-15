@@ -159,7 +159,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div class="g2">
       <div class="field">
         <label>Telefone / WhatsApp</label>
-        <input id="m-tel" type="tel" placeholder="(48) 99999-9999">
+        <div style="display:flex;gap:.4rem;align-items:center">
+          <input id="m-tel" type="tel" placeholder="(48) 99999-9999" style="flex:1;min-width:0">
+          <button id="btn-agenda" type="button" onclick="escolherContato()" title="Escolher da agenda" style="font-size:1.2rem;line-height:1;padding:.5rem .55rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-raise);cursor:pointer;flex-shrink:0">📇</button>
+        </div>
       </div>
       <div class="field">
         <label>Tipo</label>
@@ -329,6 +332,28 @@ let HIST_COMP = {}; // id ou nome → { count, taxa, total }
 async function init() {
   await carregar();
   renderMarcasTags();
+  // Oculta o botão 📇 em ambientes sem suporte (desktop, Firefox, Safari iOS)
+  if (!('contacts' in navigator && 'ContactsManager' in window)) {
+    const b = document.getElementById('btn-agenda');
+    if (b) b.style.display = 'none';
+  }
+}
+
+// ── Escolher contato da agenda para preencher o modal ─────────────────
+async function escolherContato() {
+  try {
+    const lista = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+    if (!lista.length) return;
+    const c    = lista[0];
+    const nome = (c.name?.[0] || '').trim();
+    const tel  = (c.tel?.[0]  || '').trim();
+    if (nome && !document.getElementById('m-nome').value) {
+      document.getElementById('m-nome').value = nome;
+    }
+    if (tel) document.getElementById('m-tel').value = tel;
+  } catch (e) {
+    // usuário cancelou — ignora silenciosamente
+  }
 }
 
 // ── Importar da agenda do celular (Contact Picker API — Android Chrome) ──
