@@ -256,4 +256,60 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 
 ---
 
-*Atualizado em 13/agosto/2026 — Reformas 12–16b + Reforma Visual Etapa 1 concluídas e em produção. Match Ativo 2.0 operacional; Sprint 1 aguardando validação com dados reais (≥5 veículos). Reforma Visual Etapa 2 (index.html) em aberto. Manter este arquivo atualizado conforme o projeto evolui.*
+## 9. Decisões de Produto — Fluxo Negociação → Venda → Contrato
+
+> **Status:** Visão definida em 15/ago/2026. **NÃO implementar agora.** Registrado aqui para evitar perda de contexto e impedir que futuras reformas criem um fluxo burocrático ou incompatível com a operação real.
+
+### 9.1 Negociação
+
+- A aba Negociação deve ser tratada principalmente como **resumo e rastreabilidade** — não como formulário burocrático da operação diária.
+- O fluxo ideal é: `negociando` → `reservado` (quando houver sinal ou reserva do comprador) → `comprado`.
+- Não adicionar campos, etapas ou validações que tornem o preenchimento mais lento do que o WhatsApp. A operação não pode esperar pelo sistema.
+
+### 9.2 Venda
+
+- Ao marcar uma negociação como "Comprado/Vendido", o veículo deve seguir para a etapa **Nova Venda**.
+- Nova Venda é onde ficam os dados efetivos do fechamento da operação, entre eles: comprador, vendedor/quem recebe, valor negociado, comissão CNR e demais dados necessários para formalizar a venda.
+- **Princípio anti-retrabalho:** o operador não deve precisar preencher novamente informações que o sistema já possui. Os dados da negociação devem pré-preencher a Nova Venda automaticamente.
+
+### 9.3 Contrato (requisito futuro)
+
+- Existe a visão de futuramente ter um botão **"Criar Contrato"** dentro da Nova Venda.
+- O Gerador deve montar automaticamente o contrato utilizando os dados já cadastrados na venda, sem redigitação.
+- O contrato **NÃO deve exibir o valor da comissão da CNR** — é informação interna da operação.
+- O contrato deve poder ser gerado e posteriormente anexado/associado à venda (PDF ou similar).
+- **Prioridade atual: baixa.** A operação hoje é feita como PF; o contrato formal não é bloqueador. A estrutura deve ser preservada como requisito futuro para não exigir refatoração disruptiva quando chegar a hora.
+
+### 9.4 Papéis no Contrato e na Venda (requisito futuro)
+
+> Não assumir que "comprador" é necessariamente quem paga ou quem recebe/fatura.
+
+Uma mesma operação pode envolver pessoas distintas para cada papel:
+
+| Papel | Descrição |
+|---|---|
+| **Comprador** | Quem está adquirindo o veículo (dono legal) |
+| **Pagador** | Quem efetua o pagamento (pode ser diferente do comprador) |
+| **Faturado para** | Nome/CPF/CNPJ para fins de nota ou recibo |
+| **Proprietário/vendedor** | Quem vende e recebe o valor do veículo |
+
+Essa flexibilidade será necessária futuramente no contrato e na Nova Venda. Não criar estruturas rígidas que assumam 1 pessoa = 1 papel.
+
+### 9.5 Princípio de implementação
+
+Nenhum dos itens acima (9.1 a 9.4) deve ser implementado antes de:
+1. Encerrar a validação da Sprint 1 (Match Ativo).
+2. O fluxo de Negociação → Venda estar operacionalmente estável com dados reais.
+3. A necessidade ser confirmada pela operação, não por antecipação.
+
+---
+
+## 10. URLs
+
+- **App publicado:** https://gerador-cnr.vercel.app
+- **GitHub:** https://github.com/Carronarederepasses/gerador-cnr
+- **GitHub Pages (NÃO usar — FIPE quebrada sem serverless):** https://carronarederepasses.github.io/gerador-cnr/
+
+---
+
+*Atualizado em 15/agosto/2026 — Reformas 17–20c concluídas e em produção. Decisões de produto sobre fluxo Negociação → Venda → Contrato documentadas na seção 9. Match Ativo 2.0 operacional; Sprint 1 aguardando validação com dados reais (≥5 veículos). Reforma Visual Etapa 2 (index.html) em aberto. Manter este arquivo atualizado conforme o projeto evolui.*
