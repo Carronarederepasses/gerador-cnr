@@ -639,7 +639,9 @@ function abrirEditar(id) {
   document.getElementById('m-contato').value = n.comprador_nome || '';
   document.getElementById('m-telefone').value = n.contato_telefone || '';
   document.getElementById('m-comprador-id').value = n.comprador_id || '';
-  document.getElementById('m-valor').value = n.valor_proposto || '';
+  document.getElementById('m-valor').value = n.valor_proposto != null
+    ? Number(n.valor_proposto).toLocaleString('pt-BR')
+    : '';
   document.getElementById('m-status').value = n.status || 'aguardando';
   document.getElementById('m-data').value = n.ultimo_contato || hoje();
   document.getElementById('m-obs').value = n.observacoes || '';
