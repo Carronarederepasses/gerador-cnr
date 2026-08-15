@@ -203,7 +203,7 @@
     <div class="g2">
       <div class="field">
         <label>Valor proposto (R$)</label>
-        <input type="number" id="m-valor" inputmode="numeric" placeholder="ex: 85000">
+        <input type="text" inputmode="decimal" id="m-valor" placeholder="ex: 26.500">
       </div>
       <div class="field" style="align-self:end"><!-- espaçador --></div>
     </div>
@@ -667,6 +667,9 @@ function fecharSeClicarFora(e) {
   if (e.target === document.getElementById('overlay')) fecharModal();
 }
 
+// Parse monetário BR: "26.500,00" → 26500 | "26.500" → 26500 | "26500" → 26500
+const parseBRv = s => { const l = (s||'').trim().replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'); return l ? (parseFloat(l) || null) : null; };
+
 async function salvar() {
   const veiculo_nome = document.getElementById('m-veiculo').value.trim();
   if (!veiculo_nome) { document.getElementById('m-veiculo').focus(); return; }
@@ -679,7 +682,7 @@ async function salvar() {
   const comprador_id     = document.getElementById('m-comprador-id').value || null;
   const veiculo_id       = document.getElementById('m-veiculo-id').value || null;
   const valor_raw        = document.getElementById('m-valor').value;
-  const valor_proposto   = valor_raw !== '' ? Number(valor_raw) : null;
+  const valor_proposto   = parseBRv(valor_raw);
 
   const btn = document.querySelector('#modal .btn-primary');
   const orig = btn.textContent; btn.textContent = 'Salvando…'; btn.disabled = true;
