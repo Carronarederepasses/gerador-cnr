@@ -162,6 +162,7 @@
     <button class="filter-btn" onclick="setFiltro('respondeu')" data-f="respondeu">Respondeu</button>
     <button class="filter-btn" onclick="setFiltro('negociando')" data-f="negociando">Negociando</button>
     <button class="filter-btn" onclick="setFiltro('aguardando')" data-f="aguardando">Aguardando</button>
+    <button class="filter-btn" onclick="setFiltro('reservado')" data-f="reservado">Reservado</button>
     <button class="filter-btn" onclick="setFiltro('comprado')" data-f="comprado">Comprado</button>
     <button class="filter-btn" onclick="setFiltro('descartado')" data-f="descartado">Descartado</button>
   </div>
@@ -214,6 +215,7 @@
           <option value="respondeu">Respondeu</option>
           <option value="negociando">Negociando</option>
           <option value="aguardando">Aguardando retorno</option>
+          <option value="reservado">Reservado</option>
           <option value="comprado">Comprado ✓</option>
           <option value="descartado">Descartado</option>
         </select>
@@ -410,10 +412,12 @@ const MOTIVOS_MATCH = [
   { code: 'INTUICAO',          label: 'Intuição' },
 ];
 
-let _motivoSelecionado = null;
+let _motivoSelecionado = null;       // descarte — seleção única
+let _motivosMatchSelecionados = new Set(); // match — seleção múltipla
 let _descarteId = null;
 let _descarteStatus = null;
 
+// Descarte: seleção única (inalterado)
 function renderPills(containerId, lista, selected) {
   _motivoSelecionado = selected || null;
   const el = document.getElementById(containerId);
@@ -426,10 +430,30 @@ function renderPills(containerId, lista, selected) {
 function selecionarMotivo(btn, code, containerId) {
   document.getElementById(containerId).querySelectorAll('.motivo-pill').forEach(b => b.classList.remove('on'));
   if (_motivoSelecionado === code) {
-    _motivoSelecionado = null; // toggle off
+    _motivoSelecionado = null;
   } else {
     btn.classList.add('on');
     _motivoSelecionado = code;
+  }
+}
+
+// Match: seleção múltipla
+function renderMatchPills(containerId, lista, selectedCodes) {
+  _motivosMatchSelecionados = new Set(selectedCodes || []);
+  const el = document.getElementById(containerId);
+  el.innerHTML = lista.map(m =>
+    `<button class="motivo-pill${_motivosMatchSelecionados.has(m.code) ? ' on' : ''}"
+      onclick="selecionarMotivoMatch(this,'${m.code}','${containerId}')">${m.label}</button>`
+  ).join('');
+}
+
+function selecionarMotivoMatch(btn, code, containerId) {
+  if (_motivosMatchSelecionados.has(code)) {
+    _motivosMatchSelecionados.delete(code);
+    btn.classList.remove('on');
+  } else {
+    _motivosMatchSelecionados.add(code);
+    btn.classList.add('on');
   }
 }
 
@@ -475,11 +499,12 @@ const STATUS_CFG = {
   'respondeu':        { label: 'Respondeu',         cor: '#25D366', bg: 'rgba(37,211,102,.12)' },
   'negociando':       { label: 'Negociando',        cor: '#f59e0b', bg: 'rgba(245,158,11,.12)' },
   'aguardando':       { label: 'Aguardando',        cor: '#f59e0b', bg: 'rgba(245,158,11,.12)' },
+  'reservado':        { label: 'Reservado',         cor: '#8b5cf6', bg: 'rgba(139,92,246,.12)' },
   'comprado':         { label: 'Comprado ✓',        cor: '#25D366', bg: 'rgba(37,211,102,.12)' },
   'descartado':       { label: 'Descartado',        cor: '#ef4444', bg: 'rgba(239,68,68,.12)' },
 };
 
-const STATUS_ATIVOS = ['primeiro-contato','respondeu','negociando','aguardando'];
+const STATUS_ATIVOS = ['primeiro-contato','respondeu','negociando','aguardando','reservado'];
 
 async function load() {
   try {
@@ -575,7 +600,7 @@ function renderLista() {
       </div>
       ${n.observacoes ? `<div class="neg-obs">${n.observacoes}</div>` : ''}
       ${n.status === 'descartado' && n.motivo_descarte ? `<div class="neg-motivo">✗ ${MOTIVOS_DESCARTE.find(m=>m.code===n.motivo_descarte)?.label || n.motivo_descarte}</div>` : ''}
-      ${n.motivo_match ? `<div class="neg-match-motivo">✓ ${MOTIVOS_MATCH.find(m=>m.code===n.motivo_match)?.label || n.motivo_match}</div>` : ''}
+      ${n.motivo_match ? `<div class="neg-match-motivo">✓ ${n.motivo_match.split(',').map(c => MOTIVOS_MATCH.find(m=>m.code===c.trim())?.label || c.trim()).join(' · ')}</div>` : ''}
       ${n.status === 'comprado' ? `<div style="margin-top:.55rem;padding-top:.5rem;border-top:1px solid rgba(245,243,238,.07);display:flex;gap:.5rem;flex-wrap:wrap">
         <button onclick="event.stopPropagation();abrirContrato('${n.id}')" style="background:none;border:1px solid rgba(37,211,102,.35);color:#25D366;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:400;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">📄 Gerar Contrato</button>
         <button onclick="event.stopPropagation();irParaVenda('${n.id}')" style="background:#25D366;border:1px solid #25D366;color:#000;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">💰 Registrar Venda</button>
@@ -599,7 +624,7 @@ function abrirNova() {
   document.getElementById('hist-wrap').style.display = 'none';
   document.getElementById('btn-excluir').style.display = 'none';
   document.getElementById('match-sec').style.display = '';
-  renderPills('match-pills', MOTIVOS_MATCH, null);
+  renderMatchPills('match-pills', MOTIVOS_MATCH, []);
   document.getElementById('overlay').classList.add('show');
   setTimeout(() => document.getElementById('m-veiculo').focus(), 100);
 }
@@ -673,13 +698,14 @@ async function salvar() {
         body: JSON.stringify(patchBody),
       });
     } else {
-      const motivo_match = _motivoSelecionado || null;
+      const motivo_match = _motivosMatchSelecionados.size ? [..._motivosMatchSelecionados].join(',') : null;
       await fetch('/api/compradores?neg=1', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ veiculo_nome, veiculo_id, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico: [], motivo_match }),
       });
     }
     _motivoSelecionado = null;
+    _motivosMatchSelecionados = new Set();
     await load();
     fecharModal();
     renderAlerta();
