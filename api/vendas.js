@@ -175,6 +175,11 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try {
+    // Portão de escrita — exige VENDAS_KEY para POST, PATCH e DELETE
+    if (VENDAS_KEY && ['POST', 'PATCH', 'DELETE'].includes(req.method) && req.headers['x-cnr-key'] !== VENDAS_KEY) {
+      return res.status(401).json({ error: 'Acesso negado.' });
+    }
+
     // Rota de anexos
     if (q.anexo !== undefined) return await anexoHandler(req, res, q);
 
@@ -214,13 +219,15 @@ module.exports = async (req, res) => {
       const data = await r.json();
       const venda = data[0] || data;
 
-      // Auto-atualiza catálogo para "vendido" quando há placa
+      // Auto-atualiza veículos para "vendido" quando há placa
       if (payload.placa) {
-        sb(`catalogo?placa=eq.${encodeURIComponent(payload.placa)}&status=neq.vendido`, {
+        sb(`veiculos?placa=eq.${encodeURIComponent(payload.placa)}&status=neq.vendido`, {
           method: 'PATCH',
           headers: { Prefer: 'return=minimal' },
           body: JSON.stringify({ status: 'vendido' }),
-        }).catch(() => {});
+        }).then(r => {
+          if (!r.ok) r.text().then(t => console.error('[vendas] auto-update veículo falhou:', r.status, t));
+        }).catch(e => console.error('[vendas] auto-update veículo erro de rede:', e.message));
       }
 
       return res.status(201).json(venda);
