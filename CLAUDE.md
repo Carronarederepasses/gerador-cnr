@@ -414,7 +414,20 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 ---
 
-## 12. Checkpoint — sessão de 16/ago/2026
+## 12. Checkpoint — caixa-preta do projeto
+
+> **Regra permanente (estabelecida em 16/ago/2026):** Esta seção é o registro contínuo do estado do projeto. Deve ser atualizada:
+> - Aproximadamente a cada **1 hora de trabalho ativo** na sessão.
+> - **Imediatamente** após mudança de arquitetura, funcionalidade, decisão, correção, descoberta relevante ou definição de próximo passo.
+>
+> Registrar apenas o que realmente aconteceu: o que foi feito, decisões e motivos, problemas e resoluções, estado atual, próximos passos, e o que outra sessão precisa saber para continuar de onde parou.
+> **Nunca registrar** senhas, tokens, chaves de API ou valores de variáveis de ambiente.
+> O Claude pode atualizar esta seção sem interromper o Yuri para pedir autorização.
+> A atualização do checkpoint **nunca altera código do produto** por conta própria.
+
+---
+
+### Checkpoint — sessão de 16/ago/2026
 
 ### O que foi feito nesta sessão
 
