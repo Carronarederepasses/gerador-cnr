@@ -125,30 +125,9 @@
   #cnr-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #cnr-toast.erro{background:var(--severity-crit)}
 
-  /* ── Portão de senha ─────────────────────────────────────────── */
-  #portao{position:fixed;inset:0;background:var(--surface);display:flex;align-items:center;justify-content:center;z-index:9000;padding:1.5rem}
-  #portao-box{max-width:340px;width:100%;text-align:center}
-  #portao h2{font-family:'Playfair Display',serif;font-size:1.75rem;font-weight:900;letter-spacing:-.01em;margin-bottom:.35rem}
-  #portao .sub{font-size:.84rem;color:var(--text-mid);margin-bottom:2rem}
-  #portao input[type=password]{text-align:center;font-size:1rem;letter-spacing:.1em;margin-bottom:.75rem}
-  #portao-erro{font-size:.8rem;color:var(--severity-crit);min-height:1.3em;margin-bottom:.6rem}
 </style>
 </head>
 <body>
-
-<!-- ── Portão de senha ─────────────────────────────────────────── -->
-<div id="portao">
-  <div id="portao-box">
-    <div style="font-size:2.2rem;margin-bottom:.7rem">🔒</div>
-    <h2>Acesso restrito</h2>
-    <p class="sub">Carro na Rede Repasses — Módulo de Vendas</p>
-    <input id="portao-senha" type="password" placeholder="Senha de acesso"
-      autocomplete="current-password" autofocus
-      onkeydown="if(event.key==='Enter')tentarEntrar()" />
-    <div id="portao-erro"></div>
-    <button class="btn" id="portao-btn" style="width:100%" onclick="tentarEntrar()">Entrar</button>
-  </div>
-</div>
 
 <div id="cnr-toast"></div>
 <div class="wrap" id="app">
@@ -374,47 +353,6 @@ function toast(msg, tipo = 'ok', duracao = 2800) {
 let KEY = sessionStorage.getItem('cnr_vendas_key') || '';
 let VENDAS = [];
 let ordemDesc = true; // true = venda mais recente primeiro
-
-// ── Portão de senha ───────────────────────────────────────────────
-// Se a chave já está na sessão, esconde o overlay imediatamente.
-// iniciarApp() será chamado ao final do script se KEY já existir.
-if (KEY) document.getElementById('portao').style.display = 'none';
-
-async function tentarEntrar() {
-  const input  = document.getElementById('portao-senha');
-  const erroEl = document.getElementById('portao-erro');
-  const btn    = document.getElementById('portao-btn');
-  const senha  = (input.value || '').trim();
-  if (!senha) { erroEl.textContent = 'Digite a senha de acesso.'; input.focus(); return; }
-
-  btn.disabled = true; btn.textContent = 'Verificando…';
-  erroEl.textContent = '';
-
-  try {
-    // Valida via POST com body vazio: a API retorna 401 se a chave for inválida,
-    // qualquer outro status (400, etc.) significa que a chave foi aceita.
-    const r = await fetch('/api/vendas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-cnr-key': senha },
-      body: JSON.stringify({}),
-    });
-    if (r.status === 401) {
-      erroEl.textContent = 'Senha incorreta. Tente novamente.';
-      input.value = '';
-      input.focus();
-      return;
-    }
-    // Chave aceita
-    sessionStorage.setItem('cnr_vendas_key', senha);
-    KEY = senha;
-    document.getElementById('portao').style.display = 'none';
-    iniciarApp();
-  } catch (_) {
-    erroEl.textContent = 'Erro de conexão. Tente novamente.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Entrar';
-  }
-}
 
 function ordenar(arr){
   return [...arr].sort((a,b)=>{
@@ -663,8 +601,7 @@ async function iniciarApp(){
   }
 }
 
-// Se a sessão já tem a chave (recarregamento de página), inicia direto.
-if (KEY) iniciarApp();
+iniciarApp();
 
 // ── Carregar / filtrar ─────────────────────────────────────────
 async function carregar() {
