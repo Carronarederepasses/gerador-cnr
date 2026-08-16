@@ -314,6 +314,37 @@
   .match-top1-badge{font-size:.6rem;color:var(--severity-ok);font-weight:700;background:color-mix(in srgb,var(--severity-ok) 12%,transparent);border-radius:4px;padding:.08rem .3rem;flex-shrink:0;margin-right:.15rem}
   .match-coll-teaser{font-size:.7rem;color:var(--severity-ok);font-weight:600;margin-left:.3rem;opacity:.9;text-transform:none;letter-spacing:normal}
   .card .rodape button.venda{background:var(--accent);color:var(--surface);border-color:var(--accent);font-weight:600;flex-basis:100%;order:-1}
+
+  /* ── Reforma 22 — Correção overflow de valores + refinamentos visuais ── */
+
+  /* 1. CRÍTICO: clip no card — previne vazamento além das bordas arredondadas */
+  .card{overflow:hidden}
+
+  /* 2. CRÍTICO: preços — flex-wrap quando há 4 colunas (Repasse + FIPE + Custo + Margem)
+        sem wrap, 4 colunas somam ~368px num container de 295px → overflow confirmado */
+  .card .precos{flex-wrap:wrap;gap:.55rem .9rem}
+  .card .precos>div{min-width:0}
+
+  /* 3. Dados do veículo — nowrap evita quebra estranha em "25.000 km" ou "2022" */
+  .card .dados span{white-space:nowrap}
+
+  /* 4. Match — botão colapsível com área de toque e legibilidade um pouco maiores */
+  .match-coll-btn{font-size:.68rem;padding:.62rem 0 .35rem}
+
+  /* 5. Match — nome do comprador: overflow controlado no flex row */
+  .match-nome{min-width:0}
+
+  /* 6. Rodapé — padding horizontal ligeiramente mais generoso */
+  .card .rodape button{padding:.5rem .5rem}
+
+  /* 7. Mobile — ajustes finos para telas estreitas */
+  @media(max-width:640px){
+    .card .precos{gap:.5rem .7rem}
+    .card .precos .v{font-size:1.18rem}
+    .card .rodape{gap:.3rem}
+    .card .rodape button{font-size:.75rem}
+    .match-bar-wrap{width:76px}
+  }
 </style>
 </head>
 <body>
