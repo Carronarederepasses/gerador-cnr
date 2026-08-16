@@ -178,14 +178,6 @@ module.exports = async (req, res) => {
     // Rota de anexos
     if (q.anexo !== undefined) return await anexoHandler(req, res, q);
 
-    // Limpar todas as vendas (só DELETE)
-    if (q.limpar === '1') {
-      if (req.method !== 'DELETE') return res.status(405).json({ error: 'DELETE obrigatório.' });
-      const r = await sb(`${TABLE}?created_at=gte.2000-01-01`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
-      if (!r.ok) throw new Error(await r.text());
-      return res.status(200).json({ ok: true });
-    }
-
     // Importação em lote (só POST)
     if (q.import === '1') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST obrigatório.' });

@@ -595,11 +595,6 @@ function card(v) {
      </div>`
   ).join('');
 
-  const _match = renderMatch(v);
-  const _teaserHtml = _match.top
-    ? ' <span class="match-coll-teaser">· ' + esc(_match.top.nome.split(' ')[0]) + ' ' + _match.top.score + '%</span>'
-    : '';
-
   return `
   <div class="card" id="vcard-${v.id}">
     <div class="topo">
@@ -640,7 +635,7 @@ function card(v) {
     ${infoSection('🔧','Gastos', v.gastos||null)}
     ${v.status === 'vendido'
       ? `<div class="match-box">${renderVendido(v)}</div>`
-      : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)"><span>👥 Compradores${_teaserHtml}</span><span class="marrow"> ▾</span></button><div id="matchbody-${v.id}" style="display:none">${_match.html}</div></div>`}
+      : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)"><span id="match-label-${v.id}">👥 Compradores</span><span class="marrow"> ▾</span></button><div id="matchbody-${v.id}" style="display:none"></div></div>`}
     <div class="timeline" id="hist-${v.id}"></div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
@@ -672,15 +667,7 @@ function registrarVenda(id) {
 }
 
 let CACHE = {};
-let COMPRADORES = [];
 let VENDAS_MAP = {};
-
-async function carregarCompradores() {
-  try {
-    const r = await fetch('/api/compradores?ativo=true&enriquecido=1');
-    if (r.ok) COMPRADORES = await r.json();
-  } catch(_) {}
-}
 
 async function carregarVendasMap() {
   try {
@@ -694,7 +681,7 @@ async function carregarVendasMap() {
   } catch(_) {}
 }
 
-// Aliases FIPE → forma canônica lowercase (para comparação de marca no Match)
+// Aliases FIPE → forma canônica lowercase (para calcRazoes)
 const MARCA_ALIAS = {
   'vw - volkswagen': 'volkswagen',
   'gm - chevrolet':  'chevrolet',
@@ -704,63 +691,7 @@ function normMarca(m) {
   const lower = m.toLowerCase().trim();
   return MARCA_ALIAS[lower] || lower;
 }
-
-function calcScore(c, marca, valor, veiculoId = null) {
-  let score = 10;
-  const v = parseFloat(valor) || 0;
-  const min = parseFloat(c.preco_min) || 0;
-  const max = parseFloat(c.preco_max) || Infinity;
-  const marcas  = (c.marcas  || []).map(m => m.toLowerCase());
-  const compras = c.compras  || [];
-  const eventos = c.eventos  || [];
-  const agora   = Date.now();
-
-  // Camada 1: perfil estático
-  if (v > 0 && v >= min && v <= max) score += 40;
-  else if (v > 0 && max < Infinity && v <= max) score += 20;
-  if (marca && marcas.includes(normMarca(marca))) score += 30;
-
-  // Camada 2: histórico de compras
-  const qtd = compras.length;
-  if (qtd >= 5) score += 15;
-  else if (qtd >= 3) score += 10;
-  else if (qtd >= 1) score += 5;
-
-  if (marca && compras.some(p => p.marca && normMarca(p.marca) === normMarca(marca))) score += 15;
-
-  if (qtd > 0 && v > 0) {
-    const ticket = compras.reduce((s, p) => s + (parseFloat(p.valor_venda) || 0), 0) / qtd;
-    const diff = Math.abs(ticket - v) / v;
-    if (diff <= 0.15) score += 10;
-    else if (diff <= 0.30) score += 5;
-  }
-
-  if (qtd > 0) {
-    const ultima = Math.max(...compras.map(p => new Date(p.data_venda).getTime()));
-    const dias = (agora - ultima) / 86400000;
-    if (dias <= 30) score += 10;
-    else if (dias <= 60) score += 6;
-    else if (dias <= 90) score += 3;
-  }
-
-  // Camada 3: comportamento nos eventos
-  const eventosRecentes = eventos.filter(e => (agora - new Date(e.created_at).getTime()) / 86400000 <= 21);
-  const respondeuRecente = eventosRecentes.some(e => ['respondeu_interessado', 'ligar_depois'].includes(e.resultado));
-  if (respondeuRecente) score += 20;
-  else if (eventosRecentes.length > 0) score += 5;
-
-  const recusasRecentes = eventos.filter(e => {
-    const dias = (agora - new Date(e.created_at).getTime()) / 86400000;
-    return dias <= 30 && ['nao_serve', 'nao_respondeu'].includes(e.resultado);
-  });
-  if (recusasRecentes.length >= 3) score -= 25;
-  else if (recusasRecentes.length === 2) score -= 15;
-  else if (recusasRecentes.length === 1) score -= 8;
-
-  if (veiculoId && eventos.some(e => e.veiculo_id === veiculoId)) score -= 40;
-
-  return Math.max(0, Math.min(score, 100));
-}
+// calcScore removido — fonte única de verdade em api/compradores.js (Reforma 21)
 
 function calcRazoes(c, marca, valor) {
   const razoes = [];
@@ -844,22 +775,30 @@ function gerarMensagemMatch(c, nomeCarro, detalhes, razoes) {
   return `Entrou um ${carro} que encaixa no seu perfil. Quer que eu te mande as fotos?`;
 }
 
-function renderMatch(v) {
-  if (!COMPRADORES.length) return { html: '<div class="match-vazio">Cadastre compradores para ver sugestões</div>', top: null };
-  const scored = COMPRADORES
-    .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor, v.id), razoes: calcRazoes(c, v.marca, v.valor) }))
+// renderMatch substituído por renderMatchHtml — usa scores da API (Reforma 21)
+// Cache de resultados por veiculo_id (evita re-fetch na mesma sessão)
+const _matchCache = {};
+
+// Gera o HTML do painel de match a partir dos compradores já pontuados pela API.
+// scored = resposta de /api/compradores?match=1 (ordenado, com compras e eventos)
+function renderMatchHtml(scored, v) {
+  const top3 = scored
     .filter(c => c.score > 40)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
-  if (!scored.length) return { html: '<div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>' +
-    `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`, top: null };
+    .slice(0, 3)
+    .map(c => ({ ...c, razoes: calcRazoes(c, v.marca, v.valor) }));
+
+  if (!top3.length) return {
+    html: '<div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>' +
+      `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`,
+    top: null,
+  };
 
   const nomeCarro = [v.marca, v.versao || v.modelo, v.ano].filter(Boolean).join(' ');
   const kmFmt    = v.km    ? Number(v.km).toLocaleString('pt-BR') + ' km' : '';
   const valorFmt = v.valor ? 'R$ ' + Number(v.valor).toLocaleString('pt-BR') : '';
   const detalhes = [kmFmt, v.cor, valorFmt].filter(Boolean).join(', ');
 
-  const rows = scored.map((c, idx) => {
+  const rows = top3.map((c, idx) => {
     const isTop1 = idx === 0;
     const wa    = c.telefone ? c.telefone.replace(/\D/g, '') : '';
     const cls   = c.score >= 70 ? '' : c.score >= 40 ? ' med' : ' baixo';
@@ -906,7 +845,7 @@ function renderMatch(v) {
       <textarea class="match-msg-hidden" id="${msgId}">${msgTexto}</textarea>
     </div>`;
   }).join('');
-  return { html: rows + `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`, top: scored[0] || null };
+  return { html: rows + `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`, top: top3[0] || null };
 }
 
 function infoSection(emoji, lbl, txt) {
@@ -923,13 +862,56 @@ function toggleCardInfo(btn) {
   txt.classList.toggle('expanded', !expandido);
   btn.textContent = expandido ? 'ver mais ↓' : 'ver menos ↑';
 }
-function toggleMatch(id, btn) {
+// toggleMatch — Reforma 21: scores calculados pela API (fonte única)
+async function toggleMatch(id, btn) {
   const body = document.getElementById('matchbody-' + id);
   if (!body) return;
-  const abrindo = body.style.display === 'none';
-  body.style.display = abrindo ? '' : 'none';
   const arrow = btn.querySelector('.marrow');
-  if (arrow) arrow.textContent = abrindo ? '▴' : '▾';
+
+  // Fechar
+  if (body.style.display !== 'none') {
+    body.style.display = 'none';
+    if (arrow) arrow.textContent = '▾';
+    return;
+  }
+
+  // Abrir
+  body.style.display = '';
+  if (arrow) arrow.textContent = '▴';
+
+  // Já calculado nesta sessão — usa cache
+  if (_matchCache[id]) {
+    body.innerHTML = _matchCache[id].html;
+    return;
+  }
+
+  // Primeiro acesso: busca scores na API
+  body.innerHTML = '<div class="match-vazio">Calculando...</div>';
+  const v = CACHE[id];
+  if (!v) return;
+
+  try {
+    const r = await fetch(
+      `/api/compradores?match=1` +
+      `&marca=${encodeURIComponent(v.marca || '')}` +
+      `&valor=${encodeURIComponent(v.valor || '')}` +
+      `&veiculo_id=${encodeURIComponent(id)}`
+    );
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const scored = await r.json();
+    const result = renderMatchHtml(scored, v);
+    _matchCache[id] = result;
+    body.innerHTML = result.html;
+
+    // Popula o teaser no botão após o primeiro cálculo
+    const label = document.getElementById('match-label-' + id);
+    if (label && result.top) {
+      label.innerHTML = '👥 Compradores <span class="match-coll-teaser">· ' +
+        esc(result.top.nome.split(' ')[0]) + ' ' + result.top.score + '%</span>';
+    }
+  } catch(_) {
+    body.innerHTML = '<div class="match-vazio">Erro ao carregar compradores.</div>';
+  }
 }
 function ajustarCardInfo() {
   document.querySelectorAll('.card-info-txt').forEach(el => {
@@ -1130,8 +1112,8 @@ function _isPendente(vid, cid) {
   try { return new Set(JSON.parse(localStorage.getItem(PENDENTES_KEY)||'[]')).has(`${vid}:${cid}`); } catch(e) { return false; }
 }
 
-// Abre a Central para um veículo específico.
-function abrirCentral(veiculoId) {
+// Abre a Central para um veículo específico — Reforma 21: scores da API (fonte única)
+async function abrirCentral(veiculoId) {
   const v = CACHE[veiculoId];
   if (!v) return;
 
@@ -1140,13 +1122,26 @@ function abrirCentral(veiculoId) {
   const valorFmt  = v.valor ? 'R$ ' + Number(v.valor).toLocaleString('pt-BR') : '';
   const detalhes  = [kmFmt, v.cor, valorFmt].filter(Boolean).join(', ');
 
-  // Fila: exclui compradores já ofertados, exige telefone válido, filtra score > 40
-  const fila = COMPRADORES
-    .filter(c => !c.eventos.some(e => e.veiculo_id === veiculoId) && !_ofertadosNaSessao.has(`${veiculoId}:${c.id}`))
+  // Busca compradores já pontuados pela API (fonte única do calcScore)
+  let scored = [];
+  try {
+    const r = await fetch(
+      `/api/compradores?match=1` +
+      `&marca=${encodeURIComponent(v.marca || '')}` +
+      `&valor=${encodeURIComponent(v.valor || '')}` +
+      `&veiculo_id=${encodeURIComponent(veiculoId)}`
+    );
+    if (r.ok) scored = await r.json();
+  } catch(_) {}
+
+  // Fila: exclui compradores já notificados neste veículo (hard filter) e ofertados
+  // nesta sessão (soft filter), exige telefone válido, filtra score > 40
+  const fila = scored
+    .filter(c => !c.eventos.some(e => e.veiculo_id === veiculoId))
+    .filter(c => !_ofertadosNaSessao.has(`${veiculoId}:${c.id}`))
     .filter(c => c.telefone && c.telefone.replace(/\D/g, '').length >= 10)
-    .map(c => ({ ...c, score: calcScore(c, v.marca, v.valor, veiculoId), razoes: calcRazoes(c, v.marca, v.valor) }))
+    .map(c => ({ ...c, razoes: calcRazoes(c, v.marca, v.valor) }))
     .filter(c => c.score > 40)
-    .sort((a, b) => b.score - a.score)
     .slice(0, CENTRAL_MAX);
 
   if (!fila.length) {
@@ -2442,7 +2437,7 @@ function mostrarPreviewPDF() {
 // Enter na busca livre dispara a pesquisa
 $('f-q').addEventListener('keydown', e => { if (e.key === 'Enter') carregar(); });
 
-Promise.all([carregarCompradores(), carregarVendasMap()]).then(async () => {
+carregarVendasMap().then(async () => {
   await carregar();
   // Deep-link: vindo de busca global ou home com ?id=
   const _pId = new URLSearchParams(location.search).get('id');
