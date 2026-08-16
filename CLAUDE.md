@@ -304,7 +304,23 @@ Nenhum dos itens acima (9.1 a 9.4) deve ser implementado antes de:
 
 ---
 
-## 10. URLs
+## 10. Skills do Ambiente de Desenvolvimento
+
+Skills instaladas em `.claude/skills/` (projeto). Servem para melhorar qualidade e disciplina do desenvolvimento — **não abrem novas frentes de trabalho**.
+
+| Skill | Repositório | Finalidade no CNR |
+|---|---|---|
+| `supabase-postgres-best-practices` | `supabase/agent-skills` | Guia de otimização Postgres: índices, RLS, connection pooling, schema design, query performance. Referência ao escrever ou revisar queries no Supabase. |
+| `improve-codebase-architecture` | `mattpocock/skills` | Disciplina para propor melhorias de arquitetura e organização do código sem fazer refatorações arbitrárias. |
+| `frontend-design` | `anthropics/skills` | Diretrizes de design frontend: acessibilidade, UX, hierarquia visual, mobile-first. Referência nas Reformas Visuais. |
+| `web-design-guidelines` | `vercel-labs/agent-skills` | Checklist de qualidade web: contraste, tipografia, responsividade, performance. Complementa o `frontend-design`. |
+
+> **Skills NÃO instaladas e motivo:**
+> - `supabase` (supabase/agent-skills): Snyk WARN + foco em supabase-js/SSR — o CNR usa PostgREST direto, sem supabase-js.
+> - `tdd` (mattpocock/skills): CNR não tem framework de testes ativo — skill sem tração prática nesta fase.
+> - `systematic-debugging`: **Não existe** no skills.sh. Alternativa disponível: `diagnosing-bugs` (mattpocock/skills) — instalar sob demanda se necessário.
+
+## 11. URLs
 
 - **App publicado:** https://gerador-cnr.vercel.app
 - **GitHub:** https://github.com/Carronarederepasses/gerador-cnr
