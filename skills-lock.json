@@ -96,6 +96,42 @@
                                                    "sourceType":  "github",
                                                    "skillPath":  "skills/test-driven-development/SKILL.md",
                                                    "computedHash":  "bf1b8216e523851a411e91d429a7c1c2a173e79d88957bc78e348218d50edd54"
-                                               }
+                                               },
+                   "executing-plans":  {
+                                           "source":  "obra/superpowers",
+                                           "sourceType":  "github",
+                                           "skillPath":  "skills/executing-plans/SKILL.md",
+                                           "computedHash":  "c4c3d8b628c51114cd165fb8246fe02744cd8be180032328391252e653028d9b"
+                                       },
+                   "git-guardrails-claude-code":  {
+                                                      "source":  "mattpocock/skills",
+                                                      "sourceType":  "github",
+                                                      "skillPath":  "skills/misc/git-guardrails-claude-code/SKILL.md",
+                                                      "computedHash":  "03c4de7613c712aea336d64c467ea3ed14be2cbd52345925fe949c75c01c29f7"
+                                                  },
+                   "diagnosing-bugs":  {
+                                           "source":  "mattpocock/skills",
+                                           "sourceType":  "github",
+                                           "skillPath":  "skills/engineering/diagnosing-bugs/SKILL.md",
+                                           "computedHash":  "573142d28dc5a4d931dd4a6faa3e615e731f8e9cc65d2dd4468045a2efd6148c"
+                                       },
+                   "domain-modeling":  {
+                                           "source":  "mattpocock/skills",
+                                           "sourceType":  "github",
+                                           "skillPath":  "skills/engineering/domain-modeling/SKILL.md",
+                                           "computedHash":  "9617041db9b0f6606ecf974e2061c83596b05059b5bb20ddb884c60f147c70e9"
+                                       },
+                   "codebase-design":  {
+                                           "source":  "mattpocock/skills",
+                                           "sourceType":  "github",
+                                           "skillPath":  "skills/engineering/codebase-design/SKILL.md",
+                                           "computedHash":  "a8d50abac5a4018f60e1d911d4b6f4e36454ca14d6c390c0695a578c7de65dad"
+                                       },
+                   "playwright-cli":  {
+                                          "source":  "microsoft/playwright-cli",
+                                          "sourceType":  "github",
+                                          "skillPath":  "skills/playwright-cli/SKILL.md",
+                                          "computedHash":  "29c0b669a524d42b51934d7db9144c1c07a566d0549ae6fb6ccd810e5a3cf61b"
+                                      }
                }
 }
