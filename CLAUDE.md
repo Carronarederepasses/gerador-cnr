@@ -313,21 +313,84 @@ Nenhum dos itens acima (9.1 a 9.4) deve ser implementado antes de:
 
 ---
 
-## 10. Skills do Ambiente de Desenvolvimento
+## 10. CNR — Skills Disponíveis
 
-Skills instaladas em `.claude/skills/` (projeto). Servem para melhorar qualidade e disciplina do desenvolvimento — **não abrem novas frentes de trabalho**.
+> **Princípio:** Ter uma skill instalada **não** significa que ela deve ser aplicada em toda tarefa. Skills são ferramentas de apoio — acionar quando a situação se encaixar, não por padrão. Elas não abrem novas frentes de trabalho; confirmam e guiam quando uma necessidade já identificada precisa de suporte especializado.
 
-| Skill | Repositório | Finalidade no CNR |
+Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 16 instaladas no projeto.
+
+---
+
+### 🗄️ Banco de Dados / Supabase
+
+| Skill | Origem | Quando usar no CNR | Acionamento |
+|---|---|---|---|
+| `supabase-postgres-best-practices` | `supabase/agent-skills` | **Carregar ANTES de qualquer mudança em schema, colunas, índices, triggers, funções, queries ou RLS.** Skill mais crítica do projeto. | Manual |
+| `supabase` | `supabase/agent-skills` | Trabalhar com Supabase CLI, migrações declarativas, MCP Supabase, autenticação, debugging de erros da plataforma. | Manual |
+
+---
+
+### 🏗️ Arquitetura / Engenharia
+
+| Skill | Origem | Quando usar no CNR | Acionamento |
+|---|---|---|---|
+| `improve-codebase-architecture` | `mattpocock/skills` | Auditorias arquiteturais periódicas (como a que identificou a duplicação de `calcScore`). Usar sob demanda, nunca automaticamente. | Manual |
+| `systematic-debugging` | `obra/superpowers` | Bug sem causa óbvia após primeira leitura. Protocolo: 4 fases obrigatórias — não pular para fix sem completar fase 1. Regra dos 3 fixes: se ≥3 tentativas, parar e questionar arquitetura. | Manual |
+| `code-review` | `mattpocock/skills` | Review pós-reforma em 2 eixos: conformidade com padrões do projeto + fidelidade ao requisito. Usar após reformas maiores. **Nota:** sobrepõe-se ao `/code-review` built-in, que tem outro foco. | Manual |
+| `verification-before-completion` | `obra/superpowers` | Antes de declarar qualquer tarefa concluída. Exige evidência fresca antes de afirmar "está funcionando". Nunca declarar conclusão por confiança ou fadiga. | Manual (sempre que Claude for declarar conclusão) |
+| `writing-plans` | `obra/superpowers` | Planejar reformas multi-etapas antes de implementar. Produz planos com tarefas de 2–5 min, testáveis individualmente, sem placeholders. | Manual |
+
+---
+
+### 🧪 Testes
+
+| Skill | Origem | Quando usar no CNR | Acionamento |
+|---|---|---|---|
+| `tdd` | `mattpocock/skills` | Referência arquitetural sobre o que constitui um bom teste: seams (interfaces públicas), anti-padrões (acoplamento de implementação, slices horizontais), ciclo vertical. | Manual |
+| `test-driven-development` | `obra/superpowers` | Protocolo Red-Green-Refactor estrito. "Se não viu o teste falhar, não sabe se ele testa a coisa certa." Complementa `tdd` com disciplina mais rígida. | Manual |
+| `webapp-testing` | `anthropics/skills` | Testes de UI com Playwright (Python). Quando precisar automatizar verificações no browser — catálogo, formulários, fluxos de navegação do CNR. | Manual |
+
+> `tdd` e `test-driven-development` são complementares: o primeiro foca em o quê é um bom teste (arquitetura); o segundo em como conduzir o ciclo corretamente (processo).
+
+---
+
+### 🎨 Frontend / Design Visual
+
+| Skill | Origem | Quando usar no CNR | Acionamento |
+|---|---|---|---|
+| `frontend-design` | `anthropics/skills` | **Carregar em toda Reforma Visual.** Guia de design lead: escolhas opinionadas, evitar padrões genéricos. Aplicado nas Reformas Visuais E1 e E2. | Manual |
+| `web-design-guidelines` | `vercel-labs/agent-skills` | Auditar HTML/CSS contra guidelines Vercel Labs: acessibilidade, tipografia, responsividade, anti-padrões. Usar após reformas de UI. | Manual |
+
+---
+
+### 🤖 Agentes / Skills / MCP
+
+| Skill | Origem | Quando usar no CNR | Acionamento |
+|---|---|---|---|
+| `find-skills` | `vercel-labs/skills` | Descobrir novas skills quando surgir necessidade sem ferramenta disponível. Usa `npx skills find [query]` com curadoria por installs e reputação. | Manual |
+| `skill-creator` | `anthropics/skills` | Criar skills customizadas para o CNR se houver workflow repetitivo que mereça ser encapsulado. Ciclo: intenção → entrevista → SKILL.md → teste → refinar. | Manual |
+| `agent-browser` | `vercel-labs/agent-browser` | Automação de browser por agente. Para tarefas que exigem navegação real — verificar deploy em produção, scraping, validação de UI automatizada. | Manual |
+| `mcp-builder` | `anthropics/skills` | Construir novos MCP servers. Usar se o CNR precisar integrar com ferramentas externas via protocolo MCP no futuro. | Manual |
+
+---
+
+### 📄 Documentos (bundled — sempre disponíveis, sem instalação de projeto)
+
+| Skill | Acionamento |
+|---|---|
+| `pdf` (`anthropic-skills:pdf`) | Automático quando o prompt mencionar PDF |
+| `xlsx` (`anthropic-skills:xlsx`) | Automático quando o prompt mencionar Excel/planilha |
+| `docx` (`anthropic-skills:docx`) | Automático quando o prompt mencionar Word/documento |
+
+---
+
+### Resumo de skills NÃO instaladas (e motivo)
+
+| Solicitada | Status | Motivo |
 |---|---|---|
-| `supabase-postgres-best-practices` | `supabase/agent-skills` | Guia de otimização Postgres: índices, RLS, connection pooling, schema design, query performance. Referência ao escrever ou revisar queries no Supabase. |
-| `improve-codebase-architecture` | `mattpocock/skills` | Disciplina para propor melhorias de arquitetura e organização do código sem fazer refatorações arbitrárias. |
-| `frontend-design` | `anthropics/skills` | Diretrizes de design frontend: acessibilidade, UX, hierarquia visual, mobile-first. Referência nas Reformas Visuais. |
-| `web-design-guidelines` | `vercel-labs/agent-skills` | Checklist de qualidade web: contraste, tipografia, responsividade, performance. Complementa o `frontend-design`. |
-
-> **Skills NÃO instaladas e motivo:**
-> - `supabase` (supabase/agent-skills): Snyk WARN + foco em supabase-js/SSR — o CNR usa PostgREST direto, sem supabase-js.
-> - `tdd` (mattpocock/skills): CNR não tem framework de testes ativo — skill sem tração prática nesta fase.
-> - `systematic-debugging`: **Não existe** no skills.sh. Alternativa disponível: `diagnosing-bugs` (mattpocock/skills) — instalar sob demanda se necessário.
+| Vercel Optimize | ❌ Não existe | Nenhuma skill com esse nome no skills.sh. Skills Vercel existentes são React/Next.js — incompatível com stack do CNR. |
+| Vercel CLI | ❌ Não existe | Não há skill específica para Vercel CLI no skills.sh. Gerenciado diretamente pelo Claude Code via Bash/PowerShell. |
+| Frontend Testing Best Practices | ⚠️ Não existe por esse nome | `webapp-testing` (anthropics/skills) cobre o escopo mais próximo. Instalada como substituta. |
 
 ## 11. URLs
 

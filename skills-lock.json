@@ -1,0 +1,101 @@
+﻿{
+    "version":  1,
+    "skills":  {
+                   "verification-before-completion":  {
+                                                          "source":  "obra/superpowers",
+                                                          "sourceType":  "github",
+                                                          "skillPath":  "skills/verification-before-completion/SKILL.md",
+                                                          "computedHash":  "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
+                                                      },
+                   "find-skills":  {
+                                       "source":  "vercel-labs/skills",
+                                       "sourceType":  "github",
+                                       "skillPath":  "skills/find-skills/SKILL.md",
+                                       "computedHash":  "c00eeea0e13e74fe4a9d84ba0a8542205a1b736d65f13134fe1a6647eb14976f"
+                                   },
+                   "webapp-testing":  {
+                                          "source":  "anthropics/skills",
+                                          "sourceType":  "github",
+                                          "skillPath":  "skills/webapp-testing/SKILL.md",
+                                          "computedHash":  "51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+                                      },
+                   "skill-creator":  {
+                                         "source":  "anthropics/skills",
+                                         "sourceType":  "github",
+                                         "skillPath":  "skills/skill-creator/SKILL.md",
+                                         "computedHash":  "dcd4803e61e913e6fc27294184cd3a71f09f5e924ff20c8a9a20173e7b3c2bcf"
+                                     },
+                   "writing-plans":  {
+                                         "source":  "obra/superpowers",
+                                         "sourceType":  "github",
+                                         "skillPath":  "skills/writing-plans/SKILL.md",
+                                         "computedHash":  "48508f44bbfd7d24b029fbf3a314f3cd14c9615599059366e922f47b8dc08cf2"
+                                     },
+                   "supabase-postgres-best-practices":  {
+                                                            "source":  "supabase/agent-skills",
+                                                            "sourceType":  "github",
+                                                            "skillPath":  "skills/supabase-postgres-best-practices/SKILL.md",
+                                                            "computedHash":  "128fac78002d916c8ca908245d398e634f540d8bcf20915b2b2359aeb18eba59"
+                                                        },
+                   "web-design-guidelines":  {
+                                                 "source":  "vercel-labs/agent-skills",
+                                                 "sourceType":  "github",
+                                                 "skillPath":  "skills/web-design-guidelines/SKILL.md",
+                                                 "computedHash":  "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+                                             },
+                   "frontend-design":  {
+                                           "source":  "anthropics/skills",
+                                           "sourceType":  "github",
+                                           "skillPath":  "skills/frontend-design/SKILL.md",
+                                           "computedHash":  "93f53fd1c0352d3d7ec17b8f73d7351bf76f4821e55d123c9d2abc2c53ba48e4"
+                                       },
+                   "supabase":  {
+                                    "source":  "supabase/agent-skills",
+                                    "sourceType":  "github",
+                                    "skillPath":  "skills/supabase/SKILL.md",
+                                    "computedHash":  "16817870f69bb9db58343cfa41c6fb864713c01f3680a64e0fb869605a5d81c3"
+                                },
+                   "improve-codebase-architecture":  {
+                                                         "source":  "mattpocock/skills",
+                                                         "sourceType":  "github",
+                                                         "skillPath":  "skills/engineering/improve-codebase-architecture/SKILL.md",
+                                                         "computedHash":  "f7fd27287067900e816b87a8917347424ad6780435ce4157d69ba8c5e8e13fba"
+                                                     },
+                   "code-review":  {
+                                       "source":  "mattpocock/skills",
+                                       "sourceType":  "github",
+                                       "skillPath":  "skills/engineering/code-review/SKILL.md",
+                                       "computedHash":  "4e8eeefbf3bd32ec2c911ed6c7db103866ce11fedc98b1f8e358d2e1cada3895"
+                                   },
+                   "tdd":  {
+                               "source":  "mattpocock/skills",
+                               "sourceType":  "github",
+                               "skillPath":  "skills/engineering/tdd/SKILL.md",
+                               "computedHash":  "6875cbca6b7d17be635dc9b457cc6363125f85cef26f443991b77c7d9eb430d2"
+                           },
+                   "agent-browser":  {
+                                         "source":  "vercel-labs/agent-browser",
+                                         "sourceType":  "github",
+                                         "skillPath":  "skills/agent-browser/SKILL.md",
+                                         "computedHash":  "243eeaa5e9a42bb12d94d6af29a51b2c956546a16b1862282db1e5bd27315f8a"
+                                     },
+                   "systematic-debugging":  {
+                                                "source":  "obra/superpowers",
+                                                "sourceType":  "github",
+                                                "skillPath":  "skills/systematic-debugging/SKILL.md",
+                                                "computedHash":  "808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787"
+                                            },
+                   "mcp-builder":  {
+                                       "source":  "anthropics/skills",
+                                       "sourceType":  "github",
+                                       "skillPath":  "skills/mcp-builder/SKILL.md",
+                                       "computedHash":  "0f4592dcb53cf2b5d6b7febee6b4152018b565551a1c29e3c612f57b218ab295"
+                                   },
+                   "test-driven-development":  {
+                                                   "source":  "obra/superpowers",
+                                                   "sourceType":  "github",
+                                                   "skillPath":  "skills/test-driven-development/SKILL.md",
+                                                   "computedHash":  "bf1b8216e523851a411e91d429a7c1c2a173e79d88957bc78e348218d50edd54"
+                                               }
+               }
+}
