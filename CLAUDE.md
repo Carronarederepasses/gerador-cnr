@@ -81,6 +81,8 @@ Novas features de backend devem reutilizar funções existentes via query params
 > - `api/ping.js` — duplicata morta de `utils.js?type=ping`; o cron do vercel.json bate em `/api/utils?type=ping`
 > - `netlify/functions/` — resquícios da migração Netlify→Vercel; formato incompatível com Vercel (Netlify handler). Harmlessos, Vercel ignora.
 
+> **⚠️ Regra permanente — `VENDAS_KEY`:** É uma variável de ambiente da Vercel que protege as operações de escrita da API (`api/vendas.js`). **Não é uma senha de acesso à interface.** `vendas.html` abre diretamente, sem portão visual. O frontend lê `KEY` do `sessionStorage` (sem valor padrão) e envia o header `x-cnr-key` silenciosamente nas chamadas POST/PATCH/DELETE. O usuário nunca digita a chave. O valor da `VENDAS_KEY` existe somente no painel da Vercel — nunca registrar em código, Git ou documentação.
+
 ---
 
 ## 4. Páginas do Sistema
@@ -91,7 +93,7 @@ Novas features de backend devem reutilizar funções existentes via query params
 | `home.html` | Dashboard: pipeline, KPIs, carros parados, negociações ativas, relatório mensal, histórico 12 meses |
 | `catalogo.html` | Catálogo de veículos: fotos, avaliação estruturada com score por categoria, valor_compra + margem, dias em estoque, RENAVAM no card quando disponível; avaliação da captação e gastos no card (ellipsis + "ver mais"); **Match Ativo 2.0:** oferta com 1 clique (abre WA + registra evento + cria negociação automaticamente), chips de resultado (Interessado / Recusou / Não respondeu + sub-chips de motivo), "Não adequado" antes de ofertar; Motor de Match recolhível, fechado por padrão; deep link `?id=<uuid>` rola e destaca o card. **Reforma Visual Etapa 1 (13/ago):** nome do veículo maior (1.25rem), fotos maiores (90px), Registrar Venda em linha própria (destaque visual), botão recolhido exibe teaser "· Comprador Score%" do top match, badge ★ #1 no melhor comprador, Ofertar como CTA verde sólido (primeiro nos botões), placa/RENAVAM com menos dominância visual. `renderMatch()` refatorado para retornar `{html, top}` eliminando dupla chamada de `calcScore`. |
 | `negociacoes.html` | CRM de negociações: motivo do match, motivo do descarte (tap), contrato PDF, link para registrar venda |
-| `vendas.html` | Registro de vendas + entrada rápida de histórico (⚡), CSV, pré-preenchimento vindo das negociações |
+| `vendas.html` | Registro de vendas + entrada rápida de histórico (⚡), CSV, pré-preenchimento vindo das negociações. **Acesso direto, sem portão de senha.** A `VENDAS_KEY` protege a API (POST/PATCH/DELETE) via header `x-cnr-key`; o frontend a envia silenciosamente — o usuário nunca precisa digitá-la. Não reimplementar portão visual sem aprovação explícita. |
 | `compradores.html` | CRM: histórico de compras, taxa acumulada, Motor de Match automático, ranking |
 | `busca.html` | Busca global: catálogo, vendas, negociações, compradores |
 | `consultas.html` | Histórico veicular por placa (APiBrasil) |
@@ -214,6 +216,8 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 - [x] Auditoria Arquitetural: relatório com 4 achados (2 críticos → corrigidos na Reforma 21; 2 amarelos → aceitos como trade-off consciente da fase atual)
 - [x] Reforma 21: `calcScore` fonte única em `api/compradores.js`; `toggleMatch`/`abrirCentral` viram async consumindo `?match=1`; endpoint `?limpar=1` removido permanentemente de `api/vendas.js` — commit `8307589`
 - [x] Reforma 22 (Visual): overflow dos valores nos cards corrigido com `.card{overflow:hidden}` + `.precos{flex-wrap:wrap}` + refinamentos de toque/responsividade; CSS-only, zero toque em lógica — commit `9a4ef1e`
+- [x] Reforma 23: corrige bug de status + `VENDAS_KEY` configurada na Vercel como env var; `api/vendas.js` protege POST/PATCH/DELETE via header `x-cnr-key`; gitignore atualizado — commit `8a20d05`
+- [x] Decisão definitiva `vendas.html` (16/ago/2026): acesso direto ao módulo, sem portão visual. `VENDAS_KEY` é credencial de bastidores da API, não senha de interface. Portão visual foi implementado (`5666eb1`) e removido (`9badd40`) na mesma sessão. Estado final e correto: commit `9badd40`, em produção na Vercel.
 
 ### Concluído anteriormente
 - [x] Captação 2.0: vendedor, valor_compra, gastos_valor, margem estimada, pós-save com deep link — commit `c5efbb6`
@@ -254,6 +258,7 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 20c | negociacoes.html: campo Valor Proposto exibe sempre 2 casas decimais no padrão pt-BR; sem alterar `parseBRv`, banco ou qualquer regra de negócio | — |
 | 21 | Motor de Match — fonte única de verdade: `calcScore` removido de catalogo.html, reside exclusivamente em `api/compradores.js`; `toggleMatch` e `abrirCentral` viram async consumindo `/api/compradores?match=1`; endpoint `?limpar=1` removido permanentemente de `api/vendas.js` (DELETE em massa eliminado) | `8307589` |
 | 22 | Reforma Visual — correção de overflow dos valores nos cards: `.card{overflow:hidden}` + `.precos{flex-wrap:wrap;gap:.55rem .9rem}` + refinamentos de toque e responsividade; CSS-only, zero alteração de lógica, JS ou API | `9a4ef1e` |
+| 23 | VENDAS_KEY: `api/vendas.js` protege POST/PATCH/DELETE com header `x-cnr-key`; gitignore atualizado; `vendas.html` com acesso direto (sem portão visual) | `8a20d05` + `9badd40` |
 
 ---
 
@@ -407,4 +412,28 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 ---
 
-*Atualizado em 15/agosto/2026 — Reformas 20c, 21 e 22 concluídas e em produção. Auditoria arquitetural realizada: 2 críticos corrigidos (calcScore fonte única, ?limpar=1 removido), 2 amarelos aceitos. Motor de Match 2.0 com fonte única de verdade em api/compradores.js. Decisões de produto sobre fluxo Negociação → Venda → Contrato documentadas na seção 9. Match Ativo 2.0 operacional; Sprint 1 aguardando validação com dados reais (≥5 veículos). Reforma Visual Etapa 2 (index.html) em aberto. Manter este arquivo atualizado conforme o projeto evolui.*
+---
+
+## 12. Checkpoint — sessão de 16/ago/2026
+
+### O que foi feito nesta sessão
+
+- **Push e deploy da Reforma 23** (`8a20d05`): `VENDAS_KEY` configurada na Vercel; `api/vendas.js` protege POST/PATCH/DELETE com o header `x-cnr-key`. Commit estava local desde sessão anterior e foi enviado ao GitHub nesta sessão. Deploy na Vercel ocorreu automaticamente.
+
+- **Decisão definitiva sobre `vendas.html`**: a página **não tem portão visual**. O acesso é direto. Um portão de senha foi implementado (`5666eb1`) e depois removido (`9badd40`) na mesma sessão, após confirmação do objetivo correto. O estado final em produção é o do `9badd40`.
+
+- **`VENDAS_KEY` — papel correto**: variável de ambiente da Vercel usada exclusivamente como credencial técnica da API. O frontend lê a chave do `sessionStorage` e a envia silenciosamente nas operações de escrita. Nenhuma tela de senha, nenhum portão visual, nenhuma interação do usuário. Valor da chave existe somente no painel da Vercel.
+
+### Onde o projeto ficou
+
+- `origin/main` em `9badd40`, Vercel em produção com este commit.
+- Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada nesta sessão.
+- Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
+
+### Próxima etapa confirmada
+
+Retomar o trabalho relacionado às **skills e ao aprendizado estruturado do projeto** (contexto mencionado pelo Yuri ao encerrar a sessão). Os detalhes exatos do escopo serão definidos no início da próxima sessão.
+
+---
+
+*Atualizado em 16/agosto/2026 — Reforma 23 em produção (VENDAS_KEY na API). Decisão definitiva sobre vendas.html: acesso direto, sem portão. Sprint 1 em andamento. Manter este arquivo atualizado conforme o projeto evolui.*
