@@ -350,7 +350,7 @@ function toast(msg, tipo = 'ok', duracao = 2800) {
   el.className = tipo === 'erro' ? 'erro show' : 'show';
   _toastTimer = setTimeout(() => el.className = '', duracao);
 }
-let KEY = sessionStorage.getItem('cnr_vendas_key') || '';
+let KEY = localStorage.getItem('cnr_vendas_key') || '';
 let VENDAS = [];
 let ordemDesc = true; // true = venda mais recente primeiro
 
