@@ -801,16 +801,41 @@ document.addEventListener('click', e => {
   if (menuAberto && !e.target.closest('.status-menu')) fecharStatusMenu();
 });
 
-function irParaVenda(id) {
+async function irParaVenda(id) {
   const n = dados.find(x => x.id === id);
   if (!n) return;
   const p = new URLSearchParams();
-  if (n.veiculo_nome)    p.set('modelo',             n.veiculo_nome);
-  if (n.comprador_nome)  p.set('comprador_nome',      n.comprador_nome);
-  if (n.contato_telefone) p.set('comprador_telefone', n.contato_telefone);
-  if (n.valor_proposto)  p.set('valor_venda',         n.valor_proposto);
-  if (n.veiculo_id)      p.set('veiculo_id',          n.veiculo_id);
-  if (n.comprador_id)    p.set('comprador_id',         n.comprador_id);
+
+  // Dados já disponíveis na negociação
+  if (n.comprador_nome)    p.set('comprador_nome',     n.comprador_nome);
+  if (n.contato_telefone)  p.set('comprador_telefone', n.contato_telefone);
+  if (n.valor_proposto)    p.set('valor_venda',         n.valor_proposto);
+  if (n.comprador_id)      p.set('comprador_id',         n.comprador_id);
+  if (n.veiculo_id)        p.set('veiculo_id',           n.veiculo_id);
+  if (n.motivo_match)      p.set('motivo_match',         n.motivo_match);
+
+  // Busca dados completos do veículo no catálogo para pré-preencher o formulário de venda
+  if (n.veiculo_id) {
+    try {
+      const r = await fetch('/api/catalogo?id=' + encodeURIComponent(n.veiculo_id));
+      if (r.ok) {
+        const v = await r.json();
+        if (v) {
+          ['marca','modelo','versao','ano','placa','cor','km','renavam',
+           'valor_compra','vendedor_nome','vendedor_telefone'].forEach(c => {
+            if (v[c] != null && v[c] !== '') p.set(c, v[c]);
+          });
+          if (v.fipe != null && v.fipe !== '') p.set('valor_fipe', v.fipe);
+        }
+      }
+    } catch (e) {
+      // Falha silenciosa — vai com o nome do veículo apenas
+      if (n.veiculo_nome) p.set('modelo', n.veiculo_nome);
+    }
+  } else if (n.veiculo_nome) {
+    p.set('modelo', n.veiculo_nome);
+  }
+
   window.location.href = '/vendas.html?' + p.toString();
 }
 
