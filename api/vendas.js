@@ -23,7 +23,6 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const VENDAS_KEY   = process.env.VENDAS_KEY; // senha única (opcional, mas recomendada)
 
 const TABLE = 'vendas';
 const BUCKET = 'vendas-docs';
@@ -175,11 +174,6 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try {
-    // Portão de escrita — exige VENDAS_KEY para POST, PATCH e DELETE
-    if (VENDAS_KEY && ['POST', 'PATCH', 'DELETE'].includes(req.method) && req.headers['x-cnr-key'] !== VENDAS_KEY) {
-      return res.status(401).json({ error: 'Acesso negado.' });
-    }
-
     // Rota de anexos
     if (q.anexo !== undefined) return await anexoHandler(req, res, q);
 
