@@ -172,7 +172,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div class="field">
       <label>Telefone / WhatsApp</label>
       <div style="display:flex;gap:.4rem;align-items:center">
-        <input id="m-tel" type="tel" placeholder="(48) 99999-9999" style="flex:1;min-width:0">
+        <input id="m-tel" type="tel" placeholder="(48) 99999-9999" style="flex:1;min-width:0" oninput="telMask(this)" inputmode="numeric">
         <button id="btn-agenda" type="button" onclick="escolherContato()" title="Escolher da agenda" style="font-size:1.2rem;line-height:1;padding:.5rem .55rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-raise);cursor:pointer;flex-shrink:0">📇</button>
       </div>
     </div>
@@ -231,7 +231,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div class="field" id="fd-ie"><label>Inscrição Estadual (IE)</label><input id="m-ie" type="text" inputmode="numeric"></div>
     <!-- CPF + RG — pessoa_fisica / investidor (RG só para PF) -->
     <div class="g2" id="fd-cpf-rg">
-      <div class="field"><label>CPF</label><input id="m-cpf" type="text" placeholder="000.000.000-00" inputmode="numeric"></div>
+      <div class="field"><label>CPF</label><input id="m-cpf" type="text" placeholder="000.000.000-00" inputmode="numeric" oninput="cpfMask(this)"></div>
       <div class="field" id="fd-rg"><label>RG</label><input id="m-rg" type="text" inputmode="numeric"></div>
     </div>
     <!-- Data de nascimento — pessoa_fisica -->
@@ -342,7 +342,7 @@ async function escolherContato() {
     if (nome && !document.getElementById('m-nome').value) {
       document.getElementById('m-nome').value = nome;
     }
-    if (tel) document.getElementById('m-tel').value = tel;
+    if (tel) { const el = document.getElementById('m-tel'); el.value = tel; telMask(el); }
   } catch (e) {
     // usuário cancelou — ignora silenciosamente
   }
@@ -525,6 +525,7 @@ function abrirModal(id) {
   document.getElementById('m-nome').value          = c?.nome || '';
   document.getElementById('m-proprietario').value  = c?.proprietario || '';
   document.getElementById('m-tel').value            = c?.telefone || '';
+  telMask(document.getElementById('m-tel'));
   document.getElementById('m-tipo').value           = c?.tipo || 'loja';
   document.getElementById('m-papel').value          = c?.papel || 'comprador';
   document.getElementById('m-pmin').value           = c?.preco_min || '';
@@ -533,9 +534,11 @@ function abrirModal(id) {
   // PJ
   document.getElementById('m-razao_social').value  = c?.razao_social || '';
   document.getElementById('m-cnpj').value          = c?.cnpj || '';
+  cnpjMask(document.getElementById('m-cnpj'));
   document.getElementById('m-ie').value            = c?.ie || '';
   // PF
   document.getElementById('m-cpf').value           = c?.cpf || '';
+  cpfMask(document.getElementById('m-cpf'));
   document.getElementById('m-rg').value            = c?.rg || '';
   document.getElementById('m-data_nascimento').value = c?.data_nascimento || '';
   // Endereço
@@ -636,7 +639,7 @@ async function salvar() {
     nome: nome || null,
     proprietario: document.getElementById('m-proprietario').value.trim() || null,
     papel:       document.getElementById('m-papel').value || 'comprador',
-    telefone:    document.getElementById('m-tel').value.trim() || null,
+    telefone:    document.getElementById('m-tel').value.replace(/\D/g,'') || null,
     tipo:        document.getElementById('m-tipo').value,
     cidade:      document.getElementById('m-cidade2').value.trim() || null,
     preco_min:   parseBRnum(document.getElementById('m-pmin').value),
@@ -645,10 +648,10 @@ async function salvar() {
     observacoes: document.getElementById('m-obs').value.trim() || null,
     // PJ
     razao_social: document.getElementById('m-razao_social').value.trim() || null,
-    cnpj:         document.getElementById('m-cnpj').value.trim() || null,
+    cnpj:         document.getElementById('m-cnpj').value.replace(/\D/g,'') || null,
     ie:           document.getElementById('m-ie').value.trim() || null,
     // PF
-    cpf:            document.getElementById('m-cpf').value.trim() || null,
+    cpf:            document.getElementById('m-cpf').value.replace(/\D/g,'') || null,
     rg:             document.getElementById('m-rg').value.trim() || null,
     data_nascimento: document.getElementById('m-data_nascimento').value || null,
     // Endereço
@@ -718,13 +721,51 @@ function atualizarBlocoFat(tipo) {
   document.getElementById('fd-data_nascimento').style.display = isPF ? '' : 'none';
 }
 
+// ── Máscaras de campo ──────────────────────────────────────────────────
+
+function telMask(el) {
+  const d = el.value.replace(/\D/g,'').slice(0,11);
+  if (d.length > 10) el.value = '(' + d.slice(0,2) + ') ' + d.slice(2,7) + '-' + d.slice(7);
+  else if (d.length > 6) el.value = '(' + d.slice(0,2) + ') ' + d.slice(2,6) + '-' + d.slice(6);
+  else if (d.length > 2) el.value = '(' + d.slice(0,2) + ') ' + d.slice(2);
+  else el.value = d;
+}
+
+function cpfMask(el) {
+  const d = el.value.replace(/\D/g,'').slice(0,11);
+  if (d.length > 9) el.value = d.slice(0,3) + '.' + d.slice(3,6) + '.' + d.slice(6,9) + '-' + d.slice(9);
+  else if (d.length > 6) el.value = d.slice(0,3) + '.' + d.slice(3,6) + '.' + d.slice(6);
+  else if (d.length > 3) el.value = d.slice(0,3) + '.' + d.slice(3);
+  else el.value = d;
+}
+
 function cnpjMask(el) {
-  let v = el.value.replace(/\D/g,'').slice(0,14);
-  if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d+)/,'$1.$2.$3/$4-$5');
-  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d+)/,'$1.$2.$3/$4');
-  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d+)/,'$1.$2.$3');
-  else if (v.length > 2) v = v.replace(/^(\d{2})(\d+)/,'$1.$2');
-  el.value = v;
+  const d = el.value.replace(/\D/g,'').slice(0,14);
+  if (d.length > 12) el.value = d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5,8) + '/' + d.slice(8,12) + '-' + d.slice(12);
+  else if (d.length > 8) el.value = d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5,8) + '/' + d.slice(8);
+  else if (d.length > 5) el.value = d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5);
+  else if (d.length > 2) el.value = d.slice(0,2) + '.' + d.slice(2);
+  else el.value = d;
+}
+
+// ── Formatadores para exibição (copiar dados, cards) ───────────────────
+function fmtCPF(v) {
+  const d = (v || '').replace(/\D/g,'');
+  return d.length === 11
+    ? d.slice(0,3) + '.' + d.slice(3,6) + '.' + d.slice(6,9) + '-' + d.slice(9)
+    : v || '';
+}
+function fmtCNPJ(v) {
+  const d = (v || '').replace(/\D/g,'');
+  return d.length === 14
+    ? d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5,8) + '/' + d.slice(8,12) + '-' + d.slice(12)
+    : v || '';
+}
+function fmtTel(v) {
+  const d = (v || '').replace(/\D/g,'').slice(0,11);
+  if (d.length === 11) return '(' + d.slice(0,2) + ') ' + d.slice(2,7) + '-' + d.slice(7);
+  if (d.length === 10) return '(' + d.slice(0,2) + ') ' + d.slice(2,6) + '-' + d.slice(6);
+  return v || '';
 }
 
 function toTitleCase(str) {
@@ -776,8 +817,8 @@ function copiarDadosBancarios(id) {
   lines.push('');
   if (c.razao_social) lines.push(`Razão social: ${c.razao_social}`);
   else lines.push(`Nome: ${c.proprietario || c.nome}`);
-  if (c.cnpj) lines.push(`CNPJ: ${c.cnpj}`);
-  else if (c.cpf) lines.push(`CPF: ${c.cpf}`);
+  if (c.cnpj) lines.push(`CNPJ: ${fmtCNPJ(c.cnpj)}`);
+  else if (c.cpf) lines.push(`CPF: ${fmtCPF(c.cpf)}`);
   navigator.clipboard.writeText(lines.join('\n'))
     .then(() => toast('📋 Dados bancários copiados!'))
     .catch(() => toast('Erro ao copiar', true));
