@@ -670,6 +670,7 @@ function card(v) {
     <div class="timeline" id="hist-${v.id}"></div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
+      ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
@@ -677,6 +678,7 @@ function card(v) {
       <button onclick="abrirStatusMenu(event,'${v.id}')">Status ▾</button>
       <button onclick="toggleHistorico('${v.id}',this)">📜 Histórico</button>
       <button onclick="remover('${v.id}')">Excluir</button>
+      ` : ''}
     </div>
   </div>`;
 }
@@ -694,6 +696,7 @@ function registrarVenda(id) {
   if (v.km)      p.set('km',      v.km);
   if (v.valor)   p.set('valor_venda', v.valor);
   if (v.fipe)    p.set('valor_fipe',  v.fipe);
+  p.set('veiculo_id', id);
   window.location.href = '/vendas.html?' + p.toString();
 }
 

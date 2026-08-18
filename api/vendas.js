@@ -213,15 +213,26 @@ module.exports = async (req, res) => {
       const data = await r.json();
       const venda = data[0] || data;
 
-      // Auto-atualiza veículos para "vendido" quando há placa
-      if (payload.placa) {
-        sb(`veiculos?placa=eq.${encodeURIComponent(payload.placa)}&status=neq.vendido`, {
+      // Auto-atualiza veículos para "vendido" após venda registrada.
+      // Primário: por veiculo_id (mais confiável). Fallback: por placa.
+      const _vidUpd = payload.veiculo_id;
+      const _placaUpd = payload.placa;
+      if (_vidUpd) {
+        sb(`veiculos?id=eq.${encodeURIComponent(_vidUpd)}&status=neq.vendido`, {
           method: 'PATCH',
           headers: { Prefer: 'return=minimal' },
           body: JSON.stringify({ status: 'vendido' }),
         }).then(r => {
-          if (!r.ok) r.text().then(t => console.error('[vendas] auto-update veículo falhou:', r.status, t));
-        }).catch(e => console.error('[vendas] auto-update veículo erro de rede:', e.message));
+          if (!r.ok) r.text().then(t => console.error('[vendas] auto-update por id falhou:', r.status, t));
+        }).catch(e => console.error('[vendas] auto-update por id erro de rede:', e.message));
+      } else if (_placaUpd) {
+        sb(`veiculos?placa=eq.${encodeURIComponent(_placaUpd)}&status=neq.vendido`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ status: 'vendido' }),
+        }).then(r => {
+          if (!r.ok) r.text().then(t => console.error('[vendas] auto-update por placa falhou:', r.status, t));
+        }).catch(e => console.error('[vendas] auto-update por placa erro de rede:', e.message));
       }
 
       return res.status(201).json(venda);
