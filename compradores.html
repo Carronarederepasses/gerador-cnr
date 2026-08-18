@@ -96,6 +96,8 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 
 #cnr-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--surface);font-size:.8rem;font-weight:500;padding:.65rem 1.3rem;border-radius:30px;opacity:0;transition:all .25s;pointer-events:none;z-index:200;white-space:nowrap}
 #cnr-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.sec-hdr{font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;border-top:1px solid var(--line);padding-top:.9rem;margin:.9rem 0 .6rem}
+.sec-hdr.first{border-top:none;margin-top:0;padding-top:.1rem}
 </style>
 </head>
 <body>
@@ -146,34 +148,37 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 <!-- Modal -->
 <div class="modal-bg" id="modal-bg" onclick="fecharModalFora(event)">
   <div class="modal">
-    <div class="modal-titulo" id="modal-titulo">Novo Comprador</div>
+    <div class="modal-titulo" id="modal-titulo">Novo Cliente</div>
 
+    <!-- 👤 Cliente -->
+    <div class="sec-hdr first">👤 Cliente</div>
     <div class="field">
-      <label>Nome fantasia *</label>
-      <input id="m-nome" type="text" placeholder="ex: Auto Prime Veículos, Garage Premium">
+      <label>Tipo de cliente</label>
+      <select id="m-tipo">
+        <option value="loja">Lojista</option>
+        <option value="revendedor">Repassador</option>
+        <option value="investidor">Investidor</option>
+        <option value="pessoa_fisica">Particular</option>
+      </select>
     </div>
     <div class="field">
-      <label>Proprietário</label>
-      <input id="m-proprietario" type="text" placeholder="Nome completo do dono / responsável">
+      <label id="label-nome">Nome</label>
+      <input id="m-nome" type="text" placeholder="Nome do cliente">
     </div>
-    <div class="g2">
-      <div class="field">
-        <label>Telefone / WhatsApp</label>
-        <div style="display:flex;gap:.4rem;align-items:center">
-          <input id="m-tel" type="tel" placeholder="(48) 99999-9999" style="flex:1;min-width:0">
-          <button id="btn-agenda" type="button" onclick="escolherContato()" title="Escolher da agenda" style="font-size:1.2rem;line-height:1;padding:.5rem .55rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-raise);cursor:pointer;flex-shrink:0">📇</button>
-        </div>
-      </div>
-      <div class="field">
-        <label>Tipo de cliente</label>
-        <select id="m-tipo">
-          <option value="loja">Lojista</option>
-          <option value="revendedor">Repassador</option>
-          <option value="investidor">Investidor</option>
-          <option value="pessoa_fisica">Particular</option>
-        </select>
+    <div class="field" id="field-proprietario" style="display:none">
+      <label>Proprietário / Responsável</label>
+      <input id="m-proprietario" type="text" placeholder="Nome completo do responsável">
+    </div>
+    <div class="field">
+      <label>Telefone / WhatsApp</label>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <input id="m-tel" type="tel" placeholder="(48) 99999-9999" style="flex:1;min-width:0">
+        <button id="btn-agenda" type="button" onclick="escolherContato()" title="Escolher da agenda" style="font-size:1.2rem;line-height:1;padding:.5rem .55rem;border:1px solid var(--line);border-radius:9px;background:var(--surface-raise);cursor:pointer;flex-shrink:0">📇</button>
       </div>
     </div>
+
+    <!-- 🤝 Relação com o CNR -->
+    <div class="sec-hdr">🤝 Relação com o CNR</div>
     <div class="field">
       <label>Papel no negócio</label>
       <select id="m-papel">
@@ -182,18 +187,105 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
         <option value="ambos">Ambos — compra e envia carros</option>
       </select>
     </div>
-    <div class="field">
-      <label>Cidade</label>
-      <input id="m-cidade" type="text" placeholder="Florianópolis">
+
+    <!-- 📍 Contato e endereço -->
+    <div class="sec-hdr">📍 Contato e endereço</div>
+    <div class="g2">
+      <div class="field"><label>CEP</label><input id="m-cep" type="text" placeholder="88000-000" inputmode="numeric" oninput="buscarCep(this.value)"></div>
+      <div class="field"><label>Estado</label>
+        <select id="m-estado">
+          <option value="">—</option>
+          <option value="SC">SC</option><option value="RS">RS</option><option value="PR">PR</option>
+          <option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option>
+          <option value="ES">ES</option><option value="BA">BA</option><option value="GO">GO</option>
+          <option value="DF">DF</option><option value="MT">MT</option><option value="MS">MS</option>
+          <option value="PA">PA</option><option value="AM">AM</option><option value="CE">CE</option>
+          <option value="PE">PE</option><option value="outro">Outro</option>
+        </select>
+      </div>
     </div>
-    <div class="field">
-      <label>Observações</label>
-      <textarea id="m-obs" placeholder="ex: só compra automático, prefere placa par, paga PIX..."></textarea>
+    <div class="field"><label>Logradouro</label><input id="m-logradouro" type="text" placeholder="Rua das Flores"></div>
+    <div class="g2">
+      <div class="field"><label>Número</label><input id="m-numero" type="text" placeholder="123"></div>
+      <div class="field"><label>Complemento</label><input id="m-complemento_end" type="text" placeholder="Sala 2"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Bairro</label><input id="m-bairro" type="text"></div>
+      <div class="field"><label>Cidade</label><input id="m-cidade2" type="text" placeholder="Florianópolis"></div>
     </div>
 
-    <!-- 💡 O que sabemos — conhecimento estruturado -->
-    <div id="bloco-conhecimento" style="display:none;border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
-      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.6rem">💡 O que sabemos</div>
+    <!-- 🧾 Documentação -->
+    <div class="sec-hdr">🧾 Documentação</div>
+    <!-- Razão social — loja / revendedor -->
+    <div class="field" id="fd-razao_social"><label>Razão social</label><input id="m-razao_social" type="text" placeholder="Auto Prime Veículos Ltda"></div>
+    <!-- CNPJ — loja / revendedor / investidor -->
+    <div class="field" id="fd-cnpj">
+      <label>CNPJ</label>
+      <div style="display:flex;gap:.4rem">
+        <input id="m-cnpj" type="text" placeholder="00.000.000/0001-00" inputmode="numeric" style="flex:1" oninput="cnpjMask(this)">
+        <button type="button" onclick="buscarCNPJ()" style="font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;padding:.55rem .9rem;border-radius:8px;border:1px solid var(--line);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+      </div>
+      <div id="cnpj-st" style="font-size:.7rem;color:var(--text-mid);margin-top:.3rem"></div>
+    </div>
+    <!-- IE — loja / revendedor -->
+    <div class="field" id="fd-ie"><label>Inscrição Estadual (IE)</label><input id="m-ie" type="text" inputmode="numeric"></div>
+    <!-- CPF + RG — pessoa_fisica / investidor (RG só para PF) -->
+    <div class="g2" id="fd-cpf-rg">
+      <div class="field"><label>CPF</label><input id="m-cpf" type="text" placeholder="000.000.000-00" inputmode="numeric"></div>
+      <div class="field" id="fd-rg"><label>RG</label><input id="m-rg" type="text" inputmode="numeric"></div>
+    </div>
+    <!-- Data de nascimento — pessoa_fisica -->
+    <div class="field" id="fd-data_nascimento"><label>Data de nascimento</label><input id="m-data_nascimento" type="date"></div>
+
+    <!-- 💰 Dados bancários -->
+    <div class="sec-hdr">💰 Dados bancários</div>
+    <div class="g2">
+      <div class="field"><label>Banco</label><input id="m-banco" type="text" placeholder="ex: Itaú, Nubank, Sicoob"></div>
+      <div class="field"><label>Tipo de conta</label>
+        <select id="m-tipo_conta">
+          <option value="corrente">Corrente</option>
+          <option value="poupanca">Poupança</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Agência</label><input id="m-agencia" type="text" inputmode="numeric" placeholder="1234"></div>
+      <div class="field"><label>Conta</label><input id="m-conta" type="text" inputmode="numeric" placeholder="56789-0"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Tipo da chave Pix</label>
+        <select id="m-pix_tipo">
+          <option value="">— sem Pix —</option>
+          <option value="cpf">CPF</option>
+          <option value="cnpj">CNPJ</option>
+          <option value="email">E-mail</option>
+          <option value="telefone">Telefone</option>
+          <option value="aleatoria">Chave aleatória</option>
+        </select>
+      </div>
+      <div class="field"><label>Chave Pix</label><input id="m-pix_chave" type="text" placeholder="cole a chave aqui"></div>
+    </div>
+
+    <!-- 🎯 Perfil de compra -->
+    <div class="sec-hdr">🎯 Perfil de compra</div>
+    <div class="g2">
+      <div class="field">
+        <label>Preço mínimo (R$)</label>
+        <input id="m-pmin" type="text" inputmode="numeric" placeholder="ex: 30.000 ou 30000">
+      </div>
+      <div class="field">
+        <label>Preço máximo (R$)</label>
+        <input id="m-pmax" type="text" inputmode="numeric" placeholder="ex: 120.000 ou 120000">
+      </div>
+    </div>
+    <div class="field">
+      <label>Marcas de interesse — clique para selecionar</label>
+      <div class="marcas-wrap" id="marcas-wrap"></div>
+    </div>
+
+    <!-- 🧠 O que sabemos — conhecimento estruturado (somente ao editar) -->
+    <div id="bloco-conhecimento" style="display:none">
+      <div class="sec-hdr">🧠 O que sabemos</div>
       <div id="obs-lista" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.6rem"></div>
       <div style="display:flex;gap:.5rem">
         <input id="obs-input" type="text" placeholder='ex: "Só compra Corolla branco"' onkeydown="if(event.key==='Enter'){adicionarObs();event.preventDefault()}" style="flex:1;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--surface-raise);color:var(--text)">
@@ -201,107 +293,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       </div>
     </div>
 
-    <!-- Faturamento PJ -->
-    <div id="bloco-pj" style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
-      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados para faturamento — PJ</div>
-      <div class="field"><label>Razão social</label><input id="m-razao_social" type="text" placeholder="Auto Prime Veículos Ltda"></div>
-      <div class="field">
-        <label>CNPJ</label>
-        <div style="display:flex;gap:.4rem">
-          <input id="m-cnpj" type="text" placeholder="00.000.000/0001-00" inputmode="numeric" style="flex:1" oninput="cnpjMask(this)">
-          <button type="button" onclick="buscarCNPJ()" style="font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;padding:.55rem .9rem;border-radius:8px;border:1px solid var(--line);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
-        </div>
-        <div id="cnpj-st" style="font-size:.7rem;color:var(--text-mid);margin-top:.3rem"></div>
-      </div>
-      <div class="field"><label>Inscrição Estadual (IE)</label><input id="m-ie" type="text" inputmode="numeric"></div>
-    </div>
-
-    <!-- Faturamento PF -->
-    <div id="bloco-pf" style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem;display:none">
-      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados para faturamento — PF</div>
-      <div class="g2">
-        <div class="field"><label>CPF</label><input id="m-cpf" type="text" placeholder="000.000.000-00" inputmode="numeric"></div>
-        <div class="field"><label>RG</label><input id="m-rg" type="text" inputmode="numeric"></div>
-      </div>
-      <div class="field"><label>Data de nascimento</label><input id="m-data_nascimento" type="date"></div>
-    </div>
-
-    <!-- Endereço (sempre visível) -->
-    <div style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
-      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Endereço</div>
-      <div class="g2">
-        <div class="field"><label>CEP</label><input id="m-cep" type="text" placeholder="88000-000" inputmode="numeric" oninput="buscarCep(this.value)"></div>
-        <div class="field"><label>Estado</label>
-          <select id="m-estado">
-            <option value="">—</option>
-            <option value="SC">SC</option><option value="RS">RS</option><option value="PR">PR</option>
-            <option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option>
-            <option value="ES">ES</option><option value="BA">BA</option><option value="GO">GO</option>
-            <option value="DF">DF</option><option value="MT">MT</option><option value="MS">MS</option>
-            <option value="PA">PA</option><option value="AM">AM</option><option value="CE">CE</option>
-            <option value="PE">PE</option><option value="outro">Outro</option>
-          </select>
-        </div>
-      </div>
-      <div class="field"><label>Logradouro</label><input id="m-logradouro" type="text" placeholder="Rua das Flores"></div>
-      <div class="g2">
-        <div class="field"><label>Número</label><input id="m-numero" type="text" placeholder="123"></div>
-        <div class="field"><label>Complemento</label><input id="m-complemento_end" type="text" placeholder="Sala 2"></div>
-      </div>
-      <div class="g2">
-        <div class="field"><label>Bairro</label><input id="m-bairro" type="text"></div>
-        <div class="field"><label>Cidade</label><input id="m-cidade2" type="text" placeholder="Florianópolis"></div>
-      </div>
-    </div>
-
-    <!-- Dados bancários -->
-    <div style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
-      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Dados bancários</div>
-      <div class="g2">
-        <div class="field"><label>Banco</label><input id="m-banco" type="text" placeholder="ex: Itaú, Nubank, Sicoob"></div>
-        <div class="field"><label>Tipo de conta</label>
-          <select id="m-tipo_conta">
-            <option value="corrente">Corrente</option>
-            <option value="poupanca">Poupança</option>
-          </select>
-        </div>
-      </div>
-      <div class="g2">
-        <div class="field"><label>Agência</label><input id="m-agencia" type="text" inputmode="numeric" placeholder="1234"></div>
-        <div class="field"><label>Conta</label><input id="m-conta" type="text" inputmode="numeric" placeholder="56789-0"></div>
-      </div>
-      <div class="g2">
-        <div class="field"><label>Tipo da chave Pix</label>
-          <select id="m-pix_tipo">
-            <option value="">— sem Pix —</option>
-            <option value="cpf">CPF</option>
-            <option value="cnpj">CNPJ</option>
-            <option value="email">E-mail</option>
-            <option value="telefone">Telefone</option>
-            <option value="aleatoria">Chave aleatória</option>
-          </select>
-        </div>
-        <div class="field"><label>Chave Pix</label><input id="m-pix_chave" type="text" placeholder="cole a chave aqui"></div>
-      </div>
-    </div>
-
-    <!-- Preferências de compra — no fim para não atrapalhar o fluxo -->
-    <div style="border-top:1px solid var(--line);margin-top:.8rem;padding-top:.9rem">
-      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.7rem">Preferências de compra</div>
-      <div class="g2">
-        <div class="field">
-          <label>Preço mínimo (R$)</label>
-          <input id="m-pmin" type="text" inputmode="numeric" placeholder="ex: 30.000 ou 30000">
-        </div>
-        <div class="field">
-          <label>Preço máximo (R$)</label>
-          <input id="m-pmax" type="text" inputmode="numeric" placeholder="ex: 120.000 ou 120000">
-        </div>
-      </div>
-      <div class="field">
-        <label>Marcas de interesse — clique para selecionar</label>
-        <div class="marcas-wrap" id="marcas-wrap"></div>
-      </div>
+    <!-- 📝 Observações -->
+    <div class="sec-hdr">📝 Observações</div>
+    <div class="field">
+      <textarea id="m-obs" placeholder="ex: só compra automático, prefere placa par, paga PIX..."></textarea>
     </div>
 
     <div class="modal-footer">
@@ -532,7 +527,6 @@ function abrirModal(id) {
   document.getElementById('m-tel').value            = c?.telefone || '';
   document.getElementById('m-tipo').value           = c?.tipo || 'loja';
   document.getElementById('m-papel').value          = c?.papel || 'comprador';
-  document.getElementById('m-cidade').value         = c?.cidade || '';
   document.getElementById('m-pmin').value           = c?.preco_min || '';
   document.getElementById('m-pmax').value           = c?.preco_max || '';
   document.getElementById('m-obs').value            = c?.observacoes || '';
@@ -638,14 +632,13 @@ function fecharModalFora(e) {
 
 async function salvar() {
   const nome = document.getElementById('m-nome').value.trim();
-  if (!nome) { toast('Informe o nome', true); return; }
   const payload = {
-    nome,
+    nome: nome || null,
     proprietario: document.getElementById('m-proprietario').value.trim() || null,
     papel:       document.getElementById('m-papel').value || 'comprador',
     telefone:    document.getElementById('m-tel').value.trim() || null,
     tipo:        document.getElementById('m-tipo').value,
-    cidade:      document.getElementById('m-cidade2').value.trim() || document.getElementById('m-cidade').value.trim() || null,
+    cidade:      document.getElementById('m-cidade2').value.trim() || null,
     preco_min:   parseBRnum(document.getElementById('m-pmin').value),
     preco_max:   parseBRnum(document.getElementById('m-pmax').value),
     marcas:      marcasSel.length ? marcasSel : null,
@@ -706,10 +699,23 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(
 document.getElementById('m-tipo').addEventListener('change', e => atualizarBlocoFat(e.target.value));
 
 function atualizarBlocoFat(tipo) {
-  const isPJ = ['loja','revendedor','parceiro','franquia','concessionaria'].includes(tipo);
-  const isPF = tipo === 'pessoa_fisica';
-  document.getElementById('bloco-pj').style.display = isPJ ? '' : 'none';
-  document.getElementById('bloco-pf').style.display = isPF ? '' : 'none';
+  const isPJ  = ['loja','revendedor','parceiro','franquia','concessionaria'].includes(tipo);
+  const isPF  = tipo === 'pessoa_fisica';
+  const isInv = tipo === 'investidor';
+
+  // Label do nome
+  document.getElementById('label-nome').textContent = tipo === 'loja' ? 'Nome fantasia' : 'Nome';
+
+  // Proprietário / Responsável — lojista e repassador
+  document.getElementById('field-proprietario').style.display = isPJ ? '' : 'none';
+
+  // Documentação — campos condicionais
+  document.getElementById('fd-razao_social').style.display   = isPJ ? '' : 'none';
+  document.getElementById('fd-cnpj').style.display           = (isPJ || isInv) ? '' : 'none';
+  document.getElementById('fd-ie').style.display             = isPJ ? '' : 'none';
+  document.getElementById('fd-cpf-rg').style.display         = (isPF || isInv) ? '' : 'none';
+  document.getElementById('fd-rg').style.display             = isPF ? '' : 'none';
+  document.getElementById('fd-data_nascimento').style.display = isPF ? '' : 'none';
 }
 
 function cnpjMask(el) {
@@ -742,10 +748,7 @@ async function buscarCNPJ() {
     if (d.numero)       document.getElementById('m-numero').value        = d.numero;
     if (d.bairro)       document.getElementById('m-bairro').value       = toTitleCase(d.bairro);
     if (d.municipio) {
-      const cidade = toTitleCase(d.municipio);
-      document.getElementById('m-cidade2').value = cidade;
-      if (!document.getElementById('m-cidade').value)
-        document.getElementById('m-cidade').value = cidade;
+      document.getElementById('m-cidade2').value = toTitleCase(d.municipio);
     }
     if (d.uf)           document.getElementById('m-estado').value       = d.uf;
     if (d.cep)          document.getElementById('m-cep').value          = d.cep.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2');
