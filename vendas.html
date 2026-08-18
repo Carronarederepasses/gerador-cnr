@@ -461,6 +461,20 @@ function buildHist() {
   });
 }
 
+// ── Formatadores de exibição (espelha compradores.html) ──────────
+function fmtDocV(v){
+  const d=(v||'').replace(/\D/g,'');
+  if(d.length===11) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
+  if(d.length===14) return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8,12)+'-'+d.slice(12);
+  return v||'';
+}
+function fmtTelV(v){
+  const d=(v||'').replace(/\D/g,'').slice(0,11);
+  if(d.length===11) return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
+  if(d.length===10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+  return v||'';
+}
+
 // ── Pool unificado: CRM + histórico vendedores + histórico compradores ──
 function _buscarContatos(term) {
   const moedaK = n => n ? 'R$' + Math.round(Number(n)/1000) + 'k' : '?';
@@ -482,9 +496,11 @@ function _buscarContatos(term) {
     if (c.id) {
       const faixa = (c.preco_min || c.preco_max) ? moedaK(c.preco_min) + '–' + moedaK(c.preco_max) : '';
       const marcas = (c.marcas || []).slice(0, 3).join(', ');
-      info = [c.tipo?.toUpperCase(), faixa, marcas].filter(Boolean).join(' · ');
+      const tel = c.telefone ? fmtTelV(c.telefone) : '';
+      const cid = c.cidade ? c.cidade.replace(/[-\s]+[A-Z]{2}$/, '').trim() : '';
+      info = [c.tipo?.toUpperCase(), tel, cid, faixa, marcas].filter(Boolean).join(' · ');
     } else {
-      info = [c.cpf, c.telefone].filter(Boolean).join(' · ');
+      info = [c.cpf ? fmtDocV(c.cpf) : '', c.telefone ? fmtTelV(c.telefone) : ''].filter(Boolean).join(' · ');
     }
     return { ...c, _info: info };
   });
@@ -515,8 +531,8 @@ function selecionarCRM(i) {
   if (!c) return;
   document.getElementById('m-comprador_nome').value = c.nome;
   document.getElementById('m-comprador_id').value   = c.id || '';
-  if (c.telefone)     document.getElementById('m-comprador_telefone').value = c.telefone;
-  if (_extrairDoc(c)) document.getElementById('m-comprador_cpf').value      = _extrairDoc(c);
+  if (c.telefone)     document.getElementById('m-comprador_telefone').value = fmtTelV(c.telefone);
+  if (_extrairDoc(c)) document.getElementById('m-comprador_cpf').value      = fmtDocV(_extrairDoc(c));
   const _cidade = (c.cidade || '').replace(/[-\s]+[A-Z]{2}$/, '').trim();
   const loc = [_cidade, c.estado].filter(Boolean).join('-');
   if (loc && !document.getElementById('m-destino').value) document.getElementById('m-destino').value = loc;
@@ -536,9 +552,10 @@ function selecionarVendedor(i) {
   const v = _VEND_MATCHES[i];
   if (!v) return;
   document.getElementById('m-vendedor_nome').value = v.nome;
-  if (v.telefone)     document.getElementById('m-vendedor_telefone').value = v.telefone;
-  if (_extrairDoc(v)) document.getElementById('m-vendedor_cpf').value      = _extrairDoc(v);
-  const loc = [v.cidade, v.estado].filter(Boolean).join('-');
+  if (v.telefone)     document.getElementById('m-vendedor_telefone').value = fmtTelV(v.telefone);
+  if (_extrairDoc(v)) document.getElementById('m-vendedor_cpf').value      = fmtDocV(_extrairDoc(v));
+  const _cidade = (v.cidade || '').replace(/[-\s]+[A-Z]{2}$/, '').trim();
+  const loc = [_cidade, v.estado].filter(Boolean).join('-');
   if (loc && !document.getElementById('m-origem').value) document.getElementById('m-origem').value = loc;
   document.getElementById('vend-drop').classList.remove('show');
 }
