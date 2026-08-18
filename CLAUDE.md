@@ -259,6 +259,9 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 21 | Motor de Match — fonte única de verdade: `calcScore` removido de catalogo.html, reside exclusivamente em `api/compradores.js`; `toggleMatch` e `abrirCentral` viram async consumindo `/api/compradores?match=1`; endpoint `?limpar=1` removido permanentemente de `api/vendas.js` (DELETE em massa eliminado) | `8307589` |
 | 22 | Reforma Visual — correção de overflow dos valores nos cards: `.card{overflow:hidden}` + `.precos{flex-wrap:wrap;gap:.55rem .9rem}` + refinamentos de toque e responsividade; CSS-only, zero alteração de lógica, JS ou API | `9a4ef1e` |
 | 23 | VENDAS_KEY: `api/vendas.js` protege POST/PATCH/DELETE com header `x-cnr-key`; gitignore atualizado; `vendas.html` com acesso direto (sem portão visual) | `8a20d05` + `9badd40` |
+| 26 | `irParaVenda` async em `negociacoes.html`: busca `/api/catalogo?id=` antes de navegar para `vendas.html`, passa todos os campos do veículo via URL params; `vendas.html` lê mais campos em `iniciarApp` | `23c3fca` |
+| 27 | Módulo "Compradores" → "Clientes": sidebar, KPIs, badges, toasts, empty state, botão e filtro atualizados; `tipo` select reduzido a 4 opções (Lojista/Repassador/Investidor/Particular); DB preservado | `b19625b` |
+| 28 | Reorganização completa da ficha cadastral de Clientes: 8 seções com emoji, Tipo de cliente primeiro, campos condicionais por tipo, label Nome/Nome fantasia dinâmico, Proprietário só para Lojista e Repassador, campo cidade duplicado removido, nenhum campo obrigatório | `83476c4` |
 
 ---
 
@@ -437,16 +440,22 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 - **`VENDAS_KEY` — papel correto**: variável de ambiente da Vercel usada exclusivamente como credencial técnica da API. O frontend lê a chave do `sessionStorage` e a envia silenciosamente nas operações de escrita. Nenhuma tela de senha, nenhum portão visual, nenhuma interação do usuário. Valor da chave existe somente no painel da Vercel.
 
-### Onde o projeto ficou
+### Onde o projeto ficou (atualizado 18/ago/2026)
 
-- `origin/main` em `9badd40`, Vercel em produção com este commit.
-- Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada nesta sessão.
+- `origin/main` em `83476c4` (Reforma 28), Vercel `dpl_HGc74DvTV972NVbQ88BVPkevc6Ba` — READY.
+- Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada.
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
 
-### Próxima etapa confirmada
+### Reformas desta sessão (18/ago/2026)
 
-Retomar o trabalho relacionado às **skills e ao aprendizado estruturado do projeto** (contexto mencionado pelo Yuri ao encerrar a sessão). Os detalhes exatos do escopo serão definidos no início da próxima sessão.
+- **Reforma 26** (`23c3fca` — sessão anterior): `irParaVenda` async em `negociacoes.html` — busca `/api/catalogo?id=` antes de navegar para `vendas.html`, passando todos os campos do veículo via URL params. `vendas.html` lê mais parâmetros no array `campos`.
+- **Reforma 27** (`b19625b`): Módulo "Compradores" → "Clientes" em toda a interface. `tipo` select reduzido a 4 opções (Lojista/Repassador/Investidor/Particular) — DB preservado. Sidebar, KPIs, badges, toasts e empty state atualizados.
+- **Reforma 28** (`83476c4`): Reorganização completa da ficha cadastral de Clientes em `compradores.html`. 8 seções com emoji separadores. Tipo de cliente como primeiro campo controlando visibilidade condicional. Nenhum campo obrigatório. Label "Nome fantasia" somente para Lojista. Proprietário/Responsável apenas para Lojista e Repassador. Documentação condicional: PJ (razão social/CNPJ/IE), PF (CPF/RG/data nasc), Investidor (CPF/CNPJ). Campo cidade duplicado (`m-cidade`) removido — único campo no endereço (`m-cidade2`). `atualizarBlocoFat()` reescrita para os 4 tipos.
+
+### Próxima etapa
+
+Sprint 1 (Match Ativo) — validação operacional com ≥5 veículos e resultados registrados.
 
 ---
 
-*Atualizado em 16/agosto/2026 — Reforma 23 em produção (VENDAS_KEY na API). Decisão definitiva sobre vendas.html: acesso direto, sem portão. Sprint 1 em andamento. Manter este arquivo atualizado conforme o projeto evolui.*
+*Atualizado em 18/agosto/2026 — Reforma 28 em produção (ficha cadastral de Clientes reorganizada). Sprint 1 em andamento.*
