@@ -442,9 +442,9 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 - **`VENDAS_KEY` — papel correto**: variável de ambiente da Vercel usada exclusivamente como credencial técnica da API. O frontend lê a chave do `sessionStorage` e a envia silenciosamente nas operações de escrita. Nenhuma tela de senha, nenhum portão visual, nenhuma interação do usuário. Valor da chave existe somente no painel da Vercel.
 
-### Onde o projeto ficou (atualizado 18/ago/2026)
+### Onde o projeto ficou (atualizado 18/ago/2026 — pós Reforma 31)
 
-- `origin/main` em `3b3c5b6` (Reforma 30), Vercel `dpl_DGBYe3kxeFkQWaN7TEjasQ1j28X6` — READY.
+- `origin/main` em `7637665` (Reforma 31), Vercel `dpl_DXM3DhCS9H3x79EzijKoMMbcf4Xr` — READY.
 - Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada.
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
 
@@ -463,10 +463,23 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - Campos do cadastro de clientes SEM correspondente em vendas.html (por decisão do spec): `razao_social`, `proprietario`, `cep`, `logradouro`, `numero`, `bairro`, `complemento_end`. Não foram criados novos campos — apenas os existentes foram preenchidos melhor.
 - Não foi adicionado `vendedor_id` hidden porque exigiria alteração de schema no Supabase. Decisão documentada aqui para referência futura.
 
+### Reforma 31 (7637665 — 18/ago/2026)
+
+- **`api/vendas.js`**: auto-update pós-venda agora usa `veiculo_id` como chave primária (PATCH em `veiculos?id=eq.{id}`). Fallback por `placa` mantido para vendas sem ID. Antes usava placa como único identificador.
+- **`catalogo.html` — `registrarVenda()`**: passa `veiculo_id` via URL param para `vendas.html`, garantindo que o POST da venda sempre inclua o ID do veículo.
+- **`catalogo.html` — rodapé do card**: 7 botões comerciais (📦 Pacote WhatsApp, Copiar texto, 🤝 Negociar, 💰 Registrar Venda, Status ▾, 📜 Histórico, Excluir) ocultados quando `v.status === 'vendido'`. Botão 📋 Avaliação sempre visível (é histórico operacional, não ação comercial). Gatilho exclusivo: POST bem-sucedido em `/api/vendas`.
+
+### Diagnóstico da Reforma 31 — o que já existia
+
+- CSS `.badge.vendido`, função `renderVendido(v)`, e `VENDAS_MAP` já existiam no catálogo.
+- Condicional do match-box por status já existia (`card(v)` linha ~667).
+- Infraestrutura de status `vendido` no DB: sem migração necessária.
+- Bug: `api/vendas.js` usava só `placa` no auto-update (falha silenciosa quando placa era nula ou divergia). Corrigido com `veiculo_id` primário.
+
 ### Próxima etapa
 
 Sprint 1 (Match Ativo) — validação operacional com ≥5 veículos e resultados registrados.
 
 ---
 
-*Atualizado em 18/agosto/2026 — Reformas 28, 29 e 30 em produção. Sprint 1 em andamento.*
+*Atualizado em 18/agosto/2026 — Reformas 28–31 em produção. Sprint 1 em andamento.*
