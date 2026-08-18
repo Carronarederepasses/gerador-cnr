@@ -262,6 +262,8 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 26 | `irParaVenda` async em `negociacoes.html`: busca `/api/catalogo?id=` antes de navegar para `vendas.html`, passa todos os campos do veículo via URL params; `vendas.html` lê mais campos em `iniciarApp` | `23c3fca` |
 | 27 | Módulo "Compradores" → "Clientes": sidebar, KPIs, badges, toasts, empty state, botão e filtro atualizados; `tipo` select reduzido a 4 opções (Lojista/Repassador/Investidor/Particular); DB preservado | `b19625b` |
 | 28 | Reorganização completa da ficha cadastral de Clientes: 8 seções com emoji, Tipo de cliente primeiro, campos condicionais por tipo, label Nome/Nome fantasia dinâmico, Proprietário só para Lojista e Repassador, campo cidade duplicado removido, nenhum campo obrigatório | `83476c4` |
+| 29 | Máscaras de CPF (`XXX.XXX.XXX-XX`), CNPJ (`XX.XXX.XXX/XXXX-XX`) e Telefone (`(XX) XXXXX-XXXX`) em `compradores.html`: formatação progressiva no oninput, aplicada no load do modal; `salvar()` normaliza para dígitos puros antes de enviar ao banco; helpers `fmtCPF`/`fmtCNPJ`/`fmtTel` para exibição em `copiarDadosBancarios()`; `escolherContato()` aplica máscara após importar | `97139e8` |
+| 30 | Auto-preenchimento CRM formatado em `vendas.html`: adiciona `fmtTelV()`/`fmtDocV()` (espelha compradores.html); `selecionarCRM` e `selecionarVendedor` formatam telefone e CPF/CNPJ ao preencher (banco armazena dígitos puros desde Reforma 29); `selecionarVendedor` alinha strip do estado na cidade com comprador; dropdown CRM exibe telefone formatado e cidade; histórico também exibe CPF/tel formatados | `3b3c5b6` |
 
 ---
 
@@ -442,7 +444,7 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 ### Onde o projeto ficou (atualizado 18/ago/2026)
 
-- `origin/main` em `83476c4` (Reforma 28), Vercel `dpl_HGc74DvTV972NVbQ88BVPkevc6Ba` — READY.
+- `origin/main` em `3b3c5b6` (Reforma 30), Vercel `dpl_DGBYe3kxeFkQWaN7TEjasQ1j28X6` — READY.
 - Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada.
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
 
@@ -451,6 +453,15 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - **Reforma 26** (`23c3fca` — sessão anterior): `irParaVenda` async em `negociacoes.html` — busca `/api/catalogo?id=` antes de navegar para `vendas.html`, passando todos os campos do veículo via URL params. `vendas.html` lê mais parâmetros no array `campos`.
 - **Reforma 27** (`b19625b`): Módulo "Compradores" → "Clientes" em toda a interface. `tipo` select reduzido a 4 opções (Lojista/Repassador/Investidor/Particular) — DB preservado. Sidebar, KPIs, badges, toasts e empty state atualizados.
 - **Reforma 28** (`83476c4`): Reorganização completa da ficha cadastral de Clientes em `compradores.html`. 8 seções com emoji separadores. Tipo de cliente como primeiro campo controlando visibilidade condicional. Nenhum campo obrigatório. Label "Nome fantasia" somente para Lojista. Proprietário/Responsável apenas para Lojista e Repassador. Documentação condicional: PJ (razão social/CNPJ/IE), PF (CPF/RG/data nasc), Investidor (CPF/CNPJ). Campo cidade duplicado (`m-cidade`) removido — único campo no endereço (`m-cidade2`). `atualizarBlocoFat()` reescrita para os 4 tipos.
+- **Reforma 29** (`97139e8`): Máscaras CPF/CNPJ/Telefone em `compradores.html`. `telMask`, `cpfMask`, `cnpjMask` progressivas no oninput. Aplicadas no load do modal para dados existentes (mesmo os sem máscara). `salvar()` normaliza para dígitos puros. Helpers `fmtCPF`/`fmtCNPJ`/`fmtTel` para exibição. **Efeito cascata:** DB passou a armazenar CPF/CNPJ/Telefone de clientes como dígitos puros a partir desta reforma.
+- **Reforma 30** (`3b3c5b6`): Auto-preenchimento CRM formatado em `vendas.html`. Adiciona `fmtTelV()`/`fmtDocV()` (espelha compradores.html). `selecionarCRM` e `selecionarVendedor` formatam telefone e CPF/CNPJ ao preencher. `selecionarVendedor` agora usa o mesmo strip de estado na cidade que o comprador. Dropdown CRM exibe telefone formatado + cidade; histórico exibe CPF/tel também formatados.
+
+### Decisões e diagnóstico da Reforma 30
+
+- O autocomplete de comprador e vendedor em `vendas.html` JÁ estava funcional antes da Reforma 30. `_buscarContatos()` retorna clientes do CRM (qualquer tipo/papel) + histórico de vendas para ambos os dropdowns. Os dados do CRM já incluíam telefone, CPF/CNPJ e cidade.
+- O único gap real era formatação: depois da Reforma 29, o banco armazena dígitos puros, mas `vendas.html` exibia sem máscara. A Reforma 30 corrigiu isso.
+- Campos do cadastro de clientes SEM correspondente em vendas.html (por decisão do spec): `razao_social`, `proprietario`, `cep`, `logradouro`, `numero`, `bairro`, `complemento_end`. Não foram criados novos campos — apenas os existentes foram preenchidos melhor.
+- Não foi adicionado `vendedor_id` hidden porque exigiria alteração de schema no Supabase. Decisão documentada aqui para referência futura.
 
 ### Próxima etapa
 
@@ -458,4 +469,4 @@ Sprint 1 (Match Ativo) — validação operacional com ≥5 veículos e resultad
 
 ---
 
-*Atualizado em 18/agosto/2026 — Reforma 28 em produção (ficha cadastral de Clientes reorganizada). Sprint 1 em andamento.*
+*Atualizado em 18/agosto/2026 — Reformas 28, 29 e 30 em produção. Sprint 1 em andamento.*
