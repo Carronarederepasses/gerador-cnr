@@ -442,9 +442,11 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 - **`VENDAS_KEY` — papel correto**: variável de ambiente da Vercel usada exclusivamente como credencial técnica da API. O frontend lê a chave do `sessionStorage` e a envia silenciosamente nas operações de escrita. Nenhuma tela de senha, nenhum portão visual, nenhuma interação do usuário. Valor da chave existe somente no painel da Vercel.
 
-### Onde o projeto ficou (atualizado 19/ago/2026 — pós Reforma 34)
+### Onde o projeto ficou (atualizado 19/ago/2026 — pós Reforma 35 completa)
 
-- `origin/main` em `c1b1254` (Reforma 34), Vercel `dpl_ESeFQpMfwkVLtzT9Aa1xAZ34RF9r` — READY.
+- `origin/main` em `ed397e3` (Reforma 35 Etapa 5), Vercel `dpl_6AawkxGPAEzNbrLM1UZXSmQUi9iV` — READY.
+- **Caixa Preta (Reforma 35)** — totalmente operacional: Etapas 1–5 concluídas e em produção. 6 eventos cobertos: VENDA_CRIADA, VENDA_EDITADA, VENDA_EXCLUIDA, VEICULO_CRIADO, VEICULO_STATUS_ALTERADO, VEICULO_EXCLUIDO, NEGOCIACAO_EXCLUIDA (E4), NEGOCIACAO_CRIADA, NEGOCIACAO_STATUS_ALTERADO (E5).
+- **Próxima etapa da Reforma 35 (Etapa 6, não aprovada)**: `NEGOCIACAO_CONVERTIDA` — ligação explícita negociação → venda. Após: `COMPRADOR_CRIADO`, `COMPRADOR_DESATIVADO` se houver valor real.
 - Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada.
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
 
@@ -571,6 +573,24 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - **Deploy**: `dpl_EiuEVq5EN92wj7xzaZnSRmasUy2w` — READY.
 - **Não alterado**: Caixa Preta/Reforma 35, Motor de Match, cadastro de Clientes, negociações, formulário de venda, autenticação, VENDAS_KEY, catálogo, banco/schema.
 
+### Reforma 35 — Etapa 5 (19/ago/2026) — api/compradores.js: NEGOCIACAO_CRIADA + NEGOCIACAO_STATUS_ALTERADO
+
+- **Arquivo alterado**: `api/compradores.js` — bloco `POST` e bloco `PATCH` dentro de `'neg' in q`.
+- **Eventos registrados**:
+  - `NEGOCIACAO_CRIADA` — fire-and-forget após POST bem-sucedido; `dados_antes=null`, `dados_depois=snapshot completo da negociação`; `entidade='negociacao'`; `cliente_id=comprador_id` da negociação.
+  - `NEGOCIACAO_STATUS_ALTERADO` — `await+try/catch` antes do `return` no PATCH; GET-before-PATCH seletivo (`?select=status,motivo_descarte,ultimo_contato,valor_proposto`) **somente quando `payload.status !== undefined`**; registra somente quando `snapAntes.status !== negDepois.status`; `dados_antes` e `dados_depois` com os 4 campos: `status`, `motivo_descarte`, `ultimo_contato`, `valor_proposto`. Falha no historico → log silencioso, PATCH retorna normalmente.
+- **Padrão por método**:
+  - `POST`: fire-and-forget (window natural dada pela resposta `return=representation` do Supabase).
+  - `PATCH`: `await+try/catch` antes do response (padrão Etapa 3/4: worker encerra ao enviar response).
+- **Commit**: `ed397e3`.
+- **Deploy Vercel**: `dpl_6AawkxGPAEzNbrLM1UZXSmQUi9iV` — READY.
+- **Testes executados** (3/3 ✅):
+  - Teste A (NEGOCIACAO_CRIADA): ✅ confirmado no historico (`id=77837bc3`, `dados_antes=null`, `dados_depois.veiculo_nome=TESTE_R35E5_Etapa5`, `dados_depois.status=negociando`). Fire-and-forget chegou ao Supabase com latência >24s — comportamento esperado para serverless após encerramento do worker.
+  - Teste B (NEGOCIACAO_STATUS_ALTERADO): ✅ `dados_antes.status=negociando`, `dados_depois.status=proposta-enviada`, `dados_antes.valor_proposto=55000`, `dados_depois.valor_proposto=54000` — 4 campos corretos.
+  - Teste C (PATCH sem mudança de status): ✅ contagem de NEGOCIACAO_STATUS_ALTERADO inalterada (1→1). Nenhum evento gerado para PATCH sem `status` no payload.
+  - Cleanup: `neg_id=c4fabc70-1695-4dd7-863e-43951bfbeeb3` excluído ao final (gerou NEGOCIACAO_EXCLUIDA via Etapa 4, confirmando cadeia de eventos completa).
+- **Não alterado**: `negociacoes.html`, compradores, Motor de Match, vendas, catálogo, schema, outras APIs.
+
 ---
 
-*Atualizado em 19/agosto/2026 — Reformas 28–35 E4 + fix Parceiros/GASTOS em produção. Reforma 35 completa: tabela `historico` criada (E1) + api/vendas.js (E2) + api/catalogo.js (E3) + api/compradores.js (E4). Caixa Preta operacional para veículos, vendas e negociações.*
+*Atualizado em 19/agosto/2026 — Reforma 35 Etapas 1–5 completas + fix Parceiros/GASTOS. Caixa Preta operacional para veículos, vendas e negociações (ciclo de vida completo). Próxima etapa aprovada: E6 NEGOCIACAO_CONVERTIDA.*
