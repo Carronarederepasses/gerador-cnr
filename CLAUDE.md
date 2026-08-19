@@ -503,10 +503,25 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - Registro de validação inserido (`REFORMA35_TESTE`, entidade_id `00000000-0000-0000-0000-000000000035`) — mantido como primeiro registro da Caixa Preta (append-only, não deletado).
 - **Próxima etapa (Etapa 2)**: instrumentar as APIs com a função `registrarHistorico` para os 7 eventos de Nível 1.
 
-### Próxima etapa
+### Reforma 35 — Etapa 2 (19/ago/2026) — api/vendas.js instrumentado
 
-Reforma 35 Etapa 2 — instrumentar `api/catalogo.js`, `api/vendas.js` e `api/compradores.js` com `registrarHistorico` para os 7 eventos críticos de Nível 1.
+- **Arquivo alterado**: `api/vendas.js` — 1 função adicionada + 3 handlers instrumentados.
+- **`registrarHistorico()`**: função fire-and-forget inserida após `limpar()`. Nunca bloqueia a operação principal. Falha silenciosa com `console.error`. Retorna `undefined` sem `await`.
+- **Eventos registrados**:
+  - `VENDA_CRIADA` — dispara no POST após obter o ID da venda criada; `dados_antes=null`, `dados_depois=snapshot completo`.
+  - `VENDA_EDITADA` — dispara no PATCH; GET-before-PATCH captura `dados_antes`; `dados_depois=snapshot pós-PATCH`.
+  - `VENDA_EXCLUIDA` — dispara no DELETE; GET-before-DELETE captura snapshot; `dados_antes=snapshot`, `dados_depois=null`.
+- **`versao_app`**: preenchido automaticamente com `VERCEL_GIT_COMMIT_SHA` injetado pelo Vercel.
+- **Commit**: `014f2f6c3432c107ca7602dcec73515f4680915d` — push para `origin/main`.
+- **Deploy Vercel**: `dpl_mWqtXds1iCWqM5YSWmZ5mYZcWdxa` — READY.
+- **Testes executados** (via API de produção):
+  - Teste A (VENDA_CRIADA): ✅ — `dados_antes=null`, `dados_depois.marca=TESTE_R35`, versao_app correto.
+  - Teste B (VENDA_EDITADA): ✅ — `dados_antes.valor_venda=35000`, `dados_depois.valor_venda=38500`, diff correto.
+  - Teste C (VENDA_EXCLUIDA): ✅ — `dados_antes.marca=TESTE_R35`, `dados_depois=null`, venda removida do banco.
+  - `venda_id` de teste: `72836515-0d84-43e4-9b63-7ac6683de9e1` (excluída após os testes).
+- **Não alterado**: `vendas.html`, `api/catalogo.js`, `api/compradores.js`, schema do banco, RLS, regras de negócio.
+- **Próxima etapa (Etapa 3)**: instrumentar `api/catalogo.js` — aguarda aprovação explícita do Yuri.
 
 ---
 
-*Atualizado em 19/agosto/2026 — Reformas 28–34 em produção. Reforma 35 Etapa 1 (banco) concluída. Sprint 1 em andamento.*
+*Atualizado em 19/agosto/2026 — Reformas 28–35 E2 em produção. Reforma 35 Etapa 2 (api/vendas.js) concluída e testada. Etapa 3 aguarda aprovação.*
