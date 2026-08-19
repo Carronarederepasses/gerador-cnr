@@ -558,6 +558,19 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
   - `historico.id`: `55429bee-b3e8-4308-ab28-7f7a0038c86b`.
 - **Não alterado**: `negociacoes.html`, criação/edição de negociações, `historico[]` interno, compradores, Motor de Match, vendas, catálogo, schema.
 
+### Fix: Parceiros + GASTOS negrito (19/ago/2026) — commit `0705b7d`
+
+- **Arquivo alterado**: `index.html` — `processarParceiro()` e `gerarColetados()`.
+- **Arquivo alterado**: `api/parse.js` — ambos os prompts (`PROMPT` e `PROMPT_PARCEIRO`).
+- **`processarParceiro()` — opcionais**: substituído loop bugado (buscava `data-id` com nomes longos da IA que não existem no DOM) por `mapOpcionais(data.opcionais)` — igual ao fluxo Texto/Link.
+- **`processarParceiro()` — extras**: corrigido `obs-extra` (id inexistente) → `obs-custom`.
+- **`processarParceiro()` — campos novos**: adicionados `revisoes_km`, `blindagem_marca/nivel/vidro` (com show do `blind-wrap` e marcação do toggle blindado) e `colet-fipe`.
+- **`gerarColetados()`**: `'GASTOS: ' + gastos` → `` `*GASTOS: ${gastos}*` `` — agora em negrito no WhatsApp (igual a VALOR e FIPE).
+- **`api/parse.js`**: instrução de ano expandida para cobrir formato abreviado `XX/XX` (ex: `24/25` → `2025`) em ambos os prompts.
+- **Testes**: 7 verificações DOM/JS passadas localmente; GASTOS negrito confirmado via `renderPreview()` → `#wa-txt`; `mapOpcionais()` com 5 nomes reais da IA → 5 toggles corretos marcados.
+- **Deploy**: `dpl_EiuEVq5EN92wj7xzaZnSRmasUy2w` — READY.
+- **Não alterado**: Caixa Preta/Reforma 35, Motor de Match, cadastro de Clientes, negociações, formulário de venda, autenticação, VENDAS_KEY, catálogo, banco/schema.
+
 ---
 
-*Atualizado em 19/agosto/2026 — Reformas 28–35 E4 em produção. Reforma 35 completa: tabela `historico` criada (E1) + api/vendas.js (E2) + api/catalogo.js (E3) + api/compradores.js (E4). Caixa Preta operacional para veículos, vendas e negociações.*
+*Atualizado em 19/agosto/2026 — Reformas 28–35 E4 + fix Parceiros/GASTOS em produção. Reforma 35 completa: tabela `historico` criada (E1) + api/vendas.js (E2) + api/catalogo.js (E3) + api/compradores.js (E4). Caixa Preta operacional para veículos, vendas e negociações.*
