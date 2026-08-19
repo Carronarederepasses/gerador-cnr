@@ -476,10 +476,17 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - Infraestrutura de status `vendido` no DB: sem migração necessária.
 - Bug: `api/vendas.js` usava só `placa` no auto-update (falha silenciosa quando placa era nula ou divergia). Corrigido com `veiculo_id` primário.
 
+### Reforma 32 (9382085 — 18/ago/2026)
+
+- **`assets/selo-vendido.svg`**: banner SVG vetorial vermelho sólido (`#CC0000`), texto "VENDIDO" branco Impact, sem inclinação, fundo transparente.
+- **`catalogo.html` — CSS**: `.selo-vendido` com `width:55%; max-width:200px`, centralizado, proporção preservada.
+- **`catalogo.html` — topo do card**: badge de nota geral e badge de status **ocultados somente para `v.status === 'vendido'`**. Todos os outros status inalterados.
+- **`catalogo.html` — selo**: `<img>` inserida após `.topo`, somente quando `v.status === 'vendido'`. Não sobrepõe foto, não remove badge textual, não altera lógica de status.
+
 ### Próxima etapa
 
 Sprint 1 (Match Ativo) — validação operacional com ≥5 veículos e resultados registrados.
 
 ---
 
-*Atualizado em 18/agosto/2026 — Reformas 28–31 em produção. Sprint 1 em andamento.*
+*Atualizado em 18/agosto/2026 — Reformas 28–32 em produção. Sprint 1 em andamento.*
