@@ -109,6 +109,10 @@
   .badge.reservado{background:color-mix(in srgb, var(--severity-warn) 15%, transparent);color:var(--severity-warn)}
   .badge.vendido{background:var(--line);color:var(--text-mid)}
 
+  /* Selo carimbo VENDIDO */
+  .selo-vendido-wrap{text-align:center;margin:.4rem 0 .2rem}
+  .selo-vendido{width:170px;max-width:78%;height:auto;display:inline-block}
+
   /* Menu rápido de status */
   .st-menu{position:fixed;z-index:500;background:var(--surface-raise);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.25);min-width:160px;display:none;overflow:hidden}
   .st-menu.show{display:block}
@@ -635,6 +639,7 @@ function card(v) {
         <span class="badge ${v.status}">${v.status}</span>
       </div>
     </div>
+    ${v.status === 'vendido' ? '<div class="selo-vendido-wrap"><img src="/assets/selo-vendido.svg" class="selo-vendido" alt="Vendido"></div>' : ''}
     <div class="dados">${dados}</div>
     <div class="placa-linha" role="button" tabindex="0" title="Clique para editar (uso interno)" aria-label="Editar placa"
          onclick="editarPlaca('${v.id}')"

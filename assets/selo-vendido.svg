@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 150">
+  <!-- Carimbo VENDIDO — fundo transparente, inclinado -12° -->
+  <g transform="translate(170,75) rotate(-12)">
+    <!-- borda externa -->
+    <rect x="-145" y="-46" width="290" height="92" rx="4"
+          fill="none" stroke="#CC0000" stroke-width="6"/>
+    <!-- borda interna -->
+    <rect x="-133" y="-36" width="266" height="72" rx="2"
+          fill="none" stroke="#CC0000" stroke-width="2.5"/>
+    <!-- texto -->
+    <text x="0" y="22"
+          text-anchor="middle"
+          font-family="Impact,'Arial Narrow','Arial Black',sans-serif"
+          font-size="52"
+          fill="#CC0000"
+          letter-spacing="6">VENDIDO</text>
+  </g>
+</svg>
