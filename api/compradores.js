@@ -240,8 +240,30 @@ module.exports = async (req, res) => {
       }
       if (req.method === 'DELETE') {
         if (!q.id) return res.status(400).json({ error: 'id obrigatório' });
+        // Caixa Preta — captura snapshot completo antes do DELETE
+        const rSnap = await sb(`negociacoes?id=eq.${encodeURIComponent(q.id)}&select=*`);
+        const snapshot = rSnap.ok ? ((await rSnap.json())[0] || null) : null;
         const r = await sb(`negociacoes?id=eq.${q.id}`, { method: 'DELETE' });
         if (!r.ok) throw new Error(await r.text());
+        // Await explícito antes do response — serverless encerra o worker ao enviar response
+        try {
+          await sb('historico', {
+            method:  'POST',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              evento:      'NEGOCIACAO_EXCLUIDA',
+              entidade:    'negociacao',
+              entidade_id: q.id,
+              veiculo_id:  snapshot?.veiculo_id   || null,
+              venda_id:    null,
+              cliente_id:  snapshot?.comprador_id || null,
+              dados_antes:  snapshot ?? null,
+              dados_depois: null,
+              origem:      'api',
+              versao_app:  process.env.VERCEL_GIT_COMMIT_SHA || null,
+            }),
+          });
+        } catch (e) { console.error('[historico] falha ao registrar:', e.message); }
         return res.status(200).json({ ok: true });
       }
       return res.status(405).json({ error: 'Método não permitido' });
