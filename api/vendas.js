@@ -60,6 +60,28 @@ function limpar(body) {
   return out;
 }
 
+// ── Caixa Preta — registro histórico (fire-and-forget) ───────────
+// Nunca bloqueia a operação principal. Falha silenciosa com log de erro.
+function registrarHistorico({ evento, entidade_id, veiculo_id, venda_id, cliente_id, dados_antes, dados_depois }) {
+  sb('historico', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      evento,
+      entidade:     'venda',
+      entidade_id,
+      veiculo_id:   veiculo_id  || null,
+      venda_id:     venda_id    || null,
+      cliente_id:   cliente_id  || null,
+      dados_antes:  dados_antes  ?? null,
+      dados_depois: dados_depois ?? null,
+      origem:       'api',
+      versao_app:   process.env.VERCEL_GIT_COMMIT_SHA || null,
+    }),
+  }).catch(e => console.error('[historico] falha ao registrar:', e.message));
+  // Retorna undefined intencionalmente — sem await
+}
+
 function filtros(q) {
   const f = [];
   if (q.id)     f.push(`id=eq.${encodeURIComponent(q.id)}`);
@@ -213,6 +235,17 @@ module.exports = async (req, res) => {
       const data = await r.json();
       const venda = data[0] || data;
 
+      // Caixa Preta — VENDA_CRIADA (fire-and-forget, nunca bloqueia)
+      registrarHistorico({
+        evento:       'VENDA_CRIADA',
+        entidade_id:  venda.id,
+        veiculo_id:   venda.veiculo_id   || null,
+        venda_id:     venda.id,
+        cliente_id:   venda.comprador_id || null,
+        dados_antes:  null,
+        dados_depois: venda,
+      });
+
       // Auto-atualiza veículos para "vendido" após venda registrada.
       // Primário: por veiculo_id (mais confiável). Fallback: por placa.
       const _vidUpd = payload.veiculo_id;
@@ -241,19 +274,54 @@ module.exports = async (req, res) => {
     if (req.method === 'PATCH') {
       if (!q.id) return res.status(400).json({ error: 'id obrigatório.' });
       const payload = limpar(req.body || {});
+
+      // Caixa Preta — captura estado anterior antes do PATCH
+      const rAntes = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}&select=*`);
+      const dadosAntes = rAntes.ok ? ((await rAntes.json())[0] || null) : null;
+
       const r = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
         method: 'PATCH', headers: { Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
-      return res.status(200).json(data[0] || data);
+      const vendaDepois = data[0] || data;
+
+      // Caixa Preta — VENDA_EDITADA (fire-and-forget, nunca bloqueia)
+      registrarHistorico({
+        evento:       'VENDA_EDITADA',
+        entidade_id:  q.id,
+        veiculo_id:   dadosAntes?.veiculo_id   || vendaDepois?.veiculo_id   || null,
+        venda_id:     q.id,
+        cliente_id:   dadosAntes?.comprador_id || vendaDepois?.comprador_id || null,
+        dados_antes:  dadosAntes,
+        dados_depois: vendaDepois,
+      });
+
+      return res.status(200).json(vendaDepois);
     }
 
     if (req.method === 'DELETE') {
       if (!q.id) return res.status(400).json({ error: 'id obrigatório.' });
+
+      // Caixa Preta — captura snapshot completo antes do DELETE
+      const rSnap = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}&select=*`);
+      const snapshot = rSnap.ok ? ((await rSnap.json())[0] || null) : null;
+
       const r = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, { method: 'DELETE' });
       if (!r.ok) throw new Error(await r.text());
+
+      // Caixa Preta — VENDA_EXCLUIDA (fire-and-forget, nunca bloqueia)
+      registrarHistorico({
+        evento:       'VENDA_EXCLUIDA',
+        entidade_id:  q.id,
+        veiculo_id:   snapshot?.veiculo_id   || null,
+        venda_id:     q.id,
+        cliente_id:   snapshot?.comprador_id || null,
+        dados_antes:  snapshot,
+        dados_depois: null,
+      });
+
       return res.status(200).json({ ok: true });
     }
 
