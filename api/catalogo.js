@@ -330,13 +330,26 @@ module.exports = async (req, res) => {
       const snapshot = rSnap.ok ? ((await rSnap.json())[0] || null) : null;
       const r = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, { method: 'DELETE' });
       if (!r.ok) throw new Error(await r.text());
-      registrarHistorico({
-        evento:       'VEICULO_EXCLUIDO',
-        entidade_id:  q.id,
-        veiculo_id:   q.id,
-        dados_antes:  snapshot,
-        dados_depois: null,
-      });
+      // Await explícito antes do response — serverless encerra o worker ao enviar response,
+      // o que cancela Promises pendentes. try/catch garante que falha não bloqueia o retorno.
+      try {
+        await sb('historico', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            evento:       'VEICULO_EXCLUIDO',
+            entidade:     'veiculo',
+            entidade_id:  q.id,
+            veiculo_id:   q.id,
+            venda_id:     null,
+            cliente_id:   null,
+            dados_antes:  snapshot ?? null,
+            dados_depois: null,
+            origem:       'api',
+            versao_app:   process.env.VERCEL_GIT_COMMIT_SHA || null,
+          }),
+        });
+      } catch (e) { console.error('[historico] falha ao registrar:', e.message); }
       return res.status(200).json({ ok: true });
     }
 
