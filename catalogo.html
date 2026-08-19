@@ -635,8 +635,8 @@ function card(v) {
     <div class="topo">
       <h3 class="h3-edit" title="Clique para editar" onclick="abrirEdicao('${v.id}')">${esc(nomeVeiculo(v))}</h3>
       <div style="display:flex;gap:.3rem;align-items:center">
-        ${(v.avaliacao && v.avaliacao.nota) ? `<span class="nota-badge ${v.avaliacao.nota}" title="Nota da avaliação">${NOTA_AV[v.avaliacao.nota]}</span>` : ''}
-        <span class="badge ${v.status}">${v.status}</span>
+        ${v.status !== 'vendido' && (v.avaliacao && v.avaliacao.nota) ? `<span class="nota-badge ${v.avaliacao.nota}" title="Nota da avaliação">${NOTA_AV[v.avaliacao.nota]}</span>` : ''}
+        ${v.status !== 'vendido' ? `<span class="badge ${v.status}">${v.status}</span>` : ''}
       </div>
     </div>
     ${v.status === 'vendido' ? '<div class="selo-vendido-wrap"><img src="/assets/selo-vendido.svg" class="selo-vendido" alt="Vendido"></div>' : ''}
