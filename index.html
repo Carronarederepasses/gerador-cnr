@@ -2269,18 +2269,27 @@ async function processarParceiro() {
     fill('colet-valor',   data.valor);
     fill('colet-combustivel', data.combustivel);
 
-    // Opcionais detectados na imagem e/ou laudo
-    if (Array.isArray(data.opcionais)) {
-      data.opcionais.forEach(opc => {
-        const tog = document.querySelector(`.tog[data-id="${opc}"]`);
-        if (tog && !tog.classList.contains('on')) tog.click();
-      });
-    }
-
     if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
     if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
-    if (data.gastos)  { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
-    if (data.extras)  { const e = document.getElementById('obs-extra'); if (e && !e.value) e.value = data.extras; }
+    fill('revisoes-km', data.revisoes_km ? Number(String(data.revisoes_km).replace(/\D/g,'')).toLocaleString('pt-BR') : null);
+    fill('blind-marca', data.blindagem_marca);
+    fill('blind-nivel', data.blindagem_nivel);
+    fill('blind-vidro', data.blindagem_vidro);
+    if (data.blindagem_marca || data.blindagem_nivel || data.blindagem_vidro) {
+      document.getElementById('blind-wrap').classList.add('show');
+      document.querySelectorAll('.tog[data-id="blindado"]').forEach(tog => {
+        if (!tog.classList.contains('on')) {
+          tog.classList.add('on');
+          const box = tog.querySelector('.togbox');
+          if (box) box.textContent = '✓';
+        }
+      });
+      atualizaContagemOpc();
+    }
+    if (data.fipe) fill('colet-fipe', data.fipe);
+    if (data.gastos) { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
+    if (data.extras) { const e = document.getElementById('obs-custom'); if (e && !e.value) e.value = data.extras; }
+    mapOpcionais(data.opcionais);
 
     setParcSt('✓ Campos preenchidos. Buscando FIPE...', 'ok');
 
@@ -2478,7 +2487,7 @@ function gerarColetados() {
     linhas.push('');
     linhas.push(obsCustom);
   }
-  if (gastos) { linhas.push(''); linhas.push('GASTOS: ' + gastos); }
+  if (gastos) { linhas.push(''); linhas.push(`*GASTOS: ${gastos}*`); }
 
   linhas.push('');
   if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
