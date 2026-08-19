@@ -541,6 +541,23 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
   - `veiculo_id` de teste: `ff7c8cc8-e480-4e70-8f87-f052f0dcb19c` (excluído após os testes).
 - **Não alterado**: `catalogo.html`, `api/vendas.js`, `api/compradores.js`, fotos, documentos, avaliação, Match, scoring, schema.
 
+### Reforma 35 — Etapa 4 (19/ago/2026) — api/compradores.js instrumentado (NEGOCIACAO_EXCLUIDA)
+
+- **Arquivo alterado**: `api/compradores.js` — bloco `DELETE` dentro de `'neg' in q`.
+- **Evento registrado**:
+  - `NEGOCIACAO_EXCLUIDA` — dispara no DELETE de negociação com `await` explícito + try/catch (mesmo padrão da Etapa 3); GET-before-DELETE captura snapshot completo da negociação (incluindo `historico[]` interno); `dados_antes=snapshot`, `dados_depois=null`. `cliente_id` preenchido com `comprador_id` do snapshot quando disponível.
+- **Campos mapeados**: `entidade='negociacao'`, `entidade_id=q.id`, `veiculo_id=snapshot.veiculo_id||null`, `cliente_id=snapshot.comprador_id||null`.
+- **Tratamento de falha**: GET falho → `snapshot=null` → operação continua normalmente. Registro no historico falho → log silencioso → operação retorna `{ ok: true }` normalmente.
+- **Commit**: `d2f0232`.
+- **Deploy Vercel**: `dpl_2zQng6e5fVQb3ATCABmKvGjj5yK6` — READY.
+- **Testes executados** (3/3 ✅):
+  - Teste A (criação): ✅ negociação criada com `historico[]` (2 entradas) e status `negociando`.
+  - Teste B (NEGOCIACAO_EXCLUIDA): ✅ `entidade=negociacao`, `entidade_id=747aefae-…`, `dados_antes.status=negociando`, `dados_antes.historico` preservado (2 entradas), `dados_depois=null`, row removido da tabela, `versao_app=d2f02324`.
+  - Teste C (outras negociações intactas): ✅ contagem antes=2, depois=2; diferença=0.
+  - `neg_id` de teste: `747aefae-a8c6-4d2c-967f-57811530228c` (excluído pelos testes).
+  - `historico.id`: `55429bee-b3e8-4308-ab28-7f7a0038c86b`.
+- **Não alterado**: `negociacoes.html`, criação/edição de negociações, `historico[]` interno, compradores, Motor de Match, vendas, catálogo, schema.
+
 ---
 
-*Atualizado em 19/agosto/2026 — Reformas 28–35 E3 em produção. Reforma 35 completa: tabela `historico` criada (E1) + api/vendas.js (E2) + api/catalogo.js (E3). Caixa Preta operacional para veículos e vendas.*
+*Atualizado em 19/agosto/2026 — Reformas 28–35 E4 em produção. Reforma 35 completa: tabela `historico` criada (E1) + api/vendas.js (E2) + api/catalogo.js (E3) + api/compradores.js (E4). Caixa Preta operacional para veículos, vendas e negociações.*
