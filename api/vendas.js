@@ -62,13 +62,13 @@ function limpar(body) {
 
 // ── Caixa Preta — registro histórico (fire-and-forget) ───────────
 // Nunca bloqueia a operação principal. Falha silenciosa com log de erro.
-function registrarHistorico({ evento, entidade_id, veiculo_id, venda_id, cliente_id, dados_antes, dados_depois }) {
+function registrarHistorico({ evento, entidade = 'venda', entidade_id, veiculo_id, venda_id, cliente_id, dados_antes, dados_depois }) {
   sb('historico', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({
       evento,
-      entidade:     'venda',
+      entidade,
       entidade_id,
       veiculo_id:   veiculo_id  || null,
       venda_id:     venda_id    || null,
@@ -223,6 +223,8 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST') {
+      // Caixa Preta — Etapa 6: captura antes do limpar() — não existe na tabela vendas
+      const negociacao_id = (req.body && req.body.negociacao_id) ? req.body.negociacao_id : null;
       const payload = limpar(req.body || {});
       if (!payload.comprador_nome && !payload.vendedor_nome && !payload.marca) {
         return res.status(400).json({ error: 'Informe ao menos o comprador, o vendedor ou o veículo.' });
@@ -245,6 +247,29 @@ module.exports = async (req, res) => {
         dados_antes:  null,
         dados_depois: venda,
       });
+
+      // Caixa Preta — NEGOCIACAO_CONVERTIDA (fire-and-forget)
+      // Registrado somente quando a venda nasce de uma negociação rastreável.
+      if (negociacao_id) {
+        registrarHistorico({
+          evento:      'NEGOCIACAO_CONVERTIDA',
+          entidade:    'negociacao',
+          entidade_id: negociacao_id,
+          veiculo_id:  venda.veiculo_id   || null,
+          venda_id:    venda.id,
+          cliente_id:  venda.comprador_id || null,
+          dados_antes: {
+            status:        'comprado',
+            negociacao_id,
+          },
+          dados_depois: {
+            venda_id:     venda.id,
+            valor_venda:  venda.valor_venda  || null,
+            comprador_id: venda.comprador_id || null,
+            veiculo_id:   venda.veiculo_id   || null,
+          },
+        });
+      }
 
       // Auto-atualiza veículos para "vendido" após venda registrada.
       // Primário: por veiculo_id (mais confiável). Fallback: por placa.

@@ -813,6 +813,7 @@ async function irParaVenda(id) {
   if (n.comprador_id)      p.set('comprador_id',         n.comprador_id);
   if (n.veiculo_id)        p.set('veiculo_id',           n.veiculo_id);
   if (n.motivo_match)      p.set('motivo_match',         n.motivo_match);
+  p.set('negociacao_id', n.id); // Caixa Preta — Etapa 6: liga negociação à venda
 
   // Busca dados completos do veículo no catálogo para pré-preencher o formulário de venda
   if (n.veiculo_id) {

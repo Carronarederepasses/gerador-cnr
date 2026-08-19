@@ -387,6 +387,7 @@ let COMPRADORES_HIST = [];
 let VENDEDORES_HIST  = [];
 let _CRM_MATCHES  = [];
 let _VEND_MATCHES = [];
+let _negociacao_id = null; // Caixa Preta — Etapa 6: ID da negociação de origem da venda
 
 (async () => {
   try {
@@ -586,6 +587,7 @@ async function iniciarApp(){
     if (p.has('comprador_telefone')) veiculo.comprador_telefone = p.get('comprador_telefone');
     if (p.has('veiculo_id'))        veiculo.veiculo_id          = p.get('veiculo_id');
     if (p.has('comprador_id'))      veiculo.comprador_id        = p.get('comprador_id');
+    if (p.has('negociacao_id'))     _negociacao_id              = p.get('negociacao_id'); // Etapa 6
     veiculo._fromCatalogo = true;
     abrirModal(veiculo);
     // Preenche CRM após abrir o modal
@@ -810,7 +812,7 @@ function abrirModal(v) {
   setModoManual(!!(v._fromCatalogo && temCarro) || !!(v.id && temCarro));
   $('modal').classList.add('show');
 }
-function fecharModal(){ $('modal').classList.remove('show'); }
+function fecharModal(){ $('modal').classList.remove('show'); _negociacao_id = null; }
 $('btn-nova').onclick = () => abrirModal();
 $('m-cancelar').onclick = fecharModal;
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) fecharModal(); });
@@ -1009,6 +1011,8 @@ $('m-salvar').onclick = async () => {
     const _crmMatch = COMPRADORES_CRM.find(c => c.nome && c.nome.toLowerCase().trim() === _nomeDigitado);
     if (_crmMatch) body.comprador_id = _crmMatch.id;
   }
+  // Caixa Preta — Etapa 6: transporta negociacao_id para o backend (somente em nova venda)
+  if (!id && _negociacao_id) body.negociacao_id = _negociacao_id;
   const btn = $('m-salvar');
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
