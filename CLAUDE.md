@@ -591,6 +591,30 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
   - Cleanup: `neg_id=c4fabc70-1695-4dd7-863e-43951bfbeeb3` excluído ao final (gerou NEGOCIACAO_EXCLUIDA via Etapa 4, confirmando cadeia de eventos completa).
 - **Não alterado**: `negociacoes.html`, compradores, Motor de Match, vendas, catálogo, schema, outras APIs.
 
+### Reforma 35 — Etapa 6 (19/ago/2026) — NEGOCIACAO_CONVERTIDA — implementada, testes pendentes
+
+- **Arquivos alterados**: `negociacoes.html`, `vendas.html`, `api/vendas.js`
+- **Commit**: `def46cd` — **Deploy**: `dpl_8eN87UF5dampp5nDU55MBfLkxUpe` — **READY**
+- **O que foi implementado**:
+  - `negociacoes.html` — `irParaVenda()`: adiciona `p.set('negociacao_id', n.id)` → transporta o ID da negociação para `vendas.html` via URL
+  - `vendas.html` — variável de módulo `let _negociacao_id = null` (padrão `_rapContador`); `iniciarApp()` lê `negociacao_id` da URL e armazena em `_negociacao_id`; `fecharModal()` limpa `_negociacao_id = null`; handler salvar inclui `if (!id && _negociacao_id) body.negociacao_id = _negociacao_id` — somente em POST (nova venda), nunca em PATCH (edição)
+  - `api/vendas.js` — `registrarHistorico()` recebe `entidade = 'venda'` como default (chamadas existentes intactas); bloco POST captura `negociacao_id` **antes** de `limpar()` (não existe na tabela `vendas`); se `negociacao_id` presente, dispara `NEGOCIACAO_CONVERTIDA` fire-and-forget com `entidade='negociacao'`, `entidade_id=negociacao_id`, `venda_id=venda.id`, `dados_antes={status:'comprado', negociacao_id}`, `dados_depois={venda_id, valor_venda, comprador_id, veiculo_id}`
+- **Não alterado**: `VENDA_CRIADA`, `VENDA_EDITADA`, `VENDA_EXCLUIDA`, `salvarRapida()`, Motor de Match, schema da tabela `vendas`, negociações, compradores — zero migration
+- **Testes pendentes** (necessitam `VENDAS_KEY` no ambiente):
+  - Teste A: venda criada via `irParaVenda()` → confirmar `NEGOCIACAO_CONVERTIDA` com `entidade_id=neg.id` e `venda_id=venda.id`
+  - Teste B: venda direta → confirmar ausência de `NEGOCIACAO_CONVERTIDA`
+  - Teste C: `salvarRapida()` → confirmar ausência de `NEGOCIACAO_CONVERTIDA`
+- **Script de testes pronto** em scratchpad: `reforma35_etapa6_testes.mjs` (requer `$env:VENDAS_KEY = '...'` no terminal antes de executar)
+
 ---
 
-*Atualizado em 19/agosto/2026 — Reforma 35 Etapas 1–5 completas + fix Parceiros/GASTOS. Caixa Preta operacional para veículos, vendas e negociações (ciclo de vida completo). Próxima etapa aprovada: E6 NEGOCIACAO_CONVERTIDA.*
+### Onde o projeto ficou (atualizado 19/ago/2026 — pós Reforma 35 E6)
+
+- `origin/main` em `def46cd` (Reforma 35 Etapa 6), Vercel `dpl_8eN87UF5dampp5nDU55MBfLkxUpe` — READY.
+- **Caixa Preta (Reforma 35)** — Etapas 1–6 implementadas. Falta: executar testes A/B/C da Etapa 6 (requer VENDAS_KEY no terminal) e atualizar CLAUDE.md com resultado.
+- Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados.
+- Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada.
+
+---
+
+*Atualizado em 19/agosto/2026 — Reforma 35 Etapa 6 implementada e deployada. Testes pendentes para próxima sessão (necessitam VENDAS_KEY). Caixa Preta cobre ciclo de vida completo: veículos + vendas + negociações + conversão explícita negociação→venda.*
