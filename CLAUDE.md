@@ -520,8 +520,27 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
   - Teste C (VENDA_EXCLUIDA): ✅ — `dados_antes.marca=TESTE_R35`, `dados_depois=null`, venda removida do banco.
   - `venda_id` de teste: `72836515-0d84-43e4-9b63-7ac6683de9e1` (excluída após os testes).
 - **Não alterado**: `vendas.html`, `api/catalogo.js`, `api/compradores.js`, schema do banco, RLS, regras de negócio.
-- **Próxima etapa (Etapa 3)**: instrumentar `api/catalogo.js` — aguarda aprovação explícita do Yuri.
+- **Etapa 3**: concluída — ver seção abaixo.
+
+### Reforma 35 — Etapa 3 (19/ago/2026) — api/catalogo.js instrumentado
+
+- **Arquivo alterado**: `api/catalogo.js` — 1 função adicionada + 3 handlers instrumentados.
+- **`registrarHistorico()`**: mesma função fire-and-forget da Etapa 2. Adicionada após `limpar()`.
+- **Eventos registrados**:
+  - `VEICULO_CRIADO` — dispara no POST após INSERT bem-sucedido; `dados_antes=null`, `dados_depois=snapshot completo`.
+  - `VEICULO_STATUS_ALTERADO` — dispara no PATCH **somente se `status` está no payload E o valor mudou**; GET-before-PATCH seletivo (`?select=status`); `dados_antes={status:anterior}`, `dados_depois={status:novo}`. Bloco `avaliacao` (deep-merge) intocado.
+  - `VEICULO_EXCLUIDO` — dispara no DELETE com `await` explícito + try/catch (necessário: serverless encerra worker ao enviar response, cancelando Promises pendentes); GET-before-DELETE captura snapshot completo; `dados_antes=snapshot`, `dados_depois=null`.
+- **Fix técnico (VEICULO_EXCLUIDO)**: fire-and-forget puro falha no DELETE porque o Vercel encerra o worker imediatamente após `res.json()`. Solução: `await` com `try/catch` inline antes do `return`. Falha no historico é capturada e logada, nunca propaga. Commit `c515db5`.
+- **Commits**: `d1ec635` (implementação) + `c515db5` (fix await no DELETE).
+- **Deploy Vercel**: `dpl_5KgPRPTov2Z2m1RT6eeDfih7GMx9` — READY.
+- **Testes executados** (verificação direta no Supabase):
+  - Teste A (VEICULO_CRIADO): ✅ `dados_antes=null`, `dados_depois.marca=TESTE_R35E3`, `versao_app=c515db56`.
+  - Teste B (VEICULO_STATUS_ALTERADO): ✅ `dados_antes.status=captacao`, `dados_depois.status=em-anuncio`.
+  - Teste C (edição sem status): ✅ apenas 1 VEICULO_STATUS_ALTERADO no banco; PATCH de `km` não gerou evento extra.
+  - Teste D (VEICULO_EXCLUIDO): ✅ `dados_antes.marca=TESTE_R35E3`, `dados_depois=null`, veículo removido da tabela.
+  - `veiculo_id` de teste: `ff7c8cc8-e480-4e70-8f87-f052f0dcb19c` (excluído após os testes).
+- **Não alterado**: `catalogo.html`, `api/vendas.js`, `api/compradores.js`, fotos, documentos, avaliação, Match, scoring, schema.
 
 ---
 
-*Atualizado em 19/agosto/2026 — Reformas 28–35 E2 em produção. Reforma 35 Etapa 2 (api/vendas.js) concluída e testada. Etapa 3 aguarda aprovação.*
+*Atualizado em 19/agosto/2026 — Reformas 28–35 E3 em produção. Reforma 35 completa: tabela `historico` criada (E1) + api/vendas.js (E2) + api/catalogo.js (E3). Caixa Preta operacional para veículos e vendas.*
