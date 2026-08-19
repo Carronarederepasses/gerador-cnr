@@ -1002,6 +1002,13 @@ $('m-salvar').onclick = async () => {
     if (['km','valor_venda','valor_fipe','taxa_intermediacao','valor_compra'].includes(c)) val = parseBRv(val);
     body[c] = val;
   });
+  // Reforma 33: se o comprador não foi selecionado do dropdown (comprador_id vazio)
+  // mas o nome digitado bate exatamente com um registro do CRM, vincula automaticamente.
+  if (!body.comprador_id && body.comprador_nome) {
+    const _nomeDigitado = body.comprador_nome.toLowerCase().trim();
+    const _crmMatch = COMPRADORES_CRM.find(c => c.nome && c.nome.toLowerCase().trim() === _nomeDigitado);
+    if (_crmMatch) body.comprador_id = _crmMatch.id;
+  }
   const btn = $('m-salvar');
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
