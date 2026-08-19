@@ -313,7 +313,7 @@ module.exports = async (req, res) => {
     // ── MATCH ─────────────────────────────────────────────────
     if ('match' in q) {
       const [rComp, rVendas, rEventos] = await Promise.all([
-        sb('compradores?select=*&ativo=eq.true&order=nome.asc'),
+        sb('compradores?select=*&ativo=eq.true&papel=in.(comprador,ambos)&order=nome.asc'),
         sb('vendas?select=comprador_id,marca,valor_venda,data_venda&comprador_id=not.is.null'),
         sb('eventos?select=comprador_id,resultado,created_at,veiculo_id&tipo=eq.match_notificado'),
       ]);
