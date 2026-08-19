@@ -442,9 +442,9 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 - **`VENDAS_KEY` — papel correto**: variável de ambiente da Vercel usada exclusivamente como credencial técnica da API. O frontend lê a chave do `sessionStorage` e a envia silenciosamente nas operações de escrita. Nenhuma tela de senha, nenhum portão visual, nenhuma interação do usuário. Valor da chave existe somente no painel da Vercel.
 
-### Onde o projeto ficou (atualizado 19/ago/2026 — pós Reforma 33)
+### Onde o projeto ficou (atualizado 19/ago/2026 — pós Reforma 34)
 
-- `origin/main` em `9cd9362` (Reforma 33), Vercel `dpl_HnYx57GHK5QUHkx9FgSFevrRGxM5` — READY.
+- `origin/main` em `c1b1254` (Reforma 34), Vercel `dpl_ESeFQpMfwkVLtzT9Aa1xAZ34RF9r` — READY.
 - Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada.
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
 
@@ -489,10 +489,14 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - **Diagnóstico da lacuna**: não era bug de código — o campo `m-comprador_id` (hidden), `selecionarCRM()` e a whitelist `CAMPOS` em `api/vendas.js` já funcionavam. O vínculo se perdia quando o operador digitava o nome sem clicar no dropdown.
 - **Limitação documentada**: o auto-match usa comparação exata de nome. Nomes digitados com sufixos ou variações ("Willian / California Motors") não fazem match automático — requerem seleção explícita do dropdown. A venda do C3 (primeira venda real) precisa ser editada manualmente para vincular a Califórnia Motors.
 
+### Reforma 34 (c1b1254 — 19/ago/2026)
+
+- **`api/compradores.js` — endpoint `/match`**: filtro `papel=in.(comprador,ambos)` adicionado à query de busca de candidatos. Clientes com `papel=fonte` não entram mais no pool de pontuação do Motor de Match. Alteração cirúrgica: 1 arquivo, 1 linha. `calcScore`, threshold 40, Top 3, cadastro, vendas, catálogo e banco intocados. Sem migration necessária (campo `papel` já existia e estava populado).
+
 ### Próxima etapa
 
 Sprint 1 (Match Ativo) — validação operacional com ≥5 veículos e resultados registrados.
 
 ---
 
-*Atualizado em 19/agosto/2026 — Reformas 28–33 em produção. Sprint 1 em andamento.*
+*Atualizado em 19/agosto/2026 — Reformas 28–34 em produção. Sprint 1 em andamento.*
