@@ -225,6 +225,26 @@ module.exports = async (req, res) => {
           method: 'POST', body: JSON.stringify(payload), prefer: 'return=representation',
         });
         const data = await r.json();
+        if (r.ok) {
+          const neg = data[0] || data;
+          // Caixa Preta — NEGOCIACAO_CRIADA (fire-and-forget, nunca bloqueia)
+          sb('historico', {
+            method:  'POST',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              evento:      'NEGOCIACAO_CRIADA',
+              entidade:    'negociacao',
+              entidade_id: neg.id,
+              veiculo_id:  neg.veiculo_id   || null,
+              venda_id:    null,
+              cliente_id:  neg.comprador_id || null,
+              dados_antes:  null,
+              dados_depois: neg,
+              origem:      'api',
+              versao_app:  process.env.VERCEL_GIT_COMMIT_SHA || null,
+            }),
+          }).catch(e => console.error('[historico] falha ao registrar:', e.message));
+        }
         return res.status(r.ok ? 201 : r.status).json(r.ok ? data[0] : data);
       }
       if (req.method === 'PATCH') {
@@ -232,10 +252,49 @@ module.exports = async (req, res) => {
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
         const payload = limpar(body, CAMPOS_NEG);
         payload.updated_at = new Date().toISOString();
+        // Caixa Preta — captura estado anterior se status está sendo alterado
+        let snapAntes = null;
+        if (payload.status !== undefined) {
+          const rSt = await sb(`negociacoes?id=eq.${encodeURIComponent(q.id)}&select=status,motivo_descarte,ultimo_contato,valor_proposto`);
+          if (rSt.ok) snapAntes = (await rSt.json())[0] || null;
+        }
         const r = await sb(`negociacoes?id=eq.${q.id}`, {
           method: 'PATCH', body: JSON.stringify(payload), prefer: 'return=representation',
         });
         const data = await r.json();
+        const negDepois = r.ok ? (data[0] || data) : null;
+        // Registra somente se status realmente mudou — await+try/catch antes do response
+        // (serverless encerra o worker ao enviar response, cancelando Promises pendentes)
+        if (snapAntes !== null && negDepois && snapAntes.status !== negDepois.status) {
+          try {
+            await sb('historico', {
+              method:  'POST',
+              headers: { Prefer: 'return=minimal' },
+              body: JSON.stringify({
+                evento:      'NEGOCIACAO_STATUS_ALTERADO',
+                entidade:    'negociacao',
+                entidade_id: q.id,
+                veiculo_id:  negDepois.veiculo_id   || null,
+                venda_id:    null,
+                cliente_id:  negDepois.comprador_id || null,
+                dados_antes: {
+                  status:          snapAntes.status,
+                  motivo_descarte: snapAntes.motivo_descarte ?? null,
+                  ultimo_contato:  snapAntes.ultimo_contato  ?? null,
+                  valor_proposto:  snapAntes.valor_proposto  ?? null,
+                },
+                dados_depois: {
+                  status:          negDepois.status,
+                  motivo_descarte: negDepois.motivo_descarte ?? null,
+                  ultimo_contato:  negDepois.ultimo_contato  ?? null,
+                  valor_proposto:  negDepois.valor_proposto  ?? null,
+                },
+                origem:     'api',
+                versao_app: process.env.VERCEL_GIT_COMMIT_SHA || null,
+              }),
+            });
+          } catch (e) { console.error('[historico] falha ao registrar:', e.message); }
+        }
         return res.status(r.ok ? 200 : r.status).json(r.ok ? data[0] : data);
       }
       if (req.method === 'DELETE') {
