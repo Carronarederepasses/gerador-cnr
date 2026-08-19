@@ -442,9 +442,9 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 - **`VENDAS_KEY` — papel correto**: variável de ambiente da Vercel usada exclusivamente como credencial técnica da API. O frontend lê a chave do `sessionStorage` e a envia silenciosamente nas operações de escrita. Nenhuma tela de senha, nenhum portão visual, nenhuma interação do usuário. Valor da chave existe somente no painel da Vercel.
 
-### Onde o projeto ficou (atualizado 18/ago/2026 — pós Reforma 31)
+### Onde o projeto ficou (atualizado 19/ago/2026 — pós Reforma 33)
 
-- `origin/main` em `7637665` (Reforma 31), Vercel `dpl_DXM3DhCS9H3x79EzijKoMMbcf4Xr` — READY.
+- `origin/main` em `9cd9362` (Reforma 33), Vercel `dpl_HnYx57GHK5QUHkx9FgSFevrRGxM5` — READY.
 - Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados. Não foi tocada.
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
 
@@ -483,10 +483,16 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - **`catalogo.html` — topo do card**: badge de nota geral e badge de status **ocultados somente para `v.status === 'vendido'`**. Todos os outros status inalterados.
 - **`catalogo.html` — selo**: `<img>` inserida após `.topo`, somente quando `v.status === 'vendido'`. Não sobrepõe foto, não remove badge textual, não altera lógica de status.
 
+### Reforma 33 (9cd9362 — 19/ago/2026)
+
+- **`vendas.html` — handler de salvar**: auto-match de `comprador_id` por nome exato ao salvar a venda. Se `comprador_id` estiver vazio mas `comprador_nome` bater exatamente (case-insensitive) com um registro em `COMPRADORES_CRM`, o UUID do CRM é inserido em `body.comprador_id` antes do POST/PATCH. Sem mudança na API, no banco ou em outros módulos.
+- **Diagnóstico da lacuna**: não era bug de código — o campo `m-comprador_id` (hidden), `selecionarCRM()` e a whitelist `CAMPOS` em `api/vendas.js` já funcionavam. O vínculo se perdia quando o operador digitava o nome sem clicar no dropdown.
+- **Limitação documentada**: o auto-match usa comparação exata de nome. Nomes digitados com sufixos ou variações ("Willian / California Motors") não fazem match automático — requerem seleção explícita do dropdown. A venda do C3 (primeira venda real) precisa ser editada manualmente para vincular a Califórnia Motors.
+
 ### Próxima etapa
 
 Sprint 1 (Match Ativo) — validação operacional com ≥5 veículos e resultados registrados.
 
 ---
 
-*Atualizado em 18/agosto/2026 — Reformas 28–32 em produção. Sprint 1 em andamento.*
+*Atualizado em 19/agosto/2026 — Reformas 28–33 em produção. Sprint 1 em andamento.*
