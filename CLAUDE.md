@@ -493,10 +493,20 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 - **`api/compradores.js` — endpoint `/match`**: filtro `papel=in.(comprador,ambos)` adicionado à query de busca de candidatos. Clientes com `papel=fonte` não entram mais no pool de pontuação do Motor de Match. Alteração cirúrgica: 1 arquivo, 1 linha. `calcScore`, threshold 40, Top 3, cadastro, vendas, catálogo e banco intocados. Sem migration necessária (campo `papel` já existia e estava populado).
 
+### Reforma 35 — Etapa 1 (19/ago/2026) — APENAS BANCO, SEM CÓDIGO
+
+- **Tabela `historico`** criada no Supabase via conexão direta Postgres. Schema idêntico ao definido na auditoria. Nenhum arquivo de código alterado. Nenhuma API modificada.
+- **13 colunas**: `id` (UUID PK), `created_at` (TIMESTAMPTZ NOT NULL), `evento` (TEXT NOT NULL), `entidade` (TEXT NOT NULL), `entidade_id` (UUID NOT NULL), `veiculo_id`, `venda_id`, `cliente_id` (UUID nullable), `dados_antes`, `dados_depois`, `metadata` (JSONB nullable), `origem` (TEXT NOT NULL DEFAULT 'web'), `versao_app` (TEXT nullable).
+- **5 índices** criados: `idx_historico_entidade`, `idx_historico_veiculo_id`, `idx_historico_venda_id`, `idx_historico_cliente_id`, `idx_historico_evento` — todos com `created_at DESC`.
+- **Sem FK** para as tabelas operacionais — decisão intencional para proteger eventos históricos de exclusões em cascata.
+- **Sem RLS** nesta etapa — acesso via SERVICE_ROLE (server-side only).
+- Registro de validação inserido (`REFORMA35_TESTE`, entidade_id `00000000-0000-0000-0000-000000000035`) — mantido como primeiro registro da Caixa Preta (append-only, não deletado).
+- **Próxima etapa (Etapa 2)**: instrumentar as APIs com a função `registrarHistorico` para os 7 eventos de Nível 1.
+
 ### Próxima etapa
 
-Sprint 1 (Match Ativo) — validação operacional com ≥5 veículos e resultados registrados.
+Reforma 35 Etapa 2 — instrumentar `api/catalogo.js`, `api/vendas.js` e `api/compradores.js` com `registrarHistorico` para os 7 eventos críticos de Nível 1.
 
 ---
 
-*Atualizado em 19/agosto/2026 — Reformas 28–34 em produção. Sprint 1 em andamento.*
+*Atualizado em 19/agosto/2026 — Reformas 28–34 em produção. Reforma 35 Etapa 1 (banco) concluída. Sprint 1 em andamento.*
