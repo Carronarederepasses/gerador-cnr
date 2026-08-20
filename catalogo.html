@@ -817,6 +817,9 @@ function gerarMensagemMatch(c, nomeCarro, detalhes, razoes) {
 // renderMatch substituído por renderMatchHtml — usa scores da API (Reforma 21)
 // Cache de resultados por veiculo_id (evita re-fetch na mesma sessão)
 const _matchCache = {};
+// Snapshot do Top 3 por veiculo_id — populado em renderMatchHtml, lido por _registrarOferta.
+// Permite persistir posicao_no_ranking e ranking_top3 no evento match_notificado.
+const _rankingCache = {};
 
 // Gera o HTML do painel de match a partir dos compradores já pontuados pela API.
 // scored = resposta de /api/compradores?match=1 (ordenado, com compras e eventos)
@@ -825,6 +828,10 @@ function renderMatchHtml(scored, v) {
     .filter(c => c.score > 40)
     .slice(0, 3)
     .map(c => ({ ...c, razoes: calcRazoes(c, v.marca, v.valor) }));
+
+  // Congela o ranking no momento em que o painel é renderizado.
+  // _registrarOferta() lê este snapshot para incluir posicao_no_ranking e ranking_top3 no evento.
+  _rankingCache[v.id] = top3.map((c, i) => ({ comprador_id: c.id, score: c.score, posicao: i + 1 }));
 
   if (!top3.length) return {
     html: '<div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>' +
@@ -988,11 +995,16 @@ function _registrarOferta(veiculoId, compradorId, score, motivos, mensagem, veic
         veiculo_id:   veiculoId,
         comprador_id: compradorId,
         dados: {
-          score_match:     score,
-          motivos_match:   motivos,
-          mensagem_gerada: mensagem,
-          ofertado_em:     agora,
-          versao_motor:    MOTOR_VERSAO,
+          score_match:        score,
+          motivos_match:      motivos,
+          mensagem_gerada:    mensagem,
+          ofertado_em:        agora,
+          versao_motor:       MOTOR_VERSAO,
+          // Snapshot do ranking Top 3 no momento da oferta (Patch B — Sprint 1 mensurável).
+          // ranking_top3: [] quando oferta vem da Central (sem painel Top 3 aberto).
+          // posicao_no_ranking: null quando comprador não está no snapshot (idem).
+          ranking_top3:       _rankingCache[veiculoId] || [],
+          posicao_no_ranking: ((_rankingCache[veiculoId] || []).findIndex(r => r.comprador_id === compradorId) + 1) || null,
         },
         origem: 'catalogo',
       }),
@@ -1069,7 +1081,9 @@ function ofertarMatch(veiculoId, compradorId, mcId) {
 // O sistema registra automaticamente score, motivos e versão do motor.
 function naoAdequado(veiculoId, compradorId, mcId) {
   const container = document.getElementById(mcId);
-  if (!container || container.dataset.ofertado === '1' || container.dataset.naRegistrado === '1') return;
+  // Bloqueia se: já ofertado via card, já marcado como NA, ou ofertado via Central (sessão).
+  if (!container || container.dataset.ofertado === '1' || container.dataset.naRegistrado === '1'
+      || _ofertadosNaSessao.has(`${veiculoId}:${compradorId}`)) return;
   container.dataset.naRegistrado = '1';
   container.classList.add('match-notificado');
   const btns = container.querySelector('.match-btns');

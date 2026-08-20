@@ -80,16 +80,20 @@ function normMarca(m) {
 function calcScore(comprador, { marca, valor, veiculo_id = null }) {
   let score = 10;
   const v = parseFloat(valor) || 0;
-  const min = parseFloat(comprador.preco_min) || 0;
-  const max = parseFloat(comprador.preco_max) || Infinity;
+  // Faixa de preço só pontua se ambos os campos estiverem preenchidos.
+  // null/undefined converte em 0/Infinity, o que concederia +40 pts indevidos a compradores
+  // sem faixa configurada — qualquer valor passaria em "0 ≤ v ≤ Infinity".
+  const hasFaixa = comprador.preco_min != null && comprador.preco_max != null;
+  const min = hasFaixa ? (parseFloat(comprador.preco_min) || 0) : 0;
+  const max = hasFaixa ? (parseFloat(comprador.preco_max) || Infinity) : null;
   const marcas = (comprador.marcas || []).map(m => m.toLowerCase());
   const compras  = comprador.compras  || [];
   const eventos  = comprador.eventos  || [];
   const agora    = Date.now();
 
   // — Camada 1: perfil estático —
-  if (v > 0 && v >= min && v <= max) score += 40;
-  else if (v > 0 && max < Infinity && v <= max) score += 20;
+  if (hasFaixa && v > 0 && v >= min && v <= max) score += 40;
+  else if (hasFaixa && v > 0 && max != null && max < Infinity && v <= max) score += 20;
   if (marca && marcas.includes(normMarca(marca))) score += 30;
 
   // — Camada 2: histórico de compras —
