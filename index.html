@@ -2396,6 +2396,12 @@ async function processarIA() {
         /ar[- ]condicionado/i, /direção\s*elétrica/i, /direcao\s*eletrica/i,
         /vidros?\s*elétricos?/i, /travas?\s*elétrica/i, /multimidia/i,
       ];
+      // Fix B — Caixa Preta: fallback IPVA — se extras contiver indicação de IPVA mas opcionais
+      // não trouxer 'ipva-pago' (IA classificou no campo errado), recupera o dado antes de perder.
+      const IPVA_RE = /ipva[\s_-]*(pago|quitado|em\s*dia|ok|\d{4})/i;
+      if (IPVA_RE.test(data.extras) && !data.opcionais?.includes('ipva-pago')) {
+        data.opcionais = [...(data.opcionais || []), 'ipva-pago'];
+      }
       let extrasLimpo = data.extras;
       EXTRAS_BLOQUEADOS.forEach(re => {
         extrasLimpo = extrasLimpo.replace(re, '');
@@ -2487,7 +2493,7 @@ function gerarColetados() {
     linhas.push('');
     linhas.push(obsCustom);
   }
-  if (gastos) { linhas.push(''); linhas.push(`*GASTOS: ${gastos}*`); }
+  if (gastos) { linhas.push(''); linhas.push('*GASTOS:*'); linhas.push(gastos); }
 
   linhas.push('');
   if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
