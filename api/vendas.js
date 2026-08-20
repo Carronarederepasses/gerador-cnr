@@ -23,6 +23,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const VENDAS_KEY   = process.env.VENDAS_KEY;
 
 const TABLE = 'vendas';
 const BUCKET = 'vendas-docs';
@@ -188,6 +189,11 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cnr-key');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Guard VENDAS_KEY — protege POST/PATCH/DELETE; GET permanece público
+  if (VENDAS_KEY && ['POST', 'PATCH', 'DELETE'].includes(req.method) && req.headers['x-cnr-key'] !== VENDAS_KEY) {
+    return res.status(401).json({ error: 'Acesso negado.' });
+  }
 
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return res.status(500).json({ error: 'Supabase não configurado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).' });

@@ -376,8 +376,11 @@ const moeda = n => (n || n === 0) ? Number(n).toLocaleString('pt-BR', {style:'cu
 const dataBR = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
 const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+let KEY = localStorage.getItem('cnr_vendas_key') || '';
 function headers(extra) {
-  return Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+  const h = { 'Content-Type': 'application/json' };
+  if (KEY) h['x-cnr-key'] = KEY;
+  return Object.assign(h, extra || {});
 }
 
 
