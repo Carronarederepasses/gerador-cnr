@@ -608,13 +608,35 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 ---
 
-### Onde o projeto ficou (atualizado 19/ago/2026 — pós Reforma 35 E6)
+### Onde o projeto ficou (atualizado 20/ago/2026 — fix Gerador Parceiros)
 
-- `origin/main` em `def46cd` (Reforma 35 Etapa 6), Vercel `dpl_8eN87UF5dampp5nDU55MBfLkxUpe` — READY.
-- **Caixa Preta (Reforma 35)** — Etapas 1–6 implementadas. Falta: executar testes A/B/C da Etapa 6 (requer VENDAS_KEY no terminal) e atualizar CLAUDE.md com resultado.
+- `origin/main` em `0c9f9e2` (fix GASTOS + IPVA fallback + prompt parceiro), Vercel `dpl_542QeZAoVCeYGLfNDMbxpdcMTkZY` — READY.
+- **Caixa Preta (Reforma 35)** — Etapas 1–6 implementadas. Testes A/B/C da Etapa 6 ainda pendentes (requerem VENDAS_KEY no terminal).
+- **Fix Gerador Parceiros (20/ago):** 3 correções no Gerador/Parceiros — GASTOS em duas linhas, IPVA fallback e prompt explícito. 26 testes passaram.
 - Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados.
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada.
 
 ---
 
-*Atualizado em 19/agosto/2026 — Reforma 35 Etapa 6 implementada e deployada. Testes pendentes para próxima sessão (necessitam VENDAS_KEY). Caixa Preta cobre ciclo de vida completo: veículos + vendas + negociações + conversão explícita negociação→venda.*
+### Fix Gerador Parceiros — 20/ago/2026
+
+**Commit:** `0c9f9e2` · **Deploy:** `dpl_542QeZAoVCeYGLfNDMbxpdcMTkZY` — READY
+
+**Fix A — GASTOS formato** (`index.html:gerarColetados()`)
+- Antes: `*GASTOS: descrição*` (tudo em negrito, uma linha)
+- Depois: `*GASTOS:*` / `descrição` (label negrito, descrição na linha seguinte sem negrito)
+
+**Fix B — IPVA fallback** (`index.html:processarIA()`)
+- Ponto cego: `EXTRAS_BLOQUEADOS` removia "IPVA pago" de `extras` sem marcar o toggle — dado desaparecia silenciosamente.
+- Fix: se `extras` contém padrão IPVA e `opcionais` não traz `ipva-pago`, o fallback injeta antes de `mapOpcionais()`.
+- Regex: `/ipva[\s_-]*(pago|quitado|em\s*dia|ok|\d{4})/i`
+
+**Fix C — PROMPT_PARCEIRO** (`api/parse.js`)
+- Antes: `"IPVA 2024/2025/2026 pago"` (notação compacta)
+- Depois: `"IPVA 2024 pago, IPVA 2025 pago, IPVA 2026 pago"` (explícito por ano)
+
+**Testes:** 26/26 passaram (Fix A: 8, Fix B: 10, Fix C: 8).
+
+---
+
+*Atualizado em 20/agosto/2026 — Fix Gerador Parceiros em produção. Testes E6 pendentes para próxima sessão com VENDAS_KEY.*
