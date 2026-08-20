@@ -254,27 +254,39 @@ module.exports = async (req, res) => {
         dados_depois: venda,
       });
 
-      // Caixa Preta — NEGOCIACAO_CONVERTIDA (fire-and-forget)
+      // Caixa Preta — NEGOCIACAO_CONVERTIDA (await + try/catch)
       // Registrado somente quando a venda nasce de uma negociação rastreável.
+      // Usa await porque o worker Vercel encerra após res.json() — fire-and-forget
+      // puro não garante que um segundo fetch paralelo complete (padrão Etapa 3).
       if (negociacao_id) {
-        registrarHistorico({
-          evento:      'NEGOCIACAO_CONVERTIDA',
-          entidade:    'negociacao',
-          entidade_id: negociacao_id,
-          veiculo_id:  venda.veiculo_id   || null,
-          venda_id:    venda.id,
-          cliente_id:  venda.comprador_id || null,
-          dados_antes: {
-            status:        'comprado',
-            negociacao_id,
-          },
-          dados_depois: {
-            venda_id:     venda.id,
-            valor_venda:  venda.valor_venda  || null,
-            comprador_id: venda.comprador_id || null,
-            veiculo_id:   venda.veiculo_id   || null,
-          },
-        });
+        try {
+          await sb('historico', {
+            method: 'POST',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              evento:      'NEGOCIACAO_CONVERTIDA',
+              entidade:    'negociacao',
+              entidade_id: negociacao_id,
+              veiculo_id:  venda.veiculo_id   || null,
+              venda_id:    venda.id,
+              cliente_id:  venda.comprador_id || null,
+              dados_antes: {
+                status:        'comprado',
+                negociacao_id,
+              },
+              dados_depois: {
+                venda_id:     venda.id,
+                valor_venda:  venda.valor_venda  || null,
+                comprador_id: venda.comprador_id || null,
+                veiculo_id:   venda.veiculo_id   || null,
+              },
+              origem:    'api',
+              versao_app: process.env.VERCEL_GIT_COMMIT_SHA || null,
+            }),
+          });
+        } catch (e) {
+          console.error('[historico] NEGOCIACAO_CONVERTIDA falhou:', e.message);
+        }
       }
 
       // Auto-atualiza veículos para "vendido" após venda registrada.
