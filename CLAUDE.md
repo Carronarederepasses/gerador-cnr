@@ -591,29 +591,97 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
   - Cleanup: `neg_id=c4fabc70-1695-4dd7-863e-43951bfbeeb3` excluído ao final (gerou NEGOCIACAO_EXCLUIDA via Etapa 4, confirmando cadeia de eventos completa).
 - **Não alterado**: `negociacoes.html`, compradores, Motor de Match, vendas, catálogo, schema, outras APIs.
 
-### Reforma 35 — Etapa 6 (19/ago/2026) — NEGOCIACAO_CONVERTIDA — implementada, testes pendentes
+### Reforma 35 — Etapa 6 (20/ago/2026) — NEGOCIACAO_CONVERTIDA — CONCLUÍDA
 
 - **Arquivos alterados**: `negociacoes.html`, `vendas.html`, `api/vendas.js`
-- **Commit**: `def46cd` — **Deploy**: `dpl_8eN87UF5dampp5nDU55MBfLkxUpe` — **READY**
+- **Commit implementação**: `def46cd` — **Deploy implementação**: `dpl_8eN87UF5dampp5nDU55MBfLkxUpe` — READY
 - **O que foi implementado**:
   - `negociacoes.html` — `irParaVenda()`: adiciona `p.set('negociacao_id', n.id)` → transporta o ID da negociação para `vendas.html` via URL
   - `vendas.html` — variável de módulo `let _negociacao_id = null` (padrão `_rapContador`); `iniciarApp()` lê `negociacao_id` da URL e armazena em `_negociacao_id`; `fecharModal()` limpa `_negociacao_id = null`; handler salvar inclui `if (!id && _negociacao_id) body.negociacao_id = _negociacao_id` — somente em POST (nova venda), nunca em PATCH (edição)
   - `api/vendas.js` — `registrarHistorico()` recebe `entidade = 'venda'` como default (chamadas existentes intactas); bloco POST captura `negociacao_id` **antes** de `limpar()` (não existe na tabela `vendas`); se `negociacao_id` presente, dispara `NEGOCIACAO_CONVERTIDA` fire-and-forget com `entidade='negociacao'`, `entidade_id=negociacao_id`, `venda_id=venda.id`, `dados_antes={status:'comprado', negociacao_id}`, `dados_depois={venda_id, valor_venda, comprador_id, veiculo_id}`
 - **Não alterado**: `VENDA_CRIADA`, `VENDA_EDITADA`, `VENDA_EXCLUIDA`, `salvarRapida()`, Motor de Match, schema da tabela `vendas`, negociações, compradores — zero migration
-- **Testes pendentes** (necessitam `VENDAS_KEY` no ambiente):
-  - Teste A: venda criada via `irParaVenda()` → confirmar `NEGOCIACAO_CONVERTIDA` com `entidade_id=neg.id` e `venda_id=venda.id`
-  - Teste B: venda direta → confirmar ausência de `NEGOCIACAO_CONVERTIDA`
-  - Teste C: `salvarRapida()` → confirmar ausência de `NEGOCIACAO_CONVERTIDA`
-- **Script de testes pronto** em scratchpad: `reforma35_etapa6_testes.mjs` (requer `$env:VENDAS_KEY = '...'` no terminal antes de executar)
+
+#### Fix Etapa 6 — race condition fire-and-forget (20/ago/2026)
+
+- **Diagnóstico**: Teste A falhou na primeira execução — `NEGOCIACAO_CONVERTIDA` não encontrado no `historico`. Causa-raiz: dois fire-and-forgets sequenciais no bloco POST de `api/vendas.js`. O worker Vercel encerra imediatamente após `res.json()`. O primeiro fetch (`VENDA_CRIADA`) completa dentro da janela de drenagem; o segundo (`NEGOCIACAO_CONVERTIDA`) é cancelado. Mesmo padrão diagnosticado na Etapa 3 para `VEICULO_EXCLUIDO`.
+- **Fix**: `NEGOCIACAO_CONVERTIDA` migrado de `registrarHistorico()` (fire-and-forget) para `await sb('historico', {...})` com `try/catch`, posicionado **antes** do `return res.status(201).json(venda)`. `VENDA_CRIADA` permanece fire-and-forget (é o primeiro call e completa naturalmente). Comentário inline explica a decisão.
+- **Arquivo alterado**: `api/vendas.js` — apenas o bloco `if (negociacao_id)` dentro do POST.
+- **Commit fix**: `1ae6123` — **Deploy fix**: `dpl_CTMJWbQPpxZK5DE3PXyASJEaFdQr` — READY (produção, atual)
+- **Testes executados** (script `reforma35_etapa6_testes.mjs`, segunda rodada, 3/3 ✅):
+  - Teste A (venda via `irParaVenda()`): ✅ `NEGOCIACAO_CONVERTIDA` no historico; `entidade_id=neg.id`, `venda_id=venda.id`, `dados_antes.negociacao_id` correto, `dados_depois.venda_id` correto.
+  - Teste B (venda direta, sem `negociacao_id`): ✅ `NEGOCIACAO_CONVERTIDA` ausente no historico.
+  - Teste C (`salvarRapida()`): ✅ `NEGOCIACAO_CONVERTIDA` ausente no historico.
+  - Cleanup: 3 vendas de teste excluídas, HTTP 200.
+- **Padrão consolidado**: eventos que rodam em segundo ploco no POST/PATCH (exceto o primeiro fire-and-forget natural) devem usar `await + try/catch` antes do `return`. Fire-and-forget puro só é seguro para o primeiro call ou quando há window garantida (return=representation do Supabase nos POSTs de negociação).
 
 ---
 
-### Onde o projeto ficou (atualizado 20/ago/2026 — fix Gerador Parceiros)
+### Reforma 36 (20/ago/2026) — VENDAS_KEY restaurada
 
-- `origin/main` em `0c9f9e2` (fix GASTOS + IPVA fallback + prompt parceiro), Vercel `dpl_542QeZAoVCeYGLfNDMbxpdcMTkZY` — READY.
-- **Caixa Preta (Reforma 35)** — Etapas 1–6 implementadas. Testes A/B/C da Etapa 6 ainda pendentes (requerem VENDAS_KEY no terminal).
-- **Fix Gerador Parceiros (20/ago):** 3 correções no Gerador/Parceiros — GASTOS em duas linhas, IPVA fallback e prompt explícito. 26 testes passaram.
-- Sprint 1 (Match Ativo): aguardando validação operacional com ≥5 veículos e resultados registrados.
+- **Arquivos alterados**: `api/vendas.js`, `vendas.html`
+- **Commit**: `52388f4` — **Deploy**: `dpl_Fxsg443U8JsvPyNyy3VCv53Y1ip2` — READY
+- **Contexto histórico**: `VENDAS_KEY` foi removida intencionalmente na Reforma 25 ("por enquanto — módulo de vendas funciona sem autenticação"). Restauração mínima da Reforma 23 final (commit `9badd40`), sem portão visual, sem tela de senha.
+- **`api/vendas.js`** — 2 linhas adicionadas:
+  - `const VENDAS_KEY = process.env.VENDAS_KEY;` — após `SERVICE_KEY`
+  - Guard: `if (VENDAS_KEY && ['POST','PATCH','DELETE'].includes(req.method) && req.headers['x-cnr-key'] !== VENDAS_KEY) return res.status(401).json({ error: 'Acesso negado.' })` — opcional: sem `VENDAS_KEY` no ambiente, a proteção é desativada; GET permanece público
+- **`vendas.html`** — `headers()` expandida: lê `localStorage.getItem('cnr_vendas_key')` silenciosamente; se presente, injeta `x-cnr-key` em todas as requisições de escrita — sem prompt, sem portão visual
+- **Rotação da chave**: nova chave de 32 chars alfanuméricos gerada em PowerShell (`Get-Random` sobre ASCII 48–122, sem especiais para evitar issues em HTTP headers); definida no painel Vercel (Sensitive/Hidden, Production+Preview); redeploy manual; browser configurado via `localStorage.setItem('cnr_vendas_key', '...')` no DevTools
+- **Validação**: `localStorage.getItem('cnr_vendas_key')?.length` retornou `32`; fetch de teste no Console retornou HTTP 400 (autenticação aceita, body inválido — nenhuma venda criada)
+- **VENDAS_KEY**: nunca registrada em código, Git, CLAUDE.md ou qualquer arquivo versionado — existe somente no painel da Vercel e no localStorage do browser do operador
+
+---
+
+### Reforma 37 (20/ago/2026) — Match Ativo mensurável (Patches A+B+C) — CONCLUÍDA
+
+- **Arquivos alterados**: `api/compradores.js` (Patch A), `catalogo.html` (Patches B+C)
+- **Commit**: `fbe120f` — "fix: Reforma 37 — Match Ativo mensurável (Patches A+B+C)"
+- **Deploy Vercel**: `gerador-q73um35qg-carronarederepasses-projects.vercel.app` — READY (produção, atual)
+
+**Contexto**: Sprint 1 do Match Ativo estava inanalisável — 3 bugs impediam coleta de dados úteis:
+1. Score inflado para compradores sem faixa de preço (+40 indevido)
+2. Top 3 não persistido nos eventos → impossível medir acerto do ranking
+3. Gap Central × Card: oferta via Central não bloqueava `naoAdequado` no card (bug Jackson Veículos)
+
+#### Patch A — `calcScore()` — faixa de preço `null → Infinity` (api/compradores.js)
+
+- **Bug**: `const max = parseFloat(comprador.preco_max) || Infinity` — `null` → `Infinity` → `v <= Infinity` sempre verdadeiro → comprador sem faixa recebia +40 pts de faixa indevidamente.
+- **Fix**: `hasFaixa = preco_min != null && preco_max != null` — se sem faixa, nenhum dos dois blocos pontua. Sem faixa → score = base (histórico + comportamento), sem bônus de preço.
+- **Impacto medido**: Betinho e Jackson: 100 → 60 no Celta R$26k. Compradores com faixa: inalterados.
+
+#### Patch B — `_rankingCache` — Top 3 persistido nos eventos (catalogo.html)
+
+- **Problema**: `match_notificado` guardava apenas `score_match` e `motivos_match`. Sem saber quem era Top 1/2/3, impossível medir acerto do ranking.
+- **Fix**: `_rankingCache = {}` (module-level); populado em `renderMatchHtml()` após calcular `top3`; lido em `_registrarOferta()` → adiciona `ranking_top3` (array com `comprador_id`, `score`, `posicao`) e `posicao_no_ranking` (1/2/3 ou `null` para Central) ao campo `dados` do evento `match_notificado`.
+- **Central**: `_rankingCache[veiculoId]` = `undefined` → `|| []` = `[]`; `findIndex` = -1 → `(-1+1)||null` = `null`. Correto — Central não inventa ranking.
+
+#### Patch C — `naoAdequado()` — guard `_ofertadosNaSessao` (catalogo.html)
+
+- **Bug**: `naoAdequado()` verificava apenas `container.dataset.ofertado === '1'`. Oferta via Central não atualizava o DOM do card → `data-ofertado` permanecia `'0'` → `naoAdequado` era executado indevidamente (bug confirmado no evento de Jackson Veículos de 13/ago).
+- **Fix**: adicionado `|| _ofertadosNaSessao.has(\`${veiculoId}:${compradorId}\`)` ao guard — impede `naoAdequado` mesmo quando o card não foi atualizado pelo fluxo da Central.
+
+**Testes executados (6/6 ✅ — 20/ago/2026):**
+
+| # | Cenário | Resultado |
+|---|---------|-----------|
+| 1 | Celta + compradores sem faixa → sem +40 | **PASS** — Betinho 60, Jackson 60 (antes: 100) |
+| 2 | Compradores com faixa → pontuam normalmente | **PASS** — Autoconfirma 80, L.Vargas 90 (inalterados) |
+| 3 | Offer Top 1 → `posicao_no_ranking=1` + `ranking_top3[3]` | **PASS** — payload verificado via fetch intercept |
+| 4 | Offer Top 2 → `posicao_no_ranking=2` | **PASS** — RR Automobile posicao=2 correto |
+| 5 | Offer via Central (sem renderMatchHtml) → `[] / null` | **PASS** — `undefined\|\|[]`=`[]`, `(-1+1)\|\|null`=`null` |
+| 6 | Offer via Central → `naoAdequado` bloqueado | **PASS** — `fetchesFired=0`, bloqueado por `_ofertadosNaSessao` |
+
+3 eventos `match_notificado` + 3 negociações criadas em produção (todos HTTP 201). `ranking_top3` e `posicao_no_ranking` persistidos no Supabase.
+
+---
+
+### Onde o projeto ficou (atualizado 20/ago/2026 — Reforma 37 concluída)
+
+- `origin/main` em `fbe120f` (Reforma 37 — Match Ativo mensurável), Vercel `gerador-q73um35qg-carronarederepasses-projects.vercel.app` — READY (produção, atual).
+- **Caixa Preta (Reforma 35)** — totalmente operacional: Etapas 1–6 concluídas e testadas.
+- **VENDAS_KEY (Reforma 36)** — restaurada, rotacionada, validada.
+- **Match Ativo mensurável (Reforma 37)** — Patches A+B+C aplicados e testados. Score corrigido, Top 3 persistido, gap Central×Card fechado. Sprint 1 pode agora coletar dados úteis.
+- **Sprint 1 (Match Ativo)**: coleta oficial iniciada. Critérios de saída: ≥5 veículos com `match_notificado` pós-Patch B (com `posicao_no_ranking`), ≥80% ofertas com `match_resultado` registrado, taxa de acerto Top 1 e Top 3 calculáveis, 0 compradores com `preco_max=null`.
+- **Pendente operacional**: preencher perfis dos 8 compradores sem faixa de preço (tarefa do Yuri).
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada.
 
 ---
@@ -639,4 +707,4 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 ---
 
-*Atualizado em 20/agosto/2026 — Fix Gerador Parceiros em produção. Testes E6 pendentes para próxima sessão com VENDAS_KEY.*
+*Atualizado em 20/agosto/2026 — Reforma 37 concluída (6/6 testes, Patches A+B+C — Match Ativo mensurável). Commit `fbe120f`, deploy `gerador-q73um35qg-carronarederepasses-projects.vercel.app` — READY.*
