@@ -2289,6 +2289,11 @@ async function processarParceiro() {
     if (data.fipe) fill('colet-fipe', data.fipe);
     if (data.gastos) { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
     if (data.extras) { const e = document.getElementById('obs-custom'); if (e && !e.value) e.value = data.extras; }
+    // Fix IPVA: mesmo fallback que processarIA() — recupera 'ipva-pago' de extras antes de perder.
+    const IPVA_RE_PARC = /ipva[\s_-]*(pago|quitado|em\s*dia|ok|\d{4})/i;
+    if (IPVA_RE_PARC.test(data.extras) && !data.opcionais?.includes('ipva-pago')) {
+      data.opcionais = [...(data.opcionais || []), 'ipva-pago'];
+    }
     mapOpcionais(data.opcionais);
 
     setParcSt('✓ Campos preenchidos. Buscando FIPE...', 'ok');

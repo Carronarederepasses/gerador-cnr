@@ -44,7 +44,7 @@ Retorne SOMENTE um JSON válido com estes campos (null se não encontrado):
   "chave_reserva": "tem | nao-tem | null — IMPORTANTE: se na imagem aparecer duas chaves (ou '2 chaves', 'chave extra', 'chave reserva', ícone de duas chaves), retorne 'tem'. Se aparecer uma chave só ou 'sem chave reserva', retorne 'nao-tem'. null se não der pra saber",
   "manual": "tem | nao-tem | null — se houver menção a manual do proprietário ou ícone de livro/manual no card, retorne 'tem'. null se não der pra saber",
   "revisoes_km": "km até onde as revisões foram feitas, se mencionado. null se não encontrado",
-  "gastos": "Liste aqui os itens reprovados ou com ressalvas no laudo cautelar, com os valores de reparo se informados (ex: 'Laudo: para-choque traseiro amassado R$400, pneu dianteiro esquerdo gasto R$300'). Se o laudo mostrar custo total de reparos, inclua também. null se laudo não tiver reprovações ou não houver laudo",
+  "gastos": "Reparos, melhorias ou gastos indicados na imagem ou no laudo — tanto laudo (itens reprovados com valores de reparo) quanto card (ex: 'precisa pintar para-choque', 'câmbio com folga', custo total de reparos). null se nenhum reparo ou custo for mencionado",
   "extras": "informações relevantes do laudo que não se encaixam nos campos acima (ex: restrições administrativas, débitos, avisos). null se não houver"
 }
 
