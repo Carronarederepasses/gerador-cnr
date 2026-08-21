@@ -681,6 +681,7 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - **VENDAS_KEY (Reforma 36)** — restaurada, rotacionada, validada.
 - **Match Ativo mensurável (Reforma 37)** — Patches A+B+C aplicados e testados. Score corrigido, Top 3 persistido, gap Central×Card fechado. Sprint 1 pode agora coletar dados úteis.
 - **Sprint 1 (Match Ativo)**: coleta oficial iniciada. Critérios de saída: ≥5 veículos com `match_notificado` pós-Patch B (com `posicao_no_ranking`), ≥80% ofertas com `match_resultado` registrado, taxa de acerto Top 1 e Top 3 calculáveis, 0 compradores com `preco_max=null`.
+- **Fix Parceiros (2ª rodada)** — IPVA fallback + prompt gastos aplicados ao fluxo `processarParceiro()`. 22/22 testes.
 - **Pendente operacional**: preencher perfis dos 8 compradores sem faixa de preço (tarefa do Yuri).
 - Reforma Visual Etapa 2 (`index.html`): escopo definido, não iniciada.
 
@@ -707,4 +708,25 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 
 ---
 
-*Atualizado em 20/agosto/2026 — Reforma 37 concluída (6/6 testes, Patches A+B+C — Match Ativo mensurável). Commit `fbe120f`, deploy `gerador-q73um35qg-carronarederepasses-projects.vercel.app` — READY.*
+### Fix Gerador Parceiros — 20/ago/2026 (segunda rodada)
+
+**Commit:** `93e36a0` · **Deploy:** `gerador-cnr.vercel.app` — READY (produção, atual)
+
+**Causa raiz diagnosticada:** Fix B (IPVA fallback) e o tratamento de `extras` foram aplicados apenas em `processarIA()` (fluxo Texto/Link) na rodada anterior. O fluxo `processarParceiro()` (aba Parceiros → imagem/laudo) nunca recebeu os equivalentes. 26 testes anteriores só cobriam `processarIA()`.
+
+**Fix 1 — IPVA fallback em `processarParceiro()`** (`index.html`)
+- Adicionado `IPVA_RE_PARC` idêntico ao Fix B de `processarIA()` — recupera `'ipva-pago'` de `data.extras` antes de chamar `mapOpcionais()`.
+- Quando IA classifica IPVA no campo errado (`extras` em vez de `opcionais`), o toggle `ipva_pago` agora é ativado no fluxo Parceiros também.
+
+**Fix 2 — `PROMPT_PARCEIRO` campo `gastos`** (`api/parse.js`)
+- Antes: `"null se laudo não tiver reprovações ou não houver laudo"` → IA retornava `gastos: null` para cards sem laudo; dados de reparo do card iam para `extras` → `obs-custom` como texto plano sem formatação `*GASTOS:*`.
+- Depois: definição cobre tanto laudo quanto card. IA classifica custos visíveis no card em `gastos` diretamente → `gerarColetados()` formata com `*GASTOS:*` em negrito.
+- `gerarColetados()` (Fix A da rodada anterior) não foi alterado — estava correto.
+
+**Não alterado:** `processarIA()`, `gerarColetados()`, `EXTRAS_BLOQUEADOS`.
+
+**Testes:** 22/22 passaram (Parceiros: 15, regressão: 7).
+
+---
+
+*Atualizado em 20/agosto/2026 — Fix Gerador Parceiros (2ª rodada): IPVA fallback + prompt gastos no fluxo Parceiros. Commit `93e36a0`, deploy `gerador-cnr.vercel.app` — READY.*
