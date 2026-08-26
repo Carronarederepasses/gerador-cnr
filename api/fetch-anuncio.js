@@ -52,7 +52,7 @@ async function handleRadar(req, res) {
     }
 
     const now  = new Date().toISOString();
-    const rows = listings.map((l) => ({
+    const rowsRaw = listings.map((l) => ({
       origem:       l.platform    || 'olx',
       listing_id:   l.listing_id,
       url:          l.url         || '',
@@ -63,11 +63,27 @@ async function handleRadar(req, res) {
       last_seen_at: now,
     }));
 
-    // Upsert: colunas listadas → INSERT ou UPDATE somente essas colunas.
-    // Na duplicata (origem+listing_id): atualiza last_seen_at, preco, titulo, localizacao.
-    // Campos de fluxo (status, vehicle_id, first_seen_at) nunca são sobrescritos.
+    // Deduplicar por (origem, listing_id) dentro do próprio lote.
+    // Um mesmo anúncio pode aparecer em múltiplas buscas (ex: busca Garopaba
+    // e busca Imbituba retornam o mesmo listing_id). PostgreSQL rejeita dois
+    // rows com a mesma chave no mesmo INSERT — a Map garante que só a última
+    // ocorrência de cada chave entra no upsert.
+    const dedupMap = new Map();
+    for (const row of rowsRaw) {
+      dedupMap.set(`${row.origem}:${row.listing_id}`, row);
+    }
+    const rows = Array.from(dedupMap.values());
+
+    // Upsert com conflict target explícito.
+    // Sem &on_conflict=, PostgREST tentaria usar a PK (id) como alvo — mas
+    // id não está no payload (gerado pelo banco), então o INSERT passaria
+    // direto e colidiria com a constraint UNIQUE(origem, listing_id).
+    // Com on_conflict=origem,listing_id:
+    //   - anúncio novo     → INSERT (first_seen_at, status e id ficam com o default do banco)
+    //   - anúncio existente → UPDATE somente das colunas listadas em `columns`
+    //                         (status, vehicle_id e first_seen_at são preservados)
     const cols = 'origem,listing_id,url,titulo,preco,localizacao,search_name,last_seen_at';
-    const r = await sb(`anuncios?columns=${cols}`, {
+    const r = await sb(`anuncios?columns=${cols}&on_conflict=origem,listing_id`, {
       method:  'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body:    JSON.stringify(rows),
@@ -79,7 +95,7 @@ async function handleRadar(req, res) {
       return res.status(500).json({ error: 'Falha ao salvar anúncios.' });
     }
 
-    return res.status(200).json({ ok: true, count: rows.length });
+    return res.status(200).json({ ok: true, count: rows.length, raw: rowsRaw.length });
   }
 
   // PATCH — atualiza campos de fluxo (status, motivo_morte, vehicle_id)
