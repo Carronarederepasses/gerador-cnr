@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Anúncios — Carro na Rede Repasses</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);line-height:1.5;padding:1.5rem 1rem 4rem}
+  .wrap{max-width:1100px;margin:0 auto}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.4rem;border-bottom:2px solid var(--text);padding-bottom:1rem}
+  h1{font-family:'Playfair Display',serif;font-weight:900;font-size:1.9rem;letter-spacing:-.01em}
+  .sub{font-size:.82rem;color:var(--text-mid)}
+
+  /* Filtros de status */
+  .filtro-bar{display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1.2rem}
+  .filtro-btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:.38rem .85rem;border-radius:20px;border:1px solid var(--line);background:var(--surface-raise);color:var(--text-mid);cursor:pointer;transition:all .15s}
+  .filtro-btn:hover{border-color:var(--text);color:var(--text)}
+  .filtro-btn.ativo{background:var(--text);color:var(--surface);border-color:var(--text)}
+  .filtro-btn .cnt{font-size:.72rem;margin-left:.3rem;opacity:.75}
+
+  .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:var(--text-mid)}
+
+  /* Grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
+
+  /* Card */
+  .card{background:var(--surface-raise);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s}
+  .card:hover{box-shadow:0 6px 22px rgba(0,0,0,.09)}
+  .card-thumb{width:100%;height:130px;object-fit:cover;background:var(--surface);display:block}
+  .card-thumb-placeholder{width:100%;height:130px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2.5rem;color:var(--text-mid)}
+  .card-body{padding:1rem;display:flex;flex-direction:column;gap:.5rem;flex:1}
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+  .card-titulo{font-family:'Playfair Display',serif;font-weight:700;font-size:1rem;line-height:1.3;flex:1}
+  .badge-status{font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:10px;white-space:nowrap;flex-shrink:0}
+  .bs-novo     {background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+  .bs-enviado  {background:color-mix(in srgb,#e8a000 18%,transparent);color:#c08000}
+  .bs-respondeu{background:color-mix(in srgb,var(--severity-ok) 18%,transparent);color:var(--severity-ok)}
+  .bs-autorizado{background:color-mix(in srgb,var(--severity-ok) 30%,transparent);color:var(--severity-ok);font-weight:800}
+  .bs-morto    {background:var(--surface);color:var(--text-mid);border:1px solid var(--line)}
+  .card-preco{font-size:1.1rem;font-weight:700}
+  .card-meta{font-size:.78rem;color:var(--text-mid);display:flex;flex-wrap:wrap;gap:.2rem .8rem}
+  .card-footer{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:auto;padding-top:.6rem;border-top:1px dashed var(--line)}
+
+  /* Botões de ação */
+  .btn-acao{font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:500;padding:.38rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+  .btn-acao:hover{border-color:var(--text)}
+  .btn-acao.primary{background:var(--text);color:var(--surface);border-color:var(--text)}
+  .btn-acao.primary:hover{opacity:.85}
+  .btn-acao.danger{color:var(--severity-crit);border-color:var(--severity-crit)}
+  .btn-acao.danger:hover{background:color-mix(in srgb,var(--severity-crit) 10%,transparent)}
+  .btn-acao.catalogo{background:var(--severity-ok);color:#fff;border-color:var(--severity-ok)}
+  .btn-acao.catalogo:hover{opacity:.85}
+  .btn-acao:disabled{opacity:.4;cursor:default}
+
+  /* Estados da página */
+  .loading,.empty{text-align:center;padding:3rem;color:var(--text-mid);font-size:.9rem}
+  .spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--line);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:.8rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Modal Ignorar */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:1rem}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface-raise);border:1px solid var(--line);border-radius:16px;padding:1.4rem;width:100%;max-width:360px;display:flex;flex-direction:column;gap:1rem}
+  .modal h3{font-family:'Playfair Display',serif;font-size:1.1rem}
+  .modal p{font-size:.84rem;color:var(--text-mid)}
+  .motivos{display:flex;flex-wrap:wrap;gap:.4rem}
+  .chip-motivo{font-size:.78rem;padding:.35rem .7rem;border-radius:16px;border:1px solid var(--line);background:var(--surface);cursor:pointer;transition:all .15s}
+  .chip-motivo:hover,.chip-motivo.sel{background:var(--text);color:var(--surface);border-color:var(--text)}
+  .modal-acoes{display:flex;gap:.5rem;justify-content:flex-end}
+  .modal-btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;padding:.55rem 1rem;border-radius:9px;cursor:pointer}
+  .modal-btn.cancel{background:none;border:1px solid var(--line);color:var(--text)}
+  .modal-btn.confirm{background:var(--text);border:1px solid var(--text);color:var(--surface)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>📡 Anúncios</h1>
+      <div class="sub">Oportunidades encontradas pelo Catafrango</div>
+    </div>
+  </header>
+
+  <div class="filtro-bar" id="filtro-bar">
+    <button class="filtro-btn ativo" data-status="todos">Todos<span class="cnt" id="cnt-todos"></span></button>
+    <button class="filtro-btn" data-status="novo">Novos<span class="cnt" id="cnt-novo"></span></button>
+    <button class="filtro-btn" data-status="enviado">Enviados<span class="cnt" id="cnt-enviado"></span></button>
+    <button class="filtro-btn" data-status="respondeu">Responderam<span class="cnt" id="cnt-respondeu"></span></button>
+    <button class="filtro-btn" data-status="autorizado">Autorizados<span class="cnt" id="cnt-autorizado"></span></button>
+    <button class="filtro-btn" data-status="morto">Ignorados<span class="cnt" id="cnt-morto"></span></button>
+  </div>
+
+  <div class="meta-linha">
+    <span id="meta-total"></span>
+    <span id="meta-last"></span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+</div>
+
+<!-- Modal Ignorar -->
+<div class="modal-bg" id="modal-ignorar">
+  <div class="modal">
+    <h3>Ignorar anúncio</h3>
+    <p>O anúncio permanece no histórico como Ignorado. Você pode desfazer depois.</p>
+    <div class="motivos">
+      <button class="chip-motivo" data-m="preco">Preço alto</button>
+      <button class="chip-motivo" data-m="longe">Longe</button>
+      <button class="chip-motivo" data-m="loja">Loja / PJ</button>
+      <button class="chip-motivo" data-m="ruim">Carro ruim</button>
+      <button class="chip-motivo" data-m="ja_abordado">Já abordei</button>
+      <button class="chip-motivo" data-m="">Sem motivo</button>
+    </div>
+    <div class="modal-acoes">
+      <button class="modal-btn cancel" id="modal-cancelar">Cancelar</button>
+      <button class="modal-btn confirm" id="modal-confirmar">Ignorar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── Estado ───────────────────────────────────────────────────────
+let TODOS  = [];
+let filtro = 'todos';
+let ignorarId   = null;
+let ignorarMotivo = '';
+
+// ── API ──────────────────────────────────────────────────────────
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function patchAnuncio(id, payload) {
+  return api(`/api/fetch-anuncio?radar=1&id=${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'agora mesmo';
+  if (m < 60) return `há ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return `há ${d} dia${d > 1 ? 's' : ''}`;
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const STATUS_LABEL = {
+  novo:      'Novo',
+  enviado:   'Enviado',
+  respondeu: 'Respondeu',
+  autorizado:'Autorizado',
+  morto:     'Ignorado',
+};
+
+const STATUS_CLASS = {
+  novo:      'bs-novo',
+  enviado:   'bs-enviado',
+  respondeu: 'bs-respondeu',
+  autorizado:'bs-autorizado',
+  morto:     'bs-morto',
+};
+
+// ── Contadores dos filtros ────────────────────────────────────────
+function atualizarContadores() {
+  const todos = TODOS.length;
+  document.getElementById('cnt-todos').textContent   = todos ? ` ${todos}` : '';
+  ['novo','enviado','respondeu','autorizado','morto'].forEach((s) => {
+    const n = TODOS.filter((a) => a.status === s).length;
+    document.getElementById(`cnt-${s}`).textContent = n ? ` ${n}` : '';
+  });
+}
+
+// ── Card HTML ────────────────────────────────────────────────────
+function cardHTML(a) {
+  const statusCls   = STATUS_CLASS[a.status] || 'bs-novo';
+  const statusLabel = STATUS_LABEL[a.status] || a.status;
+  const foundAgo    = timeAgo(a.first_seen_at);
+  const seenAgo     = a.last_seen_at !== a.first_seen_at ? timeAgo(a.last_seen_at) : '';
+
+  const thumb = a.thumbnail
+    ? `<img class="card-thumb" src="${esc(a.thumbnail)}" alt="${esc(a.titulo)}" loading="lazy">`
+    : `<div class="card-thumb-placeholder">🚗</div>`;
+
+  // Botões por status
+  let btns = '';
+  if (a.status !== 'morto') {
+    btns += `<button class="btn-acao" onclick="abrirOLX('${esc(a.url)}')">↗ Abrir OLX</button>`;
+  }
+  if (a.status === 'novo') {
+    btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','enviado')">Marcar Enviado</button>`;
+    btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
+  } else if (a.status === 'enviado') {
+    btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','respondeu')">Respondeu ✓</button>`;
+    btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
+  } else if (a.status === 'respondeu') {
+    btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','autorizado')">✅ Autorizado</button>`;
+    btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
+  } else if (a.status === 'autorizado') {
+    btns += `<button class="btn-acao catalogo" onclick="adicionarCatalogo('${a.id}')">+ Catálogo</button>`;
+    btns += `<button class="btn-acao" onclick="abrirOLX('${esc(a.url)}')">↗ OLX</button>`;
+  } else if (a.status === 'morto') {
+    btns += `<button class="btn-acao" onclick="avancar('${a.id}','novo')">↺ Reativar</button>`;
+  }
+
+  const searchInfo = a.search_name ? `<span>📡 ${esc(a.search_name)}</span>` : '';
+
+  return `
+  <div class="card" id="card-${a.id}">
+    ${thumb}
+    <div class="card-body">
+      <div class="card-top">
+        <div class="card-titulo" title="${esc(a.titulo)}">${esc(a.titulo) || '(sem título)'}</div>
+        <span class="badge-status ${statusCls}">${statusLabel}</span>
+      </div>
+      ${a.preco ? `<div class="card-preco">${esc(a.preco)}</div>` : ''}
+      <div class="card-meta">
+        ${a.localizacao ? `<span>📍 ${esc(a.localizacao)}</span>` : ''}
+        <span>OLX</span>
+        <span>Encontrado ${foundAgo}</span>
+        ${seenAgo ? `<span>Visto ${seenAgo}</span>` : ''}
+        ${searchInfo}
+        ${a.vehicle_id ? `<span><a href="/catalogo.html?id=${esc(a.vehicle_id)}" style="color:var(--accent)">Ver no catálogo →</a></span>` : ''}
+      </div>
+      <div class="card-footer">${btns}</div>
+    </div>
+  </div>`;
+}
+
+// ── Renderizar grid ───────────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const lista = filtro === 'todos' ? TODOS : TODOS.filter((a) => a.status === filtro);
+
+  if (lista.length === 0) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Nenhum anúncio ${filtro === 'todos' ? 'encontrado' : 'com este status'}.</div>`;
+    document.getElementById('meta-total').textContent = '';
+    return;
+  }
+
+  grid.innerHTML = lista.map(cardHTML).join('');
+  document.getElementById('meta-total').textContent = `${lista.length} anúncio${lista.length > 1 ? 's' : ''}`;
+}
+
+// ── Carregar da API ───────────────────────────────────────────────
+async function carregar() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = `<div class="loading" style="grid-column:1/-1"><div class="spinner"></div><br>Carregando anúncios…</div>`;
+
+  try {
+    TODOS = await api('/api/fetch-anuncio?radar=1');
+    if (!Array.isArray(TODOS)) TODOS = [];
+  } catch (e) {
+    TODOS = [];
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Erro ao carregar anúncios. Tente novamente.</div>`;
+    return;
+  }
+
+  // Mais recentes primeiro
+  TODOS.sort((a, b) => new Date(b.first_seen_at) - new Date(a.first_seen_at));
+
+  atualizarContadores();
+  renderGrid();
+
+  const total = TODOS.length;
+  if (total > 0) {
+    const ul = timeAgo(TODOS[0].last_seen_at);
+    document.getElementById('meta-last').textContent = `Último: ${ul}`;
+  }
+}
+
+// ── Ações ────────────────────────────────────────────────────────
+function abrirOLX(url) {
+  window.open(url, '_blank', 'noopener');
+}
+
+async function avancar(id, novoStatus) {
+  const btn = document.querySelector(`#card-${id} button`);
+  if (btn) btn.disabled = true;
+  try {
+    await patchAnuncio(id, { status: novoStatus, motivo_morte: null });
+    const a = TODOS.find((x) => x.id === id);
+    if (a) a.status = novoStatus;
+    atualizarContadores();
+    renderGrid();
+  } catch (e) {
+    alert('Falha ao atualizar status. Tente novamente.');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Ignorar ──────────────────────────────────────────────────────
+function abrirIgnorar(id) {
+  ignorarId     = id;
+  ignorarMotivo = '';
+  document.querySelectorAll('.chip-motivo').forEach((c) => c.classList.remove('sel'));
+  document.getElementById('modal-ignorar').classList.add('open');
+}
+
+function fecharIgnorar() {
+  ignorarId     = null;
+  ignorarMotivo = '';
+  document.getElementById('modal-ignorar').classList.remove('open');
+}
+
+document.getElementById('modal-cancelar').addEventListener('click', fecharIgnorar);
+document.getElementById('modal-ignorar').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) fecharIgnorar();
+});
+
+document.querySelectorAll('.chip-motivo').forEach((c) => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.chip-motivo').forEach((x) => x.classList.remove('sel'));
+    c.classList.add('sel');
+    ignorarMotivo = c.dataset.m || '';
+  });
+});
+
+document.getElementById('modal-confirmar').addEventListener('click', async () => {
+  if (!ignorarId) return;
+  const id = ignorarId;
+  fecharIgnorar();
+  try {
+    await patchAnuncio(id, { status: 'morto', motivo_morte: ignorarMotivo || null });
+    const a = TODOS.find((x) => x.id === id);
+    if (a) { a.status = 'morto'; a.motivo_morte = ignorarMotivo || null; }
+    atualizarContadores();
+    renderGrid();
+  } catch (e) {
+    alert('Falha ao ignorar anúncio. Tente novamente.');
+  }
+});
+
+// ── Adicionar ao Catálogo ─────────────────────────────────────────
+async function adicionarCatalogo(id) {
+  const anuncio = TODOS.find((a) => a.id === id);
+  if (!anuncio) return;
+
+  if (anuncio.vehicle_id) {
+    window.location.href = `/catalogo.html?id=${anuncio.vehicle_id}`;
+    return;
+  }
+
+  const btn = document.querySelector(`#card-${id} .btn-acao.catalogo`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Criando…'; }
+
+  try {
+    // Extrai valor numérico do preço ("R$ 89.000" → 89000)
+    let valor = null;
+    if (anuncio.preco) {
+      const n = anuncio.preco.replace(/[^\d,]/g, '').replace(',', '.');
+      valor = parseFloat(n) || null;
+    }
+
+    // Lê chave do catálogo (se configurada)
+    const catKey = localStorage.getItem('cnr_catalogo_key') || localStorage.getItem('cnr_vendas_key') || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (catKey) headers['x-cnr-key'] = catKey;
+
+    // Cria veículo no catálogo com dados do anúncio
+    const resp = await fetch('/api/catalogo', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        observacoes: `Anúncio OLX: ${anuncio.url}\n\n${anuncio.titulo}`,
+        valor,
+        regiao:     anuncio.localizacao || '',
+        status:     'disponivel',
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const veiculo = await resp.json();
+    const veiculoId = Array.isArray(veiculo) ? veiculo[0]?.id : veiculo.id;
+    if (!veiculoId) throw new Error('ID do veículo não retornado');
+
+    // Vincula vehicle_id no anúncio
+    await patchAnuncio(id, { vehicle_id: veiculoId });
+    anuncio.vehicle_id = veiculoId;
+
+    window.location.href = `/catalogo.html?id=${veiculoId}`;
+  } catch (e) {
+    alert(`Erro ao criar veículo no catálogo: ${e.message}`);
+    if (btn) { btn.disabled = false; btn.textContent = '+ Catálogo'; }
+  }
+}
+
+// ── Filtros ──────────────────────────────────────────────────────
+document.getElementById('filtro-bar').addEventListener('click', (e) => {
+  const btn = e.target.closest('.filtro-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filtro-btn').forEach((b) => b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  filtro = btn.dataset.status;
+  renderGrid();
+});
+
+// ── Init ─────────────────────────────────────────────────────────
+carregar();
+</script>
+</body>
+</html>

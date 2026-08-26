@@ -4,6 +4,7 @@
     { href: '/home.html',        emoji: '🏠', label: 'Painel' },
     { href: '/index.html',       emoji: '📝', label: 'Gerador' },
     { href: '/catalogo.html',    emoji: '📂', label: 'Catálogo' },
+    { href: '/anuncios.html',    emoji: '📡', label: 'Anúncios' },
     { href: '/compradores.html', emoji: '👥', label: 'Clientes' },
     { href: '/vendas.html',      emoji: '📋', label: 'Vendas' },
     { href: '/negociacoes.html', emoji: '🤝', label: 'Negociações' },
