@@ -213,7 +213,7 @@ function cardHTML(a) {
   const seenAgo     = a.last_seen_at !== a.first_seen_at ? timeAgo(a.last_seen_at) : '';
 
   const thumb = a.thumbnail
-    ? `<img class="card-thumb lazy-thumb" data-src="${esc(a.thumbnail)}" alt="${esc(a.titulo)}">`
+    ? `<img class="card-thumb lazy-thumb" data-src="${esc(a.thumbnail)}" alt="${esc(a.titulo)}" referrerpolicy="no-referrer">`
     : `<div class="card-thumb-placeholder">🚗</div>`;
 
   // Botões por status
@@ -303,6 +303,9 @@ function _carregarThumb(img, tentativa) {
       setTimeout(() => { img.removeAttribute('src'); _carregarThumb(img, tentativa + 1); }, 2000);
     }
   };
+  // no-referrer: CDN img.olx.com.br bloqueia requests com Referer externo.
+  // Sem Referer, a requisição chega como acesso direto e a imagem é servida normalmente.
+  img.referrerPolicy = 'no-referrer';
   img.src = src;
 }
 
