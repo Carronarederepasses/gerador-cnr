@@ -59,6 +59,7 @@ async function handleRadar(req, res) {
       titulo:       l.title       || '',
       preco:        l.price       || '',
       localizacao:  l.location    || '',
+      thumbnail:    l.thumbnail   || null,
       search_name:  l.search_name || null,
       last_seen_at: now,
     }));
@@ -82,20 +83,50 @@ async function handleRadar(req, res) {
     //   - anúncio novo     → INSERT (first_seen_at, status e id ficam com o default do banco)
     //   - anúncio existente → UPDATE somente das colunas listadas em `columns`
     //                         (status, vehicle_id e first_seen_at são preservados)
-    const cols = 'origem,listing_id,url,titulo,preco,localizacao,search_name,last_seen_at';
-    const r = await sb(`anuncios?columns=${cols}&on_conflict=origem,listing_id`, {
-      method:  'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body:    JSON.stringify(rows),
-    });
+    //
+    // Thumbnail — estratégia de dois grupos:
+    //   rowsWithThumb    → inclui thumbnail em columns (grava/atualiza a foto)
+    //   rowsWithoutThumb → omite thumbnail de columns (preserva a foto já salva no banco)
+    // Isso impede que um re-scan sem foto sobrescreva uma foto válida existente.
+    const colsBase  = 'origem,listing_id,url,titulo,preco,localizacao,search_name,last_seen_at';
+    const colsThumb = colsBase + ',thumbnail';
 
-    if (!r.ok) {
-      const err = await r.text();
-      console.error('[radar] upsert falhou:', err);
-      return res.status(500).json({ error: 'Falha ao salvar anúncios.' });
+    const rowsWithThumb    = rows.filter((r) => r.thumbnail);
+    const rowsWithoutThumb = rows.filter((r) => !r.thumbnail);
+
+    if (rowsWithThumb.length > 0) {
+      const r1 = await sb(`anuncios?columns=${colsThumb}&on_conflict=origem,listing_id`, {
+        method:  'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body:    JSON.stringify(rowsWithThumb),
+      });
+      if (!r1.ok) {
+        const err = await r1.text();
+        console.error('[radar] upsert (com thumbnail) falhou:', err);
+        return res.status(500).json({ error: 'Falha ao salvar anúncios.' });
+      }
     }
 
-    return res.status(200).json({ ok: true, count: rows.length, raw: rowsRaw.length });
+    if (rowsWithoutThumb.length > 0) {
+      const r2 = await sb(`anuncios?columns=${colsBase}&on_conflict=origem,listing_id`, {
+        method:  'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body:    JSON.stringify(rowsWithoutThumb),
+      });
+      if (!r2.ok) {
+        const err = await r2.text();
+        console.error('[radar] upsert (sem thumbnail) falhou:', err);
+        return res.status(500).json({ error: 'Falha ao salvar anúncios.' });
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      count: rows.length,
+      raw: rowsRaw.length,
+      withThumb: rowsWithThumb.length,
+      withoutThumb: rowsWithoutThumb.length,
+    });
   }
 
   // PATCH — atualiza campos de fluxo (status, motivo_morte, vehicle_id)
