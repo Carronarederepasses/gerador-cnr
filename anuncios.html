@@ -213,7 +213,7 @@ function cardHTML(a) {
   const seenAgo     = a.last_seen_at !== a.first_seen_at ? timeAgo(a.last_seen_at) : '';
 
   const thumb = a.thumbnail
-    ? `<img class="card-thumb" src="${esc(a.thumbnail)}" alt="${esc(a.titulo)}" loading="lazy">`
+    ? `<img class="card-thumb lazy-thumb" data-src="${esc(a.thumbnail)}" alt="${esc(a.titulo)}">`
     : `<div class="card-thumb-placeholder">🚗</div>`;
 
   // Botões por status
@@ -274,6 +274,47 @@ function renderGrid() {
 
   grid.innerHTML = lista.map(cardHTML).join('');
   document.getElementById('meta-total').textContent = `${lista.length} anúncio${lista.length > 1 ? 's' : ''}`;
+  observarThumbs();
+}
+
+// ── Lazy loading de thumbnails ───────────────────────────────────
+// Carrega fotos conforme os cards se aproximam da viewport, evitando
+// múltiplos requests simultâneos que acionam o throttle do CDN OLX.
+// rootMargin:'200px' pré-carrega o card antes de ele aparecer na tela.
+const _thumbObserver = ('IntersectionObserver' in window)
+  ? new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        _thumbObserver.unobserve(entry.target);
+        _carregarThumb(entry.target, 0);
+      });
+    }, { rootMargin: '200px' })
+  : null;
+
+function _carregarThumb(img, tentativa) {
+  const src = img.dataset.src;
+  if (!src) return;
+  img.onload  = () => { img.onload = null; img.onerror = null; };
+  img.onerror = () => {
+    img.onerror = null;
+    img.onload  = null;
+    if (tentativa < 2) {
+      // Aguarda 2s e tenta de novo (máx. 2 retries, sem loop infinito)
+      setTimeout(() => { img.removeAttribute('src'); _carregarThumb(img, tentativa + 1); }, 2000);
+    }
+  };
+  img.src = src;
+}
+
+function observarThumbs() {
+  document.querySelectorAll('.lazy-thumb[data-src]').forEach((img) => {
+    if (_thumbObserver) {
+      _thumbObserver.observe(img);
+    } else {
+      // Fallback para navegadores sem IntersectionObserver: carrega direto
+      _carregarThumb(img, 0);
+    }
+  });
 }
 
 // ── Carregar da API ───────────────────────────────────────────────
