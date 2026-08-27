@@ -204,6 +204,10 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 - [ ] **Retroalimentar histórico** — meta é 30+ transações reais com dados completos.
 - [ ] **Reforma Visual Etapa 2** — melhorias de UX/UI em `index.html` (Captação). Escopo definido, não iniciado. Iniciar somente após validar Sprint 1.
 
+### Concluído recentemente (semana de 25–27/ago/2026)
+- [x] **Reforma 38 — Catafrango Thumbnails** (extensão + gerador): captura de foto da OLX de ponta a ponta. `olx-search.js`: `querySelectorAll('img')` + prioridade `img.olx.com.br/thumbs` para evitar capturar badge de loja verificada. `fetch-anuncio.js`: upsert em dois grupos (com/sem thumbnail) para não sobrescrever fotos válidas existentes. `on_conflict=origem,listing_id` + deduplicação por Map no lote. 110 anúncios capturados, validado em produção — commits `3e7e792` (gerador), `5bd16de` + `ed22846` (extensão)
+- [x] **Reforma 39 — anuncios.html thumbnails funcionais**: diagnóstico completo da CDN OLX → lazy loading via `IntersectionObserver` (`rootMargin:200px`) + correção de bloqueio por `Referer`. Causa raiz confirmada por teste A/B: sem `referrerPolicy` → 2/10 LOAD; com `referrerPolicy='no-referrer'` → 10/10 LOAD. Fix: `referrerpolicy="no-referrer"` no `<img>` em `cardHTML()` + `img.referrerPolicy='no-referrer'` em `_carregarThumb()` antes de definir `img.src`. Validado em produção (notebook + celular) — commits `ad1fd86` + `9cea50c`
+
 ### Concluído recentemente (semana de 12–13/ago/2026)
 - [x] Reforma 13: `MOTOR_VERSAO = '2.0'`; `motivo_codigo` estruturado no evento `match_nao_adequado`; `preco_fecharia` em recusas; `versao_motor` no payload — commit `777c378`
 - [x] Reforma 14: Central de Distribuição (fila de compradores, pular sem registrar, oferta em lote); reversal da Reforma 13 (motivo e preço voltaram a ser diretos, sem form); `_registrarOferta()` extraído como helper compartilhado — commit `e8eb898`
@@ -264,6 +268,8 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 28 | Reorganização completa da ficha cadastral de Clientes: 8 seções com emoji, Tipo de cliente primeiro, campos condicionais por tipo, label Nome/Nome fantasia dinâmico, Proprietário só para Lojista e Repassador, campo cidade duplicado removido, nenhum campo obrigatório | `83476c4` |
 | 29 | Máscaras de CPF (`XXX.XXX.XXX-XX`), CNPJ (`XX.XXX.XXX/XXXX-XX`) e Telefone (`(XX) XXXXX-XXXX`) em `compradores.html`: formatação progressiva no oninput, aplicada no load do modal; `salvar()` normaliza para dígitos puros antes de enviar ao banco; helpers `fmtCPF`/`fmtCNPJ`/`fmtTel` para exibição em `copiarDadosBancarios()`; `escolherContato()` aplica máscara após importar | `97139e8` |
 | 30 | Auto-preenchimento CRM formatado em `vendas.html`: adiciona `fmtTelV()`/`fmtDocV()` (espelha compradores.html); `selecionarCRM` e `selecionarVendedor` formatam telefone e CPF/CNPJ ao preencher (banco armazena dígitos puros desde Reforma 29); `selecionarVendedor` alinha strip do estado na cidade com comprador; dropdown CRM exibe telefone formatado e cidade; histórico também exibe CPF/tel formatados | `3b3c5b6` |
+| 38 | Catafrango Thumbnails: `olx-search.js` captura URL da foto via `querySelectorAll('img')` priorizando `img.olx.com.br/thumbs` (evita badge de loja verificada); `fetch-anuncio.js` upsert dois grupos (com/sem thumbnail), `on_conflict=origem,listing_id`, deduplicação por Map. Fluxo OLX→extensão→API→Supabase validado em produção com 110 anúncios | `3e7e792` (gerador), `5bd16de`+`ed22846` (extensão) |
+| 39 | anuncios.html thumbnails: `IntersectionObserver` lazy loading (`rootMargin:200px`) + `referrerpolicy="no-referrer"` em `cardHTML()` e `img.referrerPolicy='no-referrer'` em `_carregarThumb()`. Causa raiz: CDN OLX hotlink protection por Referer — bloqueava requests de `gerador-cnr.vercel.app` após 2 concorrentes. Diagnóstico via teste A/B (sem/com no-referrer: 2/10 vs 10/10 LOAD). Validado em produção (notebook + celular) | `ad1fd86`+`9cea50c` |
 
 ---
 
@@ -730,3 +736,65 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 ---
 
 *Atualizado em 20/agosto/2026 — Fix Gerador Parceiros (2ª rodada): IPVA fallback + prompt gastos no fluxo Parceiros. Commit `93e36a0`, deploy `gerador-cnr.vercel.app` — READY.*
+
+---
+
+### Checkpoint — sessão de 27/ago/2026 — Thumbnails OLX validados em produção
+
+### O que foi feito nesta sessão
+
+#### Reforma 38 — Captura de thumbnail na extensão Catafrango
+
+**Problema**: anúncios chegavam ao Supabase sem foto. O Catafrango não capturava a URL da imagem da OLX.
+
+**`olx-search.js` (extensão)**:
+- `extractAll()`: seleção via `querySelectorAll('img')` + `find()` priorizando `img.olx.com.br/thumbs700x500`. Fallback exclui `_next/image` (badge de loja). `currentSrc` preferido sobre `src`.
+- `sendOrRetry()`: mesma lógica no retry path.
+- Stub de incompletos inclui `thumbnail: ''`.
+- Log atualizado: `thumb=✓/✗`.
+- Commits: `5bd16de` (captura inicial) + `ed22846` (fix store badge — lojas verificadas têm 2 imgs, badge primeiro no DOM).
+
+**`fetch-anuncio.js` (gerador)** — Reforma 38b:
+- `on_conflict=origem,listing_id` adicionado (sem ele, PostgREST usa PK auto-gerada → erro 23505).
+- Deduplicação por `Map` antes do upsert (mesmo `listing_id` em múltiplas buscas colide no INSERT).
+- Upsert em dois grupos: `rowsWithThumb` (inclui coluna `thumbnail`) e `rowsWithoutThumb` (omite a coluna, preserva foto já salva). Sem os grupos, re-scan sem foto sobrescrevia foto válida com `null`.
+- Commit: `3e7e792`.
+
+#### Reforma 39 — anuncios.html: lazy loading + no-referrer
+
+**Problema A — throttle da CDN**: OLX serve thumbnails por `img.olx.com.br`. Com 95%+ de anúncios com thumbnail, os 110 cards disparavam requests simultâneos ao carregar a página. CDN rejeita requests concorrentes de origem externa após os 2 primeiros.
+
+**Evidência do throttle (teste de 10 imgs simultâneas)**:
+- Sem `referrerPolicy`: 2 LOAD / 8 ERROR em ~180–196 ms (rejeição ativa, não timeout)
+- Com `referrerPolicy='no-referrer'`: 10 LOAD / 0 ERROR em 217–414 ms
+
+**Causa raiz confirmada**: hotlink protection por header `Referer`. CDN bloqueia requests com `Referer: gerador-cnr.vercel.app`. Sem Referer → CDN trata como acesso direto.
+
+**`anuncios.html` (3 alterações)**:
+1. `cardHTML()`: `src="${thumbnail}"` → `data-src="${thumbnail}" referrerpolicy="no-referrer"` + classe `lazy-thumb`. Cards com `null` preservam `<div class="card-thumb-placeholder">🚗</div>` inalterado.
+2. `renderGrid()`: `observarThumbs()` chamado ao final de cada render (filtro incluído).
+3. Novo bloco lazy loading:
+   - `_thumbObserver`: `IntersectionObserver` singleton, `rootMargin:'200px'`
+   - `_carregarThumb(img, tentativa)`: define `img.referrerPolicy='no-referrer'` **antes** de `img.src=src`. `onerror`: `img.removeAttribute('src')` + retry em 2 s, máx 2 tentativas, sem loop infinito.
+   - `observarThumbs()`: escaneia `.lazy-thumb[data-src]` e registra no observer. Fallback inline para browsers sem IntersectionObserver.
+- Commits: `ad1fd86` (lazy loading) + `9cea50c` (no-referrer fix).
+
+#### Diagnóstico e aprendizado
+
+- `img.src` no DOM da OLX retorna URL real mesmo para `loading="lazy"` — OLX não usa `data-src`.
+- `currentSrc` fica vazio se a aba está em background (não renderiza). `src` tem a URL.
+- Sem CSP restritivo na Vercel. Problema era 100% no CDN da OLX.
+- IntersectionObserver não dispara em browser oculto/headless — teste de produção foi necessário.
+- `referrerpolicy` como atributo HTML + `img.referrerPolicy` em JS: redundância intencional para cobrir retries.
+
+### Onde o projeto ficou (atualizado 27/ago/2026)
+
+- `origin/main` em `9cea50c` (Reforma 39 — no-referrer fix), Vercel — READY.
+- **Thumbnails OLX**: fluxo completo validado em produção (notebook + celular). 110 anúncios com fotos carregando corretamente. Etapa encerrada.
+- **Caixa Preta (Reforma 35)**: Etapas 1–6 concluídas, em produção.
+- **Sprint 1 (Match Ativo)**: aguardando validação operacional (≥5 veículos, resultados registrados). Patches A+B+C aplicados (Reforma 37).
+- **Reforma Visual Etapa 2 (`index.html`)**: escopo definido, não iniciada. Aguarda encerramento da Sprint 1.
+- **Pendente operacional**: preencher perfis dos compradores sem faixa de preço.
+- **Próxima decisão estratégica**: definir próxima evolução do Catafrango após validação dos thumbnails.
+
+*Atualizado em 27/agosto/2026 — Reforma 38 + 39: thumbnails OLX funcionando em produção. Commits `3e7e792` + `9cea50c`, deploy `gerador-cnr.vercel.app` — READY.*
