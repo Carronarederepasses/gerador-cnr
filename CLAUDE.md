@@ -798,3 +798,64 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 - **Próxima decisão estratégica**: definir próxima evolução do Catafrango após validação dos thumbnails.
 
 *Atualizado em 27/agosto/2026 — Reforma 38 + 39: thumbnails OLX funcionando em produção. Commits `3e7e792` + `9cea50c`, deploy `gerador-cnr.vercel.app` — READY.*
+
+---
+
+### Checkpoint — sessão de 27/ago/2026 (tarde) — Mesa de Cata: ABORDAR integrado ao Gerador
+
+### O que foi feito nesta sessão
+
+#### Reforma 40 — Mesa de Cata: botão ABORDAR + bridge Gerador→extensão + métricas
+
+**Contexto**: Sprint "Mesa de Cata" — transformar `anuncios.html` na mesa de turno operacional. Auditoria arquitetural completa entregue antes de qualquer implementação (mapa dos dois sistemas, gaps, proposta, riscos, plano de teste).
+
+**`olx-chat.js` (extensão)** — nova mensagem de abordagem aprovada:
+- Anterior: "Trabalho com compradores e lojistas parceiros do setor automotivo e acredito que seu veículo possa interessar a alguns deles."
+- Nova: "Olá! Tudo bem? Meu nome é Yuri, sou de Garopaba e vi seu anúncio na OLX. Trabalho com compradores e parceiros do setor automotivo e achei que seu veículo pode ter um bom perfil para alguns dos negócios que acompanho. O veículo ainda está disponível? Se sim, qual seria o melhor valor para uma negociação à vista?"
+- Commit extensão: `8b5fb09` (inclui manifest + bridge + nova msg)
+
+**`manifest.json` (extensão)** — `content_scripts` adicionado:
+- `matches: ["https://*.vercel.app/*"]` (host_permission já existia)
+- Injeta `content/cnr-bridge.js` em `document_start`
+- Exige reload da extensão em `chrome://extensions` para entrar em vigor
+
+**`content/cnr-bridge.js` (extensão — arquivo novo)**:
+- Escuta `window.postMessage({ cnr_type: 'CNR_ABORDAR', listing })` da página do Gerador
+- Encaminha para `chrome.runtime.sendMessage({ type: 'ABORDAR', listing })` → `abordar()` do SW
+- Devolve `CNR_ABORDAR_ACK` para a página confirmar que a extensão recebeu
+
+**`anuncios.html` (gerador)** — commit `283ce52`:
+- **Botão `💬 ABORDAR`**: primário (fundo escuro) no card `novo`. Aciona `abordar(id)` → `postMessage → bridge → SW → abordar() → chat.olx.com.br/?list-id=<id> → olx-chat.js`. **ABORDAR ≠ ENVIADO** — não altera status.
+- **Fallback inteligente**: timeout 600ms sem ACK → abre chat diretamente + copia `MSG_ABORDAGEM` para clipboard. Toast contextual em ambos os casos.
+- **Botão `✅ ENVIEI`**: separado, estilo success (verde suave). Aciona `avancar(id,'enviado')` → PATCH Supabase. Yuri clica SOMENTE após ter enviado manualmente no OLX.
+- **Barra de métricas**: topo da página — `📡 total · 🔴 novos · 🕐 hoje · 📬 enviados · 💬 responderam · 🏆 autorizados`. Calculada dos dados já carregados, sem nova chamada à API.
+- **Filtro `🔴 Fila do dia`**: novos com `first_seen_at < 24h`. Os 110 seeds antigos NÃO aparecem — distinção sem alterar schema ou `first_seen_at`.
+- **Chip `HOJE`**: badge discreto nos cards recentes. Seeds antigos sem marcador.
+- **Dados enviados à extensão**: `{ listing_id, platform:'olx', url, title (←titulo), price (←preco), location (←localizacao) }` — mapeado para os nomes que o `abordar()` do SW espera.
+- **Thumbnails intocados**: `_carregarThumb`, `_thumbObserver`, `referrerPolicy`, `observarThumbs` preservados linha a linha.
+
+#### Arquitetura do fluxo completo
+
+```
+anuncios.html (postMessage CNR_ABORDAR)
+  → cnr-bridge.js (content script, injected)
+    → chrome.runtime.sendMessage (ABORDAR)
+      → sw.js abordar()
+        → chrome.tabs.create(chat.olx.com.br/?list-id=X)
+          → olx-chat.js (injetado via tabs.onUpdated)
+            → preenche mensagem (NÃO envia)
+              → Yuri revisa e envia manualmente
+                → volta ao Gerador, clica ✅ ENVIEI
+                  → PATCH Supabase: status novo → enviado
+```
+
+### Onde o projeto ficou (atualizado 27/ago/2026 — tarde)
+
+- **Gerador** `origin/main` em `283ce52` (Reforma 40 — Mesa de Cata), Vercel — READY (deploy automático no push).
+- **Extensão** em `8b5fb09` (bridge + nova msg + manifest). ⚠️ Requer reload manual em `chrome://extensions` para `content_scripts` entrar em vigor.
+- **Thumbnails OLX (Reforma 39)**: intocados, em produção.
+- **Caixa Preta (Reforma 35)**: intocada, em produção.
+- **Sprint 1 (Match Ativo)**: não tocada, aguardando validação operacional.
+- **Próximo passo operacional**: recarregar a extensão → testar fluxo ABORDAR completo (card → chat OLX → mensagem preenchida → Yuri envia → ENVIEI → status enviado).
+
+*Atualizado em 27/agosto/2026 (tarde) — Reforma 40: Mesa de Cata — ABORDAR integrado ao Gerador. Commits gerador `283ce52`, extensão `8b5fb09`.*
