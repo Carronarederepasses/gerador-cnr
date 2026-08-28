@@ -291,8 +291,8 @@ function cardHTML(a) {
     btns += `<button class="btn-acao success" onclick="avancar('${a.id}','enviado')">✅ ENVIEI</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
   } else if (a.status === 'enviado') {
-    btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','respondeu')">Respondeu ✓</button>`;
-    btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
+    btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','respondeu')">💬 RESPONDEU</button>`;
+    btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">☠️ MORTO</button>`;
   } else if (a.status === 'respondeu') {
     btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','autorizado')">✅ Autorizado</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
