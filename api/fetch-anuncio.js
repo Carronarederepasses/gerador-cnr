@@ -130,8 +130,19 @@ async function handleRadar(req, res) {
   }
 
   // PATCH — atualiza campos de fluxo (status, motivo_morte, vehicle_id)
+  // Aceita dois modos de filtro:
+  //   ?id=<uuid>          → Gerador frontend (anuncios.html)
+  //   ?listing_id=<id>&origem=<olx|...> → extensão (não conhece o UUID)
   if (req.method === 'PATCH') {
-    if (!q.id) return res.status(400).json({ error: 'id required' });
+    let filter;
+    if (q.id) {
+      filter = `id=eq.${q.id}`;
+    } else if (q.listing_id) {
+      const origem = q.origem || 'olx';
+      filter = `listing_id=eq.${encodeURIComponent(q.listing_id)}&origem=eq.${encodeURIComponent(origem)}`;
+    } else {
+      return res.status(400).json({ error: 'id ou listing_id required' });
+    }
 
     const body    = req.body || {};
     const payload = {};
@@ -143,7 +154,7 @@ async function handleRadar(req, res) {
       return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
     }
 
-    const r = await sb(`anuncios?id=eq.${q.id}`, {
+    const r = await sb(`anuncios?${filter}`, {
       method:  'PATCH',
       headers: { Prefer: 'return=minimal' },
       body:    JSON.stringify(payload),

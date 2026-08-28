@@ -68,6 +68,8 @@
 
   /* Chip "HOJE" */
   .chip-hoje{display:inline-block;font-size:.6rem;font-weight:800;padding:.15rem .45rem;border-radius:8px;background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent);letter-spacing:.04em;vertical-align:middle}
+  .chip-resposta-nova{display:inline-flex;align-items:center;gap:.2rem;background:#dc2626;color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.05em;padding:.2rem .55rem;border-radius:20px;animation:pulse-resposta 1.8s ease-in-out infinite}
+  @keyframes pulse-resposta{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.82;transform:scale(1.05)}}
 
   /* Botões de ação */
   .btn-acao{font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:500;padding:.38rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
@@ -177,6 +179,10 @@ let filtro = 'todos';
 let ignorarId   = null;
 let ignorarMotivo = '';
 
+// listing_ids detectados automaticamente pela extensão (badge 🔥)
+// Preenchido por carregarAutoRespondidos() após o carregar() inicial.
+let AUTO_RESPONDIDOS = new Set();
+
 // ── API ──────────────────────────────────────────────────────────
 async function api(path, opts) {
   const r = await fetch(path, opts);
@@ -190,6 +196,30 @@ async function patchAnuncio(id, payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+}
+
+// ── Auto-respondidos: badge 🔥 RESPOSTA NOVA ─────────────────────
+// Pergunta à extensão (via bridge cnr-bridge.js) quais listing_ids
+// foram detectados automaticamente como respondidos.
+// Se a extensão não estiver instalada, falha silenciosa — sem badge.
+function carregarAutoRespondidos() {
+  const handler = (e) => {
+    if (e.source !== window || e.data?.cnr_type !== 'CNR_AUTO_RESPONDED') return;
+    window.removeEventListener('message', handler);
+    clearTimeout(timeout);
+    const ids = Array.isArray(e.data.ids) ? e.data.ids : [];
+    if (ids.length === 0) return; // nada a destacar
+    AUTO_RESPONDIDOS = new Set(ids);
+    renderGrid(); // re-renderizar com os badges 🔥
+  };
+
+  // Timeout: se bridge não responder em 1.5s, prosseguir sem badge
+  const timeout = setTimeout(() => {
+    window.removeEventListener('message', handler);
+  }, 1500);
+
+  window.addEventListener('message', handler);
+  window.postMessage({ cnr_type: 'CNR_GET_AUTO_RESPONDED' }, '*');
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -294,6 +324,10 @@ function cardHTML(a) {
     btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','respondeu')">💬 RESPONDEU</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">☠️ MORTO</button>`;
   } else if (a.status === 'respondeu') {
+    if (AUTO_RESPONDIDOS.has(a.listing_id)) {
+      // Detectado automaticamente pela extensão — badge pulsante
+      btns = `<span class="chip-resposta-nova">🔥 RESPOSTA NOVA</span>` + btns;
+    }
     btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','autorizado')">✅ Autorizado</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
   } else if (a.status === 'autorizado') {
@@ -331,9 +365,18 @@ function cardHTML(a) {
 // ── Renderizar grid ───────────────────────────────────────────────
 function renderGrid() {
   const grid = document.getElementById('grid');
-  const lista = filtro === 'todos'    ? TODOS
-              : filtro === 'fila-dia' ? TODOS.filter((a) => a.status === 'novo' && isRecente(a))
-              : TODOS.filter((a) => a.status === filtro);
+  let lista = filtro === 'todos'    ? TODOS
+            : filtro === 'fila-dia' ? TODOS.filter((a) => a.status === 'novo' && isRecente(a))
+            : TODOS.filter((a) => a.status === filtro);
+
+  // 🔥 Cards com RESPOSTA NOVA sobem ao topo no filtro Responderam
+  if (filtro === 'respondeu' && AUTO_RESPONDIDOS.size > 0) {
+    lista = [...lista].sort((a, b) => {
+      const aR = AUTO_RESPONDIDOS.has(a.listing_id) ? 0 : 1;
+      const bR = AUTO_RESPONDIDOS.has(b.listing_id) ? 0 : 1;
+      return aR - bR;
+    });
+  }
 
   if (lista.length === 0) {
     grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Nenhum anúncio ${filtro === 'todos' ? 'encontrado' : filtro === 'fila-dia' ? 'na fila do dia (últimas 24h)' : 'com este status'}.</div>`;
@@ -415,6 +458,10 @@ async function carregar() {
     const ul = timeAgo(TODOS[0].last_seen_at);
     document.getElementById('meta-last').textContent = `Último: ${ul}`;
   }
+
+  // Carregar lista de auto-detectados (extensão) para mostrar 🔥 RESPOSTA NOVA.
+  // Chamado após o render inicial — se a extensão responder, re-renderiza com badges.
+  carregarAutoRespondidos();
 }
 
 // ── Ações ────────────────────────────────────────────────────────
