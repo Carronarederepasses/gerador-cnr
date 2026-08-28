@@ -204,6 +204,9 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 - [ ] **Retroalimentar histórico** — meta é 30+ transações reais com dados completos.
 - [ ] **Reforma Visual Etapa 2** — melhorias de UX/UI em `index.html` (Captação). Escopo definido, não iniciado. Iniciar somente após validar Sprint 1.
 
+### Concluído recentemente (28/ago/2026)
+- [x] **Reforma 41 — Elo enviado→respondeu/morto**: cards `enviado` em `anuncios.html` exibem `💬 RESPONDEU` (PATCH direto para `status=respondeu` sem modal, sem formulário) e `☠️ MORTO` (modal leve de chips existente — motivo opcional). Nenhum campo de data/hora/motivo obrigatório. Commit `506bdce`. Loop Catafrango fechado: novo→enviado→respondeu/morto.
+
 ### Concluído recentemente (27/ago/2026 — tarde)
 - [x] **Reforma 40 — Mesa de Cata**: `anuncios.html` transformado em mesa de turno operacional. Botão `💬 ABORDAR` aciona a extensão via bridge `window.postMessage → cnr-bridge.js → sw.js:abordar()`. Botão `✅ ENVIEI` separado (ABORDAR≠ENVIADO). Barra de métricas, filtro "Fila do dia", chip HOJE. Nova mensagem de abordagem em `olx-chat.js`. Bridge `cnr-bridge.js` novo na extensão. Commits: gerador `283ce52`, extensão `8b5fb09`. Vercel deploy automático.
 
@@ -274,6 +277,7 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 38 | Catafrango Thumbnails: `olx-search.js` captura URL da foto via `querySelectorAll('img')` priorizando `img.olx.com.br/thumbs` (evita badge de loja verificada); `fetch-anuncio.js` upsert dois grupos (com/sem thumbnail), `on_conflict=origem,listing_id`, deduplicação por Map. Fluxo OLX→extensão→API→Supabase validado em produção com 110 anúncios | `3e7e792` (gerador), `5bd16de`+`ed22846` (extensão) |
 | 39 | anuncios.html thumbnails: `IntersectionObserver` lazy loading (`rootMargin:200px`) + `referrerpolicy="no-referrer"` em `cardHTML()` e `img.referrerPolicy='no-referrer'` em `_carregarThumb()`. Causa raiz: CDN OLX hotlink protection por Referer — bloqueava requests de `gerador-cnr.vercel.app` após 2 concorrentes. Diagnóstico via teste A/B (sem/com no-referrer: 2/10 vs 10/10 LOAD). Validado em produção (notebook + celular) | `ad1fd86`+`9cea50c` |
 | 40 | Mesa de Cata — `anuncios.html`: botão `💬 ABORDAR` (aciona extensão via bridge ou fallback clipboard), botão `✅ ENVIEI` (ABORDAR≠ENVIADO), barra de métricas, filtro "Fila do dia" (first_seen_at<24h), chip HOJE nos cards recentes, toast de feedback. `manifest.json`: content_scripts injeta `cnr-bridge.js` em `*.vercel.app`. `cnr-bridge.js` (novo): bridge `window.postMessage→chrome.runtime.sendMessage→abordar()`. `olx-chat.js`: nova mensagem aprovada. Thumbnails intocados. | gerador `283ce52`, extensão `8b5fb09` |
+| 41 | Elo enviado→respondeu/morto — `anuncios.html`: cards `enviado` exibem `💬 RESPONDEU` (PATCH direto via `avancar(id,'respondeu')`) e `☠️ MORTO` (modal leve de chips existente via `abrirIgnorar`). Sem formulário, sem campos de data/hora/motivo obrigatório, sem preenchimento manual. Métricas e filtros já atualizavam — intocados. | `506bdce` |
 
 ---
 
@@ -863,3 +867,49 @@ anuncios.html (postMessage CNR_ABORDAR)
 - **Próximo passo operacional**: recarregar a extensão → testar fluxo ABORDAR completo (card → chat OLX → mensagem preenchida → Yuri envia → ENVIEI → status enviado).
 
 *Atualizado em 27/agosto/2026 (tarde) — Reforma 40: Mesa de Cata — ABORDAR integrado ao Gerador. Commits gerador `283ce52`, extensão `8b5fb09`.*
+
+---
+
+### Checkpoint — sessão de 28/ago/2026 — Reforma 41: elo enviado→respondeu/morto
+
+### O que foi feito nesta sessão
+
+#### Reforma 41 — Botões RESPONDEU + MORTO no card enviado
+
+**Contexto**: o fluxo Catafrango tinha o elo `novo→enviado` fechado (Reforma 40). Faltava fechar `enviado→respondeu` e `enviado→morto`.
+
+**Diagnóstico antes de tocar qualquer arquivo**:
+- `avancar(id, 'respondeu')` já existia em `anuncios.html` linha 294, rotulado "Respondeu ✓".
+- `abrirIgnorar(id)` já existia na linha 295, rotulado "Ignorar" — abre modal leve com chips de motivo (todos opcionais, incluindo "Sem motivo").
+- Métricas, filtros e re-render já funcionavam via `avancar()` → `atualizarMetricas()` → `renderGrid()`.
+
+**Alteração**: 2 labels no bloco `a.status === 'enviado'` de `cardHTML()`:
+- `"Respondeu ✓"` → `"💬 RESPONDEU"` (mesma função `avancar(id,'respondeu')`, PATCH direto, sem modal)
+- `"Ignorar"` → `"☠️ MORTO"` (mesma função `abrirIgnorar(id)`, modal existente com chips)
+
+**Sem alterar**: mecanismo de PATCH, modal de motivos, `avancar()`, métricas, filtros, thumbnails, bridge, extensão, ABORDAR, ENVIEI.
+
+**Princípio aplicado**: "O CNR registra o máximo possível automaticamente e pergunta o mínimo possível ao Yuri." — Yuri decide QUANDO algo mudou, o sistema registra o timestamp da mudança automaticamente (Supabase `updated_at`).
+
+**Loop Catafrango completo após Reforma 41**:
+```
+novo
+  ↓ 💬 ABORDAR (extensão abre OLX chat, NÃO muda status)
+  ↓ Yuri revisa e envia manualmente na OLX
+  ↓ ✅ ENVIEI → PATCH status=enviado
+enviado
+  ↓ 💬 RESPONDEU → PATCH status=respondeu (sem modal, sem formulário)
+  ↓ OU ☠️ MORTO → abrirIgnorar → chips de motivo (todos opcionais) → PATCH status=morto
+respondeu | morto
+```
+
+### Onde o projeto ficou (28/ago/2026)
+
+- `origin/main` em `506bdce` (Reforma 41), Vercel — READY (deploy automático no push).
+- **Catafrango**: loop completo. novo→enviado→respondeu/morto fechado.
+- **Caixa Preta (Reforma 35)**: intocada, em produção.
+- **Sprint 1 (Match Ativo)**: não tocada, aguardando validação operacional (≥5 veículos, resultados registrados).
+- **Reforma Visual Etapa 2 (`index.html`)**: escopo definido, não iniciada.
+- **Extensão**: commit `8b5fb09` local apenas (sem remote configurado). Sem alteração na Reforma 41.
+
+*Atualizado em 28/agosto/2026 — Reforma 41: elo enviado→respondeu/morto fechado. Commit `506bdce`, deploy `gerador-cnr.vercel.app` — READY.*
