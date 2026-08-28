@@ -170,6 +170,67 @@ async function handleRadar(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+// ── Modo Mensagens: histórico de chat capturado pela extensão ────
+// GET  ?mensagens=1&listing_id=<id>  → lista mensagens do anúncio
+// POST ?mensagens=1                  → insere mensagem (dedup via msg_hash)
+async function handleMensagens(req, res) {
+  const q = req.query;
+
+  if (req.method === 'GET') {
+    const { listing_id } = q;
+    if (!listing_id) return res.status(400).json({ error: 'listing_id required' });
+
+    const r = await sb(
+      `olx_mensagens?listing_id=eq.${encodeURIComponent(listing_id)}&order=detected_at.asc`
+    );
+    const data = await r.json();
+    return res.status(200).json(data);
+  }
+
+  if (req.method === 'POST') {
+    // Auth: mesma RADAR_KEY usada pelo POST do radar
+    if (RADAR_KEY && req.headers['x-cnr-key'] !== RADAR_KEY) {
+      return res.status(401).json({ error: 'Acesso negado.' });
+    }
+
+    const { listing_id, origem = 'olx', direction, content, detected_at } = req.body || {};
+    if (!listing_id || !direction || !content) {
+      return res.status(400).json({ error: 'listing_id, direction e content são obrigatórios' });
+    }
+
+    // Hash determinístico para deduplicação (SHA-256 do Node.js)
+    const crypto   = require('crypto');
+    const msg_hash = crypto
+      .createHash('sha256')
+      .update(`${listing_id}:${direction}:${content}`)
+      .digest('hex');
+
+    const row = {
+      listing_id,
+      origem,
+      direction,
+      content,
+      msg_hash,
+      detected_at: detected_at || new Date().toISOString(),
+    };
+
+    // ON CONFLICT (msg_hash) → ignorar duplicata (mesma mensagem detectada 2x)
+    const r = await sb('olx_mensagens?on_conflict=msg_hash', {
+      method:  'POST',
+      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body:    JSON.stringify(row),
+    });
+
+    if (!r.ok) {
+      const err = await r.text();
+      return res.status(500).json({ error: err });
+    }
+    return res.status(200).json({ ok: true, msg_hash });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
 // ── Modo padrão: extrai texto de URL externa para a IA ──────────
 
 function meta(html, prop) {
@@ -239,6 +300,9 @@ module.exports = async (req, res) => {
 
   // Modo Radar
   if ('radar' in req.query) return handleRadar(req, res);
+
+  // Modo Mensagens (Reforma 43)
+  if ('mensagens' in req.query) return handleMensagens(req, res);
 
   // Modo padrão: fetch URL para IA
   const url = (req.body && req.body.url) || req.query.url;
