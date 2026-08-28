@@ -28,12 +28,20 @@
   h1{font-family:'Playfair Display',serif;font-weight:900;font-size:1.9rem;letter-spacing:-.01em}
   .sub{font-size:.82rem;color:var(--text-mid)}
 
+  /* Métricas */
+  .metricas{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;margin-bottom:1.1rem;font-size:.8rem;color:var(--text-mid);align-items:center}
+  .metric-item{white-space:nowrap}
+  .metric-item strong{color:var(--text);font-weight:700}
+  .metric-sep{color:var(--line)}
+
   /* Filtros de status */
   .filtro-bar{display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1.2rem}
   .filtro-btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:.38rem .85rem;border-radius:20px;border:1px solid var(--line);background:var(--surface-raise);color:var(--text-mid);cursor:pointer;transition:all .15s}
   .filtro-btn:hover{border-color:var(--text);color:var(--text)}
   .filtro-btn.ativo{background:var(--text);color:var(--surface);border-color:var(--text)}
   .filtro-btn .cnt{font-size:.72rem;margin-left:.3rem;opacity:.75}
+  .filtro-btn.fila-dia-btn{border-color:var(--accent);color:var(--accent)}
+  .filtro-btn.fila-dia-btn.ativo{background:var(--accent);color:#fff;border-color:var(--accent)}
 
   .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:var(--text-mid)}
 
@@ -58,11 +66,16 @@
   .card-meta{font-size:.78rem;color:var(--text-mid);display:flex;flex-wrap:wrap;gap:.2rem .8rem}
   .card-footer{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:auto;padding-top:.6rem;border-top:1px dashed var(--line)}
 
+  /* Chip "HOJE" */
+  .chip-hoje{display:inline-block;font-size:.6rem;font-weight:800;padding:.15rem .45rem;border-radius:8px;background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent);letter-spacing:.04em;vertical-align:middle}
+
   /* Botões de ação */
   .btn-acao{font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:500;padding:.38rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
   .btn-acao:hover{border-color:var(--text)}
   .btn-acao.primary{background:var(--text);color:var(--surface);border-color:var(--text)}
   .btn-acao.primary:hover{opacity:.85}
+  .btn-acao.success{background:color-mix(in srgb,var(--severity-ok) 15%,transparent);color:var(--severity-ok);border-color:var(--severity-ok)}
+  .btn-acao.success:hover{background:color-mix(in srgb,var(--severity-ok) 25%,transparent)}
   .btn-acao.danger{color:var(--severity-crit);border-color:var(--severity-crit)}
   .btn-acao.danger:hover{background:color-mix(in srgb,var(--severity-crit) 10%,transparent)}
   .btn-acao.catalogo{background:var(--severity-ok);color:#fff;border-color:var(--severity-ok)}
@@ -87,6 +100,10 @@
   .modal-btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;padding:.55rem 1rem;border-radius:9px;cursor:pointer}
   .modal-btn.cancel{background:none;border:1px solid var(--line);color:var(--text)}
   .modal-btn.confirm{background:var(--text);border:1px solid var(--text);color:var(--surface)}
+
+  /* Toast */
+  .toast-cnr{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--text);color:var(--surface);font-size:.82rem;font-weight:600;padding:.7rem 1.3rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.22);z-index:3000;opacity:0;transition:opacity .25s;pointer-events:none;white-space:pre-wrap;max-width:92vw;text-align:center}
+  .toast-cnr.show{opacity:1}
 </style>
 </head>
 <body>
@@ -99,8 +116,12 @@
     </div>
   </header>
 
+  <!-- Barra de métricas -->
+  <div class="metricas" id="metricas"></div>
+
   <div class="filtro-bar" id="filtro-bar">
     <button class="filtro-btn ativo" data-status="todos">Todos<span class="cnt" id="cnt-todos"></span></button>
+    <button class="filtro-btn fila-dia-btn" data-status="fila-dia">🔴 Fila do dia<span class="cnt" id="cnt-fila-dia"></span></button>
     <button class="filtro-btn" data-status="novo">Novos<span class="cnt" id="cnt-novo"></span></button>
     <button class="filtro-btn" data-status="enviado">Enviados<span class="cnt" id="cnt-enviado"></span></button>
     <button class="filtro-btn" data-status="respondeu">Responderam<span class="cnt" id="cnt-respondeu"></span></button>
@@ -116,6 +137,9 @@
   <div class="grid" id="grid"></div>
 
 </div>
+
+<!-- Toast de feedback da extensão -->
+<div class="toast-cnr" id="toast-cnr"></div>
 
 <!-- Modal Ignorar -->
 <div class="modal-bg" id="modal-ignorar">
@@ -139,6 +163,13 @@
 
 <script>
 'use strict';
+
+// ── Mensagem de abordagem (mesmo texto do olx-chat.js) ────────────
+// Usada como fallback de clipboard quando a extensão não está instalada.
+const MSG_ABORDAGEM =
+  'Olá! Tudo bem? Meu nome é Yuri, sou de Garopaba e vi seu anúncio na OLX. ' +
+  'Trabalho com compradores e parceiros do setor automotivo e achei que seu veículo pode ter um bom perfil para alguns dos negócios que acompanho. ' +
+  'O veículo ainda está disponível? Se sim, qual seria o melhor valor para uma negociação à vista?';
 
 // ── Estado ───────────────────────────────────────────────────────
 let TODOS  = [];
@@ -179,6 +210,12 @@ function esc(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Anúncio encontrado nas últimas 24h
+function isRecente(a) {
+  if (!a.first_seen_at) return false;
+  return Date.now() - new Date(a.first_seen_at).getTime() < 24 * 60 * 60 * 1000;
+}
+
 const STATUS_LABEL = {
   novo:      'Novo',
   enviado:   'Enviado',
@@ -195,6 +232,28 @@ const STATUS_CLASS = {
   morto:     'bs-morto',
 };
 
+// ── Métricas ─────────────────────────────────────────────────────
+function atualizarMetricas() {
+  const total    = TODOS.length;
+  const novos    = TODOS.filter((a) => a.status === 'novo').length;
+  const hoje     = TODOS.filter((a) => a.status === 'novo' && isRecente(a)).length;
+  const enviados = TODOS.filter((a) => a.status === 'enviado').length;
+  const resp     = TODOS.filter((a) => a.status === 'respondeu').length;
+  const autor    = TODOS.filter((a) => a.status === 'autorizado').length;
+
+  document.getElementById('metricas').innerHTML =
+    `<span class="metric-item">📡 <strong>${total}</strong> total</span>` +
+    `<span class="metric-sep">·</span>` +
+    `<span class="metric-item">🔴 <strong>${novos}</strong> novos</span>` +
+    (hoje > 0 ? `<span class="metric-sep">·</span><span class="metric-item">🕐 <strong>${hoje}</strong> hoje</span>` : '') +
+    `<span class="metric-sep">·</span>` +
+    `<span class="metric-item">📬 <strong>${enviados}</strong> enviados</span>` +
+    `<span class="metric-sep">·</span>` +
+    `<span class="metric-item">💬 <strong>${resp}</strong> responderam</span>` +
+    `<span class="metric-sep">·</span>` +
+    `<span class="metric-item">🏆 <strong>${autor}</strong> autorizados</span>`;
+}
+
 // ── Contadores dos filtros ────────────────────────────────────────
 function atualizarContadores() {
   const todos = TODOS.length;
@@ -203,6 +262,9 @@ function atualizarContadores() {
     const n = TODOS.filter((a) => a.status === s).length;
     document.getElementById(`cnt-${s}`).textContent = n ? ` ${n}` : '';
   });
+  // Fila do dia: novos das últimas 24h
+  const nFilaDia = TODOS.filter((a) => a.status === 'novo' && isRecente(a)).length;
+  document.getElementById('cnt-fila-dia').textContent = nFilaDia ? ` ${nFilaDia}` : '';
 }
 
 // ── Card HTML ────────────────────────────────────────────────────
@@ -211,6 +273,7 @@ function cardHTML(a) {
   const statusLabel = STATUS_LABEL[a.status] || a.status;
   const foundAgo    = timeAgo(a.first_seen_at);
   const seenAgo     = a.last_seen_at !== a.first_seen_at ? timeAgo(a.last_seen_at) : '';
+  const chipHoje    = isRecente(a) ? '<span class="chip-hoje">HOJE</span>' : '';
 
   const thumb = a.thumbnail
     ? `<img class="card-thumb lazy-thumb" data-src="${esc(a.thumbnail)}" alt="${esc(a.titulo)}" referrerpolicy="no-referrer">`
@@ -219,10 +282,13 @@ function cardHTML(a) {
   // Botões por status
   let btns = '';
   if (a.status !== 'morto') {
-    btns += `<button class="btn-acao" onclick="abrirOLX('${esc(a.url)}')">↗ Abrir OLX</button>`;
+    btns += `<button class="btn-acao" onclick="abrirOLX('${esc(a.url)}')">↗ OLX</button>`;
   }
   if (a.status === 'novo') {
-    btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','enviado')">Marcar Enviado</button>`;
+    // ABORDAR: aciona a extensão para abrir o chat OLX com a mensagem preenchida.
+    // ABORDAR ≠ ENVIADO — clicar aqui NÃO muda o status.
+    btns = `<button class="btn-acao primary" onclick="abordar('${esc(a.id)}')">💬 ABORDAR</button>` + btns;
+    btns += `<button class="btn-acao success" onclick="avancar('${a.id}','enviado')">✅ ENVIEI</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
   } else if (a.status === 'enviado') {
     btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','respondeu')">Respondeu ✓</button>`;
@@ -249,6 +315,7 @@ function cardHTML(a) {
       </div>
       ${a.preco ? `<div class="card-preco">${esc(a.preco)}</div>` : ''}
       <div class="card-meta">
+        ${chipHoje ? `<span>${chipHoje}</span>` : ''}
         ${a.localizacao ? `<span>📍 ${esc(a.localizacao)}</span>` : ''}
         <span>OLX</span>
         <span>Encontrado ${foundAgo}</span>
@@ -264,10 +331,12 @@ function cardHTML(a) {
 // ── Renderizar grid ───────────────────────────────────────────────
 function renderGrid() {
   const grid = document.getElementById('grid');
-  const lista = filtro === 'todos' ? TODOS : TODOS.filter((a) => a.status === filtro);
+  const lista = filtro === 'todos'    ? TODOS
+              : filtro === 'fila-dia' ? TODOS.filter((a) => a.status === 'novo' && isRecente(a))
+              : TODOS.filter((a) => a.status === filtro);
 
   if (lista.length === 0) {
-    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Nenhum anúncio ${filtro === 'todos' ? 'encontrado' : 'com este status'}.</div>`;
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Nenhum anúncio ${filtro === 'todos' ? 'encontrado' : filtro === 'fila-dia' ? 'na fila do dia (últimas 24h)' : 'com este status'}.</div>`;
     document.getElementById('meta-total').textContent = '';
     return;
   }
@@ -338,6 +407,7 @@ async function carregar() {
   TODOS.sort((a, b) => new Date(b.first_seen_at) - new Date(a.first_seen_at));
 
   atualizarContadores();
+  atualizarMetricas();
   renderGrid();
 
   const total = TODOS.length;
@@ -360,11 +430,74 @@ async function avancar(id, novoStatus) {
     const a = TODOS.find((x) => x.id === id);
     if (a) a.status = novoStatus;
     atualizarContadores();
+    atualizarMetricas();
     renderGrid();
   } catch (e) {
     alert('Falha ao atualizar status. Tente novamente.');
     if (btn) btn.disabled = false;
   }
+}
+
+// ── ABORDAR ──────────────────────────────────────────────────────
+// Aciona a extensão Catafrango via bridge (cnr-bridge.js).
+// A extensão abre o chat OLX e preenche a mensagem automaticamente.
+// ABORDAR ≠ ENVIADO — esta função NÃO altera o status do anúncio.
+// Após enviar manualmente no OLX, o Yuri clica "✅ ENVIEI" no card.
+function abordar(id) {
+  const a = TODOS.find((x) => x.id === id);
+  if (!a) return;
+
+  const listing = {
+    listing_id: a.listing_id,
+    platform:   'olx',
+    url:        a.url          || '',
+    title:      a.titulo       || '',
+    price:      a.preco        || '',
+    location:   a.localizacao  || '',
+  };
+
+  // Tentar via extensão: cnr-bridge.js intercepta este postMessage
+  // e encaminha para o service worker que chama abordar().
+  let acked = false;
+
+  const handler = (e) => {
+    if (e.source !== window || e.data?.cnr_type !== 'CNR_ABORDAR_ACK') return;
+    acked = true;
+    window.removeEventListener('message', handler);
+    if (e.data.ok) {
+      mostrarToast('💬 Extensão acionada — o chat OLX vai abrir com a mensagem preenchida.\nRevise e envie quando quiser, depois clique ✅ ENVIEI aqui.');
+    } else {
+      // Extensão presente mas abordar() falhou (ex.: SW dormindo)
+      mostrarToast('⚠️ Extensão respondeu mas ocorreu um erro.\nAbrindo chat diretamente — mensagem copiada para colar.');
+      _abortarFallback(a.listing_id);
+    }
+  };
+
+  window.addEventListener('message', handler);
+  window.postMessage({ cnr_type: 'CNR_ABORDAR', listing }, '*');
+
+  // Fallback: extensão não instalada ou bridge não injetada → 600ms sem ACK
+  setTimeout(() => {
+    if (acked) return;
+    window.removeEventListener('message', handler);
+    _abortarFallback(a.listing_id);
+  }, 600);
+}
+
+function _abortarFallback(listing_id) {
+  window.open(`https://chat.olx.com.br/?list-id=${listing_id}`, '_blank', 'noopener');
+  navigator.clipboard.writeText(MSG_ABORDAGEM).catch(() => {});
+  mostrarToast('⚠️ Extensão não detectada.\nChat aberto — mensagem copiada. Cole, revise e envie.\nDepois clique ✅ ENVIEI aqui.');
+}
+
+// ── Toast de feedback ─────────────────────────────────────────────
+function mostrarToast(msg, duracao) {
+  const t = document.getElementById('toast-cnr');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), duracao || 5000);
 }
 
 // ── Ignorar ──────────────────────────────────────────────────────
@@ -403,6 +536,7 @@ document.getElementById('modal-confirmar').addEventListener('click', async () =>
     const a = TODOS.find((x) => x.id === id);
     if (a) { a.status = 'morto'; a.motivo_morte = ignorarMotivo || null; }
     atualizarContadores();
+    atualizarMetricas();
     renderGrid();
   } catch (e) {
     alert('Falha ao ignorar anúncio. Tente novamente.');
