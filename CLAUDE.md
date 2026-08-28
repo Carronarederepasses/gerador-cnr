@@ -204,6 +204,9 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 - [ ] **Retroalimentar histórico** — meta é 30+ transações reais com dados completos.
 - [ ] **Reforma Visual Etapa 2** — melhorias de UX/UI em `index.html` (Captação). Escopo definido, não iniciado. Iniciar somente após validar Sprint 1.
 
+### Concluído recentemente (28/ago/2026 — tarde)
+- [x] **Reforma 42 — Detecção automática de resposta OLX**: extensão detecta quando o vendedor responde no Chat OLX enquanto Yuri usa normalmente. `olx-chat-monitor.js` (novo content script em `chat.olx.com.br`): MutationObserver + varredura inicial após 3s, 3 heurísticas (classes, data-testid, posição geométrica). SW: `auto_responded` com TTL 24h, PATCH no Supabase via `listing_id`. Gerador: badge `🔥 RESPOSTA NOVA` pulsante nos cards. Yuri não precisa mais marcar RESPONDEU manualmente. Commits: extensão `80abf79`, gerador `5f7bf8c`.
+
 ### Concluído recentemente (28/ago/2026)
 - [x] **Reforma 41 — Elo enviado→respondeu/morto**: cards `enviado` em `anuncios.html` exibem `💬 RESPONDEU` (PATCH direto para `status=respondeu` sem modal, sem formulário) e `☠️ MORTO` (modal leve de chips existente — motivo opcional). Nenhum campo de data/hora/motivo obrigatório. Commit `506bdce`. Loop Catafrango fechado: novo→enviado→respondeu/morto.
 
@@ -278,6 +281,7 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 39 | anuncios.html thumbnails: `IntersectionObserver` lazy loading (`rootMargin:200px`) + `referrerpolicy="no-referrer"` em `cardHTML()` e `img.referrerPolicy='no-referrer'` em `_carregarThumb()`. Causa raiz: CDN OLX hotlink protection por Referer — bloqueava requests de `gerador-cnr.vercel.app` após 2 concorrentes. Diagnóstico via teste A/B (sem/com no-referrer: 2/10 vs 10/10 LOAD). Validado em produção (notebook + celular) | `ad1fd86`+`9cea50c` |
 | 40 | Mesa de Cata — `anuncios.html`: botão `💬 ABORDAR` (aciona extensão via bridge ou fallback clipboard), botão `✅ ENVIEI` (ABORDAR≠ENVIADO), barra de métricas, filtro "Fila do dia" (first_seen_at<24h), chip HOJE nos cards recentes, toast de feedback. `manifest.json`: content_scripts injeta `cnr-bridge.js` em `*.vercel.app`. `cnr-bridge.js` (novo): bridge `window.postMessage→chrome.runtime.sendMessage→abordar()`. `olx-chat.js`: nova mensagem aprovada. Thumbnails intocados. | gerador `283ce52`, extensão `8b5fb09` |
 | 41 | Elo enviado→respondeu/morto — `anuncios.html`: cards `enviado` exibem `💬 RESPONDEU` (PATCH direto via `avancar(id,'respondeu')`) e `☠️ MORTO` (modal leve de chips existente via `abrirIgnorar`). Sem formulário, sem campos de data/hora/motivo obrigatório, sem preenchimento manual. Métricas e filtros já atualizavam — intocados. | `506bdce` |
+| 42 | Detecção automática de resposta OLX — `olx-chat-monitor.js` (NOVO): content script em `chat.olx.com.br`, MutationObserver + varredura inicial (3s), 3 heurísticas em cascata (classes, data-testid, posição geométrica). SW: handlers `CHECK_ENVIADO`/`RESPOSTA_DETECTADA`/`GET_AUTO_RESPONDED` + `respostaDetectada` (marcarRespondeu + auto_responded TTL 24h + patchRespondeuNoGerador). `fetch-anuncio.js` PATCH aceita `?listing_id&origem` além de `?id`. `anuncios.html`: badge `🔥 RESPOSTA NOVA` pulsante + topo no filtro Responderam. Ext NUNCA envia. | ext `80abf79`, gerador `5f7bf8c` |
 
 ---
 
@@ -913,3 +917,80 @@ respondeu | morto
 - **Extensão**: commit `8b5fb09` local apenas (sem remote configurado). Sem alteração na Reforma 41.
 
 *Atualizado em 28/agosto/2026 — Reforma 41: elo enviado→respondeu/morto fechado. Commit `506bdce`, deploy `gerador-cnr.vercel.app` — READY.*
+
+---
+
+### Checkpoint — sessão de 28/ago/2026 (tarde) — Reforma 42: detecção automática de resposta
+
+### O que foi feito nesta sessão
+
+#### Reforma 42 — Monitor de resposta automática do Chat OLX
+
+**Problema**: Yuri precisava entrar manualmente no Gerador para marcar RESPONDEU sempre que um vendedor respondia no OLX. Com 5+ abordagens simultâneas, isso virava gargalo.
+
+**Solução**: extensão detecta a resposta automaticamente enquanto Yuri usa o Chat OLX normalmente.
+
+**`content/olx-chat-monitor.js` (NOVO)**:
+- Injeta em `chat.olx.com.br` via `content_scripts` no manifest
+- Extrai `listing_id` de `?list-id=<id>` na URL
+- Consulta SW: `CHECK_ENVIADO` — só monitora conversas com status local `enviado`
+- **MutationObserver** (`childList: true, subtree: true`): detecta novos nós no DOM em tempo real
+- **Varredura inicial** (setTimeout 3s): detecta respostas que já existiam quando Yuri abriu a aba
+- **3 heurísticas em cascata** para distinguir vendedor (incoming) vs. Yuri (outgoing):
+  1. Class names: `incoming|received|opponent` vs. `outgoing|sent|mine`
+  2. `data-testid` attributes (padrão React)
+  3. Posição geométrica: bolha centrada à esquerda da viewport → incoming; à direita → outgoing. Margens de 22% para evitar falso-positivo. Elementos com largura >85% da viewport (containers) são ignorados.
+- Guard: dispara `RESPOSTA_DETECTADA` apenas **uma vez por page load** (idempotente)
+- NUNCA envia mensagens. NUNCA lê chats que Yuri não abriu. NUNCA faz polling.
+
+**`manifest.json`**: adicionado content_scripts para `chat.olx.com.br`, `run_at: document_idle`. `host_permissions: *.olx.com.br` já existia.
+
+**`background/sw.js`** — 3 handlers novos:
+- `CHECK_ENVIADO`: lê `seen[key].status` → responde `{enviado: bool}`
+- `RESPOSTA_DETECTADA`: chama `respostaDetectada(listing_id, platform)`
+- `GET_AUTO_RESPONDED`: chama `getAutoRespondidos()` → array de listing_ids recentes
+
+3 funções novas:
+- `respostaDetectada()`: `marcarRespondeu(key)` + grava `auto_responded[key]=timestamp` + `patchRespondeuNoGerador()` (fire-and-forget)
+- `getAutoRespondidos()`: retorna listing_ids com timestamp ≤24h, limpa entradas antigas automaticamente
+- `patchRespondeuNoGerador()`: PATCH no endpoint Gerador via `listing_id+origem` (extensão não conhece UUID do Supabase)
+
+**`content/cnr-bridge.js`**: adicionado handler `CNR_GET_AUTO_RESPONDED` → `GET_AUTO_RESPONDED` → `CNR_AUTO_RESPONDED`. Mesmo padrão do `CNR_ABORDAR` existente.
+
+**`api/fetch-anuncio.js`** (Gerador): PATCH aceita dois modos:
+- `?id=<uuid>` — usado por `anuncios.html` (já existia)
+- `?listing_id=<id>&origem=olx` — usado pela extensão (novo; extensão nunca conhece o UUID)
+
+**`anuncios.html`** (Gerador):
+- `AUTO_RESPONDIDOS = new Set()` — listing_ids com badge ativo
+- `carregarAutoRespondidos()`: postMessage → bridge → SW → lista → re-render. Timeout 1.5s (falha silenciosa se extensão ausente)
+- CSS `.chip-resposta-nova`: fundo vermelho (#dc2626), animação pulsante, texto branco
+- `cardHTML()`: cards `respondeu` com listing_id no set → prefixo `🔥 RESPOSTA NOVA`
+- `renderGrid()`: no filtro `respondeu`, cards com 🔥 ordenados ao topo
+
+#### Arquitetura de dados (sem DB migration)
+
+Badge 🔥 vive em `chrome.storage.local.auto_responded` da extensão:
+```
+{ 'olx:1234567890': '2026-08-28T15:30:00Z', ... }
+```
+TTL de 24h gerenciado pelo SW na próxima consulta `GET_AUTO_RESPONDED`.
+Sem nova coluna no Supabase. Sem nova tabela. Sem migration.
+
+### Onde o projeto ficou (28/ago/2026 — tarde)
+
+- **Gerador** `origin/main` em `5f7bf8c` (Reforma 42), Vercel — READY (deploy automático).
+- **Extensão** em `80abf79` (Reforma 42) — local apenas (sem remote). ⚠️ Requer reload em `chrome://extensions`.
+- **Catafrango — loop completo**:
+  ```
+  novo → ABORDAR (extensão preenche msg) → ENVIEI → enviado
+  enviado → [vendedor responde] → extensão detecta → respondeu (automático 🔥)
+         OU → RESPONDEU (manual) → respondeu
+         OU → MORTO → morto
+  respondeu → AUTORIZADO → autorizado
+  ```
+- **Pendente operacional**: recarregar extensão + testar detecção com conversa real. Se heurística de posição geométrica não funcionar no DOM específico da OLX, ajustar seletores após inspecionar via DevTools.
+- **Sprint 1 (Match Ativo)**: não tocada.
+- **Reforma Visual Etapa 2**: não iniciada.
+
+*Atualizado em 28/agosto/2026 (tarde) — Reforma 42: detecção automática de resposta OLX. Ext `80abf79`, gerador `5f7bf8c`.*
