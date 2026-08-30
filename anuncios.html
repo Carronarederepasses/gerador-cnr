@@ -476,6 +476,14 @@ async function avancar(id, novoStatus) {
     await patchAnuncio(id, { status: novoStatus, motivo_morte: null });
     const a = TODOS.find((x) => x.id === id);
     if (a) a.status = novoStatus;
+
+    // Sincronizar extensão quando anúncio é marcado como enviado.
+    // Fire-and-forget via bridge — uma falha da extensão não afeta o PATCH acima.
+    if (novoStatus === 'enviado' && a?.listing_id) {
+      const key = `${a.origem || 'olx'}:${a.listing_id}`;
+      window.postMessage({ cnr_type: 'CNR_CONFIRMAR_ENVIO', key }, '*');
+    }
+
     atualizarContadores();
     atualizarMetricas();
     renderGrid();
