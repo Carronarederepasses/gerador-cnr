@@ -110,7 +110,16 @@
   /* Fix 43.7 — Seção de resposta inline (colapsável, só para status=respondeu) */
   .reply-section{background:color-mix(in srgb,var(--severity-ok) 7%,transparent);border:1px solid color-mix(in srgb,var(--severity-ok) 28%,transparent);border-radius:10px;padding:.8rem;margin-top:.5rem;display:flex;flex-direction:column;gap:.45rem}
   .reply-label{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-mid)}
-  .reply-vendedor{font-size:.8rem;color:var(--text);background:var(--surface);border-radius:7px;padding:.55rem .75rem;border-left:3px solid color-mix(in srgb,var(--severity-ok) 55%,transparent);line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  /* Thread espelhada do chat OLX — bolhas nas duas direções */
+  .reply-thread{display:flex;flex-direction:column;gap:.35rem;max-height:250px;overflow-y:auto;background:var(--surface);border-radius:7px;padding:.55rem}
+  .msg-bubble{font-size:.79rem;color:var(--text);line-height:1.42;padding:.45rem .65rem;border-radius:10px;max-width:84%;white-space:pre-wrap;word-break:break-word}
+  .msg-in{align-self:flex-start;background:color-mix(in srgb,var(--severity-ok) 14%,transparent);border-bottom-left-radius:3px}
+  .msg-out{align-self:flex-end;background:color-mix(in srgb,var(--text) 9%,transparent);border-bottom-right-radius:3px}
+  .msg-hora{display:block;font-size:.61rem;color:var(--text-mid);margin-top:.2rem;font-variant-numeric:tabular-nums}
+  .reply-vazio{font-size:.78rem;color:var(--text-mid);font-style:italic;padding:.25rem;line-height:1.45}
+  .btn-refresh{background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--text-mid);padding:0 .2rem;line-height:1}
+  .btn-refresh:hover{color:var(--text)}
+  .reply-head{display:flex;align-items:center;gap:.35rem}
   .reply-textarea{width:100%;resize:vertical;min-height:72px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.83rem;padding:.55rem .75rem;line-height:1.45;transition:border-color .15s}
   .reply-textarea:focus{outline:none;border-color:var(--text)}
   .reply-footer{display:flex;align-items:center;justify-content:flex-end;gap:.5rem;flex-wrap:wrap}
@@ -370,8 +379,12 @@ function cardHTML(a) {
   // Começa colapsada, abre ao clicar ✏️ Responder / 🔥 RESPOSTA NOVA.
   const replySection = (a.status === 'respondeu' || a.status === 'enviado') ? `
   <div id="reply-${a.id}" class="reply-section" style="display:none">
-    <div class="reply-label">💬 Mensagem do vendedor</div>
-    <div class="reply-vendedor" id="reply-msg-${a.id}"><em>Abrindo…</em></div>
+    <div class="reply-head">
+      <span class="reply-label">💬 Conversa</span>
+      <button class="btn-refresh" title="Atualizar conversa"
+              onclick="carregarThread('${a.id}','${esc(a.listing_id)}')">🔄</button>
+    </div>
+    <div class="reply-thread" id="reply-msg-${a.id}"><em>Carregando…</em></div>
     <div class="reply-label" style="margin-top:.15rem">✏️ Sua resposta</div>
     <textarea class="reply-textarea" id="reply-text-${a.id}" placeholder="Escreva sua resposta aqui…" rows="3" maxlength="2000" oninput="atualizarChars('${a.id}')"></textarea>
     <div class="reply-footer">
@@ -722,29 +735,47 @@ function toggleResponder(id) {
   // Buscar msg do vendedor apenas uma vez por sessão de renderização
   if (!replyMsgCarregado.has(id)) {
     const a = TODOS.find((x) => x.id === id);
-    if (a) carregarMsgVendedor(id, a.listing_id);
+    if (a) carregarThread(id, a.listing_id);
   }
   document.getElementById(`reply-text-${id}`)?.focus();
 }
 
-// Busca mensagens do vendedor (inbound) para este listing_id.
-// Exibe a mais recente na área de contexto do reply.
-async function carregarMsgVendedor(id, listing_id) {
-  const msgEl = document.getElementById(`reply-msg-${id}`);
-  if (!msgEl) return;
+// Busca a conversa inteira (ambas as direções) e renderiza como thread.
+// A extensão espelha as mensagens no Supabase enquanto a aba do chat OLX
+// estiver aberta; aqui só lemos o que já foi espelhado.
+async function carregarThread(id, listing_id) {
+  const box = document.getElementById(`reply-msg-${id}`);
+  if (!box) return;
   try {
-    const msgs = await api(`/api/fetch-anuncio?mensagens=1&listing_id=${encodeURIComponent(listing_id)}`);
-    const inbound = (Array.isArray(msgs) ? msgs : [])
-      .filter((m) => m.direction === 'incoming' || m.direction === 'inbound');
-    if (inbound.length > 0) {
-      const ultima = inbound[inbound.length - 1];
-      msgEl.textContent = ultima.content;
-      replyMsgCarregado.add(id);
-    } else {
-      msgEl.innerHTML = '<em>Nenhuma mensagem capturada ainda. Ela aparecerá após a extensão detectar a resposta do vendedor.</em>';
+    const msgs  = await api(`/api/fetch-anuncio?mensagens=1&listing_id=${encodeURIComponent(listing_id)}`);
+    const lista = Array.isArray(msgs) ? msgs : [];
+
+    if (lista.length === 0) {
+      box.innerHTML = '<div class="reply-vazio">Nenhuma mensagem espelhada ainda. Abra o chat da OLX deste anúncio — a extensão captura a conversa enquanto a aba estiver aberta.</div>';
+      return;
     }
+
+    box.innerHTML = lista.map((m) => {
+      const entrada = m.direction === 'incoming' || m.direction === 'inbound';
+      let hora = '';
+      if (m.detected_at) {
+        const d = new Date(m.detected_at);
+        if (!isNaN(d)) {
+          hora = d.toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+          });
+        }
+      }
+      return `<div class="msg-bubble ${entrada ? 'msg-in' : 'msg-out'}">`
+           + esc(m.content)
+           + (hora ? `<span class="msg-hora">${esc(hora)}</span>` : '')
+           + `</div>`;
+    }).join('');
+
+    box.scrollTop = box.scrollHeight;   // ancorar na mensagem mais recente
+    replyMsgCarregado.add(id);
   } catch (e) {
-    msgEl.innerHTML = `<em>Erro ao carregar: ${esc(e.message)}</em>`;
+    box.innerHTML = `<div class="reply-vazio">Erro ao carregar: ${esc(e.message)}</div>`;
   }
 }
 
@@ -821,6 +852,12 @@ function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
     }
     ta.value = '';
     atualizarChars(id);
+
+    // Mostrar a mensagem recém-enviada na thread. Pequeno atraso porque a
+    // extensão persiste o outbound de forma assíncrona (fire-and-forget).
+    const aThread = TODOS.find((x) => x.id === id);
+    if (aThread) setTimeout(() => carregarThread(id, aThread.listing_id), 800);
+
     setTimeout(() => {
       // Remover badge RESPOSTA NOVA e re-renderizar o card sem ele
       const aEnviado = TODOS.find((x) => x.id === id);
@@ -829,6 +866,8 @@ function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
         atualizarContadores();
         atualizarMetricas();
         renderGrid();
+        // Reabrir a conversa: enviar uma mensagem não deve fechar o chat.
+        toggleResponder(id);
       } else {
         btn.textContent = '📤 ENVIAR';
         if (statusEl) statusEl.style.display = 'none';
