@@ -204,6 +204,14 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 - [ ] **Retroalimentar histórico** — meta é 30+ transações reais com dados completos.
 - [ ] **Reforma Visual Etapa 2** — melhorias de UX/UI em `index.html` (Captação). Escopo definido, não iniciado. Iniciar somente após validar Sprint 1.
 
+### Concluído recentemente (30/ago/2026)
+- [x] **Fix 43.3 — sincronizar seen da extensão ao marcar ENVIEI**: `avancar(id,'enviado')` em `anuncios.html` passava a atualizar o Supabase mas deixava `seen['olx:LISTING_ID'].status = 'preparado'` na extensão — fazendo `CHECK_ENVIADO` retornar `{enviado:false}` e o monitor parar. Fix: após PATCH Supabase bem-sucedido, `avancar()` dispara `window.postMessage({cnr_type:'CNR_CONFIRMAR_ENVIO', key})`. `cnr-bridge.js` recebe e encaminha `{type:'CONFIRMAR_ENVIO', key, sent:true}` ao SW, que já tinha `confirmarEnvio()` para fazer `seen[key].status = 'enviado'`. Fire-and-forget — falha da extensão não afeta o Gerador. Commits: extensão `83a82f3`, gerador `ffcede9`.
+
+- [x] **Fix 43.2b — aceitar list-id diretamente (chat-id como fallback)**: a OLX não redireciona `?list-id=` para `?chat-id=` no fluxo real — o Fix 43.2 havia quebrado o monitor ao exigir `chat-id` obrigatório. Correção mínima em `olx-chat-monitor.js`: Caminho A (principal) tenta `?list-id=` primeiro e usa o valor diretamente sem consultar o SW; Caminho B (fallback) usa `?chat-id=` + `GET_LISTING_BY_CHAT_ID` (infraestrutura da 43.2, preservada). Função `prosseguir()` unifica o `CHECK_ENVIADO → iniciarMonitor()` entre os dois caminhos. `sw.js` intocado. Commit extensão: `9b649e4`.
+
+### Concluído recentemente (28/ago/2026 — noite III)
+- [x] **Reforma 43.2 — Fix listing_id via chat-id map (OLX redirect)**: corrige a causa raiz por que mensagens não apareciam no Supabase — a OLX redireciona `?list-id=<id>` → `?chat-id=<opaque>` antes de `document_idle`, fazendo `olx-chat-monitor.js` sair silenciosamente. Solução: durante ABORDAR (`tabs.onUpdated`), o SW extrai `chat-id` da URL final e chama `salvarChatIdMap()`, que persiste `{ listing_id, platform, saved_at }` no `chrome.storage.local['chat_id_map']`. O content script agora lê `?chat-id=`, envia `GET_LISTING_BY_CHAT_ID` ao SW e só prossegue se receber `listing_id`. Novo handler no listeners block do SW. Logs `[CNR DEBUG 43.2]` nos três pontos críticos. Inclui também a instrumentação diagnóstica `[CNR DEBUG 43.1]` (três pontos de log em `sw.js`, `olx-chat-monitor.js` e `fetch-anuncio.js`). Commit extensão: `b79e4c3`.
+
 ### Concluído recentemente (28/ago/2026 — noite II)
 - [x] **Reforma 43 — Fundação da Inbox OLX**: extensão agora captura o texto da mensagem do vendedor ao detectar resposta. `olx-chat-monitor.js`: `extrairConteudo(el)` extrai `textContent` (≤500 chars); `registrarResposta(conteudo)` inclui conteúdo no evento `RESPOSTA_DETECTADA`. `sw.js`: `respostaDetectada()` aceita `conteudo` e chama `persistirMensagem()` (fire-and-forget, mesmo padrão de `patchRespondeuNoGerador`). `fetch-anuncio.js`: novo modo `?mensagens=1` — GET lista mensagens por `listing_id`; POST insere com dedup por `msg_hash` (SHA-256 de `listing_id:direction:content`). Tabela `olx_mensagens` no Supabase: `supabase/reforma-43-olx-mensagens.sql` (**Yuri deve rodar no dashboard**). Nenhum fluxo da Reforma 42 tocado. Commits: extensão `f673cfa`, gerador `4de851d`.
 
@@ -290,6 +298,9 @@ O último passo sempre volta para o primeiro. É um ciclo vivo.
 | 42 | Detecção automática de resposta OLX — `olx-chat-monitor.js` (NOVO): content script em `chat.olx.com.br`, MutationObserver + varredura inicial (3s), 3 heurísticas em cascata (classes, data-testid, posição geométrica). SW: handlers `CHECK_ENVIADO`/`RESPOSTA_DETECTADA`/`GET_AUTO_RESPONDED` + `respostaDetectada` (marcarRespondeu + auto_responded TTL 24h + patchRespondeuNoGerador). `fetch-anuncio.js` PATCH aceita `?listing_id&origem` além de `?id`. `anuncios.html`: badge `🔥 RESPOSTA NOVA` pulsante + topo no filtro Responderam. Ext NUNCA envia. | ext `80abf79`, gerador `5f7bf8c` |
 | Fix 42b | Guard bridge órfão — `cnr-bridge.js`: `TypeError: chrome.runtime undefined` ao recarregar extensão com aba do Gerador aberta (content script órfão). Fix: `if (typeof chrome === 'undefined' \|\| !chrome.runtime?.sendMessage) return;` antes de qualquer `sendMessage`. Falha silenciosa; Yuri recarrega a aba. | ext `594deb1` |
 | 43 | Fundação da Inbox OLX — captura e persiste mensagens do vendedor. `olx-chat-monitor.js`: `extrairConteudo(el)` + `registrarResposta(conteudo)`. `sw.js`: `respostaDetectada(conteudo)` + `persistirMensagem()` (fire-and-forget). `fetch-anuncio.js`: modo `?mensagens=1` (GET lista, POST insere com `msg_hash` SHA-256 UNIQUE). `supabase/reforma-43-olx-mensagens.sql`: DDL da tabela `olx_mensagens` (**rodar no Supabase Dashboard**). Nenhum fluxo Reforma 42 tocado. | ext `f673cfa`, gerador `4de851d` |
+| 43.1 | Instrumentação diagnóstica (3 pontos de log `[CNR DEBUG 43.1]`) para rastrear por que mensagens não chegavam ao Supabase. Incluída no commit 43.2 sem commit próprio. | (incluída em `b79e4c3`) |
+| 43.2 | Fix listing_id via chat-id map — infraestrutura para o caso de redirect OLX. `sw.js tabs.onUpdated`: captura `chat-id` da URL e chama `salvarChatIdMap()`. `salvarChatIdMap()` (nova): persiste `chat_id → { listing_id, platform, saved_at }` em `chrome.storage.local['chat_id_map']`. Handler `GET_LISTING_BY_CHAT_ID` (novo): content script pode resolver listing_id pelo chat-id. Logs `[CNR DEBUG 43.2]` em 3 pontos. | ext `b79e4c3` |
+| Fix 43.2b | Correção: OLX não redireciona `?list-id=` na prática. `olx-chat-monitor.js` agora tenta `?list-id=` primeiro (Caminho A, direto); só usa `?chat-id=` + `GET_LISTING_BY_CHAT_ID` como Caminho B (fallback). `prosseguir()` unifica `CHECK_ENVIADO → iniciarMonitor`. `sw.js` intocado. | ext `9b649e4` |
 
 ---
 
@@ -1002,3 +1013,156 @@ Sem nova coluna no Supabase. Sem nova tabela. Sem migration.
 - **Reforma Visual Etapa 2**: não iniciada.
 
 *Atualizado em 28/agosto/2026 (tarde) — Reforma 42: detecção automática de resposta OLX. Ext `80abf79`, gerador `5f7bf8c`.*
+
+---
+
+### Checkpoint — sessão de 01/set/2026 — Diagnóstico CNR Chat (Fix 43.7b, 43.8 e falso positivo de extração)
+
+> **Status desta sessão: SOMENTE DIAGNÓSTICO + LOGS TEMPORÁRIOS. Nenhum patch de lógica aplicado.**
+
+---
+
+#### O que está comprovadamente funcionando
+
+- **CHECK_ENVIADO → `{enviado: true}`** após ENVIEI: confirmado no log `[CNR DEBUG 43.1] CHECK_ENVIADO resp: {enviado: true} key: olx:1531235695`. O problema de timing (CHECK_ENVIADO retornando false antes da confirmação do ENVIEI) está resolvido. **Não tratar mais como causa ativa.**
+- **`iniciarMonitor()` é chamado**: o monitor inicia corretamente quando status é `enviado`.
+- **MutationObserver dispara**: logs DIAG A1–A8 aparecem, confirmando que o observer está ativo e detecta mudanças no DOM.
+- **`RESPOSTA_DETECTADA` → SW → `{ok: true}`**: a cadeia de envio ao SW funciona quando a detecção dispara.
+- **Fix 43.8 (ABORDAR preenche mensagem)**: confirmado funcionando em teste real (VW Gol, listing_id `1531235695`).
+- **Fix 43.7b (baseline)**: baselineApos está sendo capturado e passado — o mecanismo de baseline existe e funciona.
+- **Fluxo ENVIEI → CNR_CONFIRMAR_ENVIO → SW**: logs DIAG ENVIO adicionados mas ainda não testados — o problema de timing original foi contornado antes de usar esses logs.
+
+---
+
+#### O que foi diagnosticado (causa raiz confirmada)
+
+**Falso positivo na captura da "resposta do vendedor":**
+
+`encontrarChatBody()` retorna `document.body` (nenhum iframe detectado na sessão de teste). O MutationObserver observa **o corpo inteiro da página OLX**, não só a área de mensagens. Quando o React re-renderizou o painel lateral de "Detalhes da conversa" (botões "Acessar perfil completo", "Marcar como não lido", "Denunciar conversa", "Bloquear usuário", "Excluir conversa"), esses elementos de UI adicionaram 100 chars ao `body.innerText` numa posição APÓS o ANCORA da nossa mensagem. A heurística de crescimento disparou corretamente (`aposAtual.length > aposAnt.length + 10`), mas o crescimento era de **UI, não de mensagem do vendedor**.
+
+**Evidência direta dos logs:**
+- `aposAnt.length: 660` → `aposAtual.length: 760` (delta = 100 chars)
+- delta final: `"on\nAcessar perfil completo\nMarcar como não lido\nDenunciar conversa\nBloquear usuário\nExcluir conversa"`
+- Isso é o painel lateral da OLX, não uma mensagem
+
+---
+
+#### O que ainda está pendente
+
+1. **Inspeção do DOM real da OLX** — Para definir o patch, precisamos saber:
+   - Qual elemento é o container de mensagens (não `document.body`)
+   - Se mensagens incoming têm `data-testid`, `aria-label`, `role` ou atributo que as distingue de outgoing
+   - Qual elemento contém o texto real de cada bolha
+   - **Método**: no DevTools do chat OLX, inspecionar uma mensagem do vendedor e uma do Yuri; rodar os dois snippets JS documentados na análise (listagem de `data-testid`s e inspecção de bolhas)
+
+2. **Definição e implementação do patch** — Após inspeção do DOM, o patch deve:
+   - Substituir a extração de conteúdo de `body.innerText` por leitura de bolhas incoming específicas
+   - Manter o MutationObserver como **trigger** (pode continuar observando body)
+   - Mudar apenas **o que é lido como conteúdo** no momento de chamar `registrarResposta()`
+   - Não tocar em `RESPOSTA_DETECTADA`, `CHECK_ENVIADO`, `confirmarEnvio`, `persistirMensagem`, ABORDAR, badge
+
+3. **Remoção dos logs temporários** — Após diagnóstico completo e patch validado:
+   - Remover DIAG A1–A8 e B1–B5 de `olx-chat-monitor.js`
+   - Remover DIAG ENVIO 1–9 de `anuncios.html`, `cnr-bridge.js` e `sw.js`
+   - Os backups `.bak-diag43` e `.bak-diag-envio` podem ser excluídos junto
+
+---
+
+#### Arquivos alterados nesta sessão (somente logs temporários)
+
+| Arquivo | O que foi adicionado | Backup |
+|---|---|---|
+| `content/olx-chat-monitor.js` | Logs DIAG A1–A8 (em `checarDelta`) e B1–B5 (em `verificarExistente`) | `olx-chat-monitor.js.bak-diag43` |
+| `content/cnr-bridge.js` | Logs DIAG ENVIO 2 e 3 (handler CNR_CONFIRMAR_ENVIO; erro agora visível em vez de silenciado) | `cnr-bridge.js.bak-diag-envio` |
+| `background/sw.js` | Logs DIAG ENVIO 4–9 (handler CONFIRMAR_ENVIO, função confirmarEnvio, leitura pós-write, CHECK_ENVIADO) | `sw.js.bak-diag-envio` |
+| `anuncios.html` (gerador) | Log DIAG ENVIO 1 (antes do postMessage CNR_CONFIRMAR_ENVIO em `avancar()`) | `anuncios.html.bak-diag-envio` |
+
+**Sintaxe verificada**: `node --check cnr-bridge.js` → OK; `node --check sw.js` → OK.
+
+**Nenhum patch de lógica foi aplicado nesta sessão. Nenhum arquivo de produção foi alterado (somente logs temporários).**
+
+---
+
+#### Testes realizados e resultados
+
+| Teste | Listing | Resultado |
+|---|---|---|
+| Ford Ka (anterior) — CHECK_ENVIADO | `1530494530` | `{enviado: false}` — causa: ENVIEI ainda não havia sido processado; problema de timing |
+| VW Gol — fluxo completo ABORDAR+ENVIEI | `1531235695` | CHECK_ENVIADO `{enviado: true}` ✅; monitor inicia ✅; MutationObserver dispara ✅ |
+| VW Gol — captura de "resposta" | `1531235695` | ❌ Falso positivo: capturou elementos do painel lateral OLX ("Acessar perfil completo") em vez de mensagem do vendedor |
+
+---
+
+#### O que NÃO deve ser alterado até retomarmos
+
+- `olx-chat.js` (Fix 43.8 — ABORDAR preenche mensagem): **INTOCADO**
+- `sw.js` — handlers `RESPOSTA_DETECTADA`, `respostaDetectada`, `persistirMensagem`, `marcarRespondeu`, `confirmarEnvio`: **INTOCADOS** (somente logs DIAG adicionados)
+- `anuncios.html` — toda lógica exceto o log DIAG ENVIO 1 adicionado: **INTOCADA**
+- Badge `🔥 RESPOSTA NOVA` e `auto_responded`: **INTOCADOS**
+- MutationObserver em `olx-chat-monitor.js`: **INTOCADO** (pode permanecer como trigger)
+- Tabela `olx_mensagens` no Supabase: **INTOCADA**
+- Fix 43.2b (Caminho A `?list-id=`, Caminho B `?chat-id=`): **INTOCADO**
+
+---
+
+#### Próximo passo ao retomar
+
+**Etapa 1 — Inspeção do DOM (5 min, feita pelo Yuri no DevTools do OLX)**
+
+Com o chat de um anúncio aberto, rodar no console:
+```javascript
+[...new Set([...document.querySelectorAll('[data-testid]')].map(el => el.dataset.testid))].sort()
+```
+E também inspecionar uma bolha do vendedor e uma do Yuri no painel Elements, copiando o HTML do elemento que representa cada bolha.
+
+**Etapa 2 — Definir seletor correto** com base nos dados do DOM real.
+
+**Etapa 3 — Implementar patch** na função `registrarResposta()` ou em uma nova função `extrairMensagemIncoming()`, substituindo a extração de conteúdo por leitura de bolhas específicas.
+
+**Etapa 4 — Validar** com conversa real onde o vendedor respondeu.
+
+**Etapa 5 — Remover logs temporários** (DIAG A/B e DIAG ENVIO).
+
+*Atualizado em 01/setembro/2026 — Diagnóstico CNR Chat: causa raiz do falso positivo confirmada (UI panel OLX capturado em body.innerText). Nenhum patch aplicado. Próximo passo: inspeção do DOM real da OLX.*
+
+---
+
+### Fix 43.9 — Extração de mensagem incoming via DOM real (01/set/2026)
+
+**Problema corrigido:** `olx-chat-monitor.js` usava `body.innerText` (delta após ANCORA) como conteúdo da resposta detectada. Quando o React re-renderizava o painel lateral de detalhes da conversa OLX, os elementos de UI ("Acessar perfil completo", "Marcar como não lido", "Denunciar conversa"...) cresciam APÓS o ANCORA no innerText — disparando `registrarResposta()` com lixo de UI em vez de mensagem real.
+
+**DOM real inspecionado (01/set/2026):**
+- Span de texto de bolhas: `span.self-start.wrap-anywhere` (Tailwind — estável)
+- Pai da bolha INCOMING (vendedor): `div.sc-iUKrAm.sc-efQVjI.jQpSbC.dlIyBd`
+- Pai da bolha OUTGOING (Yuri): `div.sc-iUKrAm.sc-iAKZmh.jQpSbC.jlWyFh`
+- Diferenciador: `sc-iAKZmh` / `jlWyFh` presentes apenas na bolha outgoing
+
+**Solução (patch mínimo em `olx-chat-monitor.js`):**
+- MutationObserver permanece como **trigger** — continua comparando `body.innerText` para detectar mudança
+- O **conteúdo** enviado a `registrarResposta()` agora vem de `coletarMensagensIncoming()` — nova função que:
+  1. Seleciona `span.self-start.wrap-anywhere` no `chatDoc` (main ou iframe)
+  2. Filtra spans cujo pai contém `CLASSE_OUTGOING` → exclui bolhas do Yuri
+  3. Exclui spans com início do texto da ANCORA
+  4. Retorna array de textos incoming — `registrarResposta` recebe o último
+- `CLASSE_OUTGOING = ['sc-iAKZmh', 'jlWyFh']` centralizado como constante — atualizar se OLX reconstruir
+
+**Arquivo alterado:** `content/olx-chat-monitor.js`
+**Backup:** `olx-chat-monitor.js.bak-fix43.9`
+**Sintaxe:** `node --check` → OK
+
+**Funções alteradas:**
+- `iniciarMonitor()` — +1 linha: `chatDoc = chatBody.ownerDocument || document`
+- `coletarMensagensIncoming()` — NOVA função (seção 6)
+- `verificarExistente()` — trigger permanece; conteúdo agora via `coletarMensagensIncoming()`
+- `checarDelta()` — idem
+
+**Funções intocadas:** `encontrarChatBody`, `extrairApos`, `limpar`, `registrarResposta`, `prosseguir`, `tentarUrl`, MutationObserver config, `jaDetectou`, CHECK_ENVIADO, RESPOSTA_DETECTADA, persistirMensagem, ABORDAR, olx-chat.js
+
+**Logs temporários ainda presentes:** DIAG A1–A8, B1–B5 (para validação do próximo teste)
+
+**Próximo passo:** recarregar extensão → ABORDAR → enviar msg → ENVIEI → abrir/recarregar chat OLX → verificar console:
+- `[CNR Monitor] checarDelta DOM incoming: 1 ['"O valor para o carro..."']` → extração funcionou
+- `[CNR Monitor] 🔥 Resposta detectada — "O valor para o carro..."` → conteúdo correto
+- Verificar no Supabase (`olx_mensagens`) que a mensagem real do vendedor foi persistida
+
+**Após validação:** remover logs DIAG A/B e DIAG ENVIO (todos temporários).*

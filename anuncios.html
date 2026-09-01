@@ -68,7 +68,7 @@
 
   /* Chip "HOJE" */
   .chip-hoje{display:inline-block;font-size:.6rem;font-weight:800;padding:.15rem .45rem;border-radius:8px;background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent);letter-spacing:.04em;vertical-align:middle}
-  .chip-resposta-nova{display:inline-flex;align-items:center;gap:.2rem;background:#dc2626;color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.05em;padding:.2rem .55rem;border-radius:20px;animation:pulse-resposta 1.8s ease-in-out infinite}
+  .chip-resposta-nova{display:inline-flex;align-items:center;gap:.2rem;background:#dc2626;color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.05em;padding:.2rem .55rem;border-radius:20px;animation:pulse-resposta 1.8s ease-in-out infinite;cursor:pointer;border:none;font-family:inherit}
   @keyframes pulse-resposta{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.82;transform:scale(1.05)}}
 
   /* Botões de ação */
@@ -106,6 +106,21 @@
   /* Toast */
   .toast-cnr{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--text);color:var(--surface);font-size:.82rem;font-weight:600;padding:.7rem 1.3rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.22);z-index:3000;opacity:0;transition:opacity .25s;pointer-events:none;white-space:pre-wrap;max-width:92vw;text-align:center}
   .toast-cnr.show{opacity:1}
+
+  /* Fix 43.7 — Seção de resposta inline (colapsável, só para status=respondeu) */
+  .reply-section{background:color-mix(in srgb,var(--severity-ok) 7%,transparent);border:1px solid color-mix(in srgb,var(--severity-ok) 28%,transparent);border-radius:10px;padding:.8rem;margin-top:.5rem;display:flex;flex-direction:column;gap:.45rem}
+  .reply-label{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-mid)}
+  .reply-vendedor{font-size:.8rem;color:var(--text);background:var(--surface);border-radius:7px;padding:.55rem .75rem;border-left:3px solid color-mix(in srgb,var(--severity-ok) 55%,transparent);line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .reply-textarea{width:100%;resize:vertical;min-height:72px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.83rem;padding:.55rem .75rem;line-height:1.45;transition:border-color .15s}
+  .reply-textarea:focus{outline:none;border-color:var(--text)}
+  .reply-footer{display:flex;align-items:center;justify-content:flex-end;gap:.5rem;flex-wrap:wrap}
+  .reply-chars{font-size:.68rem;color:var(--text-mid);margin-right:auto}
+  .reply-status{font-size:.74rem;font-weight:600;padding:.28rem .55rem;border-radius:6px}
+  .reply-status.ok{background:color-mix(in srgb,var(--severity-ok) 14%,transparent);color:var(--severity-ok)}
+  .reply-status.err{background:color-mix(in srgb,var(--severity-crit) 12%,transparent);color:var(--severity-crit)}
+  .btn-enviar{font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:700;padding:.42rem .95rem;border-radius:8px;border:none;background:var(--severity-ok);color:#fff;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+  .btn-enviar:hover:not(:disabled){opacity:.85}
+  .btn-enviar:disabled{opacity:.42;cursor:default}
 </style>
 </head>
 <body>
@@ -182,6 +197,10 @@ let ignorarMotivo = '';
 // listing_ids detectados automaticamente pela extensão (badge 🔥)
 // Preenchido por carregarAutoRespondidos() após o carregar() inicial.
 let AUTO_RESPONDIDOS = new Set();
+
+// Fix 43.7: estado do fluxo de resposta via Gerador
+const enviandoResposta  = new Set(); // listing_ids com envio em andamento (anti double-click)
+const replyMsgCarregado = new Set(); // listing_ids cujas msgs do vendedor já foram buscadas
 
 // ── API ──────────────────────────────────────────────────────────
 async function api(path, opts) {
@@ -321,12 +340,19 @@ function cardHTML(a) {
     btns += `<button class="btn-acao success" onclick="avancar('${a.id}','enviado')">✅ ENVIEI</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
   } else if (a.status === 'enviado') {
+    // Conversa já existe (mensagem enviada) — permitir responder pelo Gerador
+    // mesmo antes de o vendedor responder.
+    btns = `<button class="btn-acao" onclick="toggleResponder('${a.id}')">✏️ Responder</button>` + btns;
     btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','respondeu')">💬 RESPONDEU</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">☠️ MORTO</button>`;
   } else if (a.status === 'respondeu') {
     if (AUTO_RESPONDIDOS.has(a.listing_id)) {
       // Detectado automaticamente pela extensão — badge pulsante
-      btns = `<span class="chip-resposta-nova">🔥 RESPOSTA NOVA</span>` + btns;
+      btns = `<button class="chip-resposta-nova" onclick="toggleResponder('${a.id}')">🔥 RESPOSTA NOVA</button>` + btns;
+    } else {
+      // Marcado como respondido manualmente — sem badge, mas a caixa de
+      // resposta continua acessível. Antes ficava inalcançável.
+      btns = `<button class="btn-acao" onclick="toggleResponder('${a.id}')">✏️ Responder</button>` + btns;
     }
     btns += `<button class="btn-acao primary" onclick="avancar('${a.id}','autorizado')">✅ Autorizado</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
@@ -338,6 +364,22 @@ function cardHTML(a) {
   }
 
   const searchInfo = a.search_name ? `<span>📡 ${esc(a.search_name)}</span>` : '';
+
+  // Seção de resposta inline — disponível em 'enviado' e 'respondeu'
+  // (ambos são estados onde já existe conversa com o vendedor).
+  // Começa colapsada, abre ao clicar ✏️ Responder / 🔥 RESPOSTA NOVA.
+  const replySection = (a.status === 'respondeu' || a.status === 'enviado') ? `
+  <div id="reply-${a.id}" class="reply-section" style="display:none">
+    <div class="reply-label">💬 Mensagem do vendedor</div>
+    <div class="reply-vendedor" id="reply-msg-${a.id}"><em>Abrindo…</em></div>
+    <div class="reply-label" style="margin-top:.15rem">✏️ Sua resposta</div>
+    <textarea class="reply-textarea" id="reply-text-${a.id}" placeholder="Escreva sua resposta aqui…" rows="3" maxlength="2000" oninput="atualizarChars('${a.id}')"></textarea>
+    <div class="reply-footer">
+      <span class="reply-chars" id="reply-chars-${a.id}">0 / 2000</span>
+      <span class="reply-status" id="reply-status-${a.id}" style="display:none"></span>
+      <button class="btn-enviar" id="btn-enviar-${a.id}" onclick="enviarResposta('${a.id}')">📤 ENVIAR</button>
+    </div>
+  </div>` : '';
 
   return `
   <div class="card" id="card-${a.id}">
@@ -358,12 +400,16 @@ function cardHTML(a) {
         ${a.vehicle_id ? `<span><a href="/catalogo.html?id=${esc(a.vehicle_id)}" style="color:var(--accent)">Ver no catálogo →</a></span>` : ''}
       </div>
       <div class="card-footer">${btns}</div>
+      ${replySection}
     </div>
   </div>`;
 }
 
 // ── Renderizar grid ───────────────────────────────────────────────
 function renderGrid() {
+  // Fix 43.7: ao re-renderizar, seções de resposta somem — resetar cache de msgs
+  replyMsgCarregado.clear();
+
   const grid = document.getElementById('grid');
   let lista = filtro === 'todos'    ? TODOS
             : filtro === 'fila-dia' ? TODOS.filter((a) => a.status === 'novo' && isRecente(a))
@@ -481,6 +527,14 @@ async function avancar(id, novoStatus) {
     // Fire-and-forget via bridge — uma falha da extensão não afeta o PATCH acima.
     if (novoStatus === 'enviado' && a?.listing_id) {
       const key = `${a.origem || 'olx'}:${a.listing_id}`;
+      // ── [DIAG ENVIO] ────────────────────────────────────────────
+      console.log('[CNR DIAG ENVIO 1] avancar() disparando postMessage CNR_CONFIRMAR_ENVIO', {
+        key,
+        listing_id: a.listing_id,
+        origem: a.origem,
+        novoStatus,
+      });
+      // ────────────────────────────────────────────────────────────
       window.postMessage({ cnr_type: 'CNR_CONFIRMAR_ENVIO', key }, '*');
     }
 
@@ -650,6 +704,160 @@ async function adicionarCatalogo(id) {
     alert(`Erro ao criar veículo no catálogo: ${e.message}`);
     if (btn) { btn.disabled = false; btn.textContent = '+ Catálogo'; }
   }
+}
+
+// ── Fix 43.7: Responder via Gerador CNR → Bridge → SW → OLX ─────────
+
+// Abre/fecha a seção de resposta inline no card.
+// Na primeira abertura, busca a última mensagem do vendedor da API.
+function toggleResponder(id) {
+  const section = document.getElementById(`reply-${id}`);
+  if (!section) return;
+  const visivel = section.style.display !== 'none';
+  if (visivel) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  // Buscar msg do vendedor apenas uma vez por sessão de renderização
+  if (!replyMsgCarregado.has(id)) {
+    const a = TODOS.find((x) => x.id === id);
+    if (a) carregarMsgVendedor(id, a.listing_id);
+  }
+  document.getElementById(`reply-text-${id}`)?.focus();
+}
+
+// Busca mensagens do vendedor (inbound) para este listing_id.
+// Exibe a mais recente na área de contexto do reply.
+async function carregarMsgVendedor(id, listing_id) {
+  const msgEl = document.getElementById(`reply-msg-${id}`);
+  if (!msgEl) return;
+  try {
+    const msgs = await api(`/api/fetch-anuncio?mensagens=1&listing_id=${encodeURIComponent(listing_id)}`);
+    const inbound = (Array.isArray(msgs) ? msgs : [])
+      .filter((m) => m.direction === 'incoming' || m.direction === 'inbound');
+    if (inbound.length > 0) {
+      const ultima = inbound[inbound.length - 1];
+      msgEl.textContent = ultima.content;
+      replyMsgCarregado.add(id);
+    } else {
+      msgEl.innerHTML = '<em>Nenhuma mensagem capturada ainda. Ela aparecerá após a extensão detectar a resposta do vendedor.</em>';
+    }
+  } catch (e) {
+    msgEl.innerHTML = `<em>Erro ao carregar: ${esc(e.message)}</em>`;
+  }
+}
+
+// Atualiza o contador de caracteres em tempo real.
+function atualizarChars(id) {
+  const ta = document.getElementById(`reply-text-${id}`);
+  const el = document.getElementById(`reply-chars-${id}`);
+  if (ta && el) el.textContent = `${ta.value.length} / 2000`;
+}
+
+// Disparado quando Yuri clica ENVIAR.
+// Valida → bloqueia double-click → envia via bridge → aguarda ACK com timeout.
+function enviarResposta(id) {
+  const a = TODOS.find((x) => x.id === id);
+  if (!a) return;
+
+  // Anti double-click: bloqueia enquanto um envio está em andamento
+  if (enviandoResposta.has(id)) return;
+
+  const ta       = document.getElementById(`reply-text-${id}`);
+  const btn      = document.getElementById(`btn-enviar-${id}`);
+  const statusEl = document.getElementById(`reply-status-${id}`);
+  if (!ta || !btn) return;
+
+  const texto = ta.value.trim();
+  if (!texto) {
+    mostrarToast('✏️ Escreva uma resposta antes de enviar.');
+    ta.focus();
+    return;
+  }
+
+  // Transição para estado ENVIANDO
+  enviandoResposta.add(id);
+  btn.disabled    = true;
+  btn.textContent = 'ENVIANDO…';
+  if (statusEl) statusEl.style.display = 'none';
+
+  // Timeout de segurança: se ACK não chegar em 12s, desbloquear com erro
+  const timeout = setTimeout(() => {
+    window.removeEventListener('message', handler);
+    _finalizarEnvio(id, false, 'timeout', ta, btn, statusEl);
+  }, 12000);
+
+  // Listener único para o ACK desta conversa específica
+  function handler(e) {
+    if (e.source !== window) return;
+    if (e.data?.cnr_type !== 'CNR_RESPOSTA_ACK') return;
+    if (e.data?.listing_id !== a.listing_id) return;
+    clearTimeout(timeout);
+    window.removeEventListener('message', handler);
+    _finalizarEnvio(id, e.data.ok, e.data.err, ta, btn, statusEl);
+  }
+  window.addEventListener('message', handler);
+
+  // Disparo via bridge (cnr-bridge.js intercepta e encaminha ao SW)
+  window.postMessage({
+    cnr_type:   'CNR_ENVIAR_RESPOSTA',
+    listing_id: a.listing_id,
+    texto,
+  }, '*');
+}
+
+// Atualiza o UI após receber o ACK (sucesso ou erro).
+function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
+  enviandoResposta.delete(id);
+  btn.disabled = false;
+
+  if (ok) {
+    btn.textContent = '✅ Enviada';
+    if (statusEl) {
+      statusEl.textContent = 'Mensagem enviada';
+      statusEl.className   = 'reply-status ok';
+      statusEl.style.display = '';
+    }
+    ta.value = '';
+    atualizarChars(id);
+    setTimeout(() => {
+      // Remover badge RESPOSTA NOVA e re-renderizar o card sem ele
+      const aEnviado = TODOS.find((x) => x.id === id);
+      if (aEnviado) {
+        AUTO_RESPONDIDOS.delete(aEnviado.listing_id);
+        atualizarContadores();
+        atualizarMetricas();
+        renderGrid();
+      } else {
+        btn.textContent = '📤 ENVIAR';
+        if (statusEl) statusEl.style.display = 'none';
+      }
+    }, 3500);
+  } else {
+    btn.textContent = '📤 ENVIAR';
+    const msg = _traduzirErroResposta(err);
+    if (statusEl) {
+      statusEl.textContent = msg;
+      statusEl.className   = 'reply-status err';
+      statusEl.style.display = '';
+    }
+    mostrarToast(`⚠️ ${msg}`, 7000);
+  }
+}
+
+// Traduz códigos de erro do SW em mensagens amigáveis para Yuri.
+function _traduzirErroResposta(err) {
+  if (!err)                              return 'Erro desconhecido. Tente novamente.';
+  if (err === 'aba_nao_encontrada')      return 'Abra o chat deste anúncio na OLX e tente novamente.';
+  if (err === 'campo_nao_encontrado')    return 'Campo de mensagem não encontrado. Envie manualmente pela aba OLX.';
+  if (err === 'dados_invalidos')         return 'Mensagem vazia ou dados inválidos.';
+  if (err === 'timeout')                 return 'Sem resposta da extensão. Recarregue a página e tente novamente.';
+  if (err === 'sem_resultado')           return 'Sem retorno do script. Verifique a aba OLX.';
+  if (err.startsWith('script_error:'))  return 'Erro ao executar no chat OLX. Envie manualmente.';
+  if (err.startsWith('preencher_falhou:')) return 'Não foi possível preencher o campo. Envie manualmente.';
+  if (err.startsWith('envio_falhou:'))  return 'Não foi possível acionar o envio. Envie manualmente.';
+  return `Erro: ${err}`;
 }
 
 // ── Filtros ──────────────────────────────────────────────────────

@@ -1,0 +1,24 @@
+# Vercel deploy exclusions — espelha .gitignore e exclui pastas pesadas
+.env
+.env.local
+.env*.local
+node_modules/
+.DS_Store
+.vercel
+.git
+.agents
+.claude
+Celular - CNR Vendas/
+netlify/
+supabase/
+api/ping.js
+CLAUDE.md
+CONSTITUICAO.md
+ESTRATEGIA.md
+EVENTOS.md
+FORNECEDORES.md
+LEIA-ME.md
+SPRINT_1_MATCH_ATIVO.md
+Roadmap_Executivo_CRR.docx
+prompt-git-setup.md
+skills-lock.json

@@ -198,6 +198,8 @@ async function handleMensagens(req, res) {
       return res.status(400).json({ error: 'listing_id, direction e content são obrigatórios' });
     }
 
+    console.log('[CNR DEBUG 43.1] mensagens POST recebido', { listing_id, direction, content: content?.slice(0, 80) }); // DEBUG 43.1
+
     // Hash determinístico para deduplicação (SHA-256 do Node.js)
     const crypto   = require('crypto');
     const msg_hash = crypto
@@ -221,6 +223,7 @@ async function handleMensagens(req, res) {
       body:    JSON.stringify(row),
     });
 
+    console.log('[CNR DEBUG 43.1] insert resultado HTTP', r.status, r.ok ? 'OK' : 'ERRO'); // DEBUG 43.1
     if (!r.ok) {
       const err = await r.text();
       return res.status(500).json({ error: err });
