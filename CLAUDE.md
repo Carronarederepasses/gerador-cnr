@@ -1504,3 +1504,54 @@ Mapeamento confirmado contra as buscas reais do Yuri: `ps`/`pe` preço,
 - [ ] Filtro de quilometragem no Radar, se o Yuri usar
 
 *Atualizado em 02/setembro/2026, noite.*
+
+---
+
+### Planejado — fim de setembro/2026: segunda operadora (mãe do Yuri)
+
+Yuri vai comprar um notebook para a mãe, que passará a fazer a **abordagem
+dos anúncios**. Segundo operador, segunda máquina.
+
+**Não é multi-tenancy.** Mesma empresa, mesmos dados, compartilhados de
+propósito. O `GET` público e o `SERVICE_ROLE_KEY` sem escopo continuam
+aceitáveis aqui — o que muda de verdade é o número de máquinas e,
+possivelmente, de contas OLX.
+
+#### O que a configuração dela exige
+
+- Extensão carregada (modo desenvolvedor, pasta descompactada)
+- `gerador_url` nas opções apontando para o app publicado
+- **As buscas não precisam ser configuradas** — vêm do Gerador
+  automaticamente. É o retorno direto da tela Radar feita em 02/set: sem ela,
+  seria preciso digitar as 4 URLs à mão na máquina dela.
+- `seen`/`queue` são locais por máquina: os dois radares rodam independentes
+  e alimentam a mesma tabela `anuncios` por upsert de `listing_id`. Sem
+  conflito, mas com trabalho duplicado.
+
+#### Decisão em aberto — conta OLX dela ou dele?
+
+Afeta duas coisas e precisa ser resolvida antes do contato com a OLX:
+
+1. **O documento da captação afirma "1 conta OLX" e "~72 páginas/dia".** Com
+   duas máquinas viram ~144/dia, e com conta própria dela deixam de ser uma
+   conta. Se o irmão já tiver aberto conversa com a OLX, os números
+   apresentados precisam bater com a realidade — a força daquele documento
+   está inteira na precisão dele.
+2. **Conta própria dela** = as conversas dela ficam na sessão dela. O espelho
+   no Gerador continua funcionando (é por `listing_id`), mas responder pelo
+   card só funciona na máquina de quem tem a conversa aberta.
+   **Conta compartilhada** = mais simples operacionalmente, mas é
+   compartilhamento de credencial, que costuma ser vedado em termos de uso.
+
+Vale checar os Termos da OLX sobre conta compartilhada antes de decidir.
+
+#### Reclassificação: `GET` público da API
+
+Sai de "prioridade". Yuri argumentou, corretamente, que o app não está
+indexado (`noindex,nofollow`) e a URL não é adivinhável — o risco prático
+hoje é baixo, e eu havia exagerado o quadro. Fica como **pré-requisito do
+primeiro parceiro externo**, junto do trabalho de multi-tenancy, que é quando
+a URL passa a circular de verdade e os dados deixam de ser todos da mesma
+empresa.
+
+*Registrado em 02/setembro/2026, noite.*
