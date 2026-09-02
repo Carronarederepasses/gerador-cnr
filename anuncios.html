@@ -348,8 +348,9 @@ function cardHTML(a) {
     btns += `<button class="btn-acao" onclick="abrirOLX('${esc(a.url)}')">↗ OLX</button>`;
   }
   if (a.status === 'novo') {
-    // ABORDAR: aciona a extensão para abrir o chat OLX com a mensagem preenchida.
-    // ABORDAR ≠ ENVIADO — clicar aqui NÃO muda o status.
+    // ABORDAR abre a caixa de escrita AQUI, com a mensagem padrão pronta, e
+    // prepara a aba da OLX em segundo plano. Yuri revisa e envia sem sair do
+    // Gerador. O ENVIEI continua, para quando ele preferir enviar pela OLX.
     btns = `<button class="btn-acao primary" onclick="abordar('${esc(a.id)}')">💬 ABORDAR</button>` + btns;
     btns += `<button class="btn-acao success" onclick="avancar('${a.id}','enviado')">✅ ENVIEI</button>`;
     btns += `<button class="btn-acao danger" onclick="abrirIgnorar('${a.id}')">Ignorar</button>`;
@@ -382,7 +383,7 @@ function cardHTML(a) {
   // Seção de resposta inline — disponível em 'enviado' e 'respondeu'
   // (ambos são estados onde já existe conversa com o vendedor).
   // Começa colapsada, abre ao clicar ✏️ Responder / 🔥 RESPOSTA NOVA.
-  const replySection = (a.status === 'respondeu' || a.status === 'enviado') ? `
+  const replySection = (a.status === 'respondeu' || a.status === 'enviado' || a.status === 'novo') ? `
   <div id="reply-${a.id}" class="reply-section" style="display:none">
     <div class="reply-head">
       <span class="reply-label">💬 Conversa</span>
@@ -595,7 +596,10 @@ function abordar(id) {
     acked = true;
     window.removeEventListener('message', handler);
     if (e.data.ok) {
-      mostrarToast('💬 Extensão acionada — o chat OLX vai abrir com a mensagem preenchida.\nRevise e envie quando quiser, depois clique ✅ ENVIEI aqui.');
+      // Abre a caixa de escrita NO CARD, com a mensagem padrão pronta.
+      // A aba da OLX foi aberta em segundo plano — Yuri não sai daqui.
+      abrirCaixaAbordagem(id);
+      mostrarToast('💬 Conversa preparada. Revise a mensagem e clique ENVIAR — sem sair do Gerador.');
     } else {
       // Extensão presente mas abordar() falhou (ex.: SW dormindo)
       mostrarToast('⚠️ Extensão respondeu mas ocorreu um erro.\nAbrindo chat diretamente — mensagem copiada para colar.');
@@ -612,6 +616,23 @@ function abordar(id) {
     window.removeEventListener('message', handler);
     _abortarFallback(a.listing_id);
   }, 600);
+}
+
+// Abre a conversa no card já com a mensagem padrão escrita, pronta para
+// revisão. É o que permite fazer a primeira abordagem sem sair do Gerador.
+// Não sobrescreve texto que Yuri já tenha começado a digitar.
+function abrirCaixaAbordagem(id) {
+  const sec = document.getElementById(`reply-${id}`);
+  if (!sec) return;
+  if (sec.style.display === 'none') toggleResponder(id);
+
+  const ta = document.getElementById(`reply-text-${id}`);
+  if (ta && !ta.value.trim()) {
+    ta.value = MSG_ABORDAGEM;
+    atualizarChars(id);
+  }
+  ta?.focus();
+  sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function _abortarFallback(listing_id) {
@@ -976,14 +997,21 @@ function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
       setTimeout(() => carregarThread(id, aThread.listing_id), 3000); // rede lenta
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       // Remover badge RESPOSTA NOVA e re-renderizar o card sem ele
       const aEnviado = TODOS.find((x) => x.id === id);
       if (aEnviado) {
-        AUTO_RESPONDIDOS.delete(aEnviado.listing_id);
-        atualizarContadores();
-        atualizarMetricas();
-        renderGrid();
+        if (aEnviado.status === 'novo') {
+          // Primeira abordagem enviada pelo Gerador: o anúncio avança sozinho.
+          // Sem isto o card continuaria dizendo "novo" com a mensagem já
+          // enviada, e Yuri teria de clicar ENVIEI para corrigir o estado.
+          await avancar(id, 'enviado');   // já re-renderiza
+        } else {
+          AUTO_RESPONDIDOS.delete(aEnviado.listing_id);
+          atualizarContadores();
+          atualizarMetricas();
+          renderGrid();
+        }
         // Reabrir a conversa: enviar uma mensagem não deve fechar o chat.
         toggleResponder(id);
       } else {
