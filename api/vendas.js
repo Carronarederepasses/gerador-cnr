@@ -220,7 +220,16 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'GET') {
-      const parts = ['select=*', 'order=created_at.desc', ...filtros(q)];
+      // Ordena pela data em que a venda ACONTECEU, não por quando o registro
+      // foi digitado. As vendas históricas foram lançadas em lote e muitas têm
+      // created_at nulo — em DESC o Postgres coloca nulos PRIMEIRO, o que
+      // empurrava toda venda nova para o fim da lista (parecia não ter salvo).
+      // nullslast garante que registro sem data nunca ocupe o topo.
+      const parts = [
+        'select=*',
+        'order=data_venda.desc.nullslast,created_at.desc.nullslast',
+        ...filtros(q),
+      ];
       const r = await sb(`${TABLE}?${parts.join('&')}`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
