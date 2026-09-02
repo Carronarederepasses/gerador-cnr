@@ -1299,3 +1299,44 @@ Pontos de atenção para a implementação:
 - Ainda falta o **teste do ENVIAR** com a aba aberta. Fazer isso primeiro: se o
   clique sintético não funcionar nem com a aba aberta, abrir aba sozinho não
   resolve nada.
+
+---
+
+### Checkpoint — 02/set/2026 (manhã) — CNR Chat completo: da abordagem à resposta pelo Gerador
+
+**Marco: o ciclo fecha.** Yuri capta, aborda, acompanha e responde sem abrir a OLX. A aba da OLX existe apenas como transporte, em segundo plano, gerenciada pela extensão.
+
+#### Defeitos encontrados e corrigidos (nesta ordem)
+
+1. **Guarda de atribuição barrava o anúncio certo** — `conversaConfere` comparava título/preço vindos do `seen` local, enquanto a identificação vinha do Gerador. Bases divergentes (preço alterado na OLX) faziam a guarda bloquear o espelhamento do próprio anúncio identificado. Fix: `metaAnuncio` passa a ser preenchido pela mesma fonte que identificou.
+
+2. **Mensagens de Yuri recusadas pelo banco** — gravadas como `outbound`, valor que o `CHECK (direction IN ('incoming','outgoing'))` da tabela `olx_mensagens` rejeita. Todo insert dele retornava 500. Só as do vendedor apareciam na thread.
+
+3. **O erro era engolido** — `persistirMensagem` não lançava em HTTP não-2xx, então `sincronizarConversa` contava `salvas++` mesmo com o banco recusando. `falhas: 0` mentia e escondia os itens 1 e 2. Fix: lança com corpo da resposta.
+
+4. **`detected_at` é hora da captura, não da mensagem** — grupos capturados em momentos diferentes ficam fora de ordem. Contornável com 🗑 + reespelhar. Limitação conhecida: mensagens antigas carregadas por rolagem semanas depois entram com carimbo de hoje. Resolver exige guardar a posição na conversa (mudança de schema) — não feito.
+
+5. **Bolhas quase idênticas** — dois tons lavados sobre o mesmo fundo. Agora vendedor com bolha clara e contorno, Yuri com bolha sólida escura, mesmo contraste do toast. Por token, funciona nos dois temas.
+
+#### Funcionalidades adicionadas
+
+- **Conversa se atualiza sozinha** enquanto o card está aberto (10s). Modo silencioso: não redesenha se nada mudou, preserva a rolagem de quem lê mensagens antigas, e falha de rede não apaga a tela.
+- **Aba-hub** — `garantirAbaConversa()` reaproveita UMA aba: adota a que já está na conversa, navega a hub, ou cria em background. `esperarCarregar` + `esperarCampoPronto` garantem que o chat montou antes de escrever. `enviarRespostaOLX` deixou de exigir aba aberta.
+- **`ABRIR_CONVERSA`** — o Gerador prepara a aba ao abrir a conversa no card, escondendo os ~10s de montagem do SPA enquanto Yuri escreve. Estado visível: "abrindo conversa na OLX…" → "chat pronto".
+- **Primeira abordagem pelo Gerador** — ABORDAR abre a caixa no card com a mensagem padrão pronta e prepara a aba em segundo plano (`active:false`). Enviar avança o status para `enviado` sozinho.
+- **Erros traduzidos** — todas as falhas de envio dizem o que fazer, não só o que falhou.
+
+#### Decisão de arquitetura
+
+Escolhida a opção **B**: a extensão abre a aba-hub quando necessário, em vez de Yuri manter uma aberta. Segue 1 aba por ação dele, e reaproveitada. Registrado em `compliance-extensao` na memória.
+
+#### Pendências
+
+- [ ] **Documentos da venda do Renegade** — falha ao carregar comprovante, cautelar e documentos. Próximo item. Falta detalhar o sintoma.
+- [ ] Filtro do Radar dentro do Gerador (adiado a pedido do Yuri)
+- [ ] Observar a lista lateral do chat para saber de mensagens novas em conversas não abertas
+- [ ] **Rotacionar `VENDAS_KEY`** — valor exposto em conversa
+- [ ] Remover logs DIAG da extensão
+- [ ] Reescrever `compliance-extensao.md` no repo separando regra da OLX de decisão de projeto
+
+*Atualizado em 02/setembro/2026, manhã.*
