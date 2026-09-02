@@ -1425,6 +1425,9 @@ function aplicarPneus(pneus) {
 // Linha dos pneus para o anúncio — aceita até 2 combinações (ex: 2 novos + 2 meia-vida)
 function linhaPneus() {
   const ESTADOS = { 'novos':'novos', 'bons':'bons', 'meia-vida':'meia-vida', 'fracos':'a trocar' };
+  // "1 novos" saía errado no anúncio quando um grupo tinha um pneu só.
+  const SING    = { 'novos':'novo', 'bons':'bom', 'meia-vida':'meia-vida', 'fracos':'a trocar' };
+  const estado  = (q, e) => (q === '1' ? SING : ESTADOS)[e];
   const get = id => (document.getElementById(id) || {}).value || '';
   const grupos = [];
   if (get('pneus-estado-1')) grupos.push({ q: get('pneus-qtd-1') || '4', e: get('pneus-estado-1') });
@@ -1434,9 +1437,9 @@ function linhaPneus() {
   const icone = '🛞';
   if (grupos.length === 1) {
     const g = grupos[0];
-    return `${icone} ${g.q} ${g.q === '1' ? 'pneu' : 'pneus'} ${ESTADOS[g.e]}`;
+    return `${icone} ${g.q} ${g.q === '1' ? 'pneu' : 'pneus'} ${estado(g.q, g.e)}`;
   }
-  return `${icone} Pneus: ${grupos.map(g => `${g.q} ${ESTADOS[g.e]}`).join(' + ')}`;
+  return `${icone} Pneus: ${grupos.map(g => `${g.q} ${estado(g.q, g.e)}`).join(' + ')}`;
 }
 
 // Item com estado "Tem" / "A confirmar" (chave reserva, manual)
