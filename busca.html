@@ -88,6 +88,18 @@ function fmtR(n) {
 }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// A data vinha do banco em ISO e ia crua para a tela: "2026-09-01" no meio de
+// um resultado, enquanto o resto do sistema mostra 01/09/2026.
+// Sufixo T00:00:00 para o navegador ler como data local — sem ele, "2026-09-01"
+// é interpretado como UTC e vira 31/08 em qualquer fuso a oeste de Greenwich.
+function fmtData(d) {
+  if (!d) return '';
+  const s = String(d).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return String(d);
+  const dt = new Date(s + 'T00:00:00');
+  return isNaN(dt) ? String(d) : dt.toLocaleDateString('pt-BR');
+}
+
 // Lê a query da URL ao carregar
 window.addEventListener('DOMContentLoaded', () => {
   const p = new URLSearchParams(location.search);
@@ -162,7 +174,7 @@ function renderVendas(lista) {
   if (!lista.length) return '';
   const rows = lista.slice(0,10).map(v => {
     const nome = [v.marca, v.versao||v.modelo].filter(Boolean).join(' ') || 'Venda';
-    const sub  = [v.placa, v.comprador_nome, v.data_venda, fmtR(v.taxa_intermediacao)].filter(Boolean).join(' · ');
+    const sub  = [v.placa, v.comprador_nome, fmtData(v.data_venda), fmtR(v.taxa_intermediacao)].filter(Boolean).join(' · ');
     return `<a class="resultado" href="/vendas.html?id=${v.id}">
       <div class="res-ico">📋</div>
       <div class="res-body">
