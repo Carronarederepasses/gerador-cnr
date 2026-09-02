@@ -263,9 +263,41 @@ async function handleRadar(req, res) {
 async function handleMensagens(req, res) {
   const q = req.query;
 
+  // GET sem listing_id → resumo de TODAS as conversas, para a lista lateral.
+  // Uma linha por anúncio: última mensagem, de quem foi e quantas existem.
+  //
+  // O agrupamento é feito aqui e não no Postgres porque PostgREST não faz
+  // DISTINCT ON, e criar uma view exigiria migration para pouca coisa: são
+  // centenas de linhas, não milhões.
+  if (req.method === 'GET' && !q.listing_id) {
+    const r = await sb('olx_mensagens?order=detected_at.desc&limit=2000');
+    if (!r.ok) return res.status(502).json({ error: `Supabase HTTP ${r.status}` });
+    const linhas = await r.json();
+
+    const porAnuncio = new Map();
+    for (const m of linhas) {
+      // Vem ordenado do mais novo para o mais velho: o primeiro de cada
+      // listing_id já é a última mensagem.
+      if (!porAnuncio.has(m.listing_id)) {
+        porAnuncio.set(m.listing_id, {
+          listing_id:   m.listing_id,
+          platform:     m.platform || 'olx',
+          ultima:       m.content || '',
+          direction:    m.direction,
+          detected_at:  m.detected_at,
+          total:        0,
+          recebidas:    0,
+        });
+      }
+      const c = porAnuncio.get(m.listing_id);
+      c.total++;
+      if (m.direction === 'incoming') c.recebidas++;
+    }
+    return res.status(200).json([...porAnuncio.values()]);
+  }
+
   if (req.method === 'GET') {
     const { listing_id } = q;
-    if (!listing_id) return res.status(400).json({ error: 'listing_id required' });
 
     const r = await sb(
       `olx_mensagens?listing_id=eq.${encodeURIComponent(listing_id)}&order=detected_at.asc`
