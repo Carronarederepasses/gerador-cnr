@@ -112,10 +112,15 @@
   .reply-label{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-mid)}
   /* Thread espelhada do chat OLX — bolhas nas duas direções */
   .reply-thread{display:flex;flex-direction:column;gap:.35rem;max-height:250px;overflow-y:auto;background:var(--surface);border-radius:7px;padding:.55rem}
-  .msg-bubble{font-size:.79rem;color:var(--text);line-height:1.42;padding:.45rem .65rem;border-radius:10px;max-width:84%;white-space:pre-wrap;word-break:break-word}
-  .msg-in{align-self:flex-start;background:color-mix(in srgb,var(--severity-ok) 14%,transparent);border-bottom-left-radius:3px}
-  .msg-out{align-self:flex-end;background:color-mix(in srgb,var(--text) 9%,transparent);border-bottom-right-radius:3px}
-  .msg-hora{display:block;font-size:.61rem;color:var(--text-mid);margin-top:.2rem;font-variant-numeric:tabular-nums}
+  .msg-bubble{font-size:.79rem;line-height:1.42;padding:.5rem .7rem;border-radius:10px;max-width:84%;white-space:pre-wrap;word-break:break-word}
+  /* Vendedor: bolha clara com contorno. Yuri: bolha sólida escura, mesmo
+     contraste do toast. Antes as duas eram tons lavados sobre o mesmo fundo
+     e ficavam quase idênticas. */
+  .msg-in{align-self:flex-start;background:var(--surface-raise);border:1px solid var(--line);color:var(--text);border-bottom-left-radius:3px}
+  .msg-out{align-self:flex-end;background:var(--text);color:var(--surface);border-bottom-right-radius:3px}
+  .msg-hora{display:block;font-size:.61rem;margin-top:.25rem;font-variant-numeric:tabular-nums}
+  .msg-in .msg-hora{color:var(--text-mid)}
+  .msg-out .msg-hora{color:var(--surface);opacity:.65}
   .reply-vazio{font-size:.78rem;color:var(--text-mid);font-style:italic;padding:.25rem;line-height:1.45}
   .btn-refresh{background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--text-mid);padding:0 .2rem;line-height:1}
   .btn-refresh:hover{color:var(--text)}
