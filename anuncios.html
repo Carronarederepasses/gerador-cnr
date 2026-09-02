@@ -746,6 +746,9 @@ function toggleResponder(id) {
   if (!replyMsgCarregado.has(id) && a) carregarThread(id, a.listing_id);
   // Enquanto a conversa estiver aberta, ela se atualiza sozinha
   if (a) iniciarAutoThread(id, a.listing_id);
+  // Adianta a preparação da aba da OLX: quando Yuri terminar de escrever,
+  // o chat já estará montado e o envio não espera o carregamento.
+  if (a) prepararConversaOLX(id, a.listing_id);
   document.getElementById(`reply-text-${id}`)?.focus();
 }
 
@@ -827,6 +830,46 @@ async function carregarThread(id, listing_id, silencioso) {
     if (silencioso) return;
     box.innerHTML = `<div class="reply-vazio">Erro ao carregar: ${esc(e.message)}</div>`;
   }
+}
+
+// ── Preparo da aba da OLX (aba-hub) ──────────────────────────────
+// Ao abrir a conversa num card, pede à extensão que deixe a aba da OLX
+// pronta naquele anúncio. A extensão reaproveita uma única aba: navega a
+// que já existe ou cria uma em background. Yuri não gerencia aba nenhuma.
+// Falha aqui não impede nada — só significa que o envio vai esperar o
+// carregamento em vez de encontrar tudo pronto.
+function prepararConversaOLX(id, listing_id) {
+  const st = document.getElementById(`reply-status-${id}`);
+  const mostrar = (txt, classe) => {
+    if (!st) return;
+    st.textContent = txt;
+    st.className = 'reply-status' + (classe ? ' ' + classe : '');
+    st.style.display = txt ? '' : 'none';
+  };
+
+  let respondeu = false;
+  function handler(e) {
+    if (e.source !== window || e.data?.cnr_type !== 'CNR_CONVERSA_PRONTA') return;
+    if (String(e.data.listing_id) !== String(listing_id)) return;
+    respondeu = true;
+    window.removeEventListener('message', handler);
+    if (e.data.ok) {
+      mostrar('💬 chat pronto', 'ok');
+      setTimeout(() => mostrar(''), 2500);
+    } else {
+      mostrar('⚠️ chat da OLX não abriu — o envio vai tentar de novo', 'err');
+    }
+  }
+  window.addEventListener('message', handler);
+  mostrar('abrindo conversa na OLX…');
+  window.postMessage({ cnr_type: 'CNR_ABRIR_CONVERSA', listing_id }, '*');
+
+  // Extensão ausente ou órfã: some o aviso em vez de deixá-lo preso na tela
+  setTimeout(() => {
+    if (respondeu) return;
+    window.removeEventListener('message', handler);
+    mostrar('');
+  }, 30000);
 }
 
 // ── Atualização automática da conversa aberta ────────────────────
@@ -963,7 +1006,12 @@ function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
 // Traduz códigos de erro do SW em mensagens amigáveis para Yuri.
 function _traduzirErroResposta(err) {
   if (!err)                              return 'Erro desconhecido. Tente novamente.';
-  if (err === 'aba_nao_encontrada')      return 'Abra o chat deste anúncio na OLX e tente novamente.';
+  if (err === 'aba_nao_encontrada')      return 'Não foi possível abrir a conversa na OLX. Tente novamente.';
+  if (err === 'chat_nao_carregou')       return 'O chat da OLX demorou a carregar. Tente enviar de novo em alguns segundos.';
+  if (err === 'olx_rejeitou_clique')     return 'A OLX não aceitou o envio automático. Envie manualmente pela aba do chat.';
+  if (err === 'olx_rejeitou_envio')      return 'A OLX não aceitou o envio automático. Envie manualmente pela aba do chat.';
+  if (err === 'preencher_nao_aplicou')   return 'O texto não entrou no campo da OLX. Envie manualmente.';
+  if (err.startsWith('falha_ao_abrir_aba:')) return 'Não foi possível abrir a aba da OLX. Verifique se o navegador bloqueou.';
   if (err === 'campo_nao_encontrado')    return 'Campo de mensagem não encontrado. Envie manualmente pela aba OLX.';
   if (err === 'dados_invalidos')         return 'Mensagem vazia ou dados inválidos.';
   if (err === 'timeout')                 return 'Sem resposta da extensão. Recarregue a página e tente novamente.';
