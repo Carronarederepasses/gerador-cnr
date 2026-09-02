@@ -429,6 +429,7 @@ function cardHTML(a) {
 function renderGrid() {
   // Fix 43.7: ao re-renderizar, seções de resposta somem — resetar cache de msgs
   replyMsgCarregado.clear();
+  pararAutoThread();   // os cards vão ser recriados — o timer apontaria para DOM morto
 
   const grid = document.getElementById('grid');
   let lista = filtro === 'todos'    ? TODOS
@@ -736,14 +737,15 @@ function toggleResponder(id) {
   const visivel = section.style.display !== 'none';
   if (visivel) {
     section.style.display = 'none';
+    pararAutoThread();          // fechou a conversa — para de atualizar
     return;
   }
   section.style.display = '';
+  const a = TODOS.find((x) => x.id === id);
   // Buscar msg do vendedor apenas uma vez por sessão de renderização
-  if (!replyMsgCarregado.has(id)) {
-    const a = TODOS.find((x) => x.id === id);
-    if (a) carregarThread(id, a.listing_id);
-  }
+  if (!replyMsgCarregado.has(id) && a) carregarThread(id, a.listing_id);
+  // Enquanto a conversa estiver aberta, ela se atualiza sozinha
+  if (a) iniciarAutoThread(id, a.listing_id);
   document.getElementById(`reply-text-${id}`)?.focus();
 }
 
@@ -777,7 +779,10 @@ async function limparThread(id, listing_id) {
 // Busca a conversa inteira (ambas as direções) e renderiza como thread.
 // A extensão espelha as mensagens no Supabase enquanto a aba do chat OLX
 // estiver aberta; aqui só lemos o que já foi espelhado.
-async function carregarThread(id, listing_id) {
+// silencioso=true → chamada da atualização automática: não mostra estado de
+// carregando, não redesenha se nada mudou, e preserva a rolagem de quem está
+// lendo mensagens antigas.
+async function carregarThread(id, listing_id, silencioso) {
   const box = document.getElementById(`reply-msg-${id}`);
   if (!box) return;
   try {
@@ -789,7 +794,7 @@ async function carregarThread(id, listing_id) {
       return;
     }
 
-    box.innerHTML = lista.map((m) => {
+    const html = lista.map((m) => {
       const entrada = m.direction === 'incoming' || m.direction === 'inbound';
       let hora = '';
       if (m.detected_at) {
@@ -806,11 +811,42 @@ async function carregarThread(id, listing_id) {
            + `</div>`;
     }).join('');
 
-    box.scrollTop = box.scrollHeight;   // ancorar na mensagem mais recente
+    if (box.innerHTML === html) return;   // nada mudou — não redesenhar
+
+    // Se estava lendo mensagens antigas (rolagem longe do fim), preserva a
+    // posição. Só desce automaticamente quem já estava no fim da conversa.
+    const noFim = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    const posAnterior = box.scrollTop;
+
+    box.innerHTML = html;
+    box.scrollTop = (silencioso && !noFim) ? posAnterior : box.scrollHeight;
     replyMsgCarregado.add(id);
   } catch (e) {
+    // Numa atualização automática, falha de rede não deve apagar a conversa
+    // que já está na tela.
+    if (silencioso) return;
     box.innerHTML = `<div class="reply-vazio">Erro ao carregar: ${esc(e.message)}</div>`;
   }
+}
+
+// ── Atualização automática da conversa aberta ────────────────────
+// Enquanto um card estiver com a conversa aberta, relê a API a cada 10s.
+// Sem isto, uma resposta que chega com o card já aberto só aparecia ao
+// clicar 🔄. Só um temporizador por vez — abrir outro card substitui.
+let _threadTimer = null;
+
+function pararAutoThread() {
+  if (_threadTimer) clearInterval(_threadTimer);
+  _threadTimer = null;
+}
+
+function iniciarAutoThread(id, listing_id) {
+  pararAutoThread();
+  _threadTimer = setInterval(() => {
+    const sec = document.getElementById(`reply-${id}`);
+    if (!sec || sec.style.display === 'none') { pararAutoThread(); return; }
+    carregarThread(id, listing_id, true);
+  }, 10000);
 }
 
 // Atualiza o contador de caracteres em tempo real.
