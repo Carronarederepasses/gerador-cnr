@@ -463,6 +463,13 @@
         <label class="ed-label">Valor repasse (R$)</label>
         <input id="ed-valor" type="text" placeholder="Ex: 85.000">
       </div>
+      <!-- valor_compra era gravado só na captação e não tinha onde ser
+           corrigido depois. Passou a ser carregado para a tela de venda e a
+           alimentar o cálculo do lucro, então precisa ser editável aqui. -->
+      <div>
+        <label class="ed-label">Pago ao vendedor (R$)</label>
+        <input id="ed-valor_compra" type="text" placeholder="Ex: 83.000">
+      </div>
       <div>
         <label class="ed-label">Combustível</label>
         <select id="ed-combustivel">
@@ -1388,6 +1395,7 @@ function abrirEdicao(id) {
   $('ed-ano').value          = v.ano          || '';
   $('ed-km').value           = v.km           != null ? v.km : '';
   $('ed-valor').value        = v.valor        != null ? String(v.valor) : '';
+  $('ed-valor_compra').value = v.valor_compra != null ? String(v.valor_compra) : '';
   $('ed-combustivel').value  = v.combustivel  || '';
   $('ed-cor').value          = v.cor          || '';
   $('ed-regiao').value       = v.regiao       || '';
@@ -1407,6 +1415,7 @@ async function salvarEdicao() {
     ano:         $('ed-ano').value ? Number($('ed-ano').value) : null,
     km:          $('ed-km').value !== '' ? Number($('ed-km').value) : null,
     valor:       parseBR($('ed-valor').value),
+    valor_compra: parseBR($('ed-valor_compra').value),
     combustivel: $('ed-combustivel').value        || null,
     cor:         $('ed-cor').value.trim()         || null,
     regiao:      $('ed-regiao').value.trim()      || null,
