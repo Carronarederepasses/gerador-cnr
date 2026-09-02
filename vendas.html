@@ -121,6 +121,13 @@
 
   @media(max-width:560px){h1{font-size:1.5rem}.card .partes,.grid2,.grid3{grid-template-columns:1fr}}
 
+  /* Destaque da venda recem-salva */
+  .card.salvo-agora{animation:pulso-salvo 2.6s ease-out;border-color:var(--severity-ok)}
+  @keyframes pulso-salvo{
+    0%,18%{background:color-mix(in srgb,var(--severity-ok) 22%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--severity-ok) 30%,transparent)}
+    100%{background:transparent;box-shadow:0 0 0 0 transparent}
+  }
+  @media (prefers-reduced-motion:reduce){.card.salvo-agora{animation:none;border-color:var(--severity-ok)}}
   #cnr-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--surface);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.65rem 1.2rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;z-index:9999;white-space:nowrap}
   #cnr-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #cnr-toast.erro{background:var(--severity-crit)}
@@ -237,7 +244,7 @@
         <div><label>Nome do vendedor</label>
           <div class="crm-combo" id="vend-combo">
             <input id="m-vendedor_nome" autocomplete="off" placeholder="Buscar no histórico ou digitar..."
-              oninput="filtrarVendedor(this.value)" onfocus="filtrarVendedor(this.value)"
+              oninput="filtrarVendedor(this.value)" onfocus="filtrarVendedor(this.value)" onblur="setTimeout(()=>autoPreencherContato('vendedor'),180)"
               onchange="if(!this.value){}" >
             <div class="crm-drop" id="vend-drop"></div>
           </div>
@@ -256,7 +263,7 @@
         <div><label>Nome do comprador</label>
           <div class="crm-combo" id="crm-combo">
             <input id="m-comprador_nome" autocomplete="off" placeholder="Buscar no CRM ou digitar..."
-              oninput="filtrarCRM(this.value)" onfocus="filtrarCRM(this.value)"
+              oninput="filtrarCRM(this.value)" onfocus="filtrarCRM(this.value)" onblur="setTimeout(()=>autoPreencherContato('comprador'),180)"
               onchange="if(!this.value){document.getElementById('m-comprador_id').value='';}">
             <div class="crm-drop" id="crm-drop"></div>
           </div>
@@ -613,6 +620,47 @@ function selecionarVendedor(i) {
   document.getElementById('vend-drop').classList.remove('show');
 }
 
+// ── Preenchimento por nome digitado ──────────────────────────────
+// Antes, os dados só vinham se o operador clicasse na sugestão. Digitar o
+// nome inteiro e sair do campo não trazia telefone, CPF nem cidade — parecia
+// que o cadastro não tinha sido consultado. Agora, ao sair do campo, se o
+// nome bater exatamente com um contato conhecido, os dados são preenchidos.
+// Só preenche campo VAZIO: nunca sobrescreve algo digitado à mão.
+function _casarPorNome(nome) {
+  const alvo = _normKey((nome || '').toLowerCase().trim());
+  if (!alvo) return null;
+  const todos = _buscarContatos('');
+  return todos.find(c => _normKey(c.nome.toLowerCase().trim()) === alvo)
+      || _buscarContatos(alvo.slice(0, 40)).find(c => _normKey(c.nome.toLowerCase().trim()) === alvo)
+      || null;
+}
+
+function autoPreencherContato(qual) {
+  const pref = qual === 'comprador' ? 'm-comprador' : 'm-vendedor';
+  const nomeEl = document.getElementById(pref + '_nome');
+  if (!nomeEl) return;
+  const c = _casarPorNome(nomeEl.value);
+  if (!c) return;
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && !el.value.trim() && val) el.value = val;
+  };
+  set(pref + '_telefone', c.telefone ? fmtTelV(c.telefone) : '');
+  set(pref + '_cpf',      _extrairDoc(c) ? fmtDocV(_extrairDoc(c)) : '');
+
+  const cidade = (c.cidade || '').replace(/[-\s]+[A-Z]{2}$/, '').trim();
+  const loc = [cidade, c.estado].filter(Boolean).join('-');
+  set(qual === 'comprador' ? 'm-destino' : 'm-origem', loc);
+
+  // Vínculo com o CRM só existe para o comprador (campo comprador_id)
+  if (qual === 'comprador' && c.id) {
+    const idEl = document.getElementById('m-comprador_id');
+    if (idEl && !idEl.value) idEl.value = c.id;
+  }
+  console.log('[CNR] contato preenchido pelo nome:', c.nome);
+}
+
 document.addEventListener('click', e => {
   if (!e.target.closest('#crm-combo'))  document.getElementById('crm-drop').classList.remove('show');
   if (!e.target.closest('#vend-combo')) document.getElementById('vend-drop').classList.remove('show');
@@ -707,6 +755,21 @@ function toggleHistorico() {
   render();
 }
 
+// Id da venda recém-salva — usado para destacá-la na lista logo após gravar.
+// A tarja de confirmação some em 3s e passa despercebida; ver o próprio
+// registro piscar na lista é a prova de que a gravação aconteceu.
+let _destacarId = null;
+
+function destacarVendaSalva() {
+  if (!_destacarId) return;
+  const el = document.getElementById('venda-' + _destacarId);
+  _destacarId = null;
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('salvo-agora');
+  setTimeout(() => el.classList.remove('salvo-agora'), 2600);
+}
+
 function render() {
   const visiveis = _mostrarHistorico ? VENDAS : VENDAS.filter(v => v.canal_origem !== 'historico');
   $('contador').textContent = visiveis.length ? `${visiveis.length} venda(s)` : '';
@@ -728,6 +791,7 @@ function render() {
     html += cardHTML(v);
   }
   $('lista').innerHTML = html;
+  destacarVendaSalva();
 }
 function exportarCSV() {
   if (!VENDAS.length) { alert('Nenhuma venda para exportar.'); return; }
@@ -1051,7 +1115,6 @@ function setModoManual(manual){
 function toggleManual(){ setModoManual($('manual-box').style.display === 'none'); }
 
 $('m-salvar').onclick = async () => {
-  console.log('[SALVAR 1] clique recebido');   // DIAG temporário
   const id = $('m-id').value;
   const body = {};
   CAMPOS_FORM.forEach(c => {
@@ -1073,12 +1136,9 @@ $('m-salvar').onclick = async () => {
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     const url = id ? '/api/vendas?id=' + id : '/api/vendas';
-    console.log('[SALVAR 2] enviando', id ? 'PATCH' : 'POST', url, '| chave presente:', !!KEY); // DIAG
     const r = await fetch(url, { method: id ? 'PATCH' : 'POST', headers: headers(), body: JSON.stringify(body) });
-    console.log('[SALVAR 3] resposta HTTP', r.status);   // DIAG
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'erro');
-    console.log('[SALVAR 4] gravado com sucesso');       // DIAG
     const vendaId = data.id || id;
     fetch('/api/compradores?evento=1', {
       method: 'POST',
@@ -1091,16 +1151,16 @@ $('m-salvar').onclick = async () => {
         dados: { placa: body.placa, marca: body.marca, modelo: body.modelo, valor_venda: body.valor_venda },
       }),
     }).catch(() => {});
+    _destacarId = vendaId;   // faz a venda piscar na lista assim que ela voltar
     fecharModal();
     await carregar();
-    toast(id ? '✓ Venda atualizada!' : '✓ Venda registrada com sucesso!');
+    toast(id ? '✓ Venda atualizada!' : '✓ Venda registrada com sucesso!', 'ok', 5000);
   } catch (e) {
-    // Erro visível de três formas: console (permanente), tarja (6s) e alerta.
-    // A tarja sozinha passava despercebida e fazia o salvamento parecer
-    // silencioso — foi o que mascarou este defeito por uma noite inteira.
+    // console.error é permanente e fica no histórico do console; a tarja
+    // some em 6s. Confiar só na tarja foi o que fez um salvamento parecer
+    // silencioso por uma noite inteira.
     console.error('[SALVAR ERRO]', e);
     toast('Falha ao salvar: ' + e.message, 'erro', 6000);
-    alert('Não foi possível salvar:\n\n' + e.message);
   } finally {
     btn.disabled = false; btn.textContent = 'Salvar venda';
   }
