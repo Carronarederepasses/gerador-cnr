@@ -30,6 +30,32 @@
 
   /* Métricas */
   .metricas{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;margin-bottom:1.1rem;font-size:.8rem;color:var(--text-mid);align-items:center}
+
+  /* Desempenho da captação */
+  .desempenho{border:1px solid var(--line);border-radius:10px;margin-bottom:1.1rem;background:var(--surface-raise)}
+  .desempenho > summary{cursor:pointer;padding:.7rem .95rem;font-size:.8rem;font-weight:700;
+    color:var(--text-mid);list-style:none;user-select:none}
+  .desempenho > summary::-webkit-details-marker{display:none}
+  .desempenho > summary::before{content:'▸ ';font-size:.75rem}
+  .desempenho[open] > summary::before{content:'▾ '}
+  .desempenho[open] > summary{border-bottom:1px solid var(--line);color:var(--text)}
+  #desempenho-corpo{padding:.9rem .95rem}
+  .dp-tabela{width:100%;border-collapse:collapse;font-size:.8rem}
+  .dp-tabela th{text-align:right;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--text-faint);font-weight:400;padding:0 0 .45rem;white-space:nowrap}
+  .dp-tabela th:first-child{text-align:left}
+  .dp-tabela td{padding:.45rem 0;border-top:1px solid var(--line);text-align:right;
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .dp-tabela td:first-child{text-align:left;font-weight:700;white-space:normal}
+  .dp-tabela th+th,.dp-tabela td+td{padding-left:.9rem}
+  .dp-tabela tr.total td{border-top:2px solid var(--text);font-weight:700}
+  .dp-taxa{color:var(--severity-ok)}
+  .dp-taxa.zero{color:var(--text-faint)}
+  .dp-sec{margin-top:1.1rem;padding-top:.9rem;border-top:1px solid var(--line)}
+  .dp-sec-tit{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);margin-bottom:.5rem}
+  .dp-motivo{display:flex;justify-content:space-between;gap:1rem;padding:.3rem 0;font-size:.8rem}
+  .dp-motivo b{font-variant-numeric:tabular-nums}
+  .dp-nota{font-size:.7rem;color:var(--text-faint);line-height:1.5;margin-top:.9rem}
   .metric-item{white-space:nowrap}
   .metric-item strong{color:var(--text);font-weight:700}
   .metric-sep{color:var(--line)}
@@ -149,6 +175,13 @@
 
   <!-- Barra de métricas -->
   <div class="metricas" id="metricas"></div>
+
+  <!-- Desempenho por busca — os dados já eram gravados (search_name,
+       vehicle_id, motivo_morte); faltava somá-los em algum lugar. -->
+  <details class="desempenho" id="desempenho">
+    <summary>Desempenho da captação</summary>
+    <div id="desempenho-corpo"></div>
+  </details>
 
   <div class="filtro-bar" id="filtro-bar">
     <button class="filtro-btn ativo" data-status="todos">Todos<span class="cnt" id="cnt-todos"></span></button>
@@ -315,6 +348,108 @@ function atualizarMetricas() {
     `<span class="metric-item">💬 <strong>${resp}</strong> responderam</span>` +
     `<span class="metric-sep">·</span>` +
     `<span class="metric-item">🏆 <strong>${autor}</strong> autorizados</span>`;
+}
+
+// ── Desempenho da captação ───────────────────────────────────────
+// Responde "de onde vêm os carros que eu realmente compro?".
+//
+// Nada aqui é campo novo: `search_name`, `vehicle_id` e `motivo_morte` já
+// eram gravados desde sempre. O que faltava era somar — a informação estava
+// no banco e não aparecia em lugar nenhum, então a pergunta continuava sendo
+// respondida de cabeça.
+//
+// Cálculo no cliente, sobre os anúncios já carregados. Não vale endpoint
+// novo: o teto de 12 funções da Vercel está batido, e a conta é trivial.
+function atualizarDesempenho() {
+  const corpo = document.getElementById('desempenho-corpo');
+  if (!corpo) return;
+
+  if (!TODOS.length) {
+    corpo.innerHTML = '<div class="dp-nota">Nenhum anúncio capturado ainda.</div>';
+    return;
+  }
+
+  // Um anúncio conta como abordado quando saiu de 'novo' — inclusive os que
+  // morreram, porque abordar e levar não é a mesma coisa que não abordar.
+  const abordado = (a) => a.status !== 'novo';
+  const virouCarro = (a) => !!a.vehicle_id;
+
+  const porBusca = new Map();
+  for (const a of TODOS) {
+    const nome = a.search_name || '(sem busca)';
+    if (!porBusca.has(nome)) porBusca.set(nome, { trazidos: 0, abordados: 0, carros: 0 });
+    const g = porBusca.get(nome);
+    g.trazidos++;
+    if (abordado(a))   g.abordados++;
+    if (virouCarro(a)) g.carros++;
+  }
+
+  // Mais carros primeiro; empate desempata por quem trouxe mais.
+  const linhas = [...porBusca.entries()]
+    .sort((x, y) => y[1].carros - x[1].carros || y[1].trazidos - x[1].trazidos);
+
+  const tot = { trazidos: 0, abordados: 0, carros: 0 };
+  for (const [, g] of linhas) {
+    tot.trazidos  += g.trazidos;
+    tot.abordados += g.abordados;
+    tot.carros    += g.carros;
+  }
+
+  const taxa = (carros, base) => {
+    if (!base) return '<span class="dp-taxa zero">—</span>';
+    const p = (carros / base) * 100;
+    const txt = p >= 10 ? p.toFixed(0) : p.toFixed(1);
+    return `<span class="dp-taxa${carros ? '' : ' zero'}">${txt}%</span>`;
+  };
+
+  let html = `
+    <table class="dp-tabela">
+      <thead><tr>
+        <th>Busca</th><th>Trazidos</th><th>Abordados</th><th>Viraram carro</th><th>Conversão</th>
+      </tr></thead>
+      <tbody>
+        ${linhas.map(([nome, g]) => `
+          <tr>
+            <td>${esc(nome)}</td>
+            <td>${g.trazidos}</td>
+            <td>${g.abordados}</td>
+            <td>${g.carros}</td>
+            <td>${taxa(g.carros, g.abordados)}</td>
+          </tr>`).join('')}
+        <tr class="total">
+          <td>Total</td>
+          <td>${tot.trazidos}</td>
+          <td>${tot.abordados}</td>
+          <td>${tot.carros}</td>
+          <td>${taxa(tot.carros, tot.abordados)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  // Por que as negociações morrem — só aparece quando há motivo registrado.
+  const motivos = new Map();
+  for (const a of TODOS) {
+    if (a.status !== 'morto') continue;
+    const m = (a.motivo_morte || '').trim() || 'sem motivo anotado';
+    motivos.set(m, (motivos.get(m) || 0) + 1);
+  }
+  if (motivos.size) {
+    const ordenados = [...motivos.entries()].sort((x, y) => y[1] - x[1]);
+    html += `<div class="dp-sec">
+      <div class="dp-sec-tit">Por que morreram</div>
+      ${ordenados.map(([m, n]) => `<div class="dp-motivo"><span>${esc(m)}</span><b>${n}</b></div>`).join('')}
+    </div>`;
+  }
+
+  // Conversão sobre abordados, não sobre trazidos: o radar trazer muito não é
+  // defeito, é a função dele. O que se quer medir é o retorno do seu tempo.
+  html += `<div class="dp-nota">
+    Conversão = carros ÷ abordados. Mede o retorno do seu tempo, não do radar —
+    trazer muito anúncio é a função dele.<br>
+    Base: os ${TODOS.length} anúncios carregados nesta tela (a API devolve os 300 mais recentes).
+  </div>`;
+
+  corpo.innerHTML = html;
 }
 
 // ── Contadores dos filtros ────────────────────────────────────────
@@ -519,6 +654,7 @@ async function carregar() {
 
   atualizarContadores();
   atualizarMetricas();
+  atualizarDesempenho();
   renderGrid();
 
   const total = TODOS.length;
@@ -562,6 +698,7 @@ async function avancar(id, novoStatus) {
 
     atualizarContadores();
     atualizarMetricas();
+    atualizarDesempenho();
     renderGrid();
   } catch (e) {
     alert('Falha ao atualizar status. Tente novamente.');
@@ -688,6 +825,7 @@ document.getElementById('modal-confirmar').addEventListener('click', async () =>
     if (a) { a.status = 'morto'; a.motivo_morte = ignorarMotivo || null; }
     atualizarContadores();
     atualizarMetricas();
+    atualizarDesempenho();
     renderGrid();
   } catch (e) {
     alert('Falha ao ignorar anúncio. Tente novamente.');
@@ -1010,6 +1148,7 @@ function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
           AUTO_RESPONDIDOS.delete(aEnviado.listing_id);
           atualizarContadores();
           atualizarMetricas();
+          atualizarDesempenho();
           renderGrid();
         }
         // Reabrir a conversa: enviar uma mensagem não deve fechar o chat.
