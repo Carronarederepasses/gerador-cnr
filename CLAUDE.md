@@ -1930,3 +1930,47 @@ ainda estão sendo observados troca ruído por cegueira. Fica para quando
 estabilizar.
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Busca em Vendas — e o mesmo erro meu, duas vezes (02/set/2026)
+
+#### O erro
+
+Eu tinha concluído que `vendas.html` não tinha busca e construí uma
+(`b07673d`). **Já existia**: o campo `f-q`, no cartão de filtros, com busca no
+servidor via `/api/vendas?q=`. Minha sondagem não o achou porque procurei por
+placeholder contendo "buscar", e o dele é *"ex: João, Onix, ABC1D23..."*.
+
+Foi o **segundo** caso idêntico no mesmo dia — antes eu havia duplicado o
+editor de `valor_compra`, que já existia como `editarValorCompra`. Nos dois,
+sondei por um padrão estreito, não achei, e concluí sobre o sistema inteiro.
+
+> Regra para as próximas: antes de construir algo que "não existe", listar o
+> que a página realmente tem — `[...document.querySelectorAll('input')]`,
+> `grep -n "function "` — em vez de procurar pelo nome que eu esperava.
+
+#### O que ficou (`7747452`)
+
+Em vez de escolher entre as duas, o campo original recebeu a lógica nova:
+
+- **Filtra no cliente, instantâneo.** Antes era ida-e-volta de rede a cada
+  pausa de 350ms para filtrar dados já carregados. Medido: zero chamadas à
+  API durante a busca.
+- **Ignora acento** — "citroen" acha "Citroën". O `ilike` do Postgres não faz.
+- **Placa com ou sem hífen** — "lmx1j26" acha "LMX-1J26".
+- **Múltiplos termos se somam** — "renegade douglas" acha aquela venda.
+- Passou a olhar também ano, cor, forma de pagamento e observações.
+- Olha o histórico mesmo oculto — não achar uma venda antiga porque estava
+  escondida seria pior do que não ter busca.
+- Contador vira "N de 114" com filtro ativo.
+
+O parâmetro `q` deixou de ser enviado: mantê-lo faria o servidor filtrar
+antes com regra mais pobre, e "citroen" voltaria vazio do banco sem chance de
+o cliente casar "Citroën". O filtro de **status** continua no servidor, porque
+define quais vendas são carregadas.
+
+Testado em produção, incluindo 375px: sem estouro horizontal, um único campo
+de busca na tela.
+
+*Registrado em 02/setembro/2026.*
