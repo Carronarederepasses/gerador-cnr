@@ -1456,9 +1456,30 @@ function badSel(s) {
   return !s || s === '—' || s.startsWith('Selecione') || s.startsWith('Carregando') || s.startsWith('—');
 }
 
+// Nomes de veículo chegam de duas fontes desalinhadas: a FIPE manda modelo em
+// caixa alta ("VIRTUS 1.6 MSI Flex 16V 4p Aut.") e a IA manda em caixa baixa.
+// A versão antiga rebaixava a palavra inteira antes de capitalizar, e com isso
+// destruía as siglas: XEI virava "Xei", 16V virava "16v", MPI virava "Mpi".
+//
+// Agora só é alterado o que está claramente fora do lugar:
+//   • palavra com dígito       → intocada (16V, 1.4, 4p, 250TSI)
+//   • CAIXA ALTA com 4+ letras → nome de modelo (VIRTUS → Virtus)
+//   • CAIXA ALTA com até 3     → sigla, intocada (XEI, MSI, LTZ, CS, AT)
+//   • já misturada             → alguém escreveu certo, intocada (Flex, Aut.)
+//   • toda minúscula           → capitaliza (strada → Strada)
 function toTitleCase(str) {
   if (!str) return str;
-  return str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return String(str).split(/(\s+)/).map(p => {
+    if (!p.trim()) return p;
+    if (/\d/.test(p)) return p;
+    const letras = p.replace(/[^A-Za-zÀ-ÿ]/g, '');
+    if (!letras) return p;
+    const alta   = p === p.toUpperCase();
+    const baixa  = p === p.toLowerCase();
+    if (alta && letras.length < 4) return p;
+    if (!alta && !baixa) return p;
+    return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+  }).join('');
 }
 
 // Monta uma seção destacada: título em *negrito caixa-alta* + texto embaixo.
@@ -1512,7 +1533,14 @@ function montarTextoAnuncio() {
   const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
 
   let linhas = [];
-  const partes = [!badSel(mNome)?mNome:'', !badSel(modNome)?modNome:'', compl].filter(Boolean);
+  // A FIPE não é consistente na caixa: manda "VIRTUS 1.6 MSI" e "ASTON MARTIN"
+  // ao lado de "Corolla" e "Audi". Sem isto, o anúncio de alguns carros saía
+  // gritando enquanto o de outros saía normal.
+  const partes = [
+    !badSel(mNome)   ? toTitleCase(mNome)   : '',
+    !badSel(modNome) ? toTitleCase(modNome) : '',
+    compl,
+  ].filter(Boolean);
   const nomeVeic = partes.join(' ');
   let l1 = '';
   if (nomeVeic) l1 += `*${nomeVeic}*`;
