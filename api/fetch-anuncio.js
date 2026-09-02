@@ -187,6 +187,29 @@ async function handleMensagens(req, res) {
     return res.status(200).json(data);
   }
 
+  // DELETE — apaga o histórico de mensagens de UM anúncio.
+  // Usado para reespelhar do zero quando a captura muda (o dedupe por
+  // msg_hash impede que um re-sync corrija linhas já gravadas).
+  // Exige listing_id: não existe apagar tudo.
+  if (req.method === 'DELETE') {
+    const { listing_id } = q;
+    if (!listing_id) return res.status(400).json({ error: 'listing_id required' });
+
+    const r = await sb(
+      `olx_mensagens?listing_id=eq.${encodeURIComponent(listing_id)}`,
+      { method: 'DELETE', headers: { Prefer: 'return=representation' } }
+    );
+    if (!r.ok) {
+      const err = await r.text();
+      return res.status(500).json({ error: err });
+    }
+    const apagadas = await r.json().catch(() => []);
+    return res.status(200).json({
+      ok: true,
+      apagadas: Array.isArray(apagadas) ? apagadas.length : 0,
+    });
+  }
+
   if (req.method === 'POST') {
     // Auth: mesma RADAR_KEY usada pelo POST do radar
     if (RADAR_KEY && req.headers['x-cnr-key'] !== RADAR_KEY) {

@@ -383,6 +383,8 @@ function cardHTML(a) {
       <span class="reply-label">💬 Conversa</span>
       <button class="btn-refresh" title="Atualizar conversa"
               onclick="carregarThread('${a.id}','${esc(a.listing_id)}')">🔄</button>
+      <button class="btn-refresh" title="Limpar histórico e reespelhar do zero"
+              onclick="limparThread('${a.id}','${esc(a.listing_id)}')">🗑</button>
     </div>
     <div class="reply-thread" id="reply-msg-${a.id}"><em>Carregando…</em></div>
     <div class="reply-label" style="margin-top:.15rem">✏️ Sua resposta</div>
@@ -738,6 +740,33 @@ function toggleResponder(id) {
     if (a) carregarThread(id, a.listing_id);
   }
   document.getElementById(`reply-text-${id}`)?.focus();
+}
+
+// Apaga o histórico espelhado deste anúncio. Necessário porque o banco
+// dedupa por msg_hash: um re-espelhamento não corrige linhas já gravadas
+// (ordem, direção, conteúdo). Depois de limpar, basta reabrir a aba do
+// chat na OLX que a extensão espelha tudo de novo, já corrigido.
+async function limparThread(id, listing_id) {
+  const a = TODOS.find((x) => x.id === id);
+  const nome = a?.titulo ? `"${a.titulo}"` : 'deste anúncio';
+  if (!confirm(
+    `Apagar o histórico de mensagens ${nome}?\n\n` +
+    'As mensagens serão reespelhadas ao reabrir o chat da OLX.\n' +
+    'A conversa na OLX não é afetada — só a cópia no Gerador.'
+  )) return;
+
+  const box = document.getElementById(`reply-msg-${id}`);
+  if (box) box.innerHTML = '<div class="reply-vazio">Limpando…</div>';
+  try {
+    const r = await api(
+      `/api/fetch-anuncio?mensagens=1&listing_id=${encodeURIComponent(listing_id)}`,
+      { method: 'DELETE' }
+    );
+    mostrarToast(`🗑 ${r?.apagadas ?? 0} mensagem(ns) apagada(s).\nReabra o chat da OLX para espelhar de novo.`);
+    carregarThread(id, listing_id);
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="reply-vazio">Erro ao limpar: ${esc(e.message)}</div>`;
+  }
 }
 
 // Busca a conversa inteira (ambas as direções) e renderiza como thread.
