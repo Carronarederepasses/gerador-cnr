@@ -1873,3 +1873,60 @@ Revertido.
 > A funcionalidade estava a 60 linhas de distância, no mesmo arquivo.
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Integridade de dados e fechamento — 02/set/2026
+
+#### Vínculo quebrado encontrado (`05e07da`)
+
+Checagem cruzada das cinco tabelas: **três negociações do Celta apontam para
+um `veiculo_id` que não existe mais no catálogo.**
+
+O impacto não era o vínculo em si — era o que acontecia ao converter em
+venda. O recuo vivia dentro do `catch`, e o caso real não gera exceção:
+veículo apagado devolve **HTTP 200 com corpo `null`**. A requisição "dá
+certo", `if (v)` falha em silêncio, e a venda abria sem nem o nome do carro —
+que estava ali em `n.veiculo_nome`.
+
+Agora o resultado é avaliado em vez de presumido. Testado nos dois caminhos:
+negociação com veículo puxa do catálogo (Renegade + placa + valor_compra);
+órfã cai no nome.
+
+> Mesmo padrão de sempre: sucesso presumido a partir de "não deu erro".
+
+#### Resto da integridade: limpo
+
+Zero venda apontando para veículo ou comprador inexistente, zero anúncio com
+`vehicle_id` órfão, zero placa repetida em vendas.
+
+#### Divergência que permanece em aberto
+
+Citroën C3: venda 26.500 − repasse 25.000 = 1.500, lucro anotado 1.000.
+Investiguei a hipótese de despesa: **o C3 não tem `gastos` nem `gastos_valor`
+registrados**. Só o Yuri sabe se houve desconto, despesa fora do sistema ou
+erro de digitação. A dica adicionada hoje passa a mostrar a diferença.
+
+#### Nota: dois cálculos de margem convivem
+
+- `index.html` (captação): `venda − compra − gastos`
+- `vendas.html` (conferência do lucro): `venda − compra`
+
+Coerente com os campos que cada tela tem — vendas não tem campo de gastos —
+mas os dois números podem divergir para o mesmo carro. Não é bug; é para
+saber antes de estranhar.
+
+#### Verificado e correto
+
+- **Consultas**: valida a placa no cliente antes de chamar a API paga
+- **PWA**: manifest íntegro, `display: standalone`, ícone 512 + maskable,
+  service worker registrado
+
+#### Decisão: manter os logs DIAG da extensão por enquanto
+
+Estavam na lista para remover, mas foram justamente eles que permitiram
+diagnosticar o radar e o envio hoje. Removê-los enquanto FIPE e captação
+ainda estão sendo observados troca ruído por cegueira. Fica para quando
+estabilizar.
+
+*Registrado em 02/setembro/2026.*
