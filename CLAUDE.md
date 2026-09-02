@@ -1349,12 +1349,13 @@ Escolhida a opção **B**: a extensão abre a aba-hub quando necessário, em vez
 
 Como `GET` é público e só `POST/PATCH/DELETE` são protegidos, o aparelho abria tudo normalmente e recusava **toda gravação** com 401 "Acesso negado" — sem nada na tela explicando.
 
-Isso explica de uma vez:
-- A venda do Renegade que "não salvou" (lançada do celular)
-- Os anexos que "não carregavam"
-- Por que nada se reproduzia no notebook, onde a chave existe
+Isso explica os **anexos** que não carregavam, e por que nada se reproduzia no notebook, onde a chave existe. Parte da investigação foi feita no ambiente errado, porque a informação "isso é feito no celular" só apareceu depois.
 
-Toda a investigação da madrugada foi feita no ambiente errado, porque a informação "isso é feito no celular" só apareceu depois.
+**Correção — NÃO explica a venda do Renegade.** Yuri confirmou (02/set, tarde) que aquele lançamento **foi salvo do celular sem chave nenhuma**. Logo o guard não estava ativo naquele momento. A causa do Renegade continua sendo a já confirmada: `order=created_at.desc` com `NULLS FIRST` enterrava o registro novo no fim da lista.
+
+Hipótese a verificar: a `VENDAS_KEY` foi adicionada na Vercel **depois** daquela venda. O guard passou a valer, e o celular — que nunca teve chave — perdeu a permissão de gravar sem nenhum aviso.
+
+> Lição: eu atribuí um bug antigo a uma causa nova só porque a causa nova era real e recente. Duas falhas próximas no tempo não são a mesma falha.
 
 #### Falha de desenho corrigida
 
