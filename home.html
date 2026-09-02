@@ -399,6 +399,24 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 
 <script>
 
+// O painel monta várias seções, e mais de uma precisa das mesmas listas:
+// pipeline e relatório pediam /api/catalogo e /api/vendas cada um por si,
+// dobrando a espera de cold start (~1s por função) sem nenhum ganho — os
+// dados são idênticos dentro do mesmo carregamento de página.
+//
+// Guarda a Promise, não a resposta: chamadas simultâneas se juntam na mesma
+// requisição em vez de dispararem duas e só então caírem no cache.
+const _emVoo = new Map();
+function buscar(url) {
+  if (!_emVoo.has(url)) {
+    _emVoo.set(url, fetch(url).then(r => {
+      if (!r.ok) { _emVoo.delete(url); throw new Error('HTTP ' + r.status); }
+      return r.json();
+    }).catch(e => { _emVoo.delete(url); throw e; }));
+  }
+  return _emVoo.get(url);
+}
+
 const moeda = n => n != null ? Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}) : '—';
 const dataBR = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '';
 
@@ -465,9 +483,7 @@ function itemCard(v) {
 
 async function carregarCatalogo() {
   try {
-    const r = await fetch('/api/catalogo');
-    if (!r.ok) throw new Error();
-    const lista = await r.json();
+    const lista = await buscar('/api/catalogo');
     _catalogoLista = lista;
 
     const disp  = lista.filter(v => v.status === 'disponivel');
@@ -523,9 +539,7 @@ async function carregarCatalogo() {
 
 async function carregarVendas() {
   try {
-    const r = await fetch('/api/vendas');
-    if (!r.ok) throw new Error();
-    const vendas = (await r.json()).filter(v => v.canal_origem !== 'historico');
+    const vendas = (await buscar('/api/vendas')).filter(v => v.canal_origem !== 'historico');
 
     const agora = new Date();
     const mes = agora.getMonth();
@@ -612,8 +626,7 @@ async function carregarRelatorio() {
   document.getElementById('relatorio').innerHTML = '<div class="loading">carregando...</div>';
 
   try {
-    const [rCat, rVend] = await Promise.all([fetch('/api/catalogo'), fetch('/api/vendas')]);
-    const [catalogo, _vendasRaw] = await Promise.all([rCat.json(), rVend.json()]);
+    const [catalogo, _vendasRaw] = await Promise.all([buscar('/api/catalogo'), buscar('/api/vendas')]);
     const vendas = _vendasRaw.filter(v => v.canal_origem !== 'historico');
 
     const captados = catalogo.filter(v => {
@@ -751,8 +764,7 @@ async function toggleHist12() {
   _hist12Carregado = true;
   el.innerHTML = '<div class="loading">carregando...</div>';
   try {
-    const [rC, rV] = await Promise.all([fetch('/api/catalogo'), fetch('/api/vendas')]);
-    const [catalogo, _vendasRaw2] = await Promise.all([rC.json(), rV.json()]);
+    const [catalogo, _vendasRaw2] = await Promise.all([buscar('/api/catalogo'), buscar('/api/vendas')]);
     const vendas = _vendasRaw2.filter(v => v.canal_origem !== 'historico');
     const NOMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     const agora = new Date();
