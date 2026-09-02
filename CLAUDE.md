@@ -1166,3 +1166,42 @@ E também inspecionar uma bolha do vendedor e uma do Yuri no painel Elements, co
 - Verificar no Supabase (`olx_mensagens`) que a mensagem real do vendedor foi persistida
 
 **Após validação:** remover logs DIAG A/B e DIAG ENVIO (todos temporários).*
+
+---
+
+### Checkpoint — sessão de 01–02/set/2026 — CNR Chat + correções em Vendas
+
+#### Parte 1 — CNR Chat (extensão, não versionada nesta sessão)
+
+Espelhamento da conversa OLX no Gerador passou a funcionar. Sequência de causas encontradas e corrigidas, em ordem:
+
+1. **`processListings` sobrescrevia writes concorrentes** — read-modify-write no `seen` sem guarda; corrida com `confirmarEnvio` revertia `status` para `novo`. Fix: entradas conhecidas não são mais atualizadas; só grava quando há listing novo.
+2. **`_enviarTextoNaAba` fingia sucesso** — retornava `ok:true` logo após `btn.click()`, sem verificar envio. Violava a regra de compliance "nunca fingir sucesso". Fix: aguarda até 2,4s a limpeza do campo (sinal de que a OLX aceitou); só então `ok:true`. Removido o encadeamento botão→Enter (risco de envio duplicado).
+3. **Caixa de resposta inalcançável** — só abria pelo chip `RESPOSTA NOVA`, que exige auto-detecção. Fix: botão `✏️ Responder` em `enviado` e em `respondeu` manual.
+4. **Fix 43.7 nunca havia sido publicado** — ~400 linhas (CSS, `toggleResponder`, `enviarResposta`) só existiam local. Commit `a09125c`.
+5. **Monitor observava iframe de anúncio** — `encontrarChatBody()` pegava o primeiro iframe same-origin, que na OLX é um GPT/DoubleClick vazio. Fix: escolhe o documento por evidência (bolhas de mensagem, depois âncora), com fallback no documento principal; `coletarMensagens` varre todos os documentos acessíveis.
+6. **Retry infinito da âncora** — reagendava para sempre (visto rodando 46×). Teto de 15 tentativas.
+7. **Portão errado bloqueava o espelhamento** — `CHECK_ENVIADO` governava espelhar E detectar. Separado: espelhar roda sempre; detectar continua exigindo estado pós-envio.
+8. **Ordem do DOM não é cronológica** — a OLX renderiza "Novas mensagens" em bloco separado, que aparece antes no documento. Fix: ordenar por posição visual (`getBoundingClientRect().top`).
+9. **Cartão do anúncio virava mensagem** — título+preço do topo casam com `SEL_TEXTO_MSG`. Filtrado.
+10. **Identidade do anúncio pela URL era não-confiável** — URL vinha só com `?chat-id`, ou apontando para outro anúncio. Fix: resolução em cascata — link do anúncio na página → tabela `anuncios` do Gerador → `seen` local (fraco).
+
+Falso alarme registrado: interpretei três fontes concordantes (`seen`, Supabase, Gerador) como corrompidas por confiar numa anotação de sessão anterior ("Ford Ka = 1530494530"). Verificação abrindo o anúncio provou que **1530494530 é o Corolla** e não havia corrupção alguma.
+
+**Pendente:** teste de envio pelo Gerador (nunca executado), `chat.html` dedicada, remoção dos logs DIAG.
+
+#### Parte 2 — Vendas (commits `c6ba2ca`, `03d2002`, `9daca70`, `096a42b`, `085dc1c`)
+
+- **Ordenação** — `order=created_at.desc` colocava NULOS PRIMEIRO (padrão do Postgres em DESC). Vendas históricas com `created_at` nulo ocupavam o topo e empurravam registros novos para o fim. Agora `data_venda.desc.nullslast,created_at.desc.nullslast`.
+- **Placa Mercosul** — `renderPlaca` só removia espaços; o hífen de `LMX-1J26` quebrava o regex e exibia como placa antiga. Agora remove tudo que não é alfanumérico.
+- **Máscaras BR em vendas.html** — as funções existiam desde a Reforma 30, mas só formatavam dados vindos do CRM; nunca foram ligadas ao digitar. Agora `oninput` em telefone, CPF/CNPJ e nos 4 campos de valor. CEP ganhou máscara em compradores.html.
+- **Telefone `(XX)9XXXX-XXXX`** — sem espaço após o parêntese, padrão definido pelo Yuri, aplicado nos dois módulos.
+- **DELETE de mensagens** — `?mensagens=1` agora aceita DELETE por `listing_id`, com botão 🗑 na thread. Necessário porque o dedupe por `msg_hash` impede que re-espelhar corrija linhas já gravadas.
+- **Confirmação de salvamento** — a venda gravada pisca em verde e a tela rola até ela; tarja de sucesso de 2,8s → 5s.
+- **Autopreenchimento por nome** — dados de contato só vinham ao clicar na sugestão. Agora, no blur, nome que bate exatamente preenche campos vazios (nunca sobrescreve).
+
+**Diagnóstico honesto:** o botão Salvar nunca esteve quebrado. O que existia era retorno visual fraco somado à ordenação que enterrava o registro. A causa da falha original (Renegade) não foi comprovada — hipótese remanescente é aba aberta desde antes de a chave existir, com `KEY` vazia.
+
+**⚠️ Pendência de segurança:** o valor da `VENDAS_KEY` foi exposto em conversa. **Rotacionar no painel da Vercel** e reconfigurar o `localStorage` do navegador.
+
+*Atualizado em 02/setembro/2026.*
