@@ -882,10 +882,15 @@ function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
     ta.value = '';
     atualizarChars(id);
 
-    // Mostrar a mensagem recém-enviada na thread. Pequeno atraso porque a
-    // extensão persiste o outbound de forma assíncrona (fire-and-forget).
+    // Mostrar a mensagem recém-enviada na thread. A extensão só grava o
+    // outbound DEPOIS de confirmar que a OLX aceitou (espera até 2,4s), e a
+    // gravação em si é mais uma ida ao Supabase. 800ms era cedo demais —
+    // recarregava a thread antes de a mensagem existir no banco.
     const aThread = TODOS.find((x) => x.id === id);
-    if (aThread) setTimeout(() => carregarThread(id, aThread.listing_id), 800);
+    if (aThread) {
+      setTimeout(() => carregarThread(id, aThread.listing_id), 1200);
+      setTimeout(() => carregarThread(id, aThread.listing_id), 3000); // rede lenta
+    }
 
     setTimeout(() => {
       // Remover badge RESPOSTA NOVA e re-renderizar o card sem ele
