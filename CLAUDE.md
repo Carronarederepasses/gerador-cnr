@@ -1792,3 +1792,43 @@ por instância, TTL 6h — a tabela FIPE muda uma vez por mês.
 | Renegade | 10,4s | 4,4s |
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Varredura das telas restantes — 02/set/2026
+
+#### Falha silenciosa: varredura limpa
+
+Procurei `catch` vazio em todo o app. As ocorrências são deliberadas e
+comentadas — envio de evento fire-and-forget, cópia auxiliar antes de
+compartilhar, `localStorage.removeItem`. **Nenhuma esconde falha que afete o
+Yuri.** O padrão que custou caro nas reformas anteriores não está mais
+espalhado.
+
+#### Corrigidos
+
+- **`busca.html`: data em ISO** (`f543bba`). `data_venda` ia crua para a tela
+  — "2026-09-01" no meio do resultado. `fmtData` usa `T00:00:00` de propósito:
+  sem isso o navegador lê como UTC e mostra o dia anterior no nosso fuso.
+- **`negociacoes.html`: "999 dias atrás"** (`29a5ce8`). Sentinela de
+  `diasDesde` vazando para a tela quando `ultimo_contato` é nulo. Três
+  negociações de 20/08 apareciam com 999 quando o certo eram 13. Agora cai em
+  `created_at`; sem data nenhuma devolve `null` e quem exibe decide.
+  `diasDesde` também passou a aceitar o ISO completo do banco — concatenar
+  `'T00:00:00'` num timestamp completo produzia data inválida.
+
+#### Falso positivo verificado
+
+Os três "Celta Spirit" nas negociações **não são duplicata**: são três
+compradores diferentes (V11 Motors, RR Automobile, Autoconfirma) para o mesmo
+carro. Quase reportei como bug.
+
+#### Verificado e correto
+
+- Busca global cruza catálogo, vendas, negociações e compradores; achou o
+  Renegade nas três bases com o selo VENDIDO certo
+- `home`, `catalogo`, `vendas`, `compradores`: contagem renderizada bate
+  exatamente com a da API
+- Filtros de `anuncios.html`: 113+8+6+2+7 = 136 = total
+
+*Registrado em 02/setembro/2026.*
