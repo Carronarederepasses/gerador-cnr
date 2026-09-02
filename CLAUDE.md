@@ -1634,3 +1634,57 @@ rodou e os anúncios chegaram — o circuito fechou sozinho, sem teste
 artificial.
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Auditoria de fricção — 02/set/2026
+
+Pedido do Yuri: *"o que tem duplicidade, o que ao invés de me facilitar, me
+atrapalha. Criamos o gerador para facilitar a minha vida, não para me
+atrapalhar e ter que ficar alimentando IA."*
+
+#### Erro de método que cometi primeiro
+
+Medi taxa de preenchimento dos campos e tratei "vazio" como "inútil". Errado:
+as 114 vendas são majoritariamente anteriores aos campos existirem, e o Yuri
+voltou a vender agora. Ele corrigiu: *"são informações importantes para um
+futuro pós-venda"*. **Campo vazio ≠ campo desnecessário.** A pergunta certa
+não é onde está vazio — é onde ele digita a mesma coisa duas vezes.
+
+#### Fricções corrigidas
+
+1. **`+ Catálogo` jogava fora o que a IA acabara de ler.** O título traz
+   marca, modelo, versão, ano e combustível, e o Gerador tem `/api/parse` que
+   extrai isso. Mesmo assim o veículo nascia só com observações/valor/região,
+   e tudo era redigitado na tela seguinte. Testado em 5 anúncios reais: 5/5
+   corretos. Se o parse falhar, cria como antes. → `8119b91`
+2. **`valor_compra` não viajava do catálogo para a venda.** `vendas.html`
+   sempre soube receber o parâmetro; `catalogo.html` nunca enviava. → `924c8e9`
+3. **Lucro era conta de cabeça.** Campo vazio agora é calculado; campo
+   preenchido só ganha uma dica de conferência. **Não sobrescreve** — a
+   divergência pode ser despesa ou desconto. → `924c8e9`
+4. **Painel buscava `/api/catalogo` e `/api/vendas` duas vezes.** 7 → 5
+   chamadas. `buscar()` guarda a Promise, não a resposta. → `9099c4d`
+
+#### Divergência encontrada nos dados reais
+
+Citroën C3: venda 26.500 − repasse 25.000 = 1.500, mas lucro anotado 1.000.
+Renegade confere. Pode haver motivo; a dica agora mostra a diferença sem
+alterar nada.
+
+#### Já estava bem-feito — não mexer
+
+- Busca por placa preenche 9 campos do formulário de venda
+- Autocomplete do CRM preenche comprador e vendedor (nome, telefone, CPF)
+- `registrarVenda` do catálogo já carregava 9 campos
+- `busca.html` (busca global) e `consultas.html` (placa) não se sobrepõem
+- `/api/compradores` ×3 no painel devolve dados genuinamente diferentes
+  (17 compradores, 6 negociações, 1 agregado) — não é duplicação
+
+#### Em aberto
+
+- `vendas.html` não tem busca na lista — 114 registros e crescendo
+- `_partirVeiculo` erra em "Land Rover Range Rover Evoque" (modelo vira
+  "Range"). Carro raro no mercado dele; corrigível na tela
+
+*Registrado em 02/setembro/2026.*
