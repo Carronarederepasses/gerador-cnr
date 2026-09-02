@@ -1555,3 +1555,37 @@ a URL passa a circular de verdade e os dados deixam de ser todos da mesma
 empresa.
 
 *Registrado em 02/setembro/2026, noite.*
+
+---
+
+### Checkpoint — 02/set/2026 — Painel de desempenho da captação
+
+Adicionado em `anuncios.html` (colapsável, abaixo das métricas). Por busca:
+trazidos, abordados, viraram carro, conversão — mais a quebra dos motivos de
+morte. Sem migration: `search_name`, `vehicle_id` e `motivo_morte` já eram
+gravados; faltava somar.
+
+**Primeira leitura real (132 anúncios):** Imbituba 60/17 abordados, Garopaba
+60/5, Paulo Lopes 12/1. Mesmo volume trazido, atenção muito diferente.
+
+**Dois zeros que importam:**
+- `Viraram carro: 0` — nenhum anúncio foi vinculado a veículo do catálogo. O
+  `vehicle_id` existe e o botão existe, mas não vinha sendo usado. Enquanto
+  não for, a coluna de conversão não significa nada.
+- `Sem motivo anotado: 7` — mortes registradas sem motivo.
+
+Decisão: **deixar rodar sem forçar nada.** Não tornar o vínculo obrigatório
+nem mexer no fluxo diário antes do Yuri ver o painel funcionando por alguns
+dias. Se ele quiser, o passo seguinte é dar mais destaque ao vínculo com o
+catálogo no card — mas isso altera o fluxo dele e a decisão é dele.
+
+**Nota sobre os "sócios" (ChatGPT, Grok, Gemini, Perplexity):** consultados
+com o `CONTEXTO.md`. Nenhum contrariou as decisões da seção 6 — o documento
+cumpriu a função. Grok perguntou sobre o `CHECK_ENVIADO` recusar status
+`respondeu`: **já estava corrigido** (`sw.js:152`, aceita enviado/respondeu/
+morto ou `sent_at`). Perplexity sugeriu 3 colunas que já existiam, e sugeriu
+criptografar campos sensíveis no Supabase — recusado: a API descriptografaria
+para o mesmo `GET` público, então não protegeria de nada e custaria busca e
+ordenação no banco.
+
+*Atualizado em 02/setembro/2026.*
