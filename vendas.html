@@ -415,12 +415,13 @@ const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&am
 
 let KEY = localStorage.getItem('cnr_vendas_key') || '';
 
-// Sem chave, toda gravação volta 401. Avisar na hora, em vez de deixar o
-// usuário descobrir ao perder o preenchimento de uma venda.
+// O aviso da chave NÃO aparece sozinho. Uso normal é sem chave nenhuma
+// (VENDAS_KEY não definida na Vercel → o guard da API fica inerte).
+// Ele só é revelado se uma gravação voltar 401 de verdade, ou seja, se a
+// chave for reativada um dia. Avisar antes disso seria só barulho.
 (function configChave() {
   const aviso = document.getElementById('aviso-chave');
   if (!aviso) return;
-  if (!KEY) aviso.style.display = '';
 
   document.getElementById('btn-chave')?.addEventListener('click', () => {
     const v = (document.getElementById('in-chave')?.value || '').trim();
@@ -1303,8 +1304,7 @@ $('file-input').addEventListener('change', async (e) => {
             'Cole a chave de acesso no aviso que apareceu no topo da página. ' +
             'Ela é pedida uma vez por aparelho.');
     } else {
-      toast('Falha ao anexar: ' + err.message, 'erro', 8000);
-      alert('Falha ao anexar:\n\n' + err.message);
+      toast('Falha ao anexar: ' + err.message, 'erro', 10000);
     }
     carregar();
   }
