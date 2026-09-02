@@ -1386,3 +1386,67 @@ Três bugs diferentes (salvar venda, espelhar mensagens, anexar documentos) tive
 - [ ] Remover logs DIAG da extensão
 
 *Atualizado em 02/setembro/2026, tarde.*
+
+---
+
+### Checkpoint — 02/set/2026 (fim de tarde) — Chave removida e leitura da OLX sai do servidor
+
+#### 1. Fim da VENDAS_KEY
+
+Yuri é o operador único e não quer senha. A `VENDAS_KEY` foi removida das
+variáveis de ambiente da Vercel — o guard é `if (VENDAS_KEY && ...)`, então
+sem a variável ele fica inerte, sem mudança de código. Isso também neutraliza
+a chave que vazou em conversa.
+
+O aviso no topo de `vendas.html` **não aparece mais sozinho**; ficou só como
+reação a um 401 real, caso a chave volte um dia.
+
+> Exposição conhecida, não resolvida: o `GET` da API é público. Quem souber a
+> URL lê vendas e compradores, incluindo CPF e telefone de terceiros. Isso
+> antecede esta mudança. Assunto em aberto.
+
+#### 2. Leitura de anúncio da OLX passa para o navegador
+
+O modo padrão de `api/fetch-anuncio.js` buscava a página do anúncio **a partir
+do servidor da Vercel, com `User-Agent` de Chrome forjado**. Não era o
+navegador do Yuri, não era a sessão dele, e a identificação era falsa — o
+único trecho do sistema que se parecia com *web crawling*, vedado pelos Termos
+da OLX sem autorização prévia.
+
+Descoberto ao conferir o código para escrever o documento da captação. Não
+estava em nenhuma auditoria anterior porque as auditorias olharam a extensão,
+e este trecho estava do lado do servidor.
+
+- Novo handler `LER_ANUNCIO` no SW: abre o anúncio em aba de segundo plano, na
+  sessão logada, lê o texto renderizado, fecha a aba. Repete até o texto parar
+  de crescer (teto 10 ciclos) porque `complete` não significa React montado.
+- Ponte `CNR_LER_ANUNCIO` → `CNR_ANUNCIO_LIDO`.
+- `index.html`: links da OLX vão pela extensão; outros domínios seguem pelo
+  servidor (os Termos da OLX não os alcançam, e abrir aba para qualquer
+  domínio exigiria host permission irrestrita).
+- `api/fetch-anuncio.js` **recusa URLs da OLX explicitamente**. Sem fallback
+  silencioso: cair no servidor quando a extensão falha reintroduziria
+  exatamente o que saímos de lá para evitar.
+
+#### 3. Documento da captação
+
+Artefato publicado descrevendo o sistema, a pegada real (~72 páginas/dia, 1
+conta, 0 mensagens automáticas) e a situação perante os Termos em três níveis.
+Destinado ao irmão do Yuri (marketing, PJ), que vai abrir contato com a OLX.
+
+Enquadramento definido: **não pedir permissão para automatizar**. Pedir como
+revendedor PJ se existe integração oficial, API de parceiro ou plano
+profissional. Se houver, a zona cinzenta desaparece inteira.
+
+#### Pendências
+
+- [ ] **Filtro do Radar dentro do Gerador** — próximo item; vai em
+      `api/fetch-anuncio.js?buscas=1` (teto de 12 funções na Hobby já atingido)
+- [ ] Testar a leitura de link da OLX pela extensão (exige recarregar a
+      extensão **e dar F5 nas abas abertas**)
+- [ ] Observar lista lateral do chat para mensagens novas em conversas fechadas
+- [ ] Remover logs DIAG da extensão (A1–A8, B1–B5, ENVIO 1–9, 43.1/43.2)
+- [ ] Reescrever `compliance-extensao.md` do repo (a cópia da memória já está)
+- [ ] Decidir o que fazer com o `GET` público da API
+
+*Atualizado em 02/setembro/2026, fim de tarde.*
