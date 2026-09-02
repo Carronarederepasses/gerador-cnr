@@ -84,6 +84,23 @@ const BRAND_ALIASES = [
   [/\bdurango\b/g,     'dodge durango'], // "Durango" sem marca → Dodge
 ];
 
+// Roda `fn` sobre os itens com no máximo `limite` chamadas ao mesmo tempo.
+// A Parallelum devolve 429 se apertar demais (fipeGet já tem retry), então o
+// limite existe para não trocar lentidão por erro.
+async function emParalelo(itens, limite, fn) {
+  const fila = [...itens];
+  const saida = [];
+  await Promise.all(
+    Array(Math.min(limite, fila.length)).fill(0).map(async () => {
+      while (fila.length) {
+        const item = fila.shift();
+        try { saida.push(await fn(item)); } catch { /* item ignorado */ }
+      }
+    })
+  );
+  return saida;
+}
+
 const MARCAS_POPULARES_IDS = [
   'fiat','chevrolet','volkswagen','hyundai','toyota','honda',
   'renault','jeep','ford','nissan','kia','mitsubishi','peugeot','citroen',
@@ -152,9 +169,12 @@ module.exports = async (req, res) => {
         MARCAS_POPULARES_IDS.some(p => m.nome.toLowerCase().includes(p)) &&
         m.codigo !== melhorMarca?.codigo
       );
-      for (const marca of marcasTentativas) {
-        try { candidatos = candidatos.concat(await buscaModelos(marca)); } catch { continue; }
-      }
+      // Este laço era serial: até ~35 marcas, uma chamada de rede cada, ~1s
+      // por marca. Era daqui que vinham os 20s+ quando o texto não trazia a
+      // marca ("Hilux SRV 2.8", "Gol 1.0", "Renegade") — títulos vindos da
+      // OLX já trazem a marca e por isso caíam no caminho rápido.
+      const listas = await emParalelo(marcasTentativas, 8, buscaModelos);
+      for (const lista of listas) candidatos = candidatos.concat(lista);
       candidatos.sort((a, b) => b.score - a.score);
     }
 
@@ -208,18 +228,10 @@ module.exports = async (req, res) => {
     // limitada, para não tomar 429 da Parallelum) e as passadas seguintes
     // trabalham em memória.
     const anosDe = new Map();
-    const fila = [...topCands];
-    await Promise.all(Array(Math.min(6, fila.length)).fill(0).map(async () => {
-      while (fila.length) {
-        const c = fila.shift();
-        const chave = `${c.marca.codigo}/${c.modelo.codigo}`;
-        try {
-          anosDe.set(chave, await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`));
-        } catch {
-          anosDe.set(chave, []);
-        }
-      }
-    }));
+    await emParalelo(topCands, 6, async (c) => {
+      const chave = `${c.marca.codigo}/${c.modelo.codigo}`;
+      anosDe.set(chave, await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`));
+    });
     const anosCand = (c) => anosDe.get(`${c.marca.codigo}/${c.modelo.codigo}`) || [];
 
     const doAno = (anos) =>
