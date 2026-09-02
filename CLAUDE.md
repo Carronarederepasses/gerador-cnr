@@ -1589,3 +1589,48 @@ para o mesmo `GET` público, então não protegeria de nada e custaria busca e
 ordenação no banco.
 
 *Atualizado em 02/setembro/2026.*
+
+---
+
+### Teste completo do Gerador — 02/set/2026
+
+Varredura em produção: 13 endpoints, 14 páginas, render vs API, 7 filtros,
+viewport 375px em 9 páginas, contraste em modo escuro, e o circuito
+Radar → extensão → Gerador.
+
+#### Bugs encontrados e corrigidos
+
+1. **`vendas.html` estourava 98px no celular.** Chips de anexo sem
+   `max-width` nem truncamento; nomes vindos do WhatsApp passam de 400px.
+   Rolagem horizontal na tela que ele mais usa no celular. Só apareceu agora
+   porque anexar pelo celular só passou a funcionar hoje. → `e520479`
+2. **Faixa de aviso ilegível no modo escuro.** `color:#fff` fixo sobre
+   `--severity-warn`, que no escuro vira âmbar claro: contraste 2,24.
+   Trocado por `var(--surface)`, que acompanha o tema. → `9b83623`
+
+#### Falsos positivos investigados (não mexer)
+
+- `/api/ping` devolve 404 — **correto**. Está no `.vercelignore` e fora do
+  git de propósito, para segurar exatamente 12 funções. O cron usa
+  `/api/utils?type=ping`, que responde OK.
+- `anuncios.html` com 134 elementos de contraste 1,39 — são os pontinhos `·`
+  separadores das métricas. Decorativos.
+- Busca em `vendas.html` "não filtra" — a página não tem busca de lista; o
+  campo que peguei era `m-vendedor_nome`, do formulário.
+
+#### Observações (não são defeitos)
+
+- `home.html` faz 7 chamadas de API, com `/api/catalogo` e `/api/vendas`
+  **duplicadas**. Dobra a latência de cold start no painel.
+- `vendas.html` não tem busca na lista — 114 registros e crescendo.
+- Cold start medido: `fetch-anuncio` 1,2s · `utils?type=cep` 3,4s ·
+  `parse` 4,5s · `fipe-search` 2,8s.
+
+#### Confirmação ao vivo
+
+O painel de desempenho passou a mostrar **Imaruí com 4 anúncios** durante o
+teste. A busca criada hoje na tela Radar foi puxada pela extensão, o radar
+rodou e os anúncios chegaram — o circuito fechou sozinho, sem teste
+artificial.
+
+*Registrado em 02/setembro/2026.*
