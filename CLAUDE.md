@@ -1340,3 +1340,48 @@ Escolhida a opção **B**: a extensão abre a aba-hub quando necessário, em vez
 - [ ] Reescrever `compliance-extensao.md` no repo separando regra da OLX de decisão de projeto
 
 *Atualizado em 02/setembro/2026, manhã.*
+
+---
+
+### Checkpoint — 02/set/2026 (tarde) — Causa real das falhas de gravação: celular sem VENDAS_KEY
+
+**Fato que fecha o caso:** Yuri registra vendas e anexa documentos **pelo celular** (recebe tudo por WhatsApp). O celular **nunca teve a `VENDAS_KEY` configurada**.
+
+Como `GET` é público e só `POST/PATCH/DELETE` são protegidos, o aparelho abria tudo normalmente e recusava **toda gravação** com 401 "Acesso negado" — sem nada na tela explicando.
+
+Isso explica de uma vez:
+- A venda do Renegade que "não salvou" (lançada do celular)
+- Os anexos que "não carregavam"
+- Por que nada se reproduzia no notebook, onde a chave existe
+
+Toda a investigação da madrugada foi feita no ambiente errado, porque a informação "isso é feito no celular" só apareceu depois.
+
+#### Falha de desenho corrigida
+
+A `VENDAS_KEY` só podia ser configurada por `localStorage.setItem` no console do navegador — que **no celular não existe**. O aparelho onde ele mais trabalha era o único impossível de configurar.
+
+- Faixa de aviso aparece quando falta a chave, com campo para colá-la. **Não é portão**: a página funciona e a leitura continua livre; a faixa só aparece quando a gravação não funcionaria.
+- Erros 401 em salvar e anexar reabrem a faixa, rolam até ela e explicam o que fazer.
+- No salvar, o preenchimento é preservado para tentar de novo sem redigitar.
+
+#### Correções de mobile no mesmo caminho
+
+- `input[type=file]` estava com `display:none` — vários navegadores móveis não abrem o seletor nesse estado.
+- Toast usava `white-space:nowrap` — mensagem saía pela lateral da tela do celular, justamente onde não há console.
+- `accept` limitava a imagem e PDF; documentos em outros formatos nem apareciam como selecionáveis.
+- Toast ao tocar em "+ anexar", para distinguir "toque não registrou" de "seletor não abriu".
+
+#### Lição recorrente da sessão
+
+Três bugs diferentes (salvar venda, espelhar mensagens, anexar documentos) tiveram o mesmo padrão: **o sistema reportava sucesso ou silêncio onde havia falha**. O tempo foi gasto procurando o defeito, não corrigindo — porque o defeito estava escondido atrás de um retorno mentiroso.
+
+#### Pendências
+
+- [ ] **Rotacionar `VENDAS_KEY`** (valor exposto em conversa) e colá-la nos dois aparelhos pela nova faixa
+- [ ] Confirmar que anexo funciona no celular após configurar a chave
+- [ ] Remover o `alert()` temporário do erro de anexo
+- [ ] Filtro do Radar no Gerador
+- [ ] Observar lista lateral do chat para mensagens novas em conversas não abertas
+- [ ] Remover logs DIAG da extensão
+
+*Atualizado em 02/setembro/2026, tarde.*
