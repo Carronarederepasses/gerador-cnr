@@ -1450,3 +1450,57 @@ profissional. Se houver, a zona cinzenta desaparece inteira.
 - [ ] Decidir o que fazer com o `GET` público da API
 
 *Atualizado em 02/setembro/2026, fim de tarde.*
+
+---
+
+### Checkpoint — 02/set/2026 (noite) — Radar configurável pelo Gerador (concluído)
+
+Buscas saíram do `chrome.storage.local` de cada máquina e passaram para a
+tabela `buscas`, editadas em `/radar.html`. **Em produção com 4 buscas:**
+Garopaba, Paulo Lopes, Imbituba, Imaruí.
+
+- Tabela `buscas` (`supabase/migration-buscas.sql`), id gerado pelo cliente
+- Endpoint `?buscas=1` em `api/fetch-anuncio.js` (teto de 12 funções na Hobby)
+- Tela `/radar.html` + item no `sidebar.js`
+- `carregarBuscas()` no SW, com cópia local como resiliência a queda da Vercel
+
+**Desenho:** o usuário cola uma URL que já funciona na OLX; a tela decompõe
+em campos e **preserva intacto o que não reconhece**. Não monta URL do zero —
+os params da OLX mudam sem aviso. Testado: round-trip não perde param
+desconhecido, editar um campo não afeta os outros, path preservado.
+
+Mapeamento confirmado contra as buscas reais do Yuri: `ps`/`pe` preço,
+`rs`/`re` ano. Preservados sem interpretação: `f`, `gb`, `hgnv`, `sp`.
+
+#### Três armadilhas encontradas nesta etapa
+
+1. **POST substitui o conjunto inteiro.** Yuri perguntou "salvar não apaga as
+   demais?" antes de eu explicar — e teria apagado. Agora a tela avisa com os
+   números quando o salvamento remove buscas, e diz no topo que a lista é a
+   configuração completa.
+2. **A página de opções mentia por construção:** 3 campos fixos no HTML e
+   `searches.slice(0,3)`. Com 4 buscas mostrava 3, parecendo que a quarta não
+   salvou. Pior: era editável, competindo como segunda fonte de verdade. Agora
+   só espelha, com qualquer número, e aponta para o Radar.
+3. **Recarregar a extensão não sincronizava.** O alarme é de 60min e reload
+   não o dispara, então a config nova só chegaria até uma hora depois. Agora
+   sincroniza em `onInstalled`/`onStartup`, mais botão manual.
+
+> Padrão que se repetiu a sessão inteira: **a tela dizia uma coisa e o sistema
+> fazia outra**. Aconteceu no envio que fingia sucesso, no `persistirMensagem`
+> que engolia 500, no anexo sem feedback, na dica que mandava não colar link
+> da OLX, e aqui duas vezes. Em nenhum caso o Yuri tinha como descobrir
+> olhando de fora — o custo caiu todo sobre ele.
+
+#### Pendências
+
+- [ ] **`GET` público da API** — expõe vendas e compradores (CPF, telefone) a
+      quem souber a URL. A mais importante das pendências.
+- [ ] Irmão do Yuri (marketing, PJ) abrindo contato com a OLX; documento
+      pronto e atualizado
+- [ ] Observar lista lateral do chat para mensagens em conversas fechadas
+- [ ] Remover logs DIAG da extensão (A1–A8, B1–B5, ENVIO 1–9, 43.1/43.2)
+- [ ] Reescrever `compliance-extensao.md` do repo
+- [ ] Filtro de quilometragem no Radar, se o Yuri usar
+
+*Atualizado em 02/setembro/2026, noite.*
