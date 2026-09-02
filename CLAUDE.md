@@ -1268,16 +1268,34 @@ Restrição a respeitar: **limite de 12 funções serverless (Hobby) já atingid
 
 *Atualizado em 02/setembro/2026, madrugada.*
 
-#### Nota adicional (02/set, madrugada) — aba do chat como pré-requisito explícito
+#### Nota adicional (02/set, madrugada) — remover a exigência da aba do chat aberta
 
-Yuri pediu para "fazer de modo que seja obrigatório a aba do chat aberta".
+Yuri pediu: **fazer de modo que NÃO seja obrigatório manter a aba do chat aberta.**
 
-Entendimento a confirmar com ele: **tornar o pré-requisito explícito e guiado**, em vez de falhar com erro críptico. Hoje `enviarRespostaOLX` retorna `aba_nao_encontrada` quando não há aba do chat, sem orientar o que fazer. Isso já estava registrado como pendência ("regra 16 — Gerador não informa 'abra o chat' quando aba não está aberta").
+Hoje `enviarRespostaOLX` exige uma aba de `chat.olx.com.br` já aberta e retorna
+`aba_nao_encontrada` caso contrário. Isso obriga o Yuri a deixar abas abertas
+e quebra a ideia de operar tudo pelo Gerador.
 
-Direções possíveis, a decidir:
-- Card mostra estado da aba antes de o Yuri escrever (ex.: "⚠️ abra o chat deste anúncio para poder responder"), evitando que ele digite para descobrir depois que não dá
-- Botão ENVIAR desabilitado com explicação enquanto a aba não estiver aberta
-- Botão "abrir chat" ao lado do campo de resposta — 1 aba por clique do Yuri, coerente com as regras internas
-- Verificação em tempo real via SW (`chrome.tabs.query`) exposta ao Gerador pela bridge
+**É viável — mas a aba não desaparece, ela deixa de ser responsabilidade dele.**
+A extensão só age através do navegador com a sessão do Yuri; não existe caminho
+sem uma aba da OLX em algum momento (o contrário exigiria API privada ou
+cookies, ambos proibidos pelas regras internas).
 
-Não confundir com "remover a exigência da aba": a aba é estrutural (a extensão só age pela sessão do navegador do Yuri) e não pode ser eliminada.
+Dois desenhos possíveis:
+
+1. **Aba sob demanda** — clique em ENVIAR abre a aba do chat em background
+   (`active:false`), aguarda carregar, injeta, envia, confirma e fecha.
+   Mantém 1 aba por 1 clique humano, mesma proporção do ABORDAR.
+
+2. **Aba-hub persistente** — uma única aba de `chat.olx.com.br` fica aberta e
+   é reaproveitada para todas as conversas (o chat da OLX é SPA; trocar de
+   conversa não recarrega a página). Menos abas abrindo e fechando.
+
+Pontos de atenção para a implementação:
+- O SPA da OLX leva de 8 a 24s para hidratar (medido no monitor). O envio não é
+  instantâneo — precisa de estado "enviando…" com tempo realista, não spinner de 1s.
+- A verificação de envio real (aguardar o campo limpar) já está implementada e
+  cobre o caso de a OLX recusar o clique sintético.
+- Ainda falta o **teste do ENVIAR** com a aba aberta. Fazer isso primeiro: se o
+  clique sintético não funcionar nem com a aba aberta, abrir aba sozinho não
+  resolve nada.
