@@ -2323,6 +2323,34 @@ function setParseSt(msg, cls) {
   el.className = 'parse-st' + (cls ? ' ' + cls : '');
 }
 
+// Pede à extensão que abra o anúncio numa aba em segundo plano e devolva o
+// texto renderizado. Rejeita em vez de cair no servidor: se a extensão não
+// respondeu (não instalada, ou content script órfão depois de recarregar a
+// extensão sem dar F5), o certo é dizer isso — cair no servidor calado
+// reintroduziria justamente a leitura que saímos de lá para evitar.
+function lerAnuncioPelaExtensao(url, teto = 45000) {
+  return new Promise((resolve, reject) => {
+    const encerrar = () => {
+      clearTimeout(timer);
+      window.removeEventListener('message', ouvinte);
+    };
+    const timer = setTimeout(() => {
+      encerrar();
+      reject(new Error('extensão não respondeu'));
+    }, teto);
+
+    function ouvinte(ev) {
+      if (ev.source !== window || ev.data?.cnr_type !== 'CNR_ANUNCIO_LIDO') return;
+      encerrar();
+      if (ev.data.ok && ev.data.texto) resolve(ev.data.texto);
+      else reject(new Error(ev.data.err || 'falha na leitura'));
+    }
+
+    window.addEventListener('message', ouvinte);
+    window.postMessage({ cnr_type: 'CNR_LER_ANUNCIO', url }, '*');
+  });
+}
+
 async function processarIA() {
   let texto = document.getElementById('texto-colado').value.trim();
   if (!texto) { setParseSt('Cole o texto ou o link antes de processar.'); return; }
@@ -2338,17 +2366,36 @@ async function processarIA() {
     let linkParcial = false;
     const ehLink = /^https?:\/\/\S+$/i.test(texto);
     if (ehLink) {
-      setParseSt('Lendo o anúncio do link...', '');
-      const rl = await fetch('/api/fetch-anuncio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: texto }),
-      });
-      const dl = await rl.json();
-      if (!rl.ok || !dl.texto) throw new Error(dl.error || 'Não consegui ler o link.');
-      texto = dl.texto;
-      linkParcial = !!dl.parcial;
-      setParseSt('Link lido — extraindo dados com a IA...', '');
+      // Links da OLX são lidos pela extensão, no navegador do próprio
+      // operador e na sessão dele. Antes essa leitura partia do servidor da
+      // Vercel com User-Agent forjado — era o único trecho do sistema que se
+      // parecia com crawling. Outros sites seguem pelo servidor: os Termos da
+      // OLX não os alcançam.
+      if (/^https:\/\/([a-z0-9-]+\.)*olx\.com\.br\//i.test(texto)) {
+        setParseSt('Abrindo o anúncio no seu navegador...', '');
+        try {
+          texto = await lerAnuncioPelaExtensao(texto);
+        } catch (e) {
+          throw new Error(
+            'Não consegui ler o anúncio pelo navegador (' + e.message + '). ' +
+            'Confira se a extensão Captação Inteligente está ativa e recarregue esta página — ' +
+            'ou cole o texto do anúncio em vez do link.'
+          );
+        }
+        setParseSt('Anúncio lido — extraindo dados com a IA...', '');
+      } else {
+        setParseSt('Lendo o anúncio do link...', '');
+        const rl = await fetch('/api/fetch-anuncio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: texto }),
+        });
+        const dl = await rl.json();
+        if (!rl.ok || !dl.texto) throw new Error(dl.error || 'Não consegui ler o link.');
+        texto = dl.texto;
+        linkParcial = !!dl.parcial;
+        setParseSt('Link lido — extraindo dados com a IA...', '');
+      }
     }
 
     const resp = await fetch('/api/parse', {

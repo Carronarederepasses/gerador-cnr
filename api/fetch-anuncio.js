@@ -336,6 +336,19 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'URL inválida' });
   }
 
+  // A OLX sai deste caminho de propósito. Buscar a página daqui significa o
+  // servidor da Vercel se apresentando como um Chrome que não existe — sem a
+  // sessão do operador e com identificação forjada. Era a única coisa no
+  // sistema que se parecia com crawling, e os Termos da OLX vedam isso.
+  // A leitura passou para a extensão, no navegador do próprio operador.
+  if (/^https?:\/\/([a-z0-9-]+\.)*olx\.com\.br\//i.test(url)) {
+    return res.status(400).json({
+      error: 'Links da OLX são lidos pela extensão, no seu navegador. ' +
+             'Ative a extensão Captação Inteligente e recarregue a página — ' +
+             'ou cole o texto do anúncio em vez do link.',
+    });
+  }
+
   const slug = textoDoSlug(url);
 
   try {
