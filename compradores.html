@@ -191,7 +191,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <!-- 📍 Contato e endereço -->
     <div class="sec-hdr">📍 Contato e endereço</div>
     <div class="g2">
-      <div class="field"><label>CEP</label><input id="m-cep" type="text" placeholder="88000-000" inputmode="numeric" oninput="buscarCep(this.value)"></div>
+      <div class="field"><label>CEP</label><input id="m-cep" type="text" placeholder="88000-000" inputmode="numeric" oninput="cepMask(this); buscarCep(this.value)"></div>
       <div class="field"><label>Estado</label>
         <select id="m-estado">
           <option value="">—</option>
@@ -729,6 +729,13 @@ function telMask(el) {
   else if (d.length > 6) el.value = '(' + d.slice(0,2) + ') ' + d.slice(2,6) + '-' + d.slice(6);
   else if (d.length > 2) el.value = '(' + d.slice(0,2) + ') ' + d.slice(2);
   else el.value = d;
+}
+
+// CEP: 88000-000. O campo já buscava o endereço ao digitar, mas não
+// formatava — a máscara só era aplicada quando o valor vinha da API.
+function cepMask(el) {
+  const d = el.value.replace(/\D/g,'').slice(0,8);
+  el.value = d.length > 5 ? d.slice(0,5) + '-' + d.slice(5) : d;
 }
 
 function cpfMask(el) {

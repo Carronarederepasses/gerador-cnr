@@ -244,8 +244,8 @@
         </div>
       </div>
       <div class="grid2">
-        <div><label>CPF / CNPJ</label><input id="m-vendedor_cpf" /></div>
-        <div><label>Telefone</label><input id="m-vendedor_telefone" inputmode="tel" /></div>
+        <div><label>CPF / CNPJ</label><input id="m-vendedor_cpf" inputmode="numeric" placeholder="000.000.000-00" oninput="docMaskV(this)" /></div>
+        <div><label>Telefone</label><input id="m-vendedor_telefone" inputmode="tel" placeholder="(48) 99999-9999" oninput="telMaskV(this)" /></div>
       </div>
     </div>
 
@@ -263,8 +263,8 @@
         </div>
       </div>
       <div class="grid2">
-        <div><label>CPF / CNPJ</label><input id="m-comprador_cpf" /></div>
-        <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" /></div>
+        <div><label>CPF / CNPJ</label><input id="m-comprador_cpf" inputmode="numeric" placeholder="000.000.000-00" oninput="docMaskV(this)" /></div>
+        <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" placeholder="(48) 99999-9999" oninput="telMaskV(this)" /></div>
       </div>
       <input type="hidden" id="m-comprador_id">
       <input type="hidden" id="m-veiculo_id">
@@ -273,10 +273,10 @@
     <div class="form-sec">
       <div class="stit">Valores</div>
       <div class="grid3">
-        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="text" inputmode="numeric" placeholder="ex: 1.500,00" /></div>
-        <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="text" inputmode="numeric" placeholder="ex: 85.000" /></div>
-        <div><label>Valor repassado ao vendedor (R$)</label><input id="m-valor_compra" type="text" inputmode="numeric" placeholder="ex: 83.000" /></div>
-        <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="text" inputmode="numeric" placeholder="ex: 87.500" /></div>
+        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 1.500,00" /></div>
+        <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 85.000" /></div>
+        <div><label>Valor repassado ao vendedor (R$)</label><input id="m-valor_compra" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 83.000" /></div>
+        <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 87.500" /></div>
         <div><label>Forma de pagamento</label>
           <select id="m-forma_pagamento">
             <option value="">Selecionar...</option>
@@ -466,6 +466,50 @@ function buildHist() {
 }
 
 // ── Formatadores de exibição (espelha compradores.html) ──────────
+// ── Máscaras progressivas (aplicadas enquanto o usuário digita) ──
+// fmtDocV/fmtTelV abaixo formatam valores vindos do CRM. Estas aqui agem no
+// oninput dos campos, para quem digita à mão. Espelham compradores.html.
+
+// Telefone: (48) 99999-9999 — aceita fixo (10) e celular (11 dígitos)
+function telMaskV(el) {
+  const d = el.value.replace(/\D/g,'').slice(0,11);
+  // 11 dígitos → celular (48) 99988-7766 · 10 → fixo (48) 3333-4444
+  const corte = d.length > 10 ? 7 : 6;
+  if (d.length > 6)      el.value = `(${d.slice(0,2)}) ${d.slice(2,corte)}-${d.slice(corte)}`;
+  else if (d.length > 2) el.value = `(${d.slice(0,2)}) ${d.slice(2)}`;
+  else if (d.length > 0) el.value = `(${d}`;
+  else                   el.value = '';
+}
+
+// CPF (11 díg) ou CNPJ (14 díg) no mesmo campo — decide pelo tamanho
+function docMaskV(el) {
+  const d = el.value.replace(/\D/g,'').slice(0,14);
+  el.value = d.length <= 11
+    ? d.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')
+    : d.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+}
+
+// Dinheiro: separador de milhar enquanto digita, preservando os centavos.
+// Trata o que é digitado como REAIS (digitar 45000 → 45.000), não centavos.
+function moedaMaskV(el) {
+  let v = el.value.replace(/[^\d,]/g,'');
+  const virg = v.indexOf(',');
+  let int = virg >= 0 ? v.slice(0, virg) : v;
+  let dec = virg >= 0 ? v.slice(virg + 1).replace(/,/g,'').slice(0,2) : null;
+  int = int.replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  el.value = dec !== null ? `${int},${dec}` : int;
+}
+
+// Ao sair do campo, completa os centavos: 45.000 → 45.000,00
+function moedaBlurV(el) {
+  const s = el.value.trim();
+  if (!s) return;
+  const n = parseBRv(s);
+  if (n === null || isNaN(n)) return;
+  el.value = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function fmtDocV(v){
   const d=(v||'').replace(/\D/g,'');
   if(d.length===11) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
@@ -746,7 +790,10 @@ function brandLogo(marca) {
 
 function renderPlaca(placa) {
   if (!placa) return '';
-  const p = placa.replace(/\s/g,'').toUpperCase();
+  // Remove TUDO que não for letra ou número antes de classificar.
+  // Antes só tirava espaço: uma placa gravada como "LMX-1J26" falhava no
+  // regex por causa do hífen e era exibida como placa antiga (cinza).
+  const p = placa.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
   const isMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(p);
   const tipo = isMercosul ? 'mercosul' : 'antiga';
   const topo = isMercosul ? '🇧🇷 BRASIL' : 'BRASIL';
