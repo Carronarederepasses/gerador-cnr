@@ -832,6 +832,36 @@ document.getElementById('modal-confirmar').addEventListener('click', async () =>
   }
 });
 
+// O extrator devolve o veículo numa string só ("Fiat Strada Working 1.4 CS").
+// O catálogo guarda marca, modelo e versão separados.
+//
+// Marcas de duas palavras são a única armadilha: "Land Rover Evoque" partido
+// ingenuamente vira marca "Land", modelo "Rover". A lista abaixo cobre as que
+// aparecem em repasse no Brasil; qualquer outra cai na regra de uma palavra,
+// que acerta a esmagadora maioria.
+const _MARCAS_COMPOSTAS = [
+  'land rover', 'alfa romeo', 'great wall', 'aston martin', 'rolls royce',
+  'mini cooper', 'jac motors',
+];
+
+function _partirVeiculo(texto) {
+  const s = (texto || '').trim().replace(/\s+/g, ' ');
+  if (!s) return { marca: null, modelo: null, versao: null };
+
+  const baixo = s.toLowerCase();
+  const composta = _MARCAS_COMPOSTAS.find(m => baixo.startsWith(m + ' '));
+
+  const marca = composta
+    ? s.slice(0, composta.length)
+    : s.split(' ')[0];
+
+  const resto  = s.slice(marca.length).trim().split(' ');
+  const modelo = resto[0] || null;
+  const versao = resto.slice(1).join(' ') || null;
+
+  return { marca: marca || null, modelo, versao };
+}
+
 // ── Adicionar ao Catálogo ─────────────────────────────────────────
 async function adicionarCatalogo(id) {
   const anuncio = TODOS.find((a) => a.id === id);
@@ -843,7 +873,7 @@ async function adicionarCatalogo(id) {
   }
 
   const btn = document.querySelector(`#card-${id} .btn-acao.catalogo`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Criando…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Lendo…'; }
 
   try {
     // Extrai valor numérico do preço ("R$ 89.000" → 89000)
@@ -851,6 +881,40 @@ async function adicionarCatalogo(id) {
     if (anuncio.preco) {
       const n = anuncio.preco.replace(/[^\d,]/g, '').replace(',', '.');
       valor = parseFloat(n) || null;
+    }
+
+    // O título do anúncio já traz marca, modelo, versão, ano e combustível
+    // ("Fiat Strada Working 1.4 MPI Fire Flex 8V CS 2016"), e o Gerador já
+    // tem um extrator para isso. Antes esse texto ia inteiro para
+    // observacoes e o veículo nascia vazio — ou seja, o sistema lia tudo e
+    // pedia para o Yuri digitar de novo na tela seguinte.
+    //
+    // Se a leitura falhar, segue com o que dava antes: nada piora.
+    let extra = {};
+    try {
+      const rp = await fetch('/api/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          texto: [anuncio.titulo, anuncio.preco, anuncio.localizacao].filter(Boolean).join('\n'),
+        }),
+      });
+      if (rp.ok) {
+        const d = await rp.json();
+        const { marca, modelo, versao } = _partirVeiculo(d.veiculo);
+        extra = {
+          marca, modelo, versao,
+          ano:         d.ano         || null,
+          km:          d.km          || null,
+          cor:         d.cor         || null,
+          combustivel: d.combustivel || null,
+        };
+        // Só manda o que veio de fato — null vira coluna vazia à toa.
+        Object.keys(extra).forEach(k => { if (!extra[k]) delete extra[k]; });
+        if (btn) btn.textContent = 'Criando…';
+      }
+    } catch (e) {
+      console.warn('[CATALOGO] leitura do título falhou, criando sem os campos:', e.message);
     }
 
     // Lê chave do catálogo (se configurada)
@@ -867,6 +931,7 @@ async function adicionarCatalogo(id) {
         valor,
         regiao:     anuncio.localizacao || '',
         status:     'disponivel',
+        ...extra,
       }),
     });
 
