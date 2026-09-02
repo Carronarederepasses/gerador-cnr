@@ -1267,3 +1267,17 @@ Restrição a respeitar: **limite de 12 funções serverless (Hobby) já atingid
 - [ ] Remover logs DIAG da extensão
 
 *Atualizado em 02/setembro/2026, madrugada.*
+
+#### Nota adicional (02/set, madrugada) — aba do chat como pré-requisito explícito
+
+Yuri pediu para "fazer de modo que seja obrigatório a aba do chat aberta".
+
+Entendimento a confirmar com ele: **tornar o pré-requisito explícito e guiado**, em vez de falhar com erro críptico. Hoje `enviarRespostaOLX` retorna `aba_nao_encontrada` quando não há aba do chat, sem orientar o que fazer. Isso já estava registrado como pendência ("regra 16 — Gerador não informa 'abra o chat' quando aba não está aberta").
+
+Direções possíveis, a decidir:
+- Card mostra estado da aba antes de o Yuri escrever (ex.: "⚠️ abra o chat deste anúncio para poder responder"), evitando que ele digite para descobrir depois que não dá
+- Botão ENVIAR desabilitado com explicação enquanto a aba não estiver aberta
+- Botão "abrir chat" ao lado do campo de resposta — 1 aba por clique do Yuri, coerente com as regras internas
+- Verificação em tempo real via SW (`chrome.tabs.query`) exposta ao Gerador pela bridge
+
+Não confundir com "remover a exigência da aba": a aba é estrutural (a extensão só age pela sessão do navegador do Yuri) e não pode ser eliminada.
