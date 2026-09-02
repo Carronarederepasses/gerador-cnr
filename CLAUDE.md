@@ -1974,3 +1974,56 @@ Testado em produção, incluindo 375px: sem estouro horizontal, um único campo
 de busca na tela.
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Tela de Conversas + negociações encerradas — 02/set/2026
+
+#### Negociação comprada oferecia venda duplicada (`583c93b`)
+
+Levantado pelo Yuri no screenshot: duas negociações marcadas COMPRADO ainda
+na lista, com o botão **Registrar Venda** — e as duas vendas já existiam.
+Clicar criaria uma venda duplicada; o botão não tinha como saber, porque a
+ligação negociação→venda só é gravada como evento em `historico`, não fica na
+venda.
+
+Cruzamento por `veiculo_id`, que as duas guardam. Conferido nos dados reais.
+
+**"Todas" passou a significar "o que ainda pede ação".** Comprada COM venda
+registrada sai da lista; comprada SEM venda continua, porque é justamente ela
+que precisa do próximo passo. A aba "Comprado" mostra todas. No card, quando
+a venda existe, o botão vira o link "✓ Venda registrada — ver".
+
+#### `/conversas.html` (`9da9565`, `61452ff`)
+
+Lista lateral com todos os chats espelhados, thread à direita, campo de
+resposta — como a OLX. Montada com dados que já existiam; nenhuma migration.
+
+Endpoint novo como modo de `?mensagens=1` sem `listing_id` (`c090fc9`):
+resumo com uma linha por anúncio. Agrupamento na função porque PostgREST não
+faz `DISTINCT ON` e são centenas de linhas, não milhões.
+
+- Thread atualiza a cada 10s, lista a cada 30s
+- Atualização silenciosa não remonta o campo de texto nem rouba a rolagem
+- Falha de rede na atualização automática não apaga a conversa da tela
+- Sem ACK em 15s o botão volta com erro (travado, ele reenviaria sem saber)
+- Celular: uma coluna por vez, com botão voltar
+
+**Bug encontrado no próprio teste:** `grid-template-columns: 1fr` equivale a
+`minmax(auto,1fr)`, e o `auto` deixa a coluna crescer com o conteúdo. Títulos
+longos empurravam a página **1480px** para fora da tela no celular. Corrigido
+com `minmax(0,1fr)` + `min-width:0`. Medido: 1480px → 0.
+
+#### Falta para fechar
+
+Detecção de mensagem nova em conversa fechada. A lista mostra o que já foi
+espelhado, mas não acende sozinha — o monitor só enxerga a aba aberta.
+
+#### Dado sujo observado
+
+Uma conversa antiga (Gol) tem como "mensagem" o menu da OLX capturado:
+*"on\nAcessar perfil completo\nMarcar como não lido..."*. Captura antiga; os
+seletores do monitor foram refinados depois. Limpável com o DELETE de
+`?mensagens=1&listing_id=`.
+
+*Registrado em 02/setembro/2026.*
