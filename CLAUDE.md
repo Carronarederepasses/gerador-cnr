@@ -1205,3 +1205,65 @@ Falso alarme registrado: interpretei três fontes concordantes (`seen`, Supabase
 **⚠️ Pendência de segurança:** o valor da `VENDAS_KEY` foi exposto em conversa. **Rotacionar no painel da Vercel** e reconfigurar o `localStorage` do navegador.
 
 *Atualizado em 02/setembro/2026.*
+
+---
+
+### Checkpoint — 02/set/2026 (madrugada) — Compliance: fontes verificadas e decisão
+
+> Sessão de pesquisa e decisão. **Nenhum código do Radar ou do Chat foi alterado.**
+
+#### Correção de premissa
+
+As regras de `compliance-extensao.md` são **decisões de projeto do Yuri** (linha 13: "Estabelecidas pelo usuário em 2026-08-30"), **não são Termos da OLX**. Claude vinha citando-as como "fundação jurídica" e bloqueou desenvolvimento com base nisso. Erro corrigido nesta sessão.
+
+O documento também afirma, na linha 52, que "toda a extensão está dentro do escopo" — **isso é falso**: 4 das 11 regras conflitam com o Radar (abrir abas sozinho, scraping, varrer anúncios, operar em abas não abertas pelo Yuri). Todas as regras cumpridas se referem a mensagens; todas as conflitantes, a coleta. **O documento precisa ser reescrito** declarando escopo real.
+
+#### Fontes verificadas (primárias)
+
+**Termos do Chat** — https://ajuda.olx.com.br/s/article/termos-uso-do-chat — lido diretamente, cláusulas confirmadas:
+- *"A finalidade do Chat é o fornecimento de uma ferramenta adicional para que o usuário interessado em um anúncio... possa buscar maiores esclarecimentos sobre a oferta"* + *"Você deverá utilizar o Chat exclusivamente para esta Finalidade."*
+- Proíbe *"publicidade não solicitada ou autorizada, material publicitário, 'spam'... ou qualquer outra forma de solicitação."*
+- Proíbe *"assediar, aliciar, abordar, direcionar ou induzir outros usuários a acessarem, utilizarem ou migrarem para outras plataformas, concorrentes ou não, sem a devida autorização expressa da OLX."*
+- *"A identificação será feita, em regra, por meio de ferramentas tecnológicas automatizadas."*
+
+**Termos Gerais** — PDF (Claude não conseguiu decodificar; **Yuri leu e enviou print**). Bloco "Você não poderá, exceto com autorização prévia e expressa dos titulares":
+- *"Realizar web crawling no Site, reproduzir, exibir, copiar, transformar, modificar, desmontar, realizar engenharia reversa, distribuir, alugar, fornecer, colocar à disposição do público... qualquer dos elementos protegidos."*
+- *"Utilizar de textos, imagens, anúncios e qualquer outro elemento incluído ou disponível no Site para sua posterior inclusão em quaisquer veículos alheios ao Site sem a autorização prévia e por escrito do Grupo OLX."*
+
+Nota: a proibição é **"sem autorização prévia e expressa"** — não é vedação absoluta. Autorização é contemplada.
+
+#### Decisão do Yuri (02/set/2026)
+
+**Manter a arquitetura atual do Radar e do Chat.** Razões declaradas: opera sozinho, precisa de volume, a prática é comum no mercado (lojistas e repassadores prospectam manualmente), e ele escreve pessoalmente cada mensagem e conduz cada negociação.
+
+Concordado: **não implementar aleatorização de intervalo** nem qualquer camuflagem. Disfarce e futura conversa com a plataforma são estratégias incompatíveis. Comportamento deve permanecer previsível e explicável.
+
+Argumentos de defesa mais fortes (para uso futuro): "outras plataformas" num contrato de marketplace aponta para concorrentes (Webmotors, ML), não para aplicativo de mensagem; e migração para WhatsApp costuma ser mútua, não induzida. O argumento de "ausência de dano à monetização" é fraco — dano e permissão são testes diferentes.
+
+#### Ponto crítico de timing
+
+A janela para conversar com a OLX **não fecha por tempo — fecha na distribuição**. Enquanto é o Yuri sozinho, na própria conta, é ferramenta pessoal. No momento em que um parceiro instala, vira software distribuído (outra conta, outro volume) e a defesa de caso único desaparece.
+
+Movimento barato sugerido: abrir chamado no suporte perguntando se existe **API ou programa de parceiros** — é pergunta, não negociação, não expõe nada. Canais oficiais costumam exigir PJ (Yuri é PF hoje).
+
+#### Ordem acordada dos próximos passos
+
+1. **Fechar a ponte** — teste do ENVIAR pelo Gerador (único caminho nunca executado)
+2. **Filtro do Radar dentro do Gerador** (antecipado a pedido do Yuri)
+3. Uso diário para achar defeitos reais
+4. Varredura geral do Catafrango, correção de bugs
+5. **Conversa com a OLX** — antes do parceiro, não depois
+6. Oferecer a 1–2 parceiros
+
+Recomendação anterior de adiar o item 2 fica **revogada**: com parceiros no horizonte, cada um precisa configurar buscas próprias, e sem essa tela seria necessário editar a extensão na máquina de cada um.
+
+Restrição a respeitar: **limite de 12 funções serverless (Hobby) já atingido** — o endpoint de buscas deve entrar como modo em `fetch-anuncio.js` (`?buscas=1`), não como arquivo novo. Página HTML nova não conta no limite.
+
+#### Pendências
+
+- [ ] Teste do ENVIAR (adiado por horário — não enviar mensagem a vendedor de madrugada)
+- [ ] **Rotacionar `VENDAS_KEY`** — valor foi exposto em conversa
+- [ ] Reescrever `compliance-extensao.md` separando regra da OLX de decisão de projeto e corrigindo a afirmação de conformidade total
+- [ ] Remover logs DIAG da extensão
+
+*Atualizado em 02/setembro/2026, madrugada.*
