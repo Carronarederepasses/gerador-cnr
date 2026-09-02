@@ -396,7 +396,12 @@ let _negociacao_id = null; // Caixa Preta — Etapa 6: ID da negociação de ori
   try {
     const r = await fetch('/api/compradores?ativo=true');
     if (r.ok) COMPRADORES_CRM = await r.json();
-  } catch(_) {}
+    else console.error('[CRM] falha ao carregar clientes — HTTP', r.status);
+  } catch(e) {
+    // Antes: catch(_) {} — engolia o erro e o autocomplete ficava mudo
+    // sem nenhum sinal de que a lista de clientes não tinha chegado.
+    console.error('[CRM] erro ao carregar clientes:', e.message);
+  }
 })();
 
 // Normaliza chave de deduplicação: strip de " - Cidade", " / Info", etc.
@@ -1046,6 +1051,7 @@ function setModoManual(manual){
 function toggleManual(){ setModoManual($('manual-box').style.display === 'none'); }
 
 $('m-salvar').onclick = async () => {
+  console.log('[SALVAR 1] clique recebido');   // DIAG temporário
   const id = $('m-id').value;
   const body = {};
   CAMPOS_FORM.forEach(c => {
@@ -1067,9 +1073,12 @@ $('m-salvar').onclick = async () => {
   btn.disabled = true; btn.textContent = 'Salvando...';
   try {
     const url = id ? '/api/vendas?id=' + id : '/api/vendas';
+    console.log('[SALVAR 2] enviando', id ? 'PATCH' : 'POST', url, '| chave presente:', !!KEY); // DIAG
     const r = await fetch(url, { method: id ? 'PATCH' : 'POST', headers: headers(), body: JSON.stringify(body) });
+    console.log('[SALVAR 3] resposta HTTP', r.status);   // DIAG
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'erro');
+    console.log('[SALVAR 4] gravado com sucesso');       // DIAG
     const vendaId = data.id || id;
     fetch('/api/compradores?evento=1', {
       method: 'POST',
@@ -1086,7 +1095,12 @@ $('m-salvar').onclick = async () => {
     await carregar();
     toast(id ? '✓ Venda atualizada!' : '✓ Venda registrada com sucesso!');
   } catch (e) {
+    // Erro visível de três formas: console (permanente), tarja (6s) e alerta.
+    // A tarja sozinha passava despercebida e fazia o salvamento parecer
+    // silencioso — foi o que mascarou este defeito por uma noite inteira.
+    console.error('[SALVAR ERRO]', e);
     toast('Falha ao salvar: ' + e.message, 'erro', 6000);
+    alert('Não foi possível salvar:\n\n' + e.message);
   } finally {
     btn.disabled = false; btn.textContent = 'Salvar venda';
   }
