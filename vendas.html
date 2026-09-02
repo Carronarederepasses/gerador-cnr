@@ -343,7 +343,12 @@
   </div>
 </div>
 
-<input type="file" id="file-input" accept="image/*,application/pdf" style="display:none" />
+<!-- accept amplo: antes só imagem e PDF, e documentos em outros formatos
+     (docx, planilha, zip) nem apareciam como selecionáveis na janela.
+     O backend já aceita qualquer tipo — grava com a extensão do arquivo. -->
+<input type="file" id="file-input" multiple
+       accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar"
+       style="display:none" />
 
 <script>
 const $ = id => document.getElementById(id);
@@ -1186,10 +1191,15 @@ function addAnexo(vendaId, tipo) {
 $('file-input').addEventListener('change', async (e) => {
   const alvo = _alvoAnexo;
   const files = [...e.target.files];
-  if (!alvo || !files.length) return;
+  console.log('[ANEXO] arquivos escolhidos:', files.length, files.map(f => `${f.name} (${f.type||'sem tipo'}, ${Math.round(f.size/1024)}KB)`));
+  if (!alvo) { toast('Não sei em qual venda anexar. Clique em "+ anexar" no card.', 'erro', 6000); return; }
+  if (!files.length) return;
   try {
     for (const f of files) {
-      $('contador').textContent = 'Enviando ' + f.name + '...';
+      // O progresso ia para o contador no TOPO da página; quem anexa está
+      // num card mais abaixo e não via nada acontecer. Toast fica sempre
+      // visível no rodapé.
+      toast('Enviando ' + f.name + '…', 'ok', 60000);
       const mimeType = f.type || 'application/octet-stream';
       // 1. obter URL assinada para upload direto (sem limite de tamanho no Vercel)
       const prep = await fetch('/api/vendas?anexo=1&action=prepare-upload', {
@@ -1207,9 +1217,18 @@ $('file-input').addEventListener('change', async (e) => {
         body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, path, mimeType, nome: f.name }),
       });
       if (!conf.ok) throw new Error((await conf.json()).error || 'erro ao confirmar');
+      console.log('[ANEXO] enviado com sucesso:', f.name);
     }
+    toast(`✓ ${files.length} arquivo(s) anexado(s).`, 'ok', 4000);
     carregar();
-  } catch (err) { mostrarErro('Falha ao anexar: ' + err.message); carregar(); }
+  } catch (err) {
+    // console.error é permanente; a tarja some. Antes o erro ia para um
+    // aviso no topo da página que sumia em 5s — quem anexa está num card
+    // mais abaixo e nunca via.
+    console.error('[ANEXO ERRO]', err);
+    toast('Falha ao anexar: ' + err.message, 'erro', 8000);
+    carregar();
+  }
 });
 
 async function abrirAnexo(vendaId, path) {
