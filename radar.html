@@ -97,6 +97,7 @@ details.extra > div{padding-top:.6rem;display:grid;gap:.6rem}
 <div class="wrap">
   <h1>Radar</h1>
   <p class="sub">As buscas da OLX que a extensão verifica de hora em hora. Cole o link de uma busca que já funciona no site — os filtros aparecem aqui para ajuste.</p>
+  <p class="sub"><b>Esta lista é a configuração completa.</b> Ao salvar, a extensão passa a usar exatamente o que está aqui — buscas que não aparecerem nesta tela deixam de ser verificadas.</p>
 
   <div class="custo" id="custo"></div>
 
@@ -135,6 +136,9 @@ const CONHECIDOS = new Set(CAMPOS.map(c => c[0]));
 
 let BUSCAS = [];
 let sujo = false;
+// Quantas buscas existiam no banco quando a tela carregou. Serve para
+// avisar antes de um Salvar que remove configuração — ver salvar().
+let CARREGADAS = 0;
 
 const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -321,6 +325,7 @@ async function carregar() {
     BUSCAS = (Array.isArray(dados) ? dados : []).map(b => ({
       id: b.id, nome: b.nome || '', url: b.url || '', ativa: b.ativa !== false,
     }));
+    CARREGADAS = BUSCAS.length;
     render();
   } catch (e) {
     console.error('[RADAR] falha ao carregar:', e);
@@ -343,6 +348,19 @@ async function salvar() {
     }
   }
 
+  // Esta tela é a configuração inteira, não um acréscimo: o que não está
+  // aqui é removido. Quem abre a tela para adicionar uma busca não espera
+  // que salvar apague as outras — então avisa antes, com os números.
+  const removidas = CARREGADAS - BUSCAS.length;
+  if (removidas > 0) {
+    const ok = confirm(
+      `Você está salvando ${BUSCAS.length} busca(s), e havia ${CARREGADAS} salva(s).\n\n` +
+      `${removidas} busca(s) serão REMOVIDAS da configuração.\n\n` +
+      `Esta tela é a lista completa: o que não está nela é apagado. Continuar?`
+    );
+    if (!ok) return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Salvando…';
   try {
@@ -354,6 +372,7 @@ async function salvar() {
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
     sujo = false;
+    CARREGADAS = BUSCAS.length;
     tarja(`✓ ${d.salvas} busca(s) salva(s). A extensão usa na próxima verificação.`, 'ok', 5000);
   } catch (e) {
     console.error('[RADAR] falha ao salvar:', e);
