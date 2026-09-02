@@ -535,10 +535,24 @@ async function load() {
 }
 
 function diasDesde(dateStr) {
-  if (!dateStr) return 999;
+  if (!dateStr) return null;
+  // Aceita "2026-08-20" e o ISO completo do banco ("2026-08-20T19:59:25+00:00"):
+  // sem o slice, concatenar 'T00:00:00' no ISO produzia data inválida.
+  const s = String(dateStr).slice(0, 10);
+  const d = new Date(s + 'T00:00:00');
+  if (isNaN(d)) return null;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const d = new Date(dateStr + 'T00:00:00');
   return Math.floor((hoje - d) / 86400000);
+}
+
+// Negociação sem `ultimo_contato` registrado cai na data de criação, que é
+// quando ela de fato começou.
+//
+// Antes o campo vazio virava 999 e a tela imprimia "999 dias atrás" como se
+// fosse contagem real — três negociações de 20/08 apareciam assim no banner,
+// quando o certo eram 13 dias.
+function diasDaNegociacao(n) {
+  return diasDesde(n.ultimo_contato || n.created_at);
 }
 
 function fmtDias(n) {
@@ -565,10 +579,10 @@ function setFiltro(f) {
 
 function renderAlerta() {
   const banner = document.getElementById('alert-banner');
-  const urgentes = dados.filter(n => STATUS_ATIVOS.includes(n.status) && diasDesde(n.ultimo_contato) >= 1);
+  const urgentes = dados.filter(n => STATUS_ATIVOS.includes(n.status) && (diasDaNegociacao(n) ?? 0) >= 1);
   if (urgentes.length === 0) { banner.classList.remove('show'); return; }
   banner.classList.add('show');
-  const lista = urgentes.map(n => `<strong>${n.veiculo_nome}</strong> (${fmtDias(diasDesde(n.ultimo_contato))})`).join(' · ');
+  const lista = urgentes.map(n => `<strong>${n.veiculo_nome}</strong> (${fmtDias(diasDaNegociacao(n))})`).join(' · ');
   banner.innerHTML = `⚠️ ${urgentes.length === 1 ? 'Negociação aguardando' : urgentes.length + ' negociações aguardando'}: ${lista}`;
 }
 
@@ -576,8 +590,8 @@ function renderLista() {
   const el = document.getElementById('neg-list');
   const filtrados = filtroAtual ? dados.filter(n => n.status === filtroAtual) : dados;
   const sorted = [...filtrados].sort((a,b) => {
-    const aUrgente = STATUS_ATIVOS.includes(a.status) && diasDesde(a.ultimo_contato) >= 1;
-    const bUrgente = STATUS_ATIVOS.includes(b.status) && diasDesde(b.ultimo_contato) >= 1;
+    const aUrgente = STATUS_ATIVOS.includes(a.status) && (diasDaNegociacao(a) ?? 0) >= 1;
+    const bUrgente = STATUS_ATIVOS.includes(b.status) && (diasDaNegociacao(b) ?? 0) >= 1;
     if (aUrgente !== bUrgente) return aUrgente ? -1 : 1;
     return (b.ultimo_contato||'') > (a.ultimo_contato||'') ? 1 : -1;
   });
@@ -588,7 +602,7 @@ function renderLista() {
   }
 
   el.innerHTML = sorted.map(n => {
-    const dias = diasDesde(n.ultimo_contato);
+    const dias = diasDaNegociacao(n);
     const urgente = STATUS_ATIVOS.includes(n.status) && dias >= 1;
     const cfg = STATUS_CFG[n.status] || STATUS_CFG['aguardando'];
     return `<div class="neg-card${urgente ? ' urgente' : ''}" onclick="abrirEditar('${n.id}')">
@@ -596,7 +610,7 @@ function renderLista() {
         <div class="neg-veiculo">${n.veiculo_nome || '—'}</div>
         <div class="neg-contato">${n.comprador_nome || ''}${n.valor_proposto ? ' · R$' + Number(n.valor_proposto).toLocaleString('pt-BR',{maximumFractionDigits:0}) : ''}</div>
         <div class="neg-status-pill" style="color:${cfg.cor};background:${cfg.bg};cursor:pointer" onclick="event.stopPropagation();abrirStatusMenu(event,'${n.id}')">${cfg.label} ▾</div>
-        <div class="neg-dias">${n.ultimo_contato ? fmtDias(dias) : ''}</div>
+        <div class="neg-dias">${dias === null ? '' : fmtDias(dias)}</div>
       </div>
       ${n.observacoes ? `<div class="neg-obs">${n.observacoes}</div>` : ''}
       ${n.status === 'descartado' && n.motivo_descarte ? `<div class="neg-motivo">✗ ${MOTIVOS_DESCARTE.find(m=>m.code===n.motivo_descarte)?.label || n.motivo_descarte}</div>` : ''}
