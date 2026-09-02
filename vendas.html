@@ -309,9 +309,9 @@
     <div class="form-sec">
       <div class="stit">Valores</div>
       <div class="grid3">
-        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 1.500,00" /></div>
-        <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 85.000" /></div>
-        <div><label>Valor repassado ao vendedor (R$)</label><input id="m-valor_compra" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 83.000" /></div>
+        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 1.500,00" /><div id="m-lucro-dica" style="font-size:.72rem;margin-top:.25rem;line-height:1.35"></div></div>
+        <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="text" inputmode="numeric" oninput="moedaMaskV(this);conferirLucro()" onblur="moedaBlurV(this);conferirLucro()" placeholder="ex: 85.000" /></div>
+        <div><label>Valor repassado ao vendedor (R$)</label><input id="m-valor_compra" type="text" inputmode="numeric" oninput="moedaMaskV(this);conferirLucro()" onblur="moedaBlurV(this);conferirLucro()" placeholder="ex: 83.000" /></div>
         <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 87.500" /></div>
         <div><label>Forma de pagamento</label>
           <select id="m-forma_pagamento">
@@ -582,6 +582,46 @@ function moedaBlurV(el) {
   const n = parseBRv(s);
   if (n === null || isNaN(n)) return;
   el.value = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Lucro = venda − repasse. O sistema guarda os três números e nunca conferia:
+// numa das vendas reais a diferença dava 1.500 e o lucro anotado era 1.000.
+// Pode haver motivo (uma despesa, um desconto), então aqui NÃO se corrige
+// nada por conta própria:
+//   • campo de lucro vazio  → preenche, porque é conta que a máquina faz
+//   • campo já preenchido   → só mostra a diferença, e destaca se divergir
+// Sobrescrever o número que o Yuri digitou seria trocar o julgamento dele
+// por uma subtração.
+function conferirLucro() {
+  const dica = document.getElementById('m-lucro-dica');
+  if (!dica) return;
+  const elLucro = document.getElementById('m-taxa_intermediacao');
+  const venda   = parseBRv((document.getElementById('m-valor_venda')  || {}).value || '');
+  const compra  = parseBRv((document.getElementById('m-valor_compra') || {}).value || '');
+
+  if (venda === null || compra === null || isNaN(venda) || isNaN(compra)) {
+    dica.textContent = '';
+    return;
+  }
+
+  const dif = venda - compra;
+  const fmt = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const atual = parseBRv(elLucro.value || '');
+  if (elLucro.value.trim() === '' || atual === null || isNaN(atual)) {
+    elLucro.value = dif.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    dica.style.color = 'var(--text-faint)';
+    dica.textContent = `Calculado: ${fmt(venda)} − ${fmt(compra)}`;
+    return;
+  }
+
+  if (Math.abs(atual - dif) < 0.01) {
+    dica.style.color = 'var(--severity-ok)';
+    dica.textContent = `✓ Confere com ${fmt(venda)} − ${fmt(compra)}`;
+  } else {
+    dica.style.color = 'var(--severity-warn)';
+    dica.textContent = `Venda − repasse dá ${fmt(dif)}. Se houve despesa ou desconto, ignore.`;
+  }
 }
 
 function fmtDocV(v){
@@ -991,6 +1031,14 @@ function abrirModal(v) {
   // Nova venda → cascata FIPE. Edição ou vindo do catálogo com carro preenchido → modo manual.
   const temCarro = !!(v.marca || v.modelo || v.versao);
   setModoManual(!!(v._fromCatalogo && temCarro) || !!(v.id && temCarro));
+  // Formata os valores que vieram prontos (do catálogo ou de uma edição) e
+  // avalia o lucro já na abertura — senão a dica só apareceria se o Yuri
+  // encostasse nos campos, que é justamente o que não queremos exigir.
+  ['valor_venda', 'valor_compra', 'taxa_intermediacao', 'valor_fipe'].forEach(c => {
+    const el = $('m-' + c);
+    if (el && el.value) moedaBlurV(el);
+  });
+  conferirLucro();
   $('modal').classList.add('show');
 }
 function fecharModal(){ $('modal').classList.remove('show'); _negociacao_id = null; }

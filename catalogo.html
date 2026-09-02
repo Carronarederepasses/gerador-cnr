@@ -701,6 +701,11 @@ function registrarVenda(id) {
   if (v.km)      p.set('km',      v.km);
   if (v.valor)   p.set('valor_venda', v.valor);
   if (v.fipe)    p.set('valor_fipe',  v.fipe);
+  // O que foi pago ao vendedor já está no catálogo desde a captação.
+  // Sem esta linha, vendas.html abria com o campo vazio e o número era
+  // redigitado — dado que o sistema já tinha. A tela de vendas sempre
+  // soube receber 'valor_compra' por URL; só ninguém enviava.
+  if (v.valor_compra) p.set('valor_compra', v.valor_compra);
   p.set('veiculo_id', id);
   window.location.href = '/vendas.html?' + p.toString();
 }
