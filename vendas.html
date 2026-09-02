@@ -128,7 +128,10 @@
     100%{background:transparent;box-shadow:0 0 0 0 transparent}
   }
   @media (prefers-reduced-motion:reduce){.card.salvo-agora{animation:none;border-color:var(--severity-ok)}}
-  #cnr-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--surface);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.65rem 1.2rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;z-index:9999;white-space:nowrap}
+  /* white-space:nowrap fazia a mensagem sair pela lateral no celular e ficar
+     ilegível — justamente onde o Yuri mais precisa dela, porque no telefone
+     não há console para conferir. Agora quebra linha e respeita a largura. */
+  #cnr-toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--surface);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;padding:.65rem 1.2rem;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);opacity:0;transition:opacity .22s,transform .22s;pointer-events:none;z-index:9999;max-width:min(92vw,32rem);white-space:pre-wrap;text-align:center;line-height:1.4}
   #cnr-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #cnr-toast.erro{background:var(--severity-crit)}
 
@@ -346,9 +349,13 @@
 <!-- accept amplo: antes só imagem e PDF, e documentos em outros formatos
      (docx, planilha, zip) nem apareciam como selecionáveis na janela.
      O backend já aceita qualquer tipo — grava com a extensão do arquivo. -->
+<!-- NÃO usar display:none aqui. Vários navegadores móveis se recusam a abrir
+     o seletor de arquivos quando o input está com display:none — o toque em
+     "+ anexar" simplesmente não fazia nada no celular. A técnica abaixo
+     esconde visualmente mas mantém o elemento no fluxo. -->
 <input type="file" id="file-input" multiple
        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar"
-       style="display:none" />
+       style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;border:0;padding:0;left:-9999px" />
 
 <script>
 const $ = id => document.getElementById(id);
@@ -1184,8 +1191,19 @@ async function apagar(id) {
 let _alvoAnexo = null;
 function addAnexo(vendaId, tipo) {
   _alvoAnexo = { vendaId, tipo };
-  $('file-input').value = '';
-  $('file-input').click();
+  const inp = $('file-input');
+  if (!inp) { alert('Campo de arquivo não encontrado. Recarregue a página.'); return; }
+  inp.value = '';
+  // Confirmação de que o toque chegou até aqui. No celular, sem isto, "não
+  // aconteceu nada" pode ser o toque não registrado OU o seletor não abrindo
+  // — sintomas idênticos para quem está olhando a tela.
+  toast('Escolha o arquivo…', 'ok', 3000);
+  try {
+    inp.click();
+  } catch (e) {
+    console.error('[ANEXO] falha ao abrir seletor:', e);
+    alert('Não foi possível abrir o seletor de arquivos:\n\n' + e.message);
+  }
 }
 
 $('file-input').addEventListener('change', async (e) => {
@@ -1227,6 +1245,10 @@ $('file-input').addEventListener('change', async (e) => {
     // mais abaixo e nunca via.
     console.error('[ANEXO ERRO]', err);
     toast('Falha ao anexar: ' + err.message, 'erro', 8000);
+    // TEMPORÁRIO — o anexo é feito no celular, onde não há console e a tarja
+    // pode passar despercebida. O alerta garante que a causa chegue ao Yuri.
+    // Remover quando a falha estiver identificada.
+    alert('Falha ao anexar:\n\n' + err.message);
     carregar();
   }
 });
