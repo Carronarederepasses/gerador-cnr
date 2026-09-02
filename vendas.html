@@ -245,7 +245,7 @@
       </div>
       <div class="grid2">
         <div><label>CPF / CNPJ</label><input id="m-vendedor_cpf" inputmode="numeric" placeholder="000.000.000-00" oninput="docMaskV(this)" /></div>
-        <div><label>Telefone</label><input id="m-vendedor_telefone" inputmode="tel" placeholder="(48) 99999-9999" oninput="telMaskV(this)" /></div>
+        <div><label>Telefone</label><input id="m-vendedor_telefone" inputmode="tel" placeholder="(48)99999-9999" oninput="telMaskV(this)" /></div>
       </div>
     </div>
 
@@ -264,7 +264,7 @@
       </div>
       <div class="grid2">
         <div><label>CPF / CNPJ</label><input id="m-comprador_cpf" inputmode="numeric" placeholder="000.000.000-00" oninput="docMaskV(this)" /></div>
-        <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" placeholder="(48) 99999-9999" oninput="telMaskV(this)" /></div>
+        <div><label>Telefone</label><input id="m-comprador_telefone" inputmode="tel" placeholder="(48)99999-9999" oninput="telMaskV(this)" /></div>
       </div>
       <input type="hidden" id="m-comprador_id">
       <input type="hidden" id="m-veiculo_id">
@@ -470,13 +470,13 @@ function buildHist() {
 // fmtDocV/fmtTelV abaixo formatam valores vindos do CRM. Estas aqui agem no
 // oninput dos campos, para quem digita à mão. Espelham compradores.html.
 
-// Telefone: (48) 99999-9999 — aceita fixo (10) e celular (11 dígitos)
+// Telefone: (48)99999-9999 — aceita fixo (10) e celular (11 dígitos)
 function telMaskV(el) {
   const d = el.value.replace(/\D/g,'').slice(0,11);
-  // 11 dígitos → celular (48) 99988-7766 · 10 → fixo (48) 3333-4444
+  // 11 dígitos → celular (48)99988-7766 · 10 → fixo (48) 3333-4444
   const corte = d.length > 10 ? 7 : 6;
-  if (d.length > 6)      el.value = `(${d.slice(0,2)}) ${d.slice(2,corte)}-${d.slice(corte)}`;
-  else if (d.length > 2) el.value = `(${d.slice(0,2)}) ${d.slice(2)}`;
+  if (d.length > 6)      el.value = `(${d.slice(0,2)})${d.slice(2,corte)}-${d.slice(corte)}`;
+  else if (d.length > 2) el.value = `(${d.slice(0,2)})${d.slice(2)}`;
   else if (d.length > 0) el.value = `(${d}`;
   else                   el.value = '';
 }
@@ -518,8 +518,8 @@ function fmtDocV(v){
 }
 function fmtTelV(v){
   const d=(v||'').replace(/\D/g,'').slice(0,11);
-  if(d.length===11) return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
-  if(d.length===10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+  if(d.length===11) return '('+d.slice(0,2)+')'+d.slice(2,7)+'-'+d.slice(7);
+  if(d.length===10) return '('+d.slice(0,2)+')'+d.slice(2,6)+'-'+d.slice(6);
   return v||'';
 }
 
