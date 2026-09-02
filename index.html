@@ -1473,6 +1473,24 @@ function pushSecao(linhas, titulo, texto) {
 // ══════════════════════════════════════════════
 // MONTAR TEXTO (usado por gerar() e pelo salvar direto)
 // ══════════════════════════════════════════════
+// As seções do anúncio são montadas de forma independente e cada uma decide
+// se abre com uma linha em branco. Quando uma delas fica vazia — sem valor e
+// sem FIPE, por exemplo — sobram duas linhas em branco coladas, e no WhatsApp
+// isso vira um buraco no meio do anúncio. A linha da região ainda usa um "\n"
+// no começo, o que fazia o texto abrir em branco quando não havia veículo.
+//
+// Em vez de acertar cada seção (e voltar a errar na próxima que for criada),
+// o bloco inteiro é normalizado no fim: nunca mais de uma linha em branco
+// seguida, e nada de branco na abertura ou no fecho.
+function _normalizarAnuncio(linhas) {
+  return linhas
+    .join('\n')
+    .replace(/[ \t]+$/gm, '')    // espaço sobrando no fim das linhas
+    .replace(/\n{3,}/g, '\n\n')  // no máximo uma linha em branco seguida
+    .replace(/^\n+/, '')         // não começa em branco
+    .replace(/\n+$/, '');        // nem termina
+}
+
 function montarTextoAnuncio() {
   const mNome     = getSelTxt('sel-marca');
   const versaoTxt = getSelTxt('sel-versao');
@@ -1526,7 +1544,7 @@ function montarTextoAnuncio() {
   if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
   linhas.push('');
   linhas.push('https://instagram.com/carronarederepasses');
-  return linhas.join('\n');
+  return _normalizarAnuncio(linhas);
 }
 
 // ══════════════════════════════════════════════
@@ -1553,75 +1571,11 @@ function gerar() {
   const obsCustom   = document.getElementById('obs-custom').value.trim();
   const combustivel = document.getElementById('combustivel').value.trim();
 
-  const onIds  = getAllOnIds();
-  const obsIds = getOnIds('#obs-grid');
-  const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
-
-  let linhas = [];
-
-  // Linha 1 — veículo
-  // Modelo da FIPE já vem com versão (ex: "VIRTUS Sense 1.0 Flex 12V 5p Mec.")
-  const partes = [
-    !badSel(mNome) ? mNome : '',
-    !badSel(modNome) ? modNome : '',
-    compl
-  ].filter(Boolean);
-  const nomeVeic = partes.join(' ');
-
-  let l1 = '';
-  if (nomeVeic) l1 += `*${nomeVeic}*`;
-  const det = [
-    !badSel(anoNome) ? anoNome : '',
-    combustivel,
-    km,
-    cor ? cor.toLowerCase() : ''
-  ].filter(Boolean);
-  if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
-  if (l1) linhas.push(l1);
-
-  // Localização
-  if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
-
-  // Opcionais — tudo que está ON exceto blindado
-  const itensOn = onIds.filter(id => id !== 'blindado');
-  const extras = linhasExtras();
-  if (itensOn.length || onIds.includes('blindado') || extras.length) {
-    linhas.push('');
-    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
-    extras.forEach(l => linhas.push(l));
-
-    // Blindado com detalhes
-    if (onIds.includes('blindado')) {
-      const bM = document.getElementById('blind-marca').value.trim();
-      const bN = document.getElementById('blind-nivel').value.trim();
-      const bV = document.getElementById('blind-vidro').value.trim();
-      let bl = '🛡️ Blindado';
-      if (bM) bl += ` — ${bM}`;
-      if (bN) bl += `, ${bN}`;
-      if (bV) bl += ` (${bV})`;
-      linhas.push(bl);
-    }
-  }
-
-  // Observações finais (toggles pré-definidos) + observação livre
-  if (obsIds.length) {
-    linhas.push('');
-    obsIds.forEach(id => linhas.push(obsMap[id] || id));
-  }
-  if (obsCustom) {
-    linhas.push('');
-    linhas.push(obsCustom);
-  }
-
-  // Valores
-  linhas.push('');
-  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
-  if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
-
-  linhas.push('');
-  linhas.push('https://instagram.com/carronarederepasses');
-
-  const texto = linhas.join('\n');
+  // O texto do anuncio e montado num lugar so. Antes esta funcao repetia,
+  // linha por linha, a mesma composicao de montarTextoAnuncio() — duas
+  // copias que podiam divergir sem ninguem notar, ja que so uma delas
+  // aparecia no preview.
+  const texto = montarTextoAnuncio();
 
   // Render preview
   renderPreview(texto);
@@ -2554,7 +2508,11 @@ function gerarColetados() {
   linhas.push('');
   linhas.push('https://instagram.com/carronarederepasses');
 
-  const texto = linhas.join('\n');
+  // Mesma normalização do anúncio comum. Este montador não foi unificado
+  // com montarTextoAnuncio() porque de fato difere — só ele tem a seção
+  // *GASTOS:*. As duas cópias já haviam divergido; o que se unifica aqui é
+  // a arrumação final, não a composição.
+  const texto = _normalizarAnuncio(linhas);
 
   renderPreview(texto);
   mostrarShare(texto);
