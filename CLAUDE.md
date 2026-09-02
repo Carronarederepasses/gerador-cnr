@@ -1688,3 +1688,64 @@ alterar nada.
   "Range"). Carro raro no mercado dele; corrigível na tela
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Gerador de anúncio do WhatsApp — bugs de formatação (02/set/2026)
+
+Sete defeitos, todos corrigidos e verificados em produção.
+
+#### Linhas em branco (`198b8c0`)
+
+Cada seção decidia sozinha se abria com linha em branco, e ninguém arrumava o
+resultado. Quatro sintomas visíveis:
+
+1. Sem valor e sem FIPE → duas linhas em branco antes do link
+2. Sem veículo (só região) → o texto **abria** em branco, porque a linha da
+   região trazia um `\n` no começo
+3. Observação livre com várias quebras → vários brancos seguidos
+4. Formulário vazio → duas linhas em branco antes do link
+
+Corrigido com `_normalizarAnuncio()` no fim da montagem, em vez de acertar
+seção por seção e errar de novo na próxima que surgisse.
+
+#### Três montadores do mesmo texto (`198b8c0`)
+
+- `montarTextoAnuncio()` — o de referência
+- `gerar()` — repetia a composição linha por linha. **Unificado**: agora chama
+  a função. Eram duas cópias que podiam divergir sem ninguém notar, já que só
+  uma aparecia no preview.
+- `gerarColetados()` — terceira cópia, e **já havia divergido**: só ela tem a
+  seção `*GASTOS:*`. Não foi unificada porque a diferença é real; recebeu a
+  mesma normalização final.
+
+#### Caixa do nome do veículo (`865a177`)
+
+`toTitleCase` rebaixava a palavra inteira antes de capitalizar, destruindo as
+siglas. **Isso já saía errado nos anúncios do modo Coletados** (o do link e da
+IA): `XEI`→"Xei", `16V`→"16v", `MPI`→"Mpi", `LTZ`→"Ltz".
+
+E no modo normal a função nem era aplicada, então a inconsistência da FIPE ia
+direto para o WhatsApp: `VIRTUS 1.6 MSI Flex 16V 4p Aut.` gritando ao lado de
+`Corolla Altis`, e `ASTON MARTIN` ao lado de `Audi`.
+
+Regra nova — só muda o que está claramente fora do lugar:
+
+| Entrada | Ação |
+|---|---|
+| palavra com dígito | intocada (`16V`, `1.4`, `4p`, `250TSI`, `320i`) |
+| CAIXA ALTA, 4+ letras | é modelo → `VIRTUS` vira `Virtus` |
+| CAIXA ALTA, até 3 | é sigla → `XEI`, `MSI`, `LTZ`, `CS`, `RAM`, `BMW` |
+| já misturada | intocada (`Flex`, `Aut.`, `GR-S`, `Corolla`) |
+| toda minúscula | capitaliza (`strada` → `Strada`) |
+
+Testado em 10 nomes reais: 8 intactos, 2 corrigidos.
+
+#### Verificado e correto — não mexer
+
+- `wa.me/?text=` com `encodeURIComponent`: o texto chega idêntico ao gerado
+- Preview HTML corresponde ao texto (negrito, link, quebras)
+- Asterisco solto numa observação não cria negrito falso
+- Valor já formatado (`R$ 45.000,00`) e km com sufixo (`80.000 km`) não duplicam
+
+*Registrado em 02/setembro/2026.*
