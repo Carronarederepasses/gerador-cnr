@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Conversas — Carro na Rede</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);height:100vh;overflow:hidden}
+
+.topo{display:flex;align-items:center;justify-content:space-between;gap:.7rem;
+  padding:.85rem 1.2rem;border-bottom:1px solid var(--line);flex:none}
+.topo h1{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:900}
+.topo .sub{font-size:.7rem;color:var(--text-faint);letter-spacing:.1em;text-transform:uppercase}
+
+.painel{display:grid;grid-template-columns:20rem 1fr;height:calc(100vh - 3.6rem)}
+
+/* ── Lista de conversas ── */
+.coluna{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.coluna .busca{padding:.7rem;border-bottom:1px solid var(--line);flex:none}
+.coluna .busca input{width:100%;font-family:inherit;font-size:.85rem;color:var(--text);
+  background:var(--surface-raise);border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
+.coluna .busca input:focus{outline:none;border-color:var(--accent)}
+.rolagem{overflow-y:auto;flex:1;min-height:0}
+
+.conv{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);
+  padding:.75rem .85rem;cursor:pointer;font-family:inherit;color:var(--text)}
+.conv:hover{background:var(--surface-raise)}
+.conv.on{background:var(--accent-soft)}
+.conv .tit{font-size:.82rem;font-weight:700;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.conv .prev{font-size:.75rem;color:var(--text-mid);margin-top:.2rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .pe{display:flex;justify-content:space-between;gap:.5rem;margin-top:.25rem;
+  font-size:.66rem;color:var(--text-faint)}
+.conv .bolha{background:var(--accent);color:var(--surface);border-radius:20px;
+  padding:.05rem .4rem;font-size:.62rem;font-weight:700}
+
+/* ── Thread ── */
+.thread{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.thread-topo{padding:.8rem 1rem;border-bottom:1px solid var(--line);flex:none;
+  display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.thread-topo .nome{font-size:.9rem;font-weight:700;flex:1;min-width:0}
+.thread-topo a{font-size:.7rem;color:var(--accent);text-decoration:none;white-space:nowrap}
+.msgs{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem;min-height:0}
+.msg{max-width:min(78%,34rem);padding:.55rem .8rem;border-radius:12px;font-size:.87rem;line-height:1.45;
+  white-space:pre-wrap;word-break:break-word}
+.msg.in{align-self:flex-start;background:var(--surface-raise);border:1px solid var(--line)}
+.msg.out{align-self:flex-end;background:var(--text);color:var(--surface)}
+.msg .hora{display:block;font-size:.62rem;opacity:.55;margin-top:.25rem}
+
+.responder{flex:none;border-top:1px solid var(--line);padding:.7rem;display:flex;gap:.5rem;align-items:flex-end}
+.responder textarea{flex:1;min-height:2.6rem;max-height:8rem;resize:vertical;font-family:inherit;font-size:.87rem;
+  color:var(--text);background:var(--surface-raise);border:1px solid var(--line);border-radius:9px;padding:.55rem .7rem}
+.responder textarea:focus{outline:none;border-color:var(--accent)}
+.responder button{font-family:inherit;font-size:.8rem;font-weight:700;padding:.6rem 1rem;border-radius:9px;
+  border:none;background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap}
+.responder button:disabled{opacity:.5;cursor:default}
+.aviso{font-size:.72rem;padding:.5rem .7rem;border-top:1px solid var(--line);line-height:1.45}
+.aviso.erro{color:var(--severity-crit)}
+.aviso.ok{color:var(--severity-ok)}
+
+.vazio{margin:auto;text-align:center;color:var(--text-mid);font-size:.88rem;line-height:1.6;padding:2rem}
+
+/* Celular: uma coluna por vez, como a OLX faz */
+@media(max-width:760px){
+  .painel{grid-template-columns:1fr}
+  .coluna{border-right:none}
+  .painel.vendo-thread .coluna{display:none}
+  .painel:not(.vendo-thread) .thread{display:none}
+  .btn-voltar{display:inline-block !important}
+}
+.btn-voltar{display:none;background:none;border:1px solid var(--line);border-radius:7px;
+  color:var(--text-mid);font-family:inherit;font-size:.75rem;padding:.3rem .6rem;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <div>
+    <h1>Conversas</h1>
+    <div class="sub">Chat da OLX espelhado</div>
+  </div>
+  <span id="atualizado" style="font-size:.68rem;color:var(--text-faint)"></span>
+</div>
+
+<div class="painel" id="painel">
+  <div class="coluna">
+    <div class="busca">
+      <input type="search" id="filtro" placeholder="Filtrar por veículo…" autocomplete="off" oninput="renderLista()">
+    </div>
+    <div class="rolagem" id="lista"></div>
+  </div>
+
+  <div class="thread" id="thread">
+    <div class="vazio" id="thread-vazio">Escolha uma conversa à esquerda.</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+let CONVERSAS = [];
+let ANUNCIOS  = {};
+let ATUAL     = null;
+let _timerAuto = null;
+
+const esc = s => (s == null ? '' : String(s))
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const _limpar = s => String(s == null ? '' : s)
+  .normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+
+// "14:32" para hoje, "01/09" para dias anteriores. Data cheia no title.
+function quando(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const hoje = new Date();
+  const mesmoDia = d.toDateString() === hoje.toDateString();
+  return mesmoDia
+    ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function tituloDe(listing_id) {
+  return ANUNCIOS[listing_id]?.titulo || `Anúncio ${listing_id}`;
+}
+
+// ── Lista ─────────────────────────────────────────────────────────
+function renderLista() {
+  const termos = _limpar(document.getElementById('filtro').value).split(/\s+/).filter(Boolean);
+  const lista = CONVERSAS.filter(c => {
+    if (!termos.length) return true;
+    const alvo = _limpar(tituloDe(c.listing_id) + ' ' + (c.ultima || ''));
+    return termos.every(t => alvo.includes(t));
+  });
+
+  const el = document.getElementById('lista');
+  if (!lista.length) {
+    el.innerHTML = `<div class="vazio">${CONVERSAS.length
+      ? 'Nenhuma conversa com esse filtro.'
+      : 'Nenhuma conversa espelhada ainda.<br><small>Elas aparecem aqui conforme você conversa pela OLX.</small>'}</div>`;
+    return;
+  }
+
+  el.innerHTML = lista.map(c => {
+    const meu = c.direction === 'outgoing';
+    return `<button class="conv${ATUAL === c.listing_id ? ' on' : ''}" data-id="${esc(c.listing_id)}">
+      <div class="tit">${esc(tituloDe(c.listing_id))}</div>
+      <div class="prev">${meu ? '<span style="opacity:.6">Você: </span>' : ''}${esc((c.ultima || '').replace(/\s+/g,' '))}</div>
+      <div class="pe">
+        <span title="${esc(c.detected_at || '')}">${quando(c.detected_at)}</span>
+        <span>${c.total} msg${c.total > 1 ? 's' : ''}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  el.querySelectorAll('.conv').forEach(b => {
+    b.addEventListener('click', () => abrir(b.dataset.id));
+  });
+}
+
+// ── Thread ────────────────────────────────────────────────────────
+async function abrir(listing_id, silencioso) {
+  ATUAL = listing_id;
+  document.getElementById('painel').classList.add('vendo-thread');
+  if (!silencioso) renderLista();
+
+  const thread = document.getElementById('thread');
+  const anuncio = ANUNCIOS[listing_id];
+
+  // Só remonta o esqueleto na primeira abertura: no modo silencioso o
+  // objetivo é atualizar as mensagens sem tirar o texto que está sendo
+  // digitado nem perder a posição da rolagem.
+  if (!silencioso || !document.getElementById('msgs')) {
+    thread.innerHTML = `
+      <div class="thread-topo">
+        <button class="btn-voltar" onclick="voltar()">‹ Conversas</button>
+        <div class="nome">${esc(tituloDe(listing_id))}</div>
+        ${anuncio?.url ? `<a href="${esc(anuncio.url)}" target="_blank" rel="noopener">ver anúncio ↗</a>` : ''}
+      </div>
+      <div class="msgs" id="msgs"><div class="vazio">Carregando…</div></div>
+      <div class="aviso" id="aviso" style="display:none"></div>
+      <div class="responder">
+        <textarea id="resposta" placeholder="Escreva sua resposta…" rows="1"></textarea>
+        <button id="btn-enviar" onclick="enviar()">Enviar</button>
+      </div>`;
+  }
+
+  const msgsEl = document.getElementById('msgs');
+  const grudadoNoFim = msgsEl.scrollTop + msgsEl.clientHeight >= msgsEl.scrollHeight - 40;
+
+  let msgs;
+  try {
+    const r = await fetch(`/api/fetch-anuncio?mensagens=1&listing_id=${encodeURIComponent(listing_id)}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    msgs = await r.json();
+  } catch (e) {
+    // Em atualização automática, falha de rede não pode apagar a conversa
+    // que está na tela — some com a mensagem e volta na próxima rodada.
+    if (silencioso) return;
+    msgsEl.innerHTML = `<div class="vazio">Não consegui carregar as mensagens.<br>${esc(e.message)}</div>`;
+    return;
+  }
+
+  msgsEl.innerHTML = msgs.length
+    ? msgs.map(m => `<div class="msg ${m.direction === 'outgoing' ? 'out' : 'in'}">${esc(m.content)}<span class="hora">${quando(m.detected_at)}</span></div>`).join('')
+    : '<div class="vazio">Sem mensagens espelhadas para este anúncio.</div>';
+
+  if (!silencioso || grudadoNoFim) msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  clearInterval(_timerAuto);
+  _timerAuto = setInterval(() => { if (ATUAL) abrir(ATUAL, true); }, 10000);
+}
+
+function voltar() {
+  document.getElementById('painel').classList.remove('vendo-thread');
+  ATUAL = null;
+  clearInterval(_timerAuto);
+  renderLista();
+}
+
+function mostrarAviso(txt, cls) {
+  const el = document.getElementById('aviso');
+  if (!el) return;
+  el.textContent = txt;
+  el.className = 'aviso' + (cls ? ' ' + cls : '');
+  el.style.display = txt ? '' : 'none';
+}
+
+// ── Envio ─────────────────────────────────────────────────────────
+// Mesmo caminho de anuncios.html: a extensão injeta o texto no chat da OLX.
+// Nada sai daqui sem este clique.
+function enviar() {
+  const ta  = document.getElementById('resposta');
+  const btn = document.getElementById('btn-enviar');
+  const texto = (ta.value || '').trim();
+  if (!texto || !ATUAL) return;
+
+  const listing_id = ATUAL;
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+  mostrarAviso('');
+
+  const limpar = () => { window.removeEventListener('message', ouvinte); clearTimeout(timer); };
+
+  // Sem ACK em 15s o botão volta com erro. Travado para sempre seria pior:
+  // ele reenviaria por outro caminho sem saber se a primeira foi ou não.
+  const timer = setTimeout(() => {
+    limpar();
+    btn.disabled = false; btn.textContent = 'Enviar';
+    mostrarAviso('A extensão não respondeu. Recarregue esta página (F5) e tente de novo.', 'erro');
+  }, 15000);
+
+  function ouvinte(e) {
+    if (e.source !== window || e.data?.cnr_type !== 'CNR_RESPOSTA_ACK') return;
+    if (e.data.listing_id !== listing_id) return;
+    limpar();
+    btn.disabled = false; btn.textContent = 'Enviar';
+    if (e.data.ok) {
+      ta.value = '';
+      mostrarAviso('Mensagem enviada.', 'ok');
+      // A extensão só grava a mensagem depois que a OLX confirma, e isso é
+      // mais uma ida ao banco. Duas tentativas cobrem rede lenta.
+      setTimeout(() => abrir(listing_id, true), 1500);
+      setTimeout(() => abrir(listing_id, true), 3500);
+    } else {
+      mostrarAviso('Não foi enviada: ' + (e.data.err || 'erro desconhecido')
+        + '. A conversa precisa estar aberta na OLX.', 'erro');
+    }
+  }
+  window.addEventListener('message', ouvinte);
+  window.postMessage({ cnr_type: 'CNR_ENVIAR_RESPOSTA', listing_id, texto }, '*');
+}
+
+// ── Carga ─────────────────────────────────────────────────────────
+async function carregar() {
+  try {
+    const [conv, anun] = await Promise.all([
+      fetch('/api/fetch-anuncio?mensagens=1').then(r => r.json()),
+      fetch('/api/fetch-anuncio?radar=1').then(r => r.json()).catch(() => []),
+    ]);
+    CONVERSAS = Array.isArray(conv) ? conv : [];
+    CONVERSAS.sort((a, b) => String(b.detected_at || '').localeCompare(String(a.detected_at || '')));
+    ANUNCIOS = {};
+    (Array.isArray(anun) ? anun : []).forEach(a => { ANUNCIOS[a.listing_id] = a; });
+    document.getElementById('atualizado').textContent =
+      `${CONVERSAS.length} conversa(s) · ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    renderLista();
+  } catch (e) {
+    console.error('[CONVERSAS] falha ao carregar:', e);
+    document.getElementById('lista').innerHTML =
+      `<div class="vazio">Não consegui carregar as conversas.<br>${esc(e.message)}</div>`;
+  }
+}
+
+// Abre direto numa conversa quando vem de outra tela (?listing_id=)
+carregar().then(() => {
+  const alvo = new URLSearchParams(location.search).get('listing_id');
+  if (alvo) abrir(alvo);
+});
+
+// A lista se atualiza sozinha; a thread aberta tem o próprio ciclo de 10s.
+setInterval(carregar, 30000);
+</script>
+</body>
+</html>
