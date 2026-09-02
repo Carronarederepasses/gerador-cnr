@@ -830,23 +830,35 @@ async function irParaVenda(id) {
   p.set('negociacao_id', n.id); // Caixa Preta — Etapa 6: liga negociação à venda
 
   // Busca dados completos do veículo no catálogo para pré-preencher o formulário de venda
+  //
+  // O recuo antes vivia só no catch, e por isso não cobria o caso que de fato
+  // acontece: veículo apagado do catálogo devolve HTTP 200 com corpo `null`.
+  // Sem exceção, o catch nunca rodava e a venda abria sem nem o nome do carro
+  // — que estava ali, em n.veiculo_nome. Três negociações do Celta estão
+  // exatamente nessa situação.
+  //
+  // Agora o resultado é avaliado: só é considerado sucesso se veio veículo.
+  let veiculoDoCatalogo = null;
   if (n.veiculo_id) {
     try {
       const r = await fetch('/api/catalogo?id=' + encodeURIComponent(n.veiculo_id));
       if (r.ok) {
         const v = await r.json();
-        if (v) {
-          ['marca','modelo','versao','ano','placa','cor','km','renavam',
-           'valor_compra','vendedor_nome','vendedor_telefone'].forEach(c => {
-            if (v[c] != null && v[c] !== '') p.set(c, v[c]);
-          });
-          if (v.fipe != null && v.fipe !== '') p.set('valor_fipe', v.fipe);
-        }
+        if (v && !Array.isArray(v)) veiculoDoCatalogo = v;
+        else if (Array.isArray(v) && v.length) veiculoDoCatalogo = v[0];
       }
     } catch (e) {
-      // Falha silenciosa — vai com o nome do veículo apenas
-      if (n.veiculo_nome) p.set('modelo', n.veiculo_nome);
+      console.warn('[NEG] catálogo indisponível:', e.message);
     }
+  }
+
+  if (veiculoDoCatalogo) {
+    const v = veiculoDoCatalogo;
+    ['marca','modelo','versao','ano','placa','cor','km','renavam',
+     'valor_compra','vendedor_nome','vendedor_telefone'].forEach(c => {
+      if (v[c] != null && v[c] !== '') p.set(c, v[c]);
+    });
+    if (v.fipe != null && v.fipe !== '') p.set('valor_fipe', v.fipe);
   } else if (n.veiculo_nome) {
     p.set('modelo', n.veiculo_nome);
   }
