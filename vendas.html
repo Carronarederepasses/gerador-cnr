@@ -43,15 +43,9 @@
 
   .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:var(--text-mid)}
 
-  /* Busca — 114 registros e crescendo; achar uma venda era rolar até topar */
-  .busca-linha{display:flex;gap:.5rem;align-items:center;margin-bottom:.7rem}
-  .busca-linha input{flex:1;min-width:0;font-family:inherit;font-size:.9rem;color:var(--text);
-    background:var(--surface-raise);border:1px solid var(--line);border-radius:9px;padding:.6rem .75rem}
-  .busca-linha input:focus{outline:none;border-color:var(--accent)}
-  /* O X só aparece com algo digitado: botão morto em tela pequena é ruído */
-  #btn-limpar-busca{display:none;flex:none;padding:.55rem .7rem;font-size:.8rem}
-  .busca-linha.tem-texto #btn-limpar-busca{display:block}
-  mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 .1em}
+  /* Some com a lupa/x que o Safari desenha por conta própria no type=search,
+     que não combina com o resto dos campos. */
+  #f-q::-webkit-search-decoration,#f-q::-webkit-search-cancel-button{-webkit-appearance:none}
 
   /* Cards de venda */
   .lista{display:flex;flex-direction:column;gap:1rem}
@@ -187,7 +181,8 @@
   <div class="barra">
     <div class="campo busca">
       <label for="f-q">Buscar (comprador, vendedor, carro, placa)</label>
-      <input id="f-q" type="text" placeholder="ex: João, Onix, ABC1D23..." />
+      <!-- type=search: no celular o teclado vem certo e aparece o "x" nativo -->
+      <input id="f-q" type="search" autocomplete="off" placeholder="ex: João, Onix, ABC1D23..." />
     </div>
     <div class="campo">
       <label for="f-status">Status</label>
@@ -205,13 +200,6 @@
     <button class="btn ghost" onclick="abrirRapida()" style="white-space:nowrap">⚡ Histórico rápido</button>
     <button class="btn ghost" onclick="exportarCSV()" style="white-space:nowrap">📥 CSV</button>
     <button class="btn ghost" id="btn-historico" onclick="toggleHistorico()" style="white-space:nowrap;opacity:.6">👁 Histórico</button>
-  </div>
-
-  <!-- type=search para o celular oferecer o "x" de limpar e o teclado certo -->
-  <div class="busca-linha">
-    <input type="search" id="busca" placeholder="Buscar por carro, placa, comprador, vendedor ou cidade"
-           autocomplete="off" oninput="render()" aria-label="Buscar nas vendas">
-    <button class="btn ghost" id="btn-limpar-busca" onclick="limparBusca()" title="Limpar busca">✕</button>
   </div>
 
   <div class="meta-linha" style="display:flex;justify-content:space-between;align-items:center"><span id="contador"></span><button id="btn-ordem" class="btn ghost" style="font-size:.74rem;padding:.4rem .7rem">⬇ Mais recentes</button></div>
@@ -842,7 +830,9 @@ iniciarApp();
 // ── Carregar / filtrar ─────────────────────────────────────────
 async function carregar() {
   const q = new URLSearchParams();
-  if ($('f-q').value.trim())   q.set('q', $('f-q').value.trim());
+  // `q` não é mais enviado: a busca é feita no cliente. Mandá-lo aqui faria o
+  // servidor filtrar antes, com regra mais pobre — e "citroen" voltaria vazio
+  // do banco, sem chance de o cliente casar "Citroën".
   if ($('f-status').value)     q.set('status', $('f-status').value);
   try {
     const r = await fetch('/api/vendas?' + q.toString(), { headers: headers() });
@@ -851,7 +841,13 @@ async function carregar() {
     render();
   } catch (e) { mostrarErro(e.message); }
 }
-$('f-q').addEventListener('input', debounce(carregar, 350));
+// A busca deixou de ir ao servidor. Era um ida-e-volta de rede a cada pausa
+// de 350ms para filtrar dados que já estão todos na tela, e o `ilike` do
+// Postgres não ignora acento nem casa placa sem hífen.
+//
+// Agora filtra no cliente, instantâneo, e reconhece mais coisa. O status
+// continua no servidor, porque define QUAIS vendas são carregadas.
+$('f-q').addEventListener('input', render);
 $('f-status').addEventListener('change', carregar);
 
 function debounce(fn, ms){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
@@ -908,17 +904,9 @@ function _casaBusca(v, termos) {
   return termos.every(t => alvo.includes(t));
 }
 
-function limparBusca() {
-  const el = $('busca');
-  el.value = '';
-  el.focus();
-  render();
-}
-
 function render() {
-  const termo = ($('busca')?.value || '').trim();
+  const termo = ($('f-q')?.value || '').trim();
   const termos = _limpar(termo).split(/\s+/).filter(Boolean);
-  $('busca')?.parentElement.classList.toggle('tem-texto', !!termo);
 
   let visiveis = _mostrarHistorico ? VENDAS : VENDAS.filter(v => v.canal_origem !== 'historico');
 
