@@ -140,6 +140,24 @@
 <body>
 
 <div id="cnr-toast"></div>
+
+<!-- Aviso de dispositivo sem chave. NÃO é portão: a página funciona e a
+     leitura continua livre. Aparece só quando falta a chave, porque ela
+     vive no localStorage de CADA dispositivo — configurada no notebook,
+     o celular continuava sem, e toda gravação voltava 401 "Acesso negado"
+     sem explicar o motivo. Antes só dava para configurar pelo console,
+     que no celular não existe. -->
+<div id="aviso-chave" style="display:none;background:var(--severity-warn,#8a6218);color:#fff;padding:.85rem 1rem;font-size:.85rem;line-height:1.45">
+  <div style="max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:.6rem;align-items:center">
+    <span style="flex:1;min-width:220px">
+      ⚠️ <b>Este dispositivo não pode salvar.</b>
+      Falta a chave de acesso — leitura funciona, gravação e anexos são recusados.
+    </span>
+    <input id="in-chave" type="password" placeholder="Colar chave" autocomplete="off"
+           style="flex:1;min-width:180px;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.5rem .7rem;border:none;border-radius:8px" />
+    <button id="btn-chave" style="font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;padding:.5rem 1rem;border:none;border-radius:8px;background:#fff;color:#000;cursor:pointer">Salvar chave</button>
+  </div>
+</div>
 <div class="wrap" id="app">
   <header>
     <h1>Registro de Vendas</h1>
@@ -396,6 +414,28 @@ const dataBR = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : 
 const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 let KEY = localStorage.getItem('cnr_vendas_key') || '';
+
+// Sem chave, toda gravação volta 401. Avisar na hora, em vez de deixar o
+// usuário descobrir ao perder o preenchimento de uma venda.
+(function configChave() {
+  const aviso = document.getElementById('aviso-chave');
+  if (!aviso) return;
+  if (!KEY) aviso.style.display = '';
+
+  document.getElementById('btn-chave')?.addEventListener('click', () => {
+    const v = (document.getElementById('in-chave')?.value || '').trim();
+    if (!v) { alert('Cole a chave antes de salvar.'); return; }
+    try {
+      localStorage.setItem('cnr_vendas_key', v);
+    } catch (e) {
+      alert('Não foi possível guardar a chave neste navegador:\n\n' + e.message);
+      return;
+    }
+    KEY = v;
+    aviso.style.display = 'none';
+    toast('✓ Chave salva neste dispositivo. Já pode salvar e anexar.', 'ok', 5000);
+  });
+})();
 function headers(extra) {
   const h = { 'Content-Type': 'application/json' };
   if (KEY) h['x-cnr-key'] = KEY;
@@ -1172,6 +1212,17 @@ $('m-salvar').onclick = async () => {
     // some em 6s. Confiar só na tarja foi o que fez um salvamento parecer
     // silencioso por uma noite inteira.
     console.error('[SALVAR ERRO]', e);
+    if (/acesso negado/i.test(e.message || '')) {
+      // Mesma causa do anexo: dispositivo sem a chave. No celular isso era
+      // invisível e a venda parecia simplesmente não salvar.
+      document.getElementById('aviso-chave').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      alert('Este dispositivo não está autorizado a salvar.\n\n' +
+            'Cole a chave de acesso no aviso que apareceu no topo da página. ' +
+            'Ela é pedida uma vez por aparelho.\n\n' +
+            'Seus dados continuam preenchidos — salve de novo depois.');
+      return;
+    }
     toast('Falha ao salvar: ' + e.message, 'erro', 6000);
   } finally {
     btn.disabled = false; btn.textContent = 'Salvar venda';
@@ -1244,11 +1295,17 @@ $('file-input').addEventListener('change', async (e) => {
     // aviso no topo da página que sumia em 5s — quem anexa está num card
     // mais abaixo e nunca via.
     console.error('[ANEXO ERRO]', err);
-    toast('Falha ao anexar: ' + err.message, 'erro', 8000);
-    // TEMPORÁRIO — o anexo é feito no celular, onde não há console e a tarja
-    // pode passar despercebida. O alerta garante que a causa chegue ao Yuri.
-    // Remover quando a falha estiver identificada.
-    alert('Falha ao anexar:\n\n' + err.message);
+    const semChave = /acesso negado/i.test(err.message || '');
+    if (semChave) {
+      document.getElementById('aviso-chave').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      alert('Este dispositivo não está autorizado a salvar.\n\n' +
+            'Cole a chave de acesso no aviso que apareceu no topo da página. ' +
+            'Ela é pedida uma vez por aparelho.');
+    } else {
+      toast('Falha ao anexar: ' + err.message, 'erro', 8000);
+      alert('Falha ao anexar:\n\n' + err.message);
+    }
     carregar();
   }
 });
