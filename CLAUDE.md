@@ -1832,3 +1832,44 @@ carro. Quase reportei como bug.
 - Filtros de `anuncios.html`: 113+8+6+2+7 = 136 = total
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Conferência ponta a ponta — 02/set/2026
+
+#### Varredura estrutural (9 páginas)
+
+Zero ID duplicado e zero handler inline apontando para função inexistente em
+`home`, `index`, `catalogo`, `anuncios`, `vendas`, `compradores`,
+`negociacoes`, `consultas`, `artes`, `foto`.
+
+#### Endpoints: validação de entrada
+
+Oito endpoints testados com corpo vazio — todos devolvem 400 com mensagem
+clara em português, nenhum 500: `remove-bg`, `placa` (POST e GET),
+`ia-compor`, `parse`, `consulta`, `vendas?anexo=1`, `catalogo`.
+
+#### Telas exercitadas
+
+- **Artes**: canvas 1080×1080, três modelos gerando artes distintas, presets
+  de dica funcionando (3 assinaturas distintas; o placeholder corretamente
+  não altera nada)
+- **Foto**: `input[type=file]` com `display:block` (a lição do bug de anexo no
+  celular já estava aplicada aqui), canvas presente, `remove-bg` integrado
+- **Catálogo**: `abrirEdicao` popula os 10 campos corretamente
+
+#### Erro que cometi e revertido (`46f5a61` → `b378abc`)
+
+Concluí que `valor_compra` não era editável porque não está no payload do
+modal de edição, e adicionei um campo. **Estava errado**: já existe
+`editarValorCompra`, acionado clicando em "Captado por" no card ou no botão
+"+ Custo".
+
+Além de duplicar, minha versão criava risco real: se o modal abrisse com o
+campo não populado, salvar gravaria `null` por cima de um valor existente.
+Revertido.
+
+> Lição: olhei o payload de uma função e concluí sobre o sistema inteiro.
+> A funcionalidade estava a 60 linhas de distância, no mesmo arquivo.
+
+*Registrado em 02/setembro/2026.*
