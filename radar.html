@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Radar — Carro na Rede</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);min-height:100vh;padding-bottom:4rem}
+
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.7rem;padding:1.1rem 1.4rem;border-bottom:1px solid var(--line)}
+.logo{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700}
+.logo span{display:block;font-size:.55rem;font-weight:400;letter-spacing:.2em;text-transform:uppercase;color:var(--text-mid);margin-top:.1rem}
+
+.wrap{max-width:52rem;margin:0 auto;padding:1.6rem 1.2rem 0}
+
+h1{font-family:'Playfair Display',serif;font-size:1.75rem;font-weight:900;letter-spacing:-.01em}
+.sub{color:var(--text-mid);font-size:.9rem;margin-top:.35rem;max-width:38rem;line-height:1.55}
+
+/* custo em tempo */
+.custo{display:flex;align-items:baseline;gap:.55rem;flex-wrap:wrap;
+  background:var(--accent-soft);border-radius:9px;padding:.7rem .95rem;margin:1.3rem 0 1.1rem;font-size:.85rem}
+.custo b{font-size:1.05rem}
+.custo .alerta{color:var(--severity-warn);font-weight:700}
+
+/* cartão de busca */
+.busca{border:1px solid var(--line);border-radius:11px;background:var(--surface-raise);margin-bottom:.85rem;overflow:hidden}
+.busca.off{opacity:.55}
+.b-top{display:flex;align-items:center;gap:.6rem;padding:.8rem .9rem}
+.b-nome{flex:1;min-width:0;font-size:.95rem;font-weight:700;background:none;border:none;color:var(--text);
+  font-family:inherit;padding:.15rem 0;border-bottom:1px dashed transparent}
+.b-nome:focus{outline:none;border-bottom-color:var(--line)}
+.ico{background:none;border:1px solid var(--line);border-radius:7px;color:var(--text-mid);
+  padding:.3rem .5rem;cursor:pointer;font-size:.8rem;line-height:1;flex:none}
+.ico:hover{color:var(--text);border-color:var(--text)}
+.ico.perigo:hover{color:var(--severity-crit);border-color:var(--severity-crit)}
+
+.b-corpo{padding:0 .9rem .9rem;display:grid;gap:.75rem}
+label{display:block;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mid);margin-bottom:.3rem}
+input[type=text],input[type=number],textarea{width:100%;font-family:inherit;font-size:.88rem;color:var(--text);
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.5rem .6rem}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;min-height:3.4rem;line-height:1.45;word-break:break-all}
+
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:.6rem}
+.regiao{font-size:.8rem;color:var(--text-mid);background:var(--surface);border:1px dashed var(--line);
+  border-radius:8px;padding:.5rem .6rem;word-break:break-word}
+
+.chips{display:flex;flex-wrap:wrap;gap:.35rem}
+.chip{font-size:.7rem;background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  padding:.25rem .6rem;color:var(--text-mid);font-variant-numeric:tabular-nums}
+
+details.extra > summary{font-size:.72rem;color:var(--text-mid);cursor:pointer;padding:.2rem 0;list-style:none}
+details.extra > summary::-webkit-details-marker{display:none}
+details.extra > summary::before{content:'▸ ';font-size:.7rem}
+details.extra[open] > summary::before{content:'▾ '}
+details.extra > div{padding-top:.6rem;display:grid;gap:.6rem}
+
+.acoes{display:flex;gap:.6rem;flex-wrap:wrap;margin:1.4rem 0 0}
+.btn{font-family:inherit;font-size:.85rem;font-weight:700;padding:.62rem 1.1rem;border-radius:9px;
+  border:1px solid var(--line);background:none;color:var(--text);cursor:pointer}
+.btn:hover{border-color:var(--text)}
+.btn.pri{background:var(--text);color:var(--surface);border-color:var(--text)}
+.btn:disabled{opacity:.5;cursor:default}
+
+.vazio{border:1px dashed var(--line);border-radius:11px;padding:2rem 1.2rem;text-align:center;color:var(--text-mid);font-size:.88rem;line-height:1.6}
+
+.nota{font-size:.78rem;color:var(--text-mid);line-height:1.6;margin-top:1.6rem;
+  border-top:1px solid var(--line);padding-top:1rem}
+.nota b{color:var(--text)}
+
+#tarja{position:fixed;left:50%;bottom:1.4rem;transform:translateX(-50%);z-index:60;
+  background:var(--text);color:var(--surface);padding:.7rem 1.1rem;border-radius:9px;font-size:.85rem;
+  max-width:min(92vw,32rem);text-align:center;white-space:pre-wrap;display:none;box-shadow:0 6px 24px rgba(0,0,0,.22)}
+#tarja.erro{background:var(--severity-crit);color:#fff}
+#tarja.ok{background:var(--severity-ok);color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Carro na Rede<span>Repasses</span></div>
+</header>
+
+<div class="wrap">
+  <h1>Radar</h1>
+  <p class="sub">As buscas da OLX que a extensão verifica de hora em hora. Cole o link de uma busca que já funciona no site — os filtros aparecem aqui para ajuste.</p>
+
+  <div class="custo" id="custo"></div>
+
+  <div id="lista"></div>
+
+  <div class="acoes">
+    <button class="btn" id="btn-add">+ Adicionar busca</button>
+    <button class="btn pri" id="btn-salvar">Salvar</button>
+  </div>
+
+  <p class="nota">
+    <b>Por que colar o link em vez de montar o filtro aqui?</b> Os parâmetros de URL da OLX mudam sem aviso.
+    Montando do zero, qualquer mudança lá quebraria a busca aqui. Colando um link que já funciona, o pior caso
+    é um filtro aparecer como “não reconhecido” — e a busca continua rodando igual.<br><br>
+    <b>Como pegar o link:</b> faça a busca na OLX normalmente, com todos os filtros aplicados, e copie o endereço da barra do navegador.<br><br>
+    <b>Atenção:</b> a leitura dos filtros abaixo é uma interpretação dos parâmetros da OLX. Se algum campo aparecer
+    com valor estranho, confie no link e não no campo — e me avise para eu corrigir o mapeamento.
+  </p>
+</div>
+
+<div id="tarja"></div>
+
+<script>
+'use strict';
+
+// Parâmetros da OLX que sabemos interpretar. Todo o resto é preservado
+// intacto — ver a nota no rodapé da página sobre por que isso importa.
+const CAMPOS = [
+  ['q',  'Palavra-chave', 'text'],
+  ['ps', 'Preço mínimo',  'number'],
+  ['pe', 'Preço máximo',  'number'],
+  ['rs', 'Ano mínimo',    'number'],
+  ['re', 'Ano máximo',    'number'],
+];
+const CONHECIDOS = new Set(CAMPOS.map(c => c[0]));
+
+let BUSCAS = [];
+let sujo = false;
+
+const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function tarja(msg, cls, ms) {
+  const el = document.getElementById('tarja');
+  el.textContent = msg;
+  el.className = cls || '';
+  el.style.display = 'block';
+  clearTimeout(tarja._t);
+  tarja._t = setTimeout(() => { el.style.display = 'none'; }, ms || 4000);
+}
+
+function novoId() {
+  return 'b-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+}
+
+// ── Decomposição da URL ───────────────────────────────────────────
+// Devolve os campos reconhecidos, os parâmetros preservados e a região
+// (que vive no caminho da URL, não na query).
+function decompor(url) {
+  try {
+    const u = new URL(url);
+    const campos = {};
+    const outros = [];
+    for (const [k, v] of u.searchParams.entries()) {
+      if (CONHECIDOS.has(k)) campos[k] = v;
+      else outros.push([k, v]);
+    }
+    const regiao = decodeURIComponent(u.pathname)
+      .split('/').filter(Boolean).join(' › ');
+    return { ok: true, campos, outros, regiao };
+  } catch (e) {
+    return { ok: false, campos: {}, outros: [], regiao: '' };
+  }
+}
+
+// Reescreve a URL trocando só os parâmetros reconhecidos. Campo vazio
+// remove o parâmetro; o que não reconhecemos nunca é tocado.
+function recompor(url, campos) {
+  const u = new URL(url);
+  for (const [chave] of CAMPOS) {
+    const v = (campos[chave] || '').trim();
+    if (v) u.searchParams.set(chave, v);
+    else   u.searchParams.delete(chave);
+  }
+  return u.toString();
+}
+
+// ── Custo em tempo ────────────────────────────────────────────────
+// A verificação é serial e cada busca tem teto de 23s no service worker.
+// Sem isso, é fácil configurar 20 buscas e achar que a extensão travou.
+function atualizarCusto() {
+  const ativas = BUSCAS.filter(b => b.ativa).length;
+  const seg = ativas * 25;
+  const tempo = seg < 60
+    ? `${seg}s`
+    : `${Math.floor(seg / 60)}min${seg % 60 ? ' ' + (seg % 60) + 's' : ''}`;
+
+  let txt = ativas === 0
+    ? 'Nenhuma busca ativa — o Radar não vai procurar nada.'
+    : `${ativas} busca${ativas > 1 ? 's' : ''} ativa${ativas > 1 ? 's' : ''} · até <b>${tempo}</b> por verificação, de hora em hora.`;
+
+  if (ativas > 10) {
+    txt += ' <span class="alerta">Acima de 10 buscas o navegador costuma interromper o ciclo antes do fim.</span>';
+  }
+  document.getElementById('custo').innerHTML = txt;
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function render() {
+  const lista = document.getElementById('lista');
+
+  if (!BUSCAS.length) {
+    lista.innerHTML = '<div class="vazio">Nenhuma busca configurada.<br>'
+      + 'Faça uma busca na OLX com os filtros que você usa, copie o endereço<br>'
+      + 'e clique em <b>+ Adicionar busca</b>.</div>';
+    atualizarCusto();
+    return;
+  }
+
+  lista.innerHTML = BUSCAS.map((b, i) => {
+    const d = decompor(b.url);
+    const campos = CAMPOS.map(([chave, rotulo, tipo]) => `
+      <div>
+        <label for="c-${i}-${chave}">${rotulo}</label>
+        <input id="c-${i}-${chave}" type="${tipo}" value="${esc(d.campos[chave] || '')}"
+               data-i="${i}" data-campo="${chave}" class="campo">
+      </div>`).join('');
+
+    const chips = d.outros.length
+      ? `<div><label>Preservados do link</label><div class="chips">${
+          d.outros.map(([k, v]) => `<span class="chip">${esc(k)}=${esc(v)}</span>`).join('')
+        }</div></div>`
+      : '';
+
+    return `
+    <div class="busca ${b.ativa ? '' : 'off'}">
+      <div class="b-top">
+        <input class="b-nome nome" data-i="${i}" value="${esc(b.nome)}" placeholder="Nome da busca">
+        <button class="ico liga" data-i="${i}" title="${b.ativa ? 'Desligar' : 'Ligar'}">${b.ativa ? '● ativa' : '○ desligada'}</button>
+        <button class="ico perigo remover" data-i="${i}" title="Remover">✕</button>
+      </div>
+      <div class="b-corpo">
+        <div>
+          <label for="u-${i}">Link da busca na OLX</label>
+          <textarea id="u-${i}" class="url" data-i="${i}" placeholder="https://www.olx.com.br/...">${esc(b.url)}</textarea>
+        </div>
+        ${d.ok ? `
+          <div class="regiao">Região: ${esc(d.regiao) || '—'}</div>
+          <details class="extra"${Object.keys(d.campos).length ? ' open' : ''}>
+            <summary>Filtros do link</summary>
+            <div>
+              <div class="grade">${campos}</div>
+              ${chips}
+            </div>
+          </details>`
+        : '<div class="regiao">Link inválido — confira se copiou o endereço inteiro.</div>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Eventos
+  lista.querySelectorAll('.nome').forEach(el => {
+    el.addEventListener('input', e => {
+      BUSCAS[+e.target.dataset.i].nome = e.target.value;
+      sujo = true;
+    });
+  });
+
+  lista.querySelectorAll('.url').forEach(el => {
+    // 'change' e não 'input': redesenhar a cada tecla tiraria o foco do campo.
+    el.addEventListener('change', e => {
+      BUSCAS[+e.target.dataset.i].url = e.target.value.trim();
+      sujo = true;
+      render();
+    });
+  });
+
+  lista.querySelectorAll('.campo').forEach(el => {
+    el.addEventListener('change', e => {
+      const i = +e.target.dataset.i;
+      const b = BUSCAS[i];
+      const d = decompor(b.url);
+      if (!d.ok) return;
+      const campos = { ...d.campos, [e.target.dataset.campo]: e.target.value };
+      try {
+        b.url = recompor(b.url, campos);
+        sujo = true;
+        render();
+      } catch (err) {
+        tarja('Não consegui aplicar o filtro: ' + err.message, 'erro');
+      }
+    });
+  });
+
+  lista.querySelectorAll('.liga').forEach(el => {
+    el.addEventListener('click', e => {
+      const i = +e.currentTarget.dataset.i;
+      BUSCAS[i].ativa = !BUSCAS[i].ativa;
+      sujo = true;
+      render();
+    });
+  });
+
+  lista.querySelectorAll('.remover').forEach(el => {
+    el.addEventListener('click', e => {
+      const i = +e.currentTarget.dataset.i;
+      if (!confirm(`Remover a busca "${BUSCAS[i].nome || 'sem nome'}"?`)) return;
+      BUSCAS.splice(i, 1);
+      sujo = true;
+      render();
+    });
+  });
+
+  atualizarCusto();
+}
+
+// ── Carregar e salvar ─────────────────────────────────────────────
+async function carregar() {
+  try {
+    const r = await fetch('/api/fetch-anuncio?buscas=1');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const dados = await r.json();
+    BUSCAS = (Array.isArray(dados) ? dados : []).map(b => ({
+      id: b.id, nome: b.nome || '', url: b.url || '', ativa: b.ativa !== false,
+    }));
+    render();
+  } catch (e) {
+    console.error('[RADAR] falha ao carregar:', e);
+    document.getElementById('lista').innerHTML =
+      '<div class="vazio">Não consegui carregar as buscas.<br>' + esc(e.message) + '</div>';
+    tarja('Falha ao carregar: ' + e.message, 'erro', 7000);
+  }
+}
+
+async function salvar() {
+  const btn = document.getElementById('btn-salvar');
+
+  // Validar aqui em vez de deixar o servidor recusar: o erro fica ao lado
+  // do campo errado, não numa tarja genérica.
+  for (const b of BUSCAS) {
+    if (!b.nome.trim()) { tarja('Toda busca precisa de um nome.', 'erro'); return; }
+    if (!/^https:\/\/([a-z0-9-]+\.)*olx\.com\.br\//i.test(b.url)) {
+      tarja(`"${b.nome}" não tem um link válido da OLX.`, 'erro', 6000);
+      return;
+    }
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+  try {
+    const r = await fetch('/api/fetch-anuncio?buscas=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ buscas: BUSCAS }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    sujo = false;
+    tarja(`✓ ${d.salvas} busca(s) salva(s). A extensão usa na próxima verificação.`, 'ok', 5000);
+  } catch (e) {
+    console.error('[RADAR] falha ao salvar:', e);
+    tarja('Falha ao salvar: ' + e.message, 'erro', 8000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+}
+
+document.getElementById('btn-add').addEventListener('click', () => {
+  BUSCAS.push({ id: novoId(), nome: '', url: '', ativa: true });
+  sujo = true;
+  render();
+  const campos = document.querySelectorAll('.b-nome');
+  campos[campos.length - 1]?.focus();
+});
+
+document.getElementById('btn-salvar').addEventListener('click', salvar);
+
+window.addEventListener('beforeunload', e => {
+  if (!sujo) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
+carregar();
+</script>
+</body>
+</html>

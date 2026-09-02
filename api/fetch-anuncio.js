@@ -1,7 +1,13 @@
-// Vercel API Route — dois modos via query param:
+// Vercel API Route — modos via query param.
+// Tudo mora neste arquivo porque o plano Hobby da Vercel limita a 12 funções
+// serverless e o projeto já está no teto; um arquivo novo em api/ quebraria o
+// deploy inteiro. Páginas HTML não contam no limite.
 //
-//   ?radar=1  → CRUD da tabela anuncios (Catafrango → Gerador)
+//   ?radar=1    → CRUD da tabela anuncios (Catafrango → Gerador)
+//   ?mensagens=1→ conversas espelhadas do chat da OLX
+//   ?buscas=1   → configuração das buscas do Radar (tela radar.html)
 //   (sem param) → lê URL externa e extrai texto para a IA
+//                 (URLs da OLX são recusadas: leitura passa pela extensão)
 //
 // Env vars para o modo radar:
 //   SUPABASE_URL
@@ -23,6 +29,87 @@ function sb(path, opts = {}) {
       ...(opts.headers || {}),
     },
   });
+}
+
+// ── Modo Buscas: configuração das URLs do Radar ──────────────────
+// GET  → lista as buscas (a extensão puxa daqui a cada verificação)
+// POST → grava o conjunto inteiro enviado pela tela do Radar
+async function handleBuscas(req, res) {
+  if (req.method === 'GET') {
+    const r = await sb('buscas?select=*&order=ordem.asc,id.asc');
+    if (!r.ok) {
+      return res.status(502).json({ error: `Supabase HTTP ${r.status}` });
+    }
+    return res.status(200).json(await r.json());
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método não suportado.' });
+  }
+
+  if (RADAR_KEY && req.headers['x-cnr-key'] !== RADAR_KEY) {
+    return res.status(401).json({ error: 'Acesso negado.' });
+  }
+
+  const { buscas } = req.body || {};
+  if (!Array.isArray(buscas)) {
+    return res.status(400).json({ error: 'Envie um array "buscas".' });
+  }
+  if (buscas.length > 30) {
+    return res.status(400).json({ error: 'Máximo de 30 buscas.' });
+  }
+
+  // Validação antes de tocar no banco: uma busca inválida é melhor recusada
+  // inteira do que gravada e descoberta só quando o Radar não achar nada.
+  const linhas = [];
+  for (const [i, b] of buscas.entries()) {
+    const nome = String(b?.nome || '').trim();
+    const url  = String(b?.url  || '').trim();
+    if (!nome) return res.status(400).json({ error: `Busca ${i + 1}: falta o nome.` });
+    if (!/^https:\/\/([a-z0-9-]+\.)*olx\.com\.br\//i.test(url)) {
+      return res.status(400).json({
+        error: `Busca "${nome}": a URL precisa ser uma busca da OLX (https://...olx.com.br/...).`,
+      });
+    }
+    linhas.push({
+      id:    String(b?.id || '').trim() || `busca-${Date.now()}-${i}`,
+      nome,
+      url,
+      ativa: b?.ativa !== false,
+      ordem: i,
+    });
+  }
+
+  // Grava primeiro, apaga depois. Se o upsert falhar, a configuração antiga
+  // continua de pé — o inverso deixaria o Radar sem nenhuma busca.
+  if (linhas.length) {
+    const up = await sb('buscas?on_conflict=id', {
+      method:  'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body:    JSON.stringify(linhas),
+    });
+    if (!up.ok) {
+      const corpo = await up.text().catch(() => '');
+      return res.status(502).json({ error: `Falha ao gravar: HTTP ${up.status} ${corpo.slice(0, 200)}` });
+    }
+  }
+
+  const manter = linhas.map((l) => l.id);
+  const filtro = manter.length
+    ? `id=not.in.(${manter.map((id) => `"${id.replace(/"/g, '')}"`).join(',')})`
+    : 'id=neq.__nenhum__'; // sem buscas: apaga tudo
+  const del = await sb(`buscas?${filtro}`, {
+    method:  'DELETE',
+    headers: { Prefer: 'return=minimal' },
+  });
+  if (!del.ok) {
+    const corpo = await del.text().catch(() => '');
+    return res.status(502).json({
+      error: `Buscas salvas, mas a limpeza das antigas falhou: HTTP ${del.status} ${corpo.slice(0, 200)}`,
+    });
+  }
+
+  return res.status(200).json({ ok: true, salvas: linhas.length });
 }
 
 // ── Modo Radar: CRUD de anúncios ─────────────────────────────────
@@ -326,6 +413,9 @@ module.exports = async (req, res) => {
 
   // Modo Radar
   if ('radar' in req.query) return handleRadar(req, res);
+
+  // Modo Buscas: configuração do Radar (Reforma 23)
+  if ('buscas' in req.query) return handleBuscas(req, res);
 
   // Modo Mensagens (Reforma 43)
   if ('mensagens' in req.query) return handleMensagens(req, res);
