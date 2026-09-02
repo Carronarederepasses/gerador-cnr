@@ -151,7 +151,11 @@
      o celular continuava sem, e toda gravação voltava 401 "Acesso negado"
      sem explicar o motivo. Antes só dava para configurar pelo console,
      que no celular não existe. -->
-<div id="aviso-chave" style="display:none;background:var(--severity-warn,#8a6218);color:#fff;padding:.85rem 1rem;font-size:.85rem;line-height:1.45">
+<!-- color: var(--surface), não #fff. No modo escuro --severity-warn vira
+     âmbar claro e texto branco em cima dá contraste 2.24 — ilegível. Como
+     --surface acompanha o tema (claro no claro, escuro no escuro), ele
+     contrasta com o âmbar nos dois. Mesmo padrão das bolhas de mensagem. -->
+<div id="aviso-chave" style="display:none;background:var(--severity-warn,#8a6218);color:var(--surface);padding:.85rem 1rem;font-size:.85rem;line-height:1.45">
   <div style="max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:.6rem;align-items:center">
     <span style="flex:1;min-width:220px">
       ⚠️ <b>Este dispositivo não pode salvar.</b>
