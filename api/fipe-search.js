@@ -1,11 +1,29 @@
 // Vercel API Route — busca FIPE completa server-side a partir de texto livre
 const FIPE_BASE = 'https://parallelum.com.br/fipe/api/v1/carros';
 
+// Cache em memória do processo. A tabela FIPE muda uma vez por mês, e a lista
+// de marcas e modelos quase nunca — mas a busca refaz as mesmas dezenas de
+// chamadas a cada consulta. Numa instância morna, a segunda consulta do Yuri
+// deixa de pagar a varredura inteira.
+//
+// É por instância e some quando a Vercel recicla a função: serve para deixar
+// o uso seguido mais rápido, não para garantir nada. TTL curto o bastante
+// para nunca segurar uma tabela nova por muito tempo.
+const CACHE = new Map();
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6h
+
 async function fipeGet(path, retries = 3) {
+  const emCache = CACHE.get(path);
+  if (emCache && emCache.expira > Date.now()) return emCache.valor;
+
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(`${FIPE_BASE}${path}`);
-      if (res.ok) return res.json();
+      if (res.ok) {
+        const dados = await res.json();
+        CACHE.set(path, { valor: dados, expira: Date.now() + CACHE_TTL });
+        return dados;
+      }
       if (res.status >= 500 && i < retries - 1) {
         await new Promise(r => setTimeout(r, 600 * (i + 1)));
         continue;
@@ -173,7 +191,7 @@ module.exports = async (req, res) => {
       // por marca. Era daqui que vinham os 20s+ quando o texto não trazia a
       // marca ("Hilux SRV 2.8", "Gol 1.0", "Renegade") — títulos vindos da
       // OLX já trazem a marca e por isso caíam no caminho rápido.
-      const listas = await emParalelo(marcasTentativas, 8, buscaModelos);
+      const listas = await emParalelo(marcasTentativas, 12, buscaModelos);
       for (const lista of listas) candidatos = candidatos.concat(lista);
       candidatos.sort((a, b) => b.score - a.score);
     }
