@@ -1392,6 +1392,36 @@ function getLblById(id) {
 
 const EMOJI_OPC = { 'unico_dono': '👤', 'ipva_pago': '💰', 'revisoes': '🛠️', 'cautelar': '🕵️' };
 
+// Preenche os seletores de pneus com o que a IA extraiu do texto.
+//
+// Os campos de pneus existiam no formulário, mas o extrator não tinha onde
+// pôr essa informação: dizer "dois pneus novos e dois meia vida" não mexia em
+// nada, e no melhor caso a frase caía em "extras". Agora o parse devolve
+// [{qtd, estado}] e isso vira os dois grupos da tela.
+//
+// Nunca sobrescreve escolha já feita — se o Yuri mexeu no seletor, o valor
+// dele manda.
+function aplicarPneus(pneus) {
+  if (!Array.isArray(pneus) || !pneus.length) return;
+  const ESTADOS = ['novos', 'bons', 'meia-vida', 'fracos'];
+
+  const grupos = pneus
+    .filter(p => p && ESTADOS.includes(String(p.estado)))
+    .slice(0, 2);
+  if (!grupos.length) return;
+
+  grupos.forEach((g, i) => {
+    const selQtd = document.getElementById(`pneus-qtd-${i + 1}`);
+    const selEst = document.getElementById(`pneus-estado-${i + 1}`);
+    if (!selQtd || !selEst || selEst.value) return; // já preenchido: não mexe
+
+    const qtd = String(parseInt(g.qtd, 10) || (i === 0 ? 4 : 2));
+    // Só aceita quantidade que exista no seletor daquela linha (a 2ª não tem "4")
+    if ([...selQtd.options].some(o => o.value === qtd)) selQtd.value = qtd;
+    selEst.value = g.estado;
+  });
+}
+
 // Linha dos pneus para o anúncio — aceita até 2 combinações (ex: 2 novos + 2 meia-vida)
 function linhaPneus() {
   const ESTADOS = { 'novos':'novos', 'bons':'bons', 'meia-vida':'meia-vida', 'fracos':'a trocar' };
@@ -2253,6 +2283,7 @@ async function processarParceiro() {
 
     if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
     if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
+    aplicarPneus(data.pneus);
     fill('revisoes-km', data.revisoes_km ? Number(String(data.revisoes_km).replace(/\D/g,'')).toLocaleString('pt-BR') : null);
     fill('blind-marca', data.blindagem_marca);
     fill('blind-nivel', data.blindagem_nivel);
@@ -2399,6 +2430,7 @@ async function processarIA() {
     fill('colet-combustivel', data.combustivel);
     if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
     if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
+    aplicarPneus(data.pneus);
     if (data.gastos)        { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
     fill('revisoes-km', data.revisoes_km ? Number(String(data.revisoes_km).replace(/\D/g,'')).toLocaleString('pt-BR') : null);
     fill('blind-marca', data.blindagem_marca);
