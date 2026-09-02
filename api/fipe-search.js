@@ -202,32 +202,63 @@ module.exports = async (req, res) => {
     // "2020 Diesel"), cada um com código e valor próprios. Sem essa
     // desambiguação o código pegava o primeiro que aparecesse, o que às vezes
     // trazia o valor de Gasolina pra um carro Diesel (e vice-versa).
-    const temAnoExato = (anos) => {
-      const candidatos = anos.filter(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
-      if (!candidatos.length) return null;
-      if (combLower) {
-        const match = candidatos.find(a => a.nome.toLowerCase().includes(combLower));
-        if (match) return match;
+    // Os anos de cada candidato eram buscados em série, um a um, até achar o
+    // primeiro com o ano pedido. Com 12 candidatos a ~1,5s cada, uma Hilux
+    // levava 21 segundos. Aqui todos são buscados de uma vez (concorrência
+    // limitada, para não tomar 429 da Parallelum) e as passadas seguintes
+    // trabalham em memória.
+    const anosDe = new Map();
+    const fila = [...topCands];
+    await Promise.all(Array(Math.min(6, fila.length)).fill(0).map(async () => {
+      while (fila.length) {
+        const c = fila.shift();
+        const chave = `${c.marca.codigo}/${c.modelo.codigo}`;
+        try {
+          anosDe.set(chave, await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`));
+        } catch {
+          anosDe.set(chave, []);
+        }
       }
-      return candidatos[0];
-    };
+    }));
+    const anosCand = (c) => anosDe.get(`${c.marca.codigo}/${c.modelo.codigo}`) || [];
+
+    const doAno = (anos) =>
+      anos.filter(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
+    const bateComb = (a) => a.nome.toLowerCase().includes(combLower);
 
     let escolhido = null, anoObj = null, anoFallback = false;
 
-    // 1ª passada: maior score que possua o ano exato
-    for (const c of topCands) {
-      try {
-        const anos = await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`);
-        const exato = temAnoExato(anos);
-        if (exato) { escolhido = c; anoObj = exato; break; }
-      } catch { continue; }
+    // 1ª passada: ano exato E combustível pedido.
+    //
+    // O combustível só era usado para escolher entre os anos de um modelo já
+    // definido — nunca para escolher o modelo. Como o laço parava no primeiro
+    // candidato com o ano certo, "Hilux SRV 2.8 diesel" caía na "Hilux CD SRV
+    // 4x2 2.7 Flex" e "Corolla 2023 flex" caía na "Altis (Híbrido)": carros e
+    // preços completamente diferentes do pedido.
+    if (combLower) {
+      for (const c of topCands) {
+        const match = doAno(anosCand(c)).find(bateComb);
+        if (match) { escolhido = c; anoObj = match; break; }
+      }
     }
 
-    // 2ª passada: ninguém tem o ano exato → melhor score com ano mais próximo
+    // 2ª passada: ano exato, qualquer combustível (o comportamento antigo,
+    // agora como recuo e não como regra).
+    if (!escolhido) {
+      for (const c of topCands) {
+        const doAnoC = doAno(anosCand(c));
+        if (doAnoC.length) {
+          escolhido = c;
+          anoObj = (combLower && doAnoC.find(bateComb)) || doAnoC[0];
+          break;
+        }
+      }
+    }
+
+    // 3ª passada: ninguém tem o ano exato → melhor score com ano mais próximo
     if (!escolhido) {
       const c = topCands[0];
-      const anos = await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`);
-      const anosReais = anos
+      const anosReais = anosCand(c)
         .map(a => ({ obj: a, n: parseInt(a.nome.match(/\b(19|20)\d{2}\b/)?.[0] || '0') }))
         .filter(a => a.n > 0);
       const anoInt = parseInt(anoLimpo);
