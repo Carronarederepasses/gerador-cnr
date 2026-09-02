@@ -508,8 +508,18 @@ const STATUS_ATIVOS = ['primeiro-contato','respondeu','negociando','aguardando',
 
 async function load() {
   try {
-    const r = await fetch('/api/compradores?neg=1');
+    // As duas listas em paralelo: as vendas dizem quais negociações já foram
+    // encerradas de fato. Se as vendas falharem, a tela segue funcionando —
+    // no pior caso uma negociação encerrada continua aparecendo, que é
+    // exatamente o comportamento antigo.
+    const [r, rv] = await Promise.all([
+      fetch('/api/compradores?neg=1'),
+      fetch('/api/vendas').catch(() => null),
+    ]);
     if (r.ok) dados = await r.json();
+    if (rv && rv.ok) {
+      try { VENDAS_REG = await rv.json(); } catch { VENDAS_REG = []; }
+    }
 
     // Migração única de localStorage → Supabase
     const local = (() => { try { return JSON.parse(localStorage.getItem('cnr-negociacoes')) || []; } catch { return []; } })();
@@ -586,9 +596,28 @@ function renderAlerta() {
   banner.innerHTML = `⚠️ ${urgentes.length === 1 ? 'Negociação aguardando' : urgentes.length + ' negociações aguardando'}: ${lista}`;
 }
 
+// Vendas já registradas, para saber quais negociações estão de fato encerradas.
+// A ligação negociacao→venda só existe como evento na tabela `historico`, então
+// o cruzamento aqui é pelo veiculo_id, que as duas guardam.
+let VENDAS_REG = [];
+
+function jaVirouVenda(n) {
+  return !!n.veiculo_id && VENDAS_REG.some(v => v.veiculo_id === n.veiculo_id);
+}
+
 function renderLista() {
   const el = document.getElementById('neg-list');
-  const filtrados = filtroAtual ? dados.filter(n => n.status === filtroAtual) : dados;
+
+  // "Todas" passa a significar "o que ainda pede alguma ação".
+  //
+  // Negociação comprada COM a venda já registrada não pede mais nada e só
+  // empurrava as ativas para baixo. Comprada SEM venda registrada continua
+  // aparecendo — é justamente ela que precisa do próximo passo.
+  //
+  // Nada some de verdade: a aba "Comprado" mostra todas.
+  const filtrados = filtroAtual
+    ? dados.filter(n => n.status === filtroAtual)
+    : dados.filter(n => !(n.status === 'comprado' && jaVirouVenda(n)));
   const sorted = [...filtrados].sort((a,b) => {
     const aUrgente = STATUS_ATIVOS.includes(a.status) && (diasDaNegociacao(a) ?? 0) >= 1;
     const bUrgente = STATUS_ATIVOS.includes(b.status) && (diasDaNegociacao(b) ?? 0) >= 1;
@@ -615,9 +644,13 @@ function renderLista() {
       ${n.observacoes ? `<div class="neg-obs">${n.observacoes}</div>` : ''}
       ${n.status === 'descartado' && n.motivo_descarte ? `<div class="neg-motivo">✗ ${MOTIVOS_DESCARTE.find(m=>m.code===n.motivo_descarte)?.label || n.motivo_descarte}</div>` : ''}
       ${n.motivo_match ? `<div class="neg-match-motivo">✓ ${n.motivo_match.split(',').map(c => MOTIVOS_MATCH.find(m=>m.code===c.trim())?.label || c.trim()).join(' · ')}</div>` : ''}
-      ${n.status === 'comprado' ? `<div style="margin-top:.55rem;padding-top:.5rem;border-top:1px solid rgba(245,243,238,.07);display:flex;gap:.5rem;flex-wrap:wrap">
+      ${n.status === 'comprado' ? `<div style="margin-top:.55rem;padding-top:.5rem;border-top:1px solid rgba(245,243,238,.07);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
         <button onclick="event.stopPropagation();abrirContrato('${n.id}')" style="background:none;border:1px solid rgba(37,211,102,.35);color:#25D366;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:400;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">📄 Gerar Contrato</button>
-        <button onclick="event.stopPropagation();irParaVenda('${n.id}')" style="background:#25D366;border:1px solid #25D366;color:#000;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">💰 Registrar Venda</button>
+        ${jaVirouVenda(n)
+          /* Oferecer "Registrar Venda" numa negociação já registrada convidava
+             a criar uma venda duplicada — o botão não sabia que a venda existe. */
+          ? `<a href="/vendas.html?q=${encodeURIComponent((n.veiculo_nome||'').split(' ').slice(0,2).join(' '))}" onclick="event.stopPropagation()" style="text-decoration:none;color:var(--severity-ok);font-family:'DM Sans',sans-serif;font-size:.61rem;letter-spacing:.13em;text-transform:uppercase;padding:.28rem 0">✓ Venda registrada — ver</a>`
+          : `<button onclick="event.stopPropagation();irParaVenda('${n.id}')" style="background:#25D366;border:1px solid #25D366;color:#000;font-family:'DM Sans',sans-serif;font-size:.61rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;padding:.28rem .75rem;cursor:pointer">💰 Registrar Venda</button>`}
       </div>` : ''}
     </div>`;
   }).join('');
