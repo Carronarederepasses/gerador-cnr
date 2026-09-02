@@ -1749,3 +1749,46 @@ Testado em 10 nomes reais: 8 intactos, 2 corrigidos.
 - Valor já formatado (`R$ 45.000,00`) e km com sufixo (`80.000 km`) não duplicam
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Busca FIPE — erros de combustível e lentidão (02/set/2026)
+
+Reportado pelo Yuri: *"ainda dá alguns erros na busca da FIPE"*.
+
+#### Erro de resultado — o combustível pedido era ignorado (`d9efba7`)
+
+O combustível só era usado para escolher entre os **anos** de um modelo já
+definido, nunca para escolher o modelo. Como o laço parava no primeiro
+candidato com o ano certo, o pedido era descartado:
+
+| Pedido | Devolvia | Deveria |
+|---|---|---|
+| Hilux SRV 2.8 **diesel** 2020 | CD SRV 4x2 2.7 **Flex** — R$ 167.870 | CD SRV 4x4 2.8 TDI **Diesel** — R$ 186.483 |
+| Corolla 2023 **flex** | Altis 1.8 **(Híbrido)** | Altis 2.0 **Flex** |
+
+**R$ 18.613 de diferença** no Hilux. Agora a 1ª passada exige ano E
+combustível; a lógica antiga virou recuo, não regra.
+
+#### Lentidão — três causas (`f246de4`, `03bc6fc`)
+
+Diagnóstico por medição, não por suposição: a Parallelum responde em
+0,5–0,9s e **não** devolve 429 com 8 chamadas simultâneas. Era volume.
+
+1. Quando a marca não aparece no texto ("Hilux SRV 2.8", "Gol 1.0"), o código
+   varre até ~35 marcas populares — **em série**. Títulos da OLX trazem a
+   marca e por isso caíam no caminho rápido; o que ele digita à mão, não.
+2. Os anos de cada candidato também eram buscados um a um.
+3. Nenhum cache: cada consulta refazia as mesmas dezenas de chamadas.
+
+Corrigido com `emParalelo()` (limite 12) nos dois laços e cache em memória
+por instância, TTL 6h — a tabela FIPE muda uma vez por mês.
+
+| Consulta | Antes | Agora |
+|---|---|---|
+| Hilux SRV 2.8 diesel | 21,2s | 3,3s |
+| Gol 1.0 (1ª vez) | 11,8s | 3,3s |
+| Gol 1.0 (repetida) | 11,8s | **0,5s** |
+| Renegade | 10,4s | 4,4s |
+
+*Registrado em 02/setembro/2026.*
