@@ -2404,3 +2404,121 @@ dos mesmos arquivos.
 ser `git clone`, em vez de copiar pasta na mão.
 
 *Registrado em 3 de setembro de 2026, tarde.*
+
+═══════════════════════════════════════════════════════════════════
+
+# CHECKPOINT DO DIA — 3 de setembro de 2026
+
+**20 commits** (15 no Gerador, 5 na extensão). Tudo em produção e conferido
+na própria aplicação — nenhuma afirmação de funcionamento sem medida.
+
+## O que o dia entregou
+
+| Frente | O que era | O que é |
+|---|---|---|
+| API | `GET` aberto: vendas, catálogo, CPF e Pix de compradores | 401 em tudo; liberação uma vez por aparelho |
+| `/api/compradores` | sem guarda nem para escrita — qualquer um apagava | fechado |
+| Extensão | repositório só neste notebook, sem remote | GitHub privado, 31 commits, clone testado |
+| Barra lateral | 13 itens em lista única | Captar · Vender · Apoio |
+| Catálogo | todo Gerar Anúncio criava um carro | nasce só por ato do Yuri |
+| Painel | carro vendido como "COMPRADO! urgente" | sai da lista quando a venda existe |
+| Paleta | creme, bege e azul | preto e branco, tema único |
+| Marca | ausente | marca d'água no notebook, nome no topo do celular |
+
+## Erros meus, e o que cada um ensinou
+
+- **Prometi "uma vez por aparelho" e ele digitou a chave quatro vezes.**
+  `vendas.html` tinha sistema de chave próprio (`cnr_vendas_key`), 25 linhas
+  acima do trecho que editei, e vencia o novo. É a lição de ontem outra vez —
+  sondagem estreita — mas agora o custo caiu sobre ele, em passos manuais que
+  não deviam existir. → Procurar o mecanismo em TODOS os arquivos **antes** de
+  escrever o roteiro. O roteiro é a última coisa.
+
+- **Pedi segredo em campo de texto visível.** Ele mandou print para confirmar
+  que funcionou e a chave foi junto, legível. Segunda vez que uma chave vaza
+  assim aqui. → `type="password"` em credencial, desde a primeira versão.
+
+- **Ia justificar o fechamento da API com um fato falso.** Afirmaria que
+  certificados HTTPS publicam o subdomínio; conferi antes e a Vercel usa
+  curinga `*.vercel.app` — o subdomínio dele não aparece em lugar nenhum.
+  → Afirmação técnica que sustenta recomendação se verifica com comando. Vale
+  mais ainda quando confirma o que eu já queria concluir.
+
+- **A regra da negociação vendida foi escrita ontem — no arquivo errado.**
+  `negociacoes.html` recebeu, `home.html` não, porque cada tela tem cópia
+  própria da lista. Mesmo padrão do `cnr_vendas_key`.
+
+- **Apostei que 5,5% de opacidade seria imperceptível sobre o texto.** Eu tinha
+  avisado que a marca ficava por cima e apostei mesmo assim. "O logo comeu as
+  letras." → Quando eu mesmo identifico o risco, ele não vira aposta.
+
+- **Errei o diagnóstico do logo escuro no celular** e disse que era linha fina
+  clareando menos. Medi desenhando o SVG em canvas: no celular a tinta por
+  pixel é 213% da do notebook. Era cobertura, não brilho.
+
+## Defeitos que apareceram por perseguir outra coisa
+
+- **"Salvar no catálogo" chamava a função sem argumento** — a requisição ia sem
+  corpo. Passava despercebido porque o registro já existia, então virava PATCH
+  vazio: sem efeito e sem erro. Ia criar veículo VAZIO com a mudança do dia.
+
+- **Transição CSS + variável de tema congela a propriedade.** Isolado com três
+  elementos: só o que tinha `transition` travou. O botão "+ Nova negociação"
+  ficava preto sobre preto quando o Windows virava para o escuro. Resolvido
+  pela raiz ao adotar tema único — sem troca, não há o que congelar.
+
+- **Extensão pararia em silêncio.** Três leituras iam sem chave; a captação
+  voltaria lista vazia, parecendo "nada novo".
+
+- **"Salvo" não significava "funcionando"** nas opções da extensão: o ✓
+  aparecia sem nunca ter falado com o servidor.
+
+## Medidas que decidiram desenho
+
+- Marca d'água descoberta: **83%** no notebook, **0%** no celular. Aumentar
+  para 200% da largura da tela sobe para 9-11%. Numa tela que o conteúdo
+  preenche, não existe "atrás e visível".
+- Marca d'água centrada na janela caía **110px** fora do centro da área de
+  trabalho — a barra lateral come 220px.
+- Contraste auditado em **14 telas**: nenhum texto abaixo de 3:1.
+- Gerador: 3,2 telas de rolagem, 7 de 27 campos sem rolar, duas barras de aba
+  empilhadas, editor de foto fantasma de ~150 linhas que nenhum botão chama.
+
+## Decisões do Yuri
+
+- **Não rotacionar a chave exposta.** Para usar seria preciso ter a URL **e** o
+  print. A troca acontece com o primeiro parceiro externo, junto do
+  multi-tenancy.
+- **Carro de parceiro não é estoque.** "Só vão para o relatório de vendas caso
+  eu venda, caso contrário é lixo mesmo."
+- **Tema único, fundo preto.** O app não segue mais o Windows.
+- **Marca no topo do celular** em vez de insistir na marca d'água lá.
+
+## Pesquisa entregue (ideia 4)
+
+Sete sistemas brasileiros de gestão para revenda, com preços e fontes.
+**Nenhum tem captação ativa** — todos partem do carro já estar com o lojista;
+"gestão de leads" é o contrário disso, são compradores que chegam depois do
+anúncio. Verificado em três fontes independentes.
+
+Corrigido o que eu havia dito de memória: **não é caro nem pesado.** R$ 299/mês
+não é caro para quem repassa 3 carros. O que falta não é preço — é que o
+software desse mercado **começa no cadastro do veículo**.
+
+A OLX tem três APIs oficiais (Anúncios, Leads, Chat) e canal
+`suporteintegrador@olxbr.com`. Mas as três são para **quem anuncia** — o Yuri
+faz o inverso. O caminho oficial cobre virar integrador; **não cobre a
+captação**. Isso reordena o pedido do irmão.
+
+## Pendências
+
+1. Ideia 1 — integrador de anúncios na OLX (caminho técnico mapeado; a
+   documentação **não menciona exigência de CNPJ**)
+2. Contato do irmão com a OLX — pedir integrador, e captação como pergunta
+3. UX do Gerador: etapas viram passos; um montador de texto só (itens 4 e 5 da
+   proposta); editor fantasma para remover
+4. Subaru com lixo espelhado; 13 conversas nunca espelhadas
+5. Logs DIAG antigos
+6. Reescrever `compliance-extensao.md` do repo
+
+*Fechado em 3 de setembro de 2026.*
