@@ -21,9 +21,10 @@
 //   GET    /api/vendas?anexo=1&path=...   → { url } (link temporário, 1h)
 //   DELETE /api/vendas?anexo=1    body { vendaId, path }
 
+const { exigirChave } = require('./_auth');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const VENDAS_KEY   = process.env.VENDAS_KEY;
 
 const TABLE = 'vendas';
 const BUCKET = 'vendas-docs';
@@ -190,10 +191,9 @@ module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Guard VENDAS_KEY — protege POST/PATCH/DELETE; GET permanece público
-  if (VENDAS_KEY && ['POST', 'PATCH', 'DELETE'].includes(req.method) && req.headers['x-cnr-key'] !== VENDAS_KEY) {
-    return res.status(401).json({ error: 'Acesso negado.' });
-  }
+  // Portão único (api/_auth.js). Passou a valer também no GET: esta rota
+  // devolvia placa, renavam, chassi, valor de compra e lucro a quem pedisse.
+  if (exigirChave(req, res)) return;
 
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return res.status(500).json({ error: 'Supabase não configurado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).' });

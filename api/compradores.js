@@ -14,6 +14,8 @@
 //   POST   /api/compradores?evento=1    body { tipo, veiculo_id?, venda_id?, comprador_id?, dados? }
 //   GET    /api/compradores?evento=1&veiculo_id=X  → eventos de um veículo (ordem cronológica)
 
+const { exigirChave } = require('./_auth');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -140,8 +142,15 @@ function calcScore(comprador, { marca, valor, veiculo_id = null }) {
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cnr-key');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Portão único (api/_auth.js). Esta rota não tinha guarda NENHUM: qualquer
+  // um lia, criava, alterava e apagava compradores e negociações. E o que
+  // sai daqui é dado de terceiro — telefone, CPF, banco e Pix.
+  if (exigirChave(req, res)) return;
 
   const q = req.query;
 

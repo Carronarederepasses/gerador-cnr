@@ -14,6 +14,8 @@
 //   SUPABASE_SERVICE_ROLE_KEY
 //   RADAR_KEY  (opcional — se definida, exige x-cnr-key no POST)
 
+const { exigirChave } = require('./_auth');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RADAR_KEY    = process.env.RADAR_KEY; // opcional — protege o POST (upsert da extensão)
@@ -504,8 +506,17 @@ function textoDoSlug(url) {
 // ── Handler principal ────────────────────────────────────────────
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cnr-key');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Portão único (api/_auth.js), antes de escolher o modo. Vale inclusive
+  // para o modo padrão: buscar uma URL qualquer pelo servidor da Vercel é
+  // um proxy aberto se qualquer um puder chamar.
+  // As guardas RADAR_KEY internas seguem de pé de propósito — se o portão
+  // estiver desligado, elas ainda protegem a escrita.
+  if (exigirChave(req, res)) return;
 
   // Modo Radar
   if ('radar' in req.query) return handleRadar(req, res);

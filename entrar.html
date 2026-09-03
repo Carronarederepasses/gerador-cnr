@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Liberar aparelho — Carro na Rede</title>
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/auth.js"></script>
+<script src="/assets/theme-toggle.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.2rem}
+.cartao{width:100%;max-width:29rem;background:var(--surface-raise);
+  border:1px solid var(--line);border-radius:18px;padding:1.8rem 1.6rem}
+h1{font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:900;line-height:1.2}
+.sub{color:var(--text-mid);font-size:.9rem;line-height:1.55;margin-top:.55rem}
+
+.estado{display:flex;gap:.7rem;align-items:flex-start;margin:1.3rem 0;
+  padding:.9rem 1rem;border-radius:12px;border:1px solid var(--line);
+  font-size:.9rem;line-height:1.5}
+.estado .bolinha{width:.6rem;height:.6rem;border-radius:50%;flex:none;margin-top:.42rem}
+.estado.ok{border-color:var(--severity-ok)}
+.estado.ok .bolinha{background:var(--severity-ok)}
+.estado.erro{border-color:var(--severity-crit)}
+.estado.erro .bolinha{background:var(--severity-crit)}
+.estado.neutro .bolinha{background:var(--text-faint)}
+.estado strong{display:block;margin-bottom:.2rem}
+.estado span{color:var(--text-mid)}
+
+label{display:block;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-faint);margin-bottom:.4rem}
+input{width:100%;font-family:inherit;font-size:1rem;padding:.75rem .85rem;
+  border:1px solid var(--line);border-radius:11px;background:var(--surface);
+  color:var(--text)}
+input:focus{outline:none;border-color:var(--accent)}
+.linha{display:flex;gap:.6rem;margin-top:.8rem;flex-wrap:wrap}
+button{font-family:inherit;font-size:.92rem;font-weight:700;padding:.72rem 1.25rem;
+  border-radius:11px;border:none;background:var(--text);color:var(--surface);cursor:pointer}
+button.leve{background:none;border:1px solid var(--line);color:var(--text-mid);font-weight:500}
+button:disabled{opacity:.5;cursor:default}
+.nota{font-size:.78rem;color:var(--text-faint);line-height:1.5;margin-top:1.3rem;
+  border-top:1px solid var(--line);padding-top:1rem}
+</style>
+</head>
+<body>
+
+<div class="cartao">
+  <h1>Liberar este aparelho</h1>
+  <p class="sub">Uma vez só por aparelho. Depois disso o Gerador não pergunta
+  mais nada aqui — nem no celular, nem no notebook.</p>
+
+  <div class="estado neutro" id="estado">
+    <span class="bolinha"></span>
+    <div><strong>Conferindo…</strong><span>Perguntando ao servidor se este aparelho passa.</span></div>
+  </div>
+
+  <div id="campo" style="display:none">
+    <label for="chave">Chave de liberação</label>
+    <input id="chave" type="text" autocomplete="off" spellcheck="false"
+           placeholder="cole aqui" aria-label="Chave de liberação">
+    <div class="linha">
+      <button id="btn">Liberar</button>
+      <button class="leve" id="btn-esquecer" style="display:none">Esquecer este aparelho</button>
+    </div>
+  </div>
+
+  <p class="nota">A chave vive só neste navegador. Ela não aparece no endereço
+  depois de usada, e não é enviada nos registros do servidor.</p>
+</div>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+
+function mostrar(tipo, titulo, detalhe) {
+  const el = $('estado');
+  el.className = 'estado ' + tipo;
+  el.innerHTML = '<span class="bolinha"></span><div><strong></strong><span></span></div>';
+  el.querySelector('strong').textContent = titulo;
+  el.querySelector('span:last-child').textContent = detalhe;
+}
+
+// Confere de verdade, contra o servidor. Dizer "liberado" só porque a chave
+// está guardada seria mentir quando a chave estiver errada ou vencida — e
+// esse é exatamente o tipo de falso sucesso que já custou caro aqui.
+async function conferir() {
+  const temChave = Boolean(window.CNR_AUTH.ler());
+  try {
+    // Rota barata e sem dado sensível, só para saber se o portão abre.
+    const r = await fetch('/api/fetch-anuncio?buscas=1', { cache: 'no-store' });
+    if (r.ok) {
+      mostrar('ok', 'Aparelho liberado',
+        temChave ? 'Pode usar o Gerador normalmente.'
+                 : 'O portão ainda está desligado no servidor — todo mundo passa.');
+      $('campo').style.display = 'block';
+      $('btn-esquecer').style.display = temChave ? 'inline-block' : 'none';
+      return;
+    }
+    if (r.status === 401) {
+      mostrar('erro', temChave ? 'A chave deste aparelho não confere' : 'Aparelho não liberado',
+        'Cole a chave abaixo e toque em Liberar.');
+      $('campo').style.display = 'block';
+      $('btn-esquecer').style.display = temChave ? 'inline-block' : 'none';
+      return;
+    }
+    mostrar('erro', 'O servidor respondeu ' + r.status,
+      'Não é a liberação — é o servidor. Tente de novo daqui a pouco.');
+    $('campo').style.display = 'block';
+  } catch (e) {
+    // Sem rede não dá para afirmar nada. Não inventar boa notícia.
+    mostrar('neutro', 'Não consegui falar com o servidor',
+      'Sem internet aqui, ou o Gerador está fora do ar. Não deu para conferir.');
+    $('campo').style.display = 'block';
+  }
+}
+
+$('btn').addEventListener('click', async () => {
+  const v = $('chave').value.trim();
+  if (!v) { $('chave').focus(); return; }
+  $('btn').disabled = true;
+  window.CNR_AUTH.guardar(v);
+  $('chave').value = '';
+  await conferir();
+  $('btn').disabled = false;
+});
+
+$('chave').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('btn').click(); }
+});
+
+$('btn-esquecer').addEventListener('click', async () => {
+  window.CNR_AUTH.esquecer();
+  await conferir();
+});
+
+conferir();
+</script>
+</body>
+</html>

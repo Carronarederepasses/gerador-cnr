@@ -23,7 +23,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const CATALOGO_KEY = process.env.CATALOGO_KEY; // opcional
+const { exigirChave } = require('./_auth');
 
 const TABLE = 'veiculos';
 const BUCKET = 'veiculos';
@@ -233,10 +233,8 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Supabase não configurado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).' });
   }
 
-  // Portão opcional por chave
-  if (CATALOGO_KEY && req.headers['x-cnr-key'] !== CATALOGO_KEY) {
-    return res.status(401).json({ error: 'Acesso negado.' });
-  }
+  // Portão único (api/_auth.js)
+  if (exigirChave(req, res)) return;
 
   const q = req.query || {};
 
