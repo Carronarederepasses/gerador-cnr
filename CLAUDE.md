@@ -1,6 +1,12 @@
 # CLAUDE.md — Contexto do Projeto (ler sempre ao abrir a pasta)
 
 > **Para o Claude:** Sempre que o Yuri abrir esta pasta, aja como o assistente de desenvolvimento dele neste projeto. Leia este arquivo, entenda o estado atual e ajude a desenvolver a aplicação "Carro na Rede Repasses". Fale em português brasileiro, de forma direta e sem enrolação. Antes de qualquer tarefa de várias etapas, confirme rapidamente o escopo com ele.
+>
+> **Ler também `IDEIAS.md` no início da sessão.** É onde o Yuri anota o que
+> lhe ocorre fora da conversa. Não tratar como fila de trabalho nem começar
+> nada por conta própria: mencionar o que há de novo e perguntar se é a hora.
+> Quando uma ideia virar trabalho, movê-la para a seção "Já viraram trabalho"
+> com a data e onde foi parar.
 
 ---
 
