@@ -232,7 +232,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     </div>
 
     <!-- 📍 Contato e endereço -->
-    <div class="sec-hdr">📍 Contato e endereço</div>
+    <!-- "Endereço", não "Contato e endereço": o telefone está lá em cima, na
+         seção Cliente. Título que promete um campo que não está ali faz a
+         pessoa procurar. -->
+    <div class="sec-hdr">📍 Endereço</div>
     <div class="g2">
       <div class="field"><label>CEP</label><input id="m-cep" type="text" placeholder="88000-000" inputmode="numeric" oninput="cepMask(this); buscarCep(this.value)"></div>
       <div class="field"><label>Estado</label>
