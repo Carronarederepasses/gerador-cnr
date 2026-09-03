@@ -380,8 +380,22 @@ function mostrarAvisoInbox() {
   // dar uma garantia que não existe.
   const naoConferiu = INBOX_LIDAS > 0 && INBOX_SEM_CASAR === INBOX_LIDAS;
 
-  if (NOVIDADES.size) {
-    div.innerHTML = `<b>${NOVIDADES.size}</b> conversa(s) com mensagem nova na OLX · lido ${quando}`;
+  // Novidade em conversa já espelhada é acionável: o ponto aparece na lista e
+  // o Yuri clica. Novidade em conversa que nunca foi espelhada não é — o
+  // Gerador não conhece mensagem nenhuma dela, então TUDO conta como novo,
+  // mesmo o que ele já leu na OLX. Somar as duas num número só dizia "16"
+  // enquanto apenas 3 linhas acendiam.
+  const espelhadas = new Set(CONVERSAS.map(c => String(c.listing_id)));
+  const acionaveis = [...NOVIDADES].filter(id => espelhadas.has(id)).length;
+  const naoEspelhadas = NOVIDADES.size - acionaveis;
+
+  if (acionaveis) {
+    div.innerHTML = `<b>${acionaveis}</b> conversa(s) com mensagem nova`
+      + (naoEspelhadas ? ` · ${naoEspelhadas} ainda não espelhada(s) aqui` : '')
+      + ` · lido ${quando}`;
+  } else if (naoEspelhadas) {
+    div.innerHTML = `Sem novidade nas conversas espelhadas · `
+      + `<b>${naoEspelhadas}</b> conversa(s) da OLX ainda não espelhada(s) · lido ${quando}`;
   } else if (naoConferiu) {
     div.innerHTML = `⚠️ Li <b>${INBOX_LIDAS}</b> conversa(s) na OLX, mas nenhuma bateu com os anúncios do Gerador. `
       + `<b>Não dá para afirmar que não há novidade.</b> · lido ${quando}`;
