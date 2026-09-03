@@ -1,83 +1,74 @@
 /*
  * Carro na Rede Repasses — tokens de design compartilhados
- * Fonte única de cor para as 16 telas do app. Tema claro/escuro nativo.
+ * Fonte única de cor para as 16 telas do app.
  *
- * ── Preto e branco, 03/set/2026 ─────────────────────────────────
- * A paleta anterior era creme (#f2efe6), preto amarelado (#17150f),
- * linha bege (#ddd6c3) e acento azul (#33526e). Bonita, mas não era a
- * identidade: o documento da marca diz "preto e branco, identidade
- * editorial", e o Yuri pediu que o app tivesse a cara da Carro na Rede.
+ * ── Tema único, fundo preto — 03/set/2026 ───────────────────────
+ * O app seguia o tema do sistema. Como o Windows do Yuri está no claro,
+ * ele via fundo cinza-claro; pediu preto. Pedido atendido de forma
+ * deliberada: o app tem UM visual, o mesmo em qualquer máquina.
  *
- * Os cinzas são neutros de propósito — sem viés de matiz. Numa identidade
- * que É preto e branco, um cinza puxado para o quente ou para o frio lê
- * como cor mal resolvida, não como escolha.
+ * Não é só preferência. Seguir o sistema custava três coisas:
+ *   1. O app mudava de cara sozinho no fim do dia, quando o Windows vira
+ *      para o escuro — com a tela aberta, no meio de uma negociação.
+ *   2. Toda propriedade com `transition` congelava no valor antigo na
+ *      troca (medido em 03/set: o botão "+ Nova negociação" ficava preto
+ *      sobre preto). Sem troca, não há o que congelar.
+ *   3. Dois temas é o dobro de superfície para um erro de contraste
+ *      passar despercebido — e passou, duas vezes hoje.
  *
- * O acento é a própria tinta: preto no claro, branco no escuro. Não existe
- * "cor de destaque" numa identidade editorial preto e branco — o destaque
- * é o contraste. Onde algo precisa saltar, salta por peso e por inversão,
- * não por matiz.
+ * A identidade da marca é preto e branco editorial. Preto é o papel.
  *
- * ── A exceção deliberada: cor que carrega informação ────────────
- * --severity-ok / warn / crit continuam coloridos, e isso não contradiz o
- * preto e branco: eles não decoram, eles informam. Um alerta que só se
- * distingue por tom de cinza obriga a ler o texto para saber a gravidade,
- * e quem opera de celular no pátio não vai ler. Cor semântica é o único
- * lugar onde matiz entra, e por isso mesmo ela fica reservada a isso.
+ * `color-scheme: dark` é obrigatório aqui: sem ele, o navegador desenha
+ * select, input de data e barra de rolagem em branco, e sobra um bloco
+ * claro no meio da tela preta.
  *
- * --green é o verde do WhatsApp e serve só para ações de WhatsApp. Não é
- * cor de status, e não é da nossa paleta: é citação de outro produto.
- * Mesma razão pela qual o preview do anúncio imita as cores do WhatsApp.
+ * ── Cor semântica: a exceção que informa ────────────────────────
+ * --severity-ok / warn / crit continuam coloridos. Eles não decoram, eles
+ * informam: um alerta que só se distingue por tom de cinza obriga a ler o
+ * texto para saber a gravidade, e quem opera do celular no pátio não vai
+ * ler. É o único lugar onde matiz entra, e por isso fica reservado a isso.
+ *
+ * --green é o verde do WhatsApp, só para ações de WhatsApp. Não é status e
+ * não é da nossa paleta: é citação de outro produto — mesma razão pela qual
+ * o preview do anúncio imita as cores do WhatsApp.
  *
  * ── Regra ao usar ───────────────────────────────────────────────
- * Fundo --accent pede texto --surface (nunca #fff fixo): no escuro o
- * acento é branco, e branco sobre branco some. Esse defeito já apareceu
- * duas vezes aqui — na faixa de aviso de vendas.html e no filtro de
- * anuncios.html, ambos em 03/set.
+ * Fundo --accent (branco) pede texto --surface (preto). Nunca #fff fixo
+ * sobre --accent: some. Esse defeito apareceu duas vezes hoje, em
+ * vendas.html e anuncios.html.
  */
 :root{
-  color-scheme: light dark;
+  color-scheme: dark;
 
-  --surface:       #f4f5f5;  /* papel */
-  --surface-raise: #ffffff;  /* cartão sobre o papel */
-  --text:          #101112;
-  --text-mid:      #55585c;
-  --text-faint:    #767a7f;  /* 4.6:1 sobre o papel — legível, não decorativo */
-  --line:          #dfe1e2;
-  --accent:        #101112;  /* a tinta é o acento */
-  --accent-soft:   #e9ebec;
+  --surface:       #0a0a0a;  /* o papel é preto */
+  --surface-raise: #151515;  /* cartão sobre o papel */
+  --text:          #f5f5f5;
+  --text-mid:      #a3a3a3;
+  --text-faint:    #7c7c7c;
+  --line:          #262626;
+  --accent:        #f5f5f5;  /* no preto, a tinta é branca */
+  --accent-soft:   #1f1f1f;
 
-  --severity-ok:   #1f6b45;
-  --severity-warn: #8a6218;
-  --severity-crit: #a32b18;
+  --severity-ok:   #63b98d;
+  --severity-warn: #d6a75a;
+  --severity-crit: #e0846a;
 
   --green:  #25D366; /* WhatsApp — só para ações de WhatsApp, nunca para status */
 }
 
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --surface:       #0b0c0d;
-    --surface-raise: #16181a;
-    --text:          #f2f3f3;
-    --text-mid:      #a6aaae;
-    --text-faint:    #7e8286;
-    --line:          #26292c;
-    --accent:        #f2f3f3;  /* no escuro, a tinta é branca */
-    --accent-soft:   #22262a;
-
-    --severity-ok:   #63b98d;
-    --severity-warn: #d6a75a;
-    --severity-crit: #e0846a;
-  }
-}
-
-:root[data-theme="dark"]{
-  --surface:#0b0c0d; --surface-raise:#16181a; --text:#f2f3f3; --text-mid:#a6aaae; --text-faint:#7e8286;
-  --line:#26292c; --accent:#f2f3f3; --accent-soft:#22262a;
-  --severity-ok:#63b98d; --severity-warn:#d6a75a; --severity-crit:#e0846a;
-}
-
+/*
+ * Sem bloco de tema claro, e sem @media prefers-color-scheme: é escolha,
+ * não esquecimento. Se um dia o app precisar de tema claro, ele volta aqui
+ * inteiro — com os dois lados auditados juntos, não um de cada vez.
+ *
+ * Os seletores abaixo existem só para o caso de alguma tela antiga ainda
+ * carimbar data-theme: qualquer valor cai no mesmo visual, em vez de
+ * herdar variável nenhuma e renderizar sem cor.
+ */
+:root[data-theme="dark"],
 :root[data-theme="light"]{
-  --surface:#f4f5f5; --surface-raise:#ffffff; --text:#101112; --text-mid:#55585c; --text-faint:#767a7f;
-  --line:#dfe1e2; --accent:#101112; --accent-soft:#e9ebec;
-  --severity-ok:#1f6b45; --severity-warn:#8a6218; --severity-crit:#a32b18;
+  --surface:#0a0a0a; --surface-raise:#151515; --text:#f5f5f5;
+  --text-mid:#a3a3a3; --text-faint:#7c7c7c; --line:#262626;
+  --accent:#f5f5f5; --accent-soft:#1f1f1f;
+  --severity-ok:#63b98d; --severity-warn:#d6a75a; --severity-crit:#e0846a;
 }
