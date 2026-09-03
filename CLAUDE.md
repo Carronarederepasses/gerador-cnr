@@ -2592,3 +2592,65 @@ configurava), com a mesma forma: **agi antes de olhar.**
   tratar blog de fornecedor como fato.
 
 *Registrado em 3 de setembro de 2026, tarde.*
+
+### 03/set/2026 (noite) — Particular sai do pool de ofertas
+
+Encontrado pelo Yuri ao olhar a lista de contatos: *"os contatos dos
+particulares apareceram no meio, temos que separar"*. Parecia arrumação de
+tela. Era vazamento de preço.
+
+#### A causa
+
+A consulta do Motor de Match filtrava só por `papel`:
+
+```
+compradores?ativo=eq.true&papel=in.(comprador,ambos)
+```
+
+E o cadastro grava `papel: valor || 'comprador'`. Ou seja: **particular
+cadastrado às pressas — justamente quem VENDEU um carro para ele — virava
+comprador por omissão e entrava no pool de ofertas.**
+
+Repasse é preço de atacado. Chegar a cliente final expõe a margem a quem
+compraria no varejo.
+
+#### O que mudou
+
+- **Match exclui `pessoa_fisica`**, mesmo com `papel=comprador` explícito.
+  `or=(tipo.is.null,tipo.neq.pessoa_fisica)` e não `neq` puro: em SQL
+  `NULL <> 'x'` é NULL, então o neq sozinho sumiria com todo cliente sem tipo.
+- **Tela de Clientes mostra o pool.** Faixa com a contagem, filtro "Recebem
+  ofertas" que espelha o filtro da API, e o aviso de quantos entraram **sem
+  papel definido** — que é onde o particular se esconde.
+- **Cadastro de Particular** esconde Relação com a CNR e Perfil de compra
+  (faixa de preço e marcas), que só servem a quem compra repasse. No lugar do
+  papel entra a frase explicando a regra — campo que some sem explicação
+  parece defeito. `papel` **não é alterado**: escolher "ambos" como Lojista,
+  trocar para Particular e voltar preserva "ambos".
+- `Relação com **o** CNR` → `com **a** CNR`. Carro na Rede é nome feminino.
+- `Contato e endereço` → `Endereço`. O telefone está na seção Cliente; o
+  título mandava procurar onde não tinha.
+
+#### O botão que "não funcionava"
+
+Ele reportou que "Ver quem são" não fazia nada. **Fazia — e não dava para
+notar**, que na prática é o mesmo. Com todos os clientes no pool, ligar o
+filtro não muda a lista.
+
+E isso revelou o estado real: **os particulares dele não estão marcados como
+`pessoa_fisica`.** São clientes comuns com "(particular)" escrito no nome. Sem
+a marcação não há o que filtrar, e a proteção nova ainda não protege ninguém.
+
+A tela agora diz isso: *"Mostrando 17 de 17 — ou seja, todos recebem ofertas
+hoje. Ninguém está marcado como Particular ou Fonte."*
+
+> **Padrão do dia inteiro, terceira vez:** a tela sabia e não contava. Aqui não
+> era nem erro de lógica — era ausência de um número na tela.
+
+#### Pendente, e é dele
+
+Marcar os particulares já cadastrados. Só depois disso o Match protege de
+verdade. **Não fazer por regra automática:** deduzir "é particular" do nome é
+chute sobre o negócio dele. Se forem muitos, oferecer marcação rápida no card.
+
+*Registrado em 3 de setembro de 2026, noite.*
