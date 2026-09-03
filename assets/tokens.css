@@ -123,7 +123,10 @@ body::before{
   background:url('/assets/logo.svg') no-repeat top center;
   background-size:100% auto;        /* largura cheia; o texto sobra para fora */
   filter:invert(1);
-  opacity:.09;
+  /* 18% — mais claro do que a discrição costuma pedir, mas aqui pode: a
+     marca está atrás do conteúdo (z-index -1) e não tem como sujar texto.
+     A primeira versão era 5,5% E por cima, que é o pior dos dois mundos. */
+  opacity:.18;
   z-index:-1;
   pointer-events:none;
 }
