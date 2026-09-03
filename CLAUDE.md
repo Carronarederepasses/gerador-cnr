@@ -2371,3 +2371,36 @@ teste real no Salvar, campo mascarado.
 - [ ] Reescrever `compliance-extensao.md` do repo
 
 *Registrado em 3 de setembro de 2026, manhã.*
+
+### 03/set/2026 (tarde) — a extensão saiu desta máquina
+
+Descoberto pela manhã: o repositório da extensão não tinha remote. Existia só
+no notebook do Yuri — se o disco morresse, iam junto a captação e o espelho de
+conversas. Yuri: *"Não podemos perder isso em hipótese alguma."*
+
+**Repositório:** `github.com/Carronarederepasses/captacao-inteligente` —
+**privado**, 31 commits, branch `main` (era `master`, renomeada para bater com
+o Gerador). Privado importa: os comentários do código descrevem exatamente
+como a extensão lê a página da OLX.
+
+Conferido **antes** de publicar: 14 arquivos versionados, nenhum faltando no
+disco, e nenhum segredo nos arquivos nem nos 30 commits do histórico. A chave
+de acesso vive em `chrome.storage.local`, nunca em arquivo.
+
+Conferido **depois**: clonado do GitHub do zero — 11 caminhos do manifest
+presentes, todo o JS passa na sintaxe. O clone carrega no Chrome como extensão
+funcional. Backup não testado não é backup.
+
+Também gerados `captacao-inteligente-2026-09-03.bundle` (92 KB, repositório
+inteiro, clonável) e `.tar.gz` (571 KB, pasta como está) e entregues ao Yuri
+para guardar fora do notebook. São curativo — congelam hoje, não protegem
+amanhã; o repositório é o que protege daqui pra frente.
+
+`.gitignore` adicionado para os dez `.bak` soltos na pasta: rascunho de sessão,
+não histórico. Sem isso um `git add .` distraído subiria dez versões antigas
+dos mesmos arquivos.
+
+**Ganho colateral para setembro:** instalar no notebook da mãe do Yuri passa a
+ser `git clone`, em vez de copiar pasta na mão.
+
+*Registrado em 3 de setembro de 2026, tarde.*
