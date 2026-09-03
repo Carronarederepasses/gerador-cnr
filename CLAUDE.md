@@ -2522,3 +2522,73 @@ captação**. Isso reordena o pedido do irmão.
 6. Reescrever `compliance-extensao.md` do repo
 
 *Fechado em 3 de setembro de 2026.*
+
+### 03/set/2026 (tarde) — lista de envio: construída e removida no mesmo dia
+
+Registrado porque **"isto foi tentado e não serviu" vale tanto quanto o que
+ficou.** Sem isso, alguém reconstrói daqui a três meses.
+
+#### O pedido
+
+O WhatsApp tirou/limitou a lista de transmissão. Yuri quis a dele no Gerador:
+*"selecionava os contatos, abria cada um no WhatsApp e eu ia clicando em
+enviar"*.
+
+#### O que já existia e eu não sabia
+
+A **Central de Distribuição** (Reforma 14) já faz fila de compradores com
+mensagem pronta. Mas responde outra pergunta — "quem casa com este carro?" —
+e filtra por score, corta abaixo de 40, para em 12. O pedido dele era sem
+filtro: quem escolhe é ele.
+
+#### Por que foi removido
+
+Ele usa **WhatsApp pelo celular** — informação que só apareceu depois de eu
+ter construído **duas versões**. No celular o `wa.me` chama o aplicativo, que
+mostra **uma conversa por vez**. Abrir várias não existe; cada envio obriga a
+sair do navegador e voltar.
+
+> *"Fica indo e vindo pra mim, não rola."*
+
+Dava para melhorar a volta (a fila chegou a persistir em `sessionStorage`).
+Não dava para eliminar a ida. Função que dá mais trabalho do que tira não
+merece espaço na tela.
+
+#### O erro de método, que é o que importa guardar
+
+**Construí para o cenário errado sem perguntar como ele trabalha.** A
+pergunta certa — *"tu usa WhatsApp por onde?"* — custava uma linha e teria
+evitado o recurso inteiro. Duas versões e um refactor foram gastos antes dela.
+
+É parente do erro da manhã (mandar configurar sem procurar o que já
+configurava), com a mesma forma: **agi antes de olhar.**
+
+#### O que ficou
+
+- `mensagemDoAnuncio()` — o anúncio padrão em Ofertar e na Central, decisão
+  dele. Antes cada ponto montava a sua. `gerarMensagemMatch` segue no arquivo,
+  sem uso, com o motivo anotado: nomeava por que o carro casava com o
+  comprador, e era o argumento mais forte do Match. **Se a taxa de resposta
+  cair, é o primeiro lugar para olhar.**
+- **IA: motivo real da falha.** Ele levou "Serviço temporariamente
+  indisponível" na aba Parceiros. Não foi mudança nossa (`parse.js` intocado
+  desde 02/set 19:04) — foi sobrecarga do OpenRouter. Mas o código **já sabia**
+  o motivo (`rate_limit:429`, `http_error:402`, `no_json`) e jogava fora: a
+  mesma frase para sobrecarga, chave vencida, sem crédito e imagem grande.
+  Agora traduz por ação, e o detalhe por modelo vai para o console.
+
+#### Fatos verificados que valem além deste recurso
+
+- **Contact Picker API**: Chrome no Android (6+) sim; Safari do iPhone só
+  experimental, desligado de fábrica; navegador de mesa não. Abre o seletor
+  nativo — a página recebe só os contatos marcados, nunca a agenda inteira.
+- **Restrição de produto declarada pelo Yuri:** *"não podemos restringir as
+  funções somente para Android, o app tem que ser para ambos"*. Vale para o
+  que vier: recurso exclusivo de uma plataforma entra como atalho, nunca como
+  fundação.
+- **Lista de transmissão do WhatsApp**: minhas fontes eram blogs de empresas
+  que vendem ferramenta de disparo, e se contradiziam. Yuri usa e disse que
+  saiu do app comum. **O relato dele vale mais que aquelas fontes** — não
+  tratar blog de fornecedor como fato.
+
+*Registrado em 3 de setembro de 2026, tarde.*
