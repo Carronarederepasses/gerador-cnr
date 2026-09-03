@@ -2647,10 +2647,17 @@ hoje. Ninguém está marcado como Particular ou Fonte."*
 > **Padrão do dia inteiro, terceira vez:** a tela sabia e não contava. Aqui não
 > era nem erro de lógica — era ausência de um número na tela.
 
-#### Pendente, e é dele
+#### Concluído na mesma noite
 
-Marcar os particulares já cadastrados. Só depois disso o Match protege de
-verdade. **Não fazer por regra automática:** deduzir "é particular" do nome é
-chute sobre o negócio dele. Se forem muitos, oferecer marcação rápida no card.
+Eram **dois**: Tania Maria Minini Caldeira (vendedora do Renegade, 01/set) e
+Ruan (vendedor do C3, 17/ago) — os dois particulares de quem ele comprou.
+Marcados por ele como .
+
+**Confirmado pela própria tela:** a faixa em Clientes passou de "17 de 17" para
+**15 clientes recebem ofertas**. A proteção deixou de ser teórica.
+
+Ferramenta de marcação em massa foi cogitada e **não** foi feita: eram dois.
+E deduzir "é particular" do nome continua fora de cogitação — é conhecimento
+do negócio dele, não regra que dê para chutar.
 
 *Registrado em 3 de setembro de 2026, noite.*
