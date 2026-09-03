@@ -57,6 +57,44 @@
 }
 
 /*
+ * ── Marca d'água ────────────────────────────────────────────────
+ * O logo no canto inferior direito, sangrando para fora da tela, bem
+ * apagado. Numa ferramenta de trabalho a marca precisa estar presente sem
+ * nunca disputar com o conteúdo — por isso o canto e não o centro, e por
+ * isso 5,5% e não 15%.
+ *
+ * `filter: invert(1)` é necessário: o logo.svg foi desenhado para fundo
+ * branco (usa mix-blend-mode: color-burn) e some sobre o preto. Invertido,
+ * ele vira arte branca sobre transparente.
+ *
+ * `position: fixed` para ficar parado enquanto a página rola — marca d'água
+ * que sobe junto com o conteúdo vira adesivo.
+ *
+ * Fica acima do conteúdo na ordem de pintura (pseudo-elemento posicionado),
+ * mas a 5,5% isso é um véu imperceptível. Pôr atrás de tudo exigiria mudar
+ * o fundo do body de todas as telas — troca cara para um ganho que ninguém
+ * enxerga. `pointer-events: none` garante que ela nunca intercepta clique.
+ *
+ * Some abaixo de 700px: no celular a tela é pequena e densa, e a marca
+ * atrapalharia justamente onde o Yuri mais trabalha.
+ */
+body::after{
+  content:'';
+  position:fixed;
+  right:-3vw;
+  bottom:-2vh;
+  width:min(34rem, 46vw);
+  aspect-ratio:1000 / 409;
+  background:url('/assets/logo.svg') no-repeat center / contain;
+  filter:invert(1);
+  opacity:.055;
+  pointer-events:none;
+}
+@media (max-width:700px){
+  body::after{ display:none; }
+}
+
+/*
  * Sem bloco de tema claro, e sem @media prefers-color-scheme: é escolha,
  * não esquecimento. Se um dia o app precisar de tema claro, ele volta aqui
  * inteiro — com os dois lados auditados juntos, não um de cada vez.
