@@ -2189,17 +2189,29 @@ fechada** → venda registrada com anexos, pelo celular.
 - Tratei "campo vazio no histórico" como "campo inútil". Ele corrigiu: são
   registros anteriores aos campos existirem.
 
+## Resolvido ainda na noite do dia
+
+**A extensão não era instalável a partir do repositório.** `icons/`, `popup/`
+e `setup/` nunca haviam sido versionados, embora o `manifest.json` referencie
+os três — clonar produzia uma extensão que o Chrome recusa carregar, e o
+código existia só na máquina do Yuri. Ia aparecer da pior forma no fim de
+setembro, ao montar o notebook da mãe dele.
+
+Junto, foi commitado `content/olx-chat.js`, modificado desde sessão anterior:
+`findField()` passou a procurar o campo de mensagem também dentro de iframes
+same-origin e a rodar `execCommand` no documento correto — no documento
+errado ele não insere nada e o preenchimento falha em silêncio.
+
+Conferido antes de adicionar: nenhum token ou segredo nos arquivos.
+Verificado depois: **todo caminho citado no manifest está versionado.**
+
 ## Pendências, por ordem de consequência
 
-1. **`icons/`, `popup/`, `setup/` fora do git na extensão.** O manifest
-   referencia os três. O repositório não produz extensão funcional se
-   clonado — e é o que será feito no notebook da mãe do Yuri no fim do mês.
-   `content/olx-chat.js` também está modificado e não commitado.
-2. **`GET` público da API** — expõe vendas e compradores (CPF, telefone).
+1. **`GET` público da API** — expõe vendas e compradores (CPF, telefone).
    Pré-requisito do primeiro parceiro externo, junto de multi-tenancy.
-3. Contato do irmão com a OLX — documento pronto; decidir conta compartilhada.
-4. Subaru com lixo espelhado; 13 conversas nunca espelhadas.
-5. Logs DIAG antigos (envio, radar) — mantidos enquanto se observa.
+2. Contato do irmão com a OLX — documento pronto; decidir conta compartilhada.
+3. Subaru com lixo espelhado; 13 conversas nunca espelhadas.
+4. Logs DIAG antigos (envio, radar) — mantidos enquanto se observa.
 
 *Fechado em 2 de setembro de 2026, 22h.*
 
