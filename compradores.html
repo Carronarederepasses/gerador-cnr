@@ -149,14 +149,20 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
        quem não devia. -->
   <div id="aviso-pool" style="display:none;background:var(--surface-raise);border:1px solid var(--line);
        border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:.8rem 1rem;
-       margin-bottom:1rem;font-size:.86rem;line-height:1.5;display:flex;gap:.7rem;
+       margin-bottom:1rem;font-size:.86rem;line-height:1.5;gap:.7rem;
        align-items:center;justify-content:space-between;flex-wrap:wrap">
     <span id="aviso-pool-txt"></span>
-    <button onclick="document.getElementById('f-pool').checked=true;filtrar()"
+    <button id="btn-pool" onclick="alternarPool()"
             style="font-family:'DM Sans',sans-serif;font-size:.78rem;padding:.4rem .8rem;
                    border:1px solid var(--line);border-radius:8px;background:none;
                    color:var(--text);cursor:pointer;white-space:nowrap">Ver quem são</button>
   </div>
+
+  <!-- Diz quantos estão sendo mostrados de quantos. Sem isto, ligar o filtro
+       quando TODOS estão no pool não muda nada na tela e parece defeito —
+       foi exatamente o que aconteceu com o Yuri em 03/set. -->
+  <div id="contagem-lista" style="display:none;font-size:.78rem;color:var(--text-mid);
+       margin-bottom:.7rem"></div>
 
   <div class="lista" id="lista"></div>
   <div id="empty" class="empty" style="display:none">
@@ -456,6 +462,14 @@ function recebeOfertas(c) {
       && c.tipo !== 'pessoa_fisica';
 }
 
+// Liga/desliga o filtro do pool. Botão que alterna, e não que só liga:
+// ligado sem como desligar deixa a tela num estado do qual não se sai.
+function alternarPool() {
+  const cx = document.getElementById('f-pool');
+  cx.checked = !cx.checked;
+  filtrar();
+}
+
 function atualizarAvisoPool() {
   const el = document.getElementById('aviso-pool');
   if (!el) return;
@@ -464,6 +478,10 @@ function atualizarAvisoPool() {
   // que entraram no pool por omissão, não por decisão — é onde o particular
   // se esconde.
   const porOmissao = pool.filter(c => !c.papel).length;
+
+  const btn = document.getElementById('btn-pool');
+  if (btn) btn.textContent = document.getElementById('f-pool')?.checked
+    ? 'Mostrar todos' : 'Ver quem são';
 
   if (!pool.length) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
@@ -486,6 +504,22 @@ function filtrar() {
         && (!soPool || recebeOfertas(c));
   });
   atualizarAvisoPool();
+
+  // Quantos de quantos. Quando TODOS estão no pool, ligar o filtro não muda
+  // a lista — sem esta linha o botão parece quebrado, que foi o que
+  // aconteceu. Aqui a tela diz "17 de 17" e a conclusão fica óbvia:
+  // ninguém está marcado como Particular ainda.
+  const cnt = document.getElementById('contagem-lista');
+  if (cnt) {
+    const filtrando = soPool || q || tipo || papel;
+    cnt.style.display = filtrando ? 'block' : 'none';
+    cnt.textContent = filtrando
+      ? `Mostrando ${res.length} de ${TODOS.length} cliente(s)` +
+        (soPool && res.length === TODOS.length
+          ? ' — ou seja, todos recebem ofertas hoje. Ninguém está marcado como Particular ou Fonte.'
+          : '')
+      : '';
+  }
   if (ord === 'compras') {
     res = [...res].sort((a, b) => {
       const ha = HIST_COMP[a.id] || HIST_COMP[a.nome] || { count: 0 };
