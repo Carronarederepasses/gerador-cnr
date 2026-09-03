@@ -75,6 +75,16 @@
  * deste arquivo e venceria. Conferido antes: nenhuma usa imagem de fundo
  * nem cor diferente, então mover para o html não muda nada visualmente.
  *
+ * Só a silhueta do carro, sem o texto. No logo cheio as rodas caem em cima
+ * das letras: ampliado e apagado, "CARRONAREDE" lê-se "CARRO N AREDE" — a
+ * roda vira um O. Não é defeito de opacidade, é o desenho; só aparece nesse
+ * tamanho. Marca ilegível é pior que marca ausente, e o nome já está escrito
+ * na barra lateral de toda tela — a marca d'água não precisa repetir.
+ *
+ * O corte vem do recorte da caixa: a arte tem 1000×409, o carro ocupa os
+ * ~205 de cima. `aspect-ratio` define a janela e `background-position: top`
+ * encosta a arte no topo, deixando o texto para fora.
+ *
  * `filter: invert(1)` é necessário: o logo.svg foi desenhado para fundo
  * branco (usa mix-blend-mode: color-burn) e some sobre o preto. Invertido,
  * vira arte branca sobre transparente.
@@ -97,11 +107,12 @@ body::before{
   left:50%;
   top:50%;
   transform:translate(-50%, -50%);
-  width:min(46rem, 84vw);
-  aspect-ratio:1000 / 409;
-  background:url('/assets/logo.svg') no-repeat center / contain;
+  width:min(52rem, 88vw);
+  aspect-ratio:1000 / 205;          /* janela só na faixa do carro */
+  background:url('/assets/logo.svg') no-repeat top center;
+  background-size:100% auto;        /* largura cheia; o texto sobra para fora */
   filter:invert(1);
-  opacity:.075;
+  opacity:.09;
   z-index:-1;
   pointer-events:none;
 }
