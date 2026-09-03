@@ -31,6 +31,64 @@ function sb(path, opts = {}) {
   });
 }
 
+// ── Modo Ideias: caderno do Yuri ─────────────────────────────────
+// GET    → lista (novas primeiro, mais recentes no topo)
+// POST   → anota uma ideia   { texto }
+// PATCH  → muda o status     ?id=N  { status }
+// DELETE → apaga             ?id=N
+async function handleIdeias(req, res) {
+  if (req.method === 'GET') {
+    const r = await sb('ideias?select=*&order=status.asc,criada_em.desc&limit=500');
+    if (!r.ok) return res.status(502).json({ error: `Supabase HTTP ${r.status}` });
+    return res.status(200).json(await r.json());
+  }
+
+  if (req.method === 'POST') {
+    const texto = String((req.body || {}).texto || '').trim();
+    if (!texto) return res.status(400).json({ error: 'Escreva alguma coisa.' });
+    if (texto.length > 4000) return res.status(400).json({ error: 'Texto muito longo.' });
+
+    const r = await sb('ideias', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ texto }),
+    });
+    if (!r.ok) {
+      const corpo = await r.text().catch(() => '');
+      return res.status(502).json({ error: `Falha ao gravar: ${corpo.slice(0, 200)}` });
+    }
+    const linhas = await r.json();
+    return res.status(201).json(Array.isArray(linhas) ? linhas[0] : linhas);
+  }
+
+  const id = req.query.id;
+  if (!id) return res.status(400).json({ error: 'id obrigatório.' });
+
+  if (req.method === 'PATCH') {
+    const status = String((req.body || {}).status || '');
+    if (!['nova', 'feita', 'descartada'].includes(status)) {
+      return res.status(400).json({ error: 'status inválido.' });
+    }
+    const r = await sb(`ideias?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status }),
+    });
+    if (!r.ok) return res.status(502).json({ error: await r.text() });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (req.method === 'DELETE') {
+    const r = await sb(`ideias?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE', headers: { Prefer: 'return=minimal' },
+    });
+    if (!r.ok) return res.status(502).json({ error: await r.text() });
+    return res.status(200).json({ ok: true });
+  }
+
+  return res.status(405).json({ error: 'Método não suportado.' });
+}
+
 // ── Modo Buscas: configuração das URLs do Radar ──────────────────
 // GET  → lista as buscas (a extensão puxa daqui a cada verificação)
 // POST → grava o conjunto inteiro enviado pela tela do Radar
@@ -454,6 +512,9 @@ module.exports = async (req, res) => {
 
   // Modo Buscas: configuração do Radar (Reforma 23)
   if ('buscas' in req.query) return handleBuscas(req, res);
+
+  // Modo Ideias: caderno do Yuri
+  if ('ideias' in req.query) return handleIdeias(req, res);
 
   // Modo Mensagens (Reforma 43)
   if ('mensagens' in req.query) return handleMensagens(req, res);

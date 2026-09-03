@@ -13,6 +13,7 @@
     { href: '/consultas.html',   emoji: '🔍', label: 'Consulta' },
     { href: '/busca.html',       emoji: '🔎', label: 'Busca' },
     { href: '/foto.html',        emoji: '📸', label: 'Foto' },
+    { href: '/ideias.html',      emoji: '💡', label: 'Ideias' },
   ];
 
   function paginaAtiva(href) {
