@@ -2088,3 +2088,56 @@ ser descartadas.
 Funcionando em produção. Falta remover os logs DIAG quando estabilizar.
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Caixa de entrada — três bugs de leitura, todos pelo mesmo motivo (02/set/2026)
+
+Depois de a leitura funcionar, os alarmes vinham errados. Três causas, todas
+encontradas pelo mesmo método: **imprimir os dois lados da comparação**.
+
+1. **Título vinha como a inicial do avatar** (`"S"`, `"R"`, `"Z"`).
+   `sem_casar` era 18 de 18. → descartar linhas de até 3 caracteres.
+2. **Prévia vinha como o carimbo de data.** O log dizia `OLX diz: "Terça"`.
+   A regra só reconhecia hora `11:18`, mas a OLX escreve "Terça", "Segunda",
+   "Ontem" ou "24/08/2026" conforme a largura da janela e a idade da conversa.
+   → `ehCarimbo()` cobre as quatro formas.
+3. **Avisos da própria OLX viravam prévia.** *"Na Garantia OLX, pague com o
+   código PIX…"* é injetado pela OLX acima da última mensagem real. Não é
+   mensagem de ninguém e nunca existiria no espelho — acendia para sempre.
+   Confirmado pelo Yuri: não havia nada depois de "120000 no pix".
+   → lista `AVISOS_OLX`.
+
+Também: a comparação passou a olhar as **5 mensagens mais recentes**, não só a
+última, e o trecho comparado caiu de 40 para 20 caracteres — "120000 no pix"
+nem chega a 40.
+
+#### Resultado
+
+`lidas: 18 · sem_casar: 0 · novidades: 14`, sendo **1 acionável** (Ford KA,
+com resposta real do vendedor) e 13 de conversas nunca espelhadas.
+
+#### Padrão que se repetiu três vezes
+
+Nos três casos eu **inferi a estrutura** em vez de olhar o que de fato vinha.
+O que resolveu, sempre, foi o log lado a lado — que por isso ficou no código.
+
+> Para a próxima: quando algo "não bate", imprimir os dois lados **antes** de
+> investigar o mecanismo. Custou cinco idas e vindas descobrir isso.
+
+#### Limpeza de dados
+
+Apagadas 2 conversas cujo único conteúdo era menu da OLX capturado como
+mensagem (Gol `1531235695`, Fiat Pulse `1530882659`). Conferido item a item
+antes de apagar. Sobrou a Subaru, no mesmo estado, aguardando decisão.
+
+Corolla mantido: tem 3 mensagens reais do vendedor, mas a abordagem do Yuri
+não foi espelhada. Reespelha sozinho se ele reabrir a conversa.
+
+#### Aberto
+
+- Prévia vem como nome do vendedor em 2 conversas (`"Junior"`,
+  `"jor.correa"`) — provavelmente última mensagem sem texto. Sem efeito hoje.
+- Logs `[CNR Inbox]` mantidos: se pagaram duas vezes hoje.
+
+*Registrado em 02/setembro/2026.*
