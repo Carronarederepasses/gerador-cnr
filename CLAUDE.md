@@ -2222,3 +2222,152 @@ Verificado depois: **todo caminho citado no manifest está versionado.**
 *Fechado em 2 de setembro de 2026, 22h.*
 
 ═══════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════
+
+### Checkpoint — 03/set/2026 (manhã) — API fechada: liberação por aparelho
+
+**A pendência nº 1 do dia anterior está resolvida.** O `GET` público saiu do ar.
+
+#### O que estava aberto
+
+Sem chave nenhuma, qualquer um com a URL baixava:
+
+| Rota | O que saía |
+|---|---|
+| `/api/vendas` | 142 KB — placa, renavam, chassi, valor de compra, lucro |
+| `/api/compradores` | 13 KB — nome, telefone, CPF, banco e Pix de terceiros |
+| `/api/catalogo` | estoque inteiro com valores de compra |
+| `?buscas=1` / `?ideias=1` | buscas do Radar e caderno de ideias |
+
+`/api/compradores` **não tinha guarda nem para escrita**: dava para criar,
+alterar e apagar comprador e negociação sem nada. Vendas e catálogo ao menos
+protegiam gravação.
+
+#### Desenho: liberação por aparelho, não senha
+
+Yuri havia recusado senha em 02/set (*"não preciso de senha"*), e a recusa
+continua respeitada: **ele não digita nada durante o uso.** O aparelho é
+liberado uma vez em `/entrar.html` e nunca mais pergunta.
+
+- `api/_auth.js` — portão único. Começa com `_`, então a Vercel não roteia:
+  **não consome função** (o teto de 12 já estava atingido). Aceita as chaves
+  legadas (`RADAR_KEY`, `VENDAS_KEY`, `CATALOGO_KEY`) de propósito, para nada
+  instalado quebrar no instante em que o portão ligar.
+- `assets/auth.js` — envolve `window.fetch` num lugar só, em vez de editar as
+  ~100 chamadas das 13 telas. Chamada esquecida quebraria em silêncio, e o
+  jeito de descobrir seria uma venda não salvando no meio do negócio.
+  Sem `defer`: script inline no fim do `<body>` roda **antes** de script com
+  `defer`, e várias telas disparam fetch já na carga.
+- `entrar.html` — libera o aparelho e **gera a chave ali mesmo**
+  (`crypto.getRandomValues`). A primeira versão exigia rodar um comando no
+  terminal, e foi exatamente ali que o Yuri travou: *"não to achando a aba
+  terminal, ela esta onde?"*.
+- A chave viaja pelo **fragmento** (`#`), nunca pela query: fragmento não é
+  enviado ao servidor, então não entra nos logs de acesso da Vercel.
+- Ordem de implantação deliberada: subiu com o portão **desligado**, aparelhos
+  liberados, e só então a `CNR_KEY` entrou na Vercel. Nunca existiu um minuto
+  com o operador trancado do lado de fora.
+
+Verificado em produção, de fora, sem chave: 401 em `vendas`, `compradores`,
+`catalogo`, `buscas`, `ideias`, `radar`, `mensagens`; 401 em `POST` de
+comprador e `DELETE` de ideia; chaves óbvias (`admin`, `123456`) recusadas;
+telas e assets continuam servindo normalmente.
+
+#### O bug que custou a manhã dele
+
+Depois de tudo liberado, `entrar.html` dizia **"Aparelho liberado"** e
+`vendas.html` dizia **"não foi liberado"** — mesmo navegador, mesmo instante.
+
+Causa: `vendas.html` e `anuncios.html` liam uma chave própria do localStorage
+(`cnr_vendas_key`, `cnr_catalogo_key`), de antes do portão único, e a punham
+em `x-cnr-key`. O envelope só preenche o header quando a página **não** pôs
+nenhum — de propósito, para nunca sobrescrever decisão explícita da tela. Com
+um valor velho esquecido na gaveta, a página se auto-derrubava; as telas sem
+gaveta abriam normalmente.
+
+Corrigido: as duas páginas não mandam mais header; `auth.js` apaga as gavetas
+antigas ao carregar; a faixa de "colar chave" saiu de `vendas.html` (era o
+botão que reintroduzia o problema); os avisos de 401 apontam para
+`/entrar.html`.
+
+> **Erro meu, e é o mesmo de ontem:** não procurei o que já existia antes de
+> mandar o Yuri configurar. O mecanismo estava no arquivo que eu tinha aberto,
+> a 25 linhas do trecho que editei. Prometi "uma vez por aparelho" e ele
+> digitou a chave quatro vezes na mesma manhã.
+
+#### Dois falsos sucessos fechados na extensão
+
+- **3 leituras iam sem chave** (`resolverPeloGerador`, `conferirCaixaEntrada`).
+  Parariam no instante em que o portão ligasse — e **em silêncio**: a lista
+  voltaria vazia, parecendo "nada novo".
+- **"Salvar Gerador" dizia ✓ sem nunca ter falado com o servidor.** Com a
+  chave errada por um caractere, o mesmo ✓ — e `carregarBuscas()` cai na cópia
+  local em caso de erro, então o Radar seguiria rodando com buscas velhas,
+  parecendo normal. Agora testa de verdade e reporta os quatro casos
+  (conectado com contagem / chave recusada / erro do servidor / sem rede).
+  Confirmado em produção: *"✓ Conectado. 4 busca(s) ativa(s)"*.
+- O texto do campo dizia **"Radar Key (opcional) — deixe em branco"**, que
+  virou instrução para quebrar a extensão. Corrigido. Importa além de hoje:
+  em setembro essa é a única tela que a mãe do Yuri vai ler.
+
+#### Verificação que derrubou meu próprio argumento
+
+Ao explicar o risco do `GET` aberto, eu ia afirmar que os certificados HTTPS
+publicam o subdomínio em registro público. Conferido antes de afirmar:
+
+```
+subject=CN=*.vercel.app   /   SAN: DNS:*.vercel.app
+```
+
+É **certificado curinga** — `gerador-cnr` não aparece em lugar nenhum.
+A afirmação estava errada e teria sido mais uma inferência não verificada.
+
+O que resta de real: `Referer` vazando para WhatsApp e OLX a cada link que
+sai do Gerador; a URL circulando por conversas e por outras máquinas; e
+`/api/vendas` ser chute óbvio a partir do domínio. Ninguém está caçando o
+Yuri — o argumento que se sustenta não é probabilidade, é que **o CPF, o
+telefone e os dados bancários ali não são dele.**
+
+#### Chave exposta e decisão do Yuri
+
+O campo da chave nas opções era `type="text"`. Yuri mandou um print para
+confirmar que a conexão funcionou e **a chave foi junto, legível**. Campo
+mudado para `type="password"` — essa é justamente a tela que alguém abre
+quando algo não funciona, ou seja, a com mais chance de virar screenshot.
+
+**Yuri optou por não rotacionar** (*"Deus me livre, pode deixar assim mesmo"*).
+Decisão registrada: para usar seria preciso ter a URL **e** o print. A troca
+acontece naturalmente quando entrar o primeiro parceiro externo, junto do
+multi-tenancy — aí a chave vira credencial compartilhada de qualquer jeito.
+
+#### Descoberto no caminho, não tratado
+
+**O repositório da extensão não tem remote.** Existe só nesta máquina. Se o
+notebook morrer, a extensão inteira se perde — e é ela que sustenta a captação
+e as conversas. Ontem descobriu-se que ela não era instalável a partir do
+repositório; hoje, que o repositório não sai daqui.
+
+**`Access-Control-Allow-Origin: *` continua em tudo.** Com o portão ligado não
+é explorável (a chave mora no `localStorage` do domínio do Gerador, e site
+nenhum lê o de outro). Deixado como está de propósito: apertar arriscava
+quebrar a extensão, que fala de outra origem.
+
+#### Commits
+
+Gerador: `3b52077` (portão + envelope + entrar.html), gerar chave na tela,
+`cnr_vendas_key` removida das telas.
+Extensão (local, sem remote): chave nas 3 leituras, texto das opções,
+teste real no Salvar, campo mascarado.
+
+#### Pendências
+
+- [ ] Extensão sem cópia fora desta máquina
+- [ ] Ideia 4 — pesquisa sobre software de concessionária (pedida para hoje,
+      **precisa ser pesquisada com fonte, não respondida de memória**)
+- [ ] Contato do irmão com a OLX; decidir conta compartilhada
+- [ ] Subaru com lixo espelhado; 13 conversas nunca espelhadas
+- [ ] Logs DIAG antigos
+- [ ] Reescrever `compliance-extensao.md` do repo
+
+*Registrado em 3 de setembro de 2026, manhã.*
