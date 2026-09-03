@@ -58,40 +58,52 @@
 
 /*
  * ── Marca d'água ────────────────────────────────────────────────
- * O logo no canto inferior direito, sangrando para fora da tela, bem
- * apagado. Numa ferramenta de trabalho a marca precisa estar presente sem
- * nunca disputar com o conteúdo — por isso o canto e não o centro, e por
- * isso 5,5% e não 15%.
+ * Centralizada, sempre visível, e ATRÁS do conteúdo.
+ *
+ * A primeira versão ficava no canto e por cima, a 5,5%. Eu apostei que a
+ * essa opacidade ninguém notaria; o Yuri notou na hora — "o logo comeu as
+ * letras". Aposta errada: 5,5% de branco sobre texto ainda suja o texto.
+ *
+ * Ficar atrás exige mover a cor de fundo do `body` para o `html`. Motivo:
+ * um pseudo-elemento com z-index negativo é pintado logo depois do fundo
+ * da raiz e ANTES do fundo do body — então um body opaco o esconde por
+ * completo. Com a cor no html e o body transparente, a ordem passa a ser
+ * html → marca → conteúdo, que é o que se quer.
+ *
+ * O `!important` é deliberado e fica só aqui: as 16 telas declaram
+ * `body{background:var(--surface)}` no próprio <style>, que carrega depois
+ * deste arquivo e venceria. Conferido antes: nenhuma usa imagem de fundo
+ * nem cor diferente, então mover para o html não muda nada visualmente.
  *
  * `filter: invert(1)` é necessário: o logo.svg foi desenhado para fundo
  * branco (usa mix-blend-mode: color-burn) e some sobre o preto. Invertido,
- * ele vira arte branca sobre transparente.
+ * vira arte branca sobre transparente.
  *
  * `position: fixed` para ficar parado enquanto a página rola — marca d'água
  * que sobe junto com o conteúdo vira adesivo.
  *
- * Fica acima do conteúdo na ordem de pintura (pseudo-elemento posicionado),
- * mas a 5,5% isso é um véu imperceptível. Pôr atrás de tudo exigiria mudar
- * o fundo do body de todas as telas — troca cara para um ganho que ninguém
- * enxerga. `pointer-events: none` garante que ela nunca intercepta clique.
- *
- * Some abaixo de 700px: no celular a tela é pequena e densa, e a marca
- * atrapalharia justamente onde o Yuri mais trabalha.
+ * Consequência honesta de estar atrás: onde houver cartão opaco por cima,
+ * ela não aparece. Ela vive no respiro da tela, que é o lugar dela.
  */
-body::after{
+html{
+  background-color: var(--surface);
+}
+body{
+  background-color: transparent !important;
+}
+body::before{
   content:'';
   position:fixed;
-  right:-3vw;
-  bottom:-2vh;
-  width:min(34rem, 46vw);
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  width:min(46rem, 84vw);
   aspect-ratio:1000 / 409;
   background:url('/assets/logo.svg') no-repeat center / contain;
   filter:invert(1);
-  opacity:.055;
+  opacity:.075;
+  z-index:-1;
   pointer-events:none;
-}
-@media (max-width:700px){
-  body::after{ display:none; }
 }
 
 /*
