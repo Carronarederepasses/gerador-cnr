@@ -20,6 +20,7 @@
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <script src="/assets/sidebar.js" defer></script>
+<script src="/assets/envio.js" defer></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -872,6 +873,10 @@
       <button class="btn-icon" id="btn-catalogo" onclick="salvarNoCatalogo(this)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
         Salvar no catálogo
+      </button>
+      <button class="btn-icon" id="btn-lista" onclick="enviarParaLista()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+        Enviar para lista
       </button>
     </div>
     <div class="share-link"><a href="/catalogo.html">📂 Abrir catálogo de oportunidades</a></div>
@@ -1779,6 +1784,49 @@ function onPreviewEdit() {
 function compartilharNativo() {
   const txt = document.getElementById('btn-wa').dataset.texto || '';
   navigator.share({ text: txt }).catch(() => {});
+}
+
+// Enviar o anúncio recém-gerado para uma lista de clientes.
+//
+// A tela e a fila vivem em assets/envio.js, compartilhadas com o Catálogo —
+// duas cópias divergiriam, e este arquivo já teve três montadores do texto
+// do anúncio por esse motivo.
+//
+// Funciona com o veículo salvo ou não. Salvo, cada envio vira oferta
+// registrada; não salvo, manda mesmo assim e não registra. Exigir o salvamento
+// aqui seria desfazer o que ele pediu hoje de manhã — carro só entra no
+// catálogo quando ele manda.
+function enviarParaLista() {
+  if (!window.CNR_ENVIO) { alert('Recarregue a página e tente de novo.'); return; }
+  const texto = document.getElementById('btn-wa').dataset.texto || montarTextoAnuncio();
+  if (!texto.trim()) { alert('Gere o anúncio primeiro.'); return; }
+
+  const marca  = getSelTxt('sel-marca');
+  const modelo = getSelTxt('sel-modelo');
+  const compl  = (document.getElementById('complemento')?.value || '').trim();
+  const nome   = [marca, modelo].filter(t => t && !/^—/.test(t)).join(' ').trim() || compl || 'Anúncio';
+
+  CNR_ENVIO.escolher({
+    titulo:    nome,
+    mensagem:  texto,
+    veiculoId: _catalogoId,
+    aoEnviar:  (c, msg) => {
+      if (!_catalogoId || c.origem !== 'crm') return;
+      // Mesmo evento que o Catálogo grava, para a oferta contar no histórico
+      // do comprador. Fire-and-forget: falhar aqui não pode travar a fila.
+      fetch('/api/compradores?evento=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'match_notificado',
+          veiculo_id: _catalogoId,
+          comprador_id: c.id,
+          origem: 'gerador',
+          dados: { veiculo_nome: nome, comprador_nome: c.nome, mensagem: msg },
+        }),
+      }).catch(e => console.warn('[LISTA] evento não registrado:', e.message));
+    },
+  });
 }
 
 function mostrarShare(texto) {
