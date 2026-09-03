@@ -287,11 +287,17 @@ async function handleMensagens(req, res) {
           detected_at:  m.detected_at,
           total:        0,
           recebidas:    0,
+          // As 5 mais recentes. A detecção de novidade compara a prévia da
+          // caixa de entrada da OLX com estas, não só com a última: a prévia
+          // nem sempre corresponde à mensagem mais nova do espelho, e comparar
+          // com uma só gerava alarme falso em conversa sem nada de novo.
+          ultimas:      [],
         });
       }
       const c = porAnuncio.get(m.listing_id);
       c.total++;
       if (m.direction === 'incoming') c.recebidas++;
+      if (c.ultimas.length < 5) c.ultimas.push(m.content || '');
     }
     return res.status(200).json([...porAnuncio.values()]);
   }
