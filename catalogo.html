@@ -170,6 +170,30 @@
   .match-sub-recusa.show{display:flex}
   .match-final{font-size:.70rem;margin-top:.3rem;font-weight:600;color:var(--severity-ok)}
   .match-final.na{color:var(--text-faint);font-style:italic;font-weight:400;opacity:.7}
+  /* Escolher quem recebe o anúncio (lista de envio) */
+  .envio-atalhos{padding:.8rem 1.2rem .2rem}
+  .envio-grupo-rot{font-size:.58rem;letter-spacing:.13em;text-transform:uppercase;color:var(--text-faint);font-weight:700;margin:.5rem 0 .35rem}
+  .envio-chips{display:flex;flex-wrap:wrap;gap:.35rem}
+  .envio-chip{font-family:'DM Sans',sans-serif;font-size:.72rem;padding:.3rem .65rem;border-radius:99px;
+    border:1px solid var(--line);background:none;color:var(--text-mid);cursor:pointer;text-transform:capitalize}
+  .envio-chip:hover{border-color:var(--text);color:var(--text)}
+  /* A lista rola sozinha: com 17 clientes e crescendo, o rodapé com o botão
+     Começar precisa continuar visível sem rolar a página inteira. */
+  .envio-lista{flex:1;overflow-y:auto;padding:.4rem 1.2rem;min-height:6rem;max-height:42vh}
+  .envio-item{display:flex;align-items:center;gap:.6rem;padding:.45rem 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .envio-item:last-child{border-bottom:none}
+  .envio-item input{width:1.05rem;height:1.05rem;flex:none;accent-color:var(--accent)}
+  .envio-nome{flex:1;font-size:.88rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .envio-tipo{font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);flex:none}
+  .envio-rodape{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;
+    padding:.8rem 1.2rem 1.4rem;border-top:1px solid var(--line)}
+  .envio-contagem{font-size:.82rem;font-weight:700}
+  .envio-nota{font-size:.7rem;color:var(--text-faint);margin-top:.15rem;max-width:16rem;line-height:1.35}
+  .envio-botoes{display:flex;gap:.5rem;align-items:stretch}
+  .envio-botoes .central-btn-wa{flex:none;padding:.7rem 1.1rem}
+  .envio-vazio{padding:1.6rem .2rem;text-align:center;color:var(--text-mid);font-size:.86rem;line-height:1.5}
+  #envio-comecar:disabled,#envio-salvar:disabled{opacity:.45;cursor:default}
+
   /* Central de Distribuição */
   .central-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-end;justify-content:center;z-index:80;padding:0}
   .central-modal.show{display:flex}
@@ -678,6 +702,7 @@ function card(v) {
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
+      <button onclick="abrirEnvio('${v.id}')">📣 Enviar para lista</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
       <button class="venda" onclick="registrarVenda('${v.id}')">💰 Registrar Venda</button>
@@ -771,6 +796,25 @@ function calcRazoes(c, marca, valor) {
   return razoes;
 }
 
+// Mensagem que sai para o comprador — sempre o anúncio padrão.
+//
+// Decisão do Yuri em 03/set/2026: uma mensagem só no sistema inteiro. O que
+// ele vê no preview do Gerador é o que sai em todo lugar — Ofertar, Central
+// de Distribuição e a lista de envio. Antes cada ponto montava a sua.
+//
+// `anuncio_texto` é o texto que ele mesmo revisou ao gerar o anúncio, então
+// vem primeiro. `gerarTextoAnuncio` só entra para veículo antigo, criado
+// antes de o campo existir, ou cadastrado direto no catálogo.
+function mensagemDoAnuncio(v) {
+  const t = (v && v.anuncio_texto || '').trim();
+  return t || gerarTextoAnuncio(v);
+}
+
+// A mensagem personalizada por motivo de match ficou aqui, sem uso, porque a
+// decisão pode voltar atrás: ela nomeava por que aquele carro casava com
+// aquele comprador ("Lembrei de você porque já pegou Jeep com a gente"), e
+// era o argumento mais forte do Match Ativo. Se a taxa de resposta cair
+// depois desta troca, é o primeiro lugar para olhar.
 function gerarMensagemMatch(c, nomeCarro, detalhes, razoes) {
   const carro   = detalhes ? `${nomeCarro} — ${detalhes}` : nomeCarro;
   const compras = c.compras || [];
@@ -854,7 +898,7 @@ function renderMatchHtml(scored, v) {
     const isTop1 = idx === 0;
     const wa    = c.telefone ? c.telefone.replace(/\D/g, '') : '';
     const cls   = c.score >= 70 ? '' : c.score >= 40 ? ' med' : ' baixo';
-    const msgTexto = gerarMensagemMatch(c, nomeCarro, detalhes, c.razoes);
+    const msgTexto = mensagemDoAnuncio(v);
     const msgId = `cmsg-${v.id}-${c.id}`;
     const mcId  = `mc-${v.id}-${c.id}`;
     const razaoHtml = c.razoes.map(r => `<span class="match-razao">✓ ${r}</span>`).join('');
@@ -1208,7 +1252,7 @@ async function abrirCentral(veiculoId) {
     return;
   }
 
-  _central = { fila, idx: 0, veiculoId, nomeCarro, detalhes };
+  _central = { fila, idx: 0, veiculoId, nomeCarro, detalhes, modo: 'match' };
 
   document.getElementById('central-titulo').textContent       = nomeCarro;
   document.getElementById('central-valor').textContent        = detalhes;
@@ -1217,6 +1261,177 @@ async function abrirCentral(veiculoId) {
 
   _renderCentralItem();
   document.getElementById('central-modal').classList.add('show');
+}
+
+// ═══ LISTA DE ENVIO ═══════════════════════════════════════════════
+// A "lista de transmissão" do Gerador. A Central pergunta "quem casa com
+// este carro?"; aqui quem escolhe é o Yuri — sem score, sem corte, sem
+// teto. Nada sai sozinho: cada contato é um toque dele, o WhatsApp abre
+// com o anúncio pronto e ele envia.
+//
+// Reaproveita o modal e o motor de fila da Central de propósito. Duas
+// filas quase iguais divergiriam, e já vi isso acontecer neste projeto
+// (três montadores do texto do anúncio, um deles com GASTOS a mais).
+
+const TIPOS_CLIENTE = ['lojista', 'repassador', 'investidor', 'particular'];
+let _envio = null;   // { veiculoId, compradores, listas, escolhidos:Set }
+
+async function abrirEnvio(veiculoId) {
+  const v = CACHE[veiculoId];
+  if (!v) return;
+
+  const cx = document.getElementById('envio-lista');
+  document.getElementById('envio-titulo').textContent = nomeVeiculo(v);
+  cx.innerHTML = '<div class="envio-vazio">Carregando…</div>';
+  document.getElementById('envio-modal').classList.add('show');
+
+  let compradores = [], listas = [];
+  try {
+    const [rc, rl] = await Promise.all([
+      fetch('/api/compradores?ativo=true'),
+      fetch('/api/compradores?listas=1'),
+    ]);
+    if (!rc.ok) throw new Error('não consegui carregar os clientes');
+    compradores = await rc.json();
+    // A lista salva é conveniência: se falhar, dá para seguir escolhendo
+    // por tipo. Só não pode fingir que carregou.
+    listas = rl.ok ? await rl.json() : [];
+    if (!rl.ok) console.warn('[ENVIO] listas salvas não carregaram:', rl.status);
+  } catch (e) {
+    cx.innerHTML = `<div class="envio-vazio">Não consegui carregar: ${e.message}<br>
+      <span style="font-size:.8rem;color:var(--text-faint)">Feche e tente de novo.</span></div>`;
+    return;
+  }
+
+  // Sem telefone não há para onde enviar. Fica de fora e o rodapé explica.
+  const comTel = compradores.filter(c => c.telefone && c.telefone.replace(/\D/g,'').length >= 10);
+  _envio = { veiculoId, compradores: comTel, listas, escolhidos: new Set(),
+             semTelefone: compradores.length - comTel.length };
+  _renderEnvio();
+}
+
+function _renderEnvio() {
+  const { compradores, listas, escolhidos, semTelefone } = _envio;
+
+  const porTipo = TIPOS_CLIENTE
+    .map(t => ({ t, n: compradores.filter(c => (c.tipo || '') === t).length }))
+    .filter(x => x.n > 0);
+
+  const chipsTipo = porTipo.map(x =>
+    `<button class="envio-chip" onclick="marcarPorTipo('${x.t}')">${x.t} (${x.n})</button>`
+  ).join('');
+
+  const chipsLista = listas.map(l =>
+    `<button class="envio-chip" onclick="usarLista(${l.id})" title="${esc(l.nome)}">
+       ★ ${esc(l.nome)} (${(l.comprador_ids || []).length})
+     </button>`
+  ).join('');
+
+  const linhas = compradores.map(c => `
+    <label class="envio-item">
+      <input type="checkbox" ${escolhidos.has(c.id) ? 'checked' : ''}
+             onchange="alternarComprador('${c.id}', this.checked)">
+      <span class="envio-nome">${esc(c.nome || 'Sem nome')}</span>
+      <span class="envio-tipo">${esc(c.tipo || '')}</span>
+    </label>`).join('');
+
+  document.getElementById('envio-atalhos').innerHTML =
+    (chipsLista ? `<div class="envio-grupo-rot">Listas salvas</div><div class="envio-chips">${chipsLista}</div>` : '')
+    + `<div class="envio-grupo-rot">Por tipo de cliente</div>
+       <div class="envio-chips">${chipsTipo}
+         <button class="envio-chip" onclick="marcarTodos()">todos (${compradores.length})</button>
+         <button class="envio-chip" onclick="limparEscolha()">limpar</button>
+       </div>`;
+
+  document.getElementById('envio-lista').innerHTML =
+    linhas || '<div class="envio-vazio">Nenhum cliente com telefone cadastrado.</div>';
+
+  const n = escolhidos.size;
+  document.getElementById('envio-contagem').textContent =
+    n ? `${n} selecionado${n > 1 ? 's' : ''}` : 'ninguém selecionado ainda';
+  document.getElementById('envio-nota').textContent =
+    semTelefone ? `${semTelefone} cliente(s) fora da lista por não ter telefone cadastrado.` : '';
+  document.getElementById('envio-comecar').disabled = n === 0;
+  document.getElementById('envio-salvar').disabled  = n === 0;
+}
+
+function alternarComprador(id, marcado) {
+  marcado ? _envio.escolhidos.add(id) : _envio.escolhidos.delete(id);
+  _renderEnvio();
+}
+function marcarPorTipo(tipo) {
+  _envio.compradores.filter(c => (c.tipo || '') === tipo)
+    .forEach(c => _envio.escolhidos.add(c.id));
+  _renderEnvio();
+}
+function marcarTodos() {
+  _envio.compradores.forEach(c => _envio.escolhidos.add(c.id));
+  _renderEnvio();
+}
+function limparEscolha() { _envio.escolhidos.clear(); _renderEnvio(); }
+
+function usarLista(id) {
+  const l = _envio.listas.find(x => x.id === id);
+  if (!l) return;
+  // Soma à seleção em vez de substituir: dá para juntar duas listas.
+  // Id de comprador apagado depois de a lista ser salva simplesmente não
+  // casa com ninguém e some — sem erro, sem linha fantasma.
+  (l.comprador_ids || []).forEach(cid => {
+    if (_envio.compradores.some(c => c.id === cid)) _envio.escolhidos.add(cid);
+  });
+  _renderEnvio();
+}
+
+async function salvarListaEnvio() {
+  const nome = prompt('Nome da lista (ex: "Meus 8 principais"):');
+  if (nome === null) return;
+  if (!nome.trim()) { alert('A lista precisa de um nome.'); return; }
+  const btn = document.getElementById('envio-salvar');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/compradores?listas=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome: nome.trim(), comprador_ids: [..._envio.escolhidos] }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    _envio.listas.push(d);
+    _renderEnvio();
+    alert(`Lista "${d.nome}" salva com ${(d.comprador_ids || []).length} cliente(s).`);
+  } catch (e) {
+    alert('Não consegui salvar a lista: ' + e.message);
+  } finally {
+    btn.disabled = _envio.escolhidos.size === 0;
+  }
+}
+
+// Fecha a escolha e entrega a fila ao motor da Central.
+function comecarEnvio() {
+  const { veiculoId, compradores, escolhidos } = _envio;
+  const v = CACHE[veiculoId];
+  const fila = compradores.filter(c => escolhidos.has(c.id));
+  if (!fila.length) return;
+
+  document.getElementById('envio-modal').classList.remove('show');
+
+  const nomeCarro = nomeVeiculo(v);
+  const kmFmt     = v.km    ? Number(v.km).toLocaleString('pt-BR') + ' km' : '';
+  const valorFmt  = v.valor ? 'R$ ' + Number(v.valor).toLocaleString('pt-BR') : '';
+  const detalhes  = [kmFmt, v.cor, valorFmt].filter(Boolean).join(', ');
+
+  _central = { fila, idx: 0, veiculoId, nomeCarro, detalhes, modo: 'lista' };
+  document.getElementById('central-titulo').textContent     = nomeCarro;
+  document.getElementById('central-valor').textContent      = detalhes;
+  document.getElementById('central-fim').style.display      = 'none';
+  document.getElementById('central-conteudo').style.display = '';
+  _renderCentralItem();
+  document.getElementById('central-modal').classList.add('show');
+}
+
+function fecharEnvio() {
+  document.getElementById('envio-modal').classList.remove('show');
+  _envio = null;
 }
 
 // Fecha a Central e limpa o estado.
@@ -1232,19 +1447,29 @@ function _renderCentralItem() {
   const c     = fila[idx];
   const total = fila.length;
   const wa    = c.telefone.replace(/\D/g, '');
-  const msg   = gerarMensagemMatch(c, nomeCarro, detalhes, c.razoes);
+  const msg   = mensagemDoAnuncio(CACHE[veiculoId]);
 
   document.getElementById('central-contador').textContent = `${idx + 1} / ${total}`;
   document.getElementById('central-nome').textContent     = c.nome;
-  document.getElementById('central-score').textContent    = c.score + '%';
-  document.getElementById('central-razoes').innerHTML     = c.razoes.map(r => `<span class="central-razao">✓ ${r}</span>`).join('');
+  document.getElementById('central-score').textContent    = (c.score || 0) + '%';
+  // `razoes` só existe na fila do Match. Na lista de envio quem escolheu foi
+  // o Yuri, então não há motivo calculado — sem o `|| []` isto lançava e a
+  // fila não abria.
+  document.getElementById('central-razoes').innerHTML     = (c.razoes || []).map(r => `<span class="central-razao">✓ ${r}</span>`).join('');
   document.getElementById('central-msg').textContent      = msg;
   document.getElementById('central-progress').style.width = Math.round((idx / total) * 100) + '%';
+
+  // Na lista de envio não existe score nem motivo de match — quem escolheu
+  // foi o Yuri, não o motor. Mostrar "0%" e uma fileira vazia de motivos
+  // pareceria defeito.
+  const daLista = _central.modo === 'lista';
+  document.getElementById('central-score').style.display  = daLista ? 'none' : '';
+  document.getElementById('central-razoes').style.display = daLista ? 'none' : '';
 
   const btnWa  = document.getElementById('central-btn-wa');
   btnWa.href   = `https://wa.me/55${wa}?text=${encodeURIComponent(msg)}`;
   btnWa.onclick = function() {
-    _registrarOferta(veiculoId, c.id, c.score, c.razoes, msg, nomeCarro, c.nome, wa);
+    _registrarOferta(veiculoId, c.id, c.score || 0, c.razoes || [], msg, nomeCarro, c.nome, wa);
     setTimeout(avancarCentral, 350);
   };
 }
@@ -2515,6 +2740,32 @@ carregarVendasMap().then(async () => {
 </script>
 
 <!-- Central de Distribuição -->
+<!-- Escolher quem recebe o anúncio. Entrega a fila ao mesmo motor da
+     Central, então o envio em si é idêntico: um toque por contato. -->
+<div id="envio-modal" class="central-modal" onclick="if(event.target===this)fecharEnvio()">
+  <div class="central-box">
+    <div class="central-header">
+      <div>
+        <div class="central-carro">Enviar anúncio</div>
+        <div id="envio-titulo" class="central-detalhe"></div>
+      </div>
+      <button class="central-fechar" onclick="fecharEnvio()">✕</button>
+    </div>
+    <div id="envio-atalhos" class="envio-atalhos"></div>
+    <div id="envio-lista" class="envio-lista"></div>
+    <div class="envio-rodape">
+      <div>
+        <div id="envio-contagem" class="envio-contagem"></div>
+        <div id="envio-nota" class="envio-nota"></div>
+      </div>
+      <div class="envio-botoes">
+        <button id="envio-salvar" class="central-btn-pular" onclick="salvarListaEnvio()">★ Salvar lista</button>
+        <button id="envio-comecar" class="central-btn-wa" onclick="comecarEnvio()">Começar →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="central-modal" class="central-modal" onclick="if(event.target===this)fecharCentral()">
   <div class="central-box">
     <div class="central-header">

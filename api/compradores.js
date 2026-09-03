@@ -155,6 +155,70 @@ module.exports = async (req, res) => {
   const q = req.query;
 
   try {
+    // ── LISTAS DE ENVIO ──────────────────────────────────────
+    // A "lista de transmissão" do Gerador: um nome e um conjunto de
+    // compradores, para mandar um anúncio a um grupo escolhido.
+    //
+    // Entra como modo daqui, e não como arquivo novo em api/, porque o
+    // plano Hobby da Vercel está em 12 de 12 funções.
+    //
+    // Mora no banco e não no localStorage porque em setembro entra a
+    // segunda operadora, noutra máquina — lista de navegador não
+    // atravessa aparelho.
+    if ('listas' in q) {
+      if (req.method === 'GET') {
+        const r = await sb('listas_envio?select=*&order=nome.asc');
+        if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+        return res.status(200).json(await r.json());
+      }
+
+      if (req.method === 'POST') {
+        const nome = (req.body?.nome || '').trim();
+        const ids  = Array.isArray(req.body?.comprador_ids) ? req.body.comprador_ids : [];
+        if (!nome) return res.status(400).json({ error: 'Dê um nome à lista.' });
+        const r = await sb('listas_envio', {
+          method: 'POST',
+          body: JSON.stringify({ nome, comprador_ids: ids }),
+        });
+        if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+        const j = await r.json();
+        return res.status(201).json(Array.isArray(j) ? j[0] : j);
+      }
+
+      if (req.method === 'PATCH') {
+        if (!q.id) return res.status(400).json({ error: 'id obrigatório' });
+        const payload = {};
+        if (req.body?.nome !== undefined) {
+          const nome = String(req.body.nome).trim();
+          if (!nome) return res.status(400).json({ error: 'O nome não pode ficar vazio.' });
+          payload.nome = nome;
+        }
+        if (Array.isArray(req.body?.comprador_ids)) payload.comprador_ids = req.body.comprador_ids;
+        if (!Object.keys(payload).length) {
+          return res.status(400).json({ error: 'Nada para alterar.' });
+        }
+        const r = await sb(`listas_envio?id=eq.${encodeURIComponent(q.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+        const j = await r.json();
+        // Array vazio significa que o id não existe. Devolver 200 aqui faria a
+        // tela dizer "salvo" para uma lista que não foi tocada.
+        if (!j.length) return res.status(404).json({ error: 'Lista não encontrada.' });
+        return res.status(200).json(j[0]);
+      }
+
+      if (req.method === 'DELETE') {
+        if (!q.id) return res.status(400).json({ error: 'id obrigatório' });
+        const r = await sb(`listas_envio?id=eq.${encodeURIComponent(q.id)}`, { method: 'DELETE' });
+        if (!r.ok) return res.status(r.status).json({ error: await r.text() });
+        return res.status(200).json({ ok: true });
+      }
+
+      return res.status(405).json({ error: 'Método não permitido.' });
+    }
+
     // ── OBSERVAÇÕES (conhecimento sobre qualquer entidade) ────
     if ('obs' in q) {
       if (req.method === 'GET') {
