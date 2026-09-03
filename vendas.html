@@ -150,27 +150,12 @@
 
 <div id="cnr-toast"></div>
 
-<!-- Aviso de dispositivo sem chave. NÃO é portão: a página funciona e a
-     leitura continua livre. Aparece só quando falta a chave, porque ela
-     vive no localStorage de CADA dispositivo — configurada no notebook,
-     o celular continuava sem, e toda gravação voltava 401 "Acesso negado"
-     sem explicar o motivo. Antes só dava para configurar pelo console,
-     que no celular não existe. -->
-<!-- color: var(--surface), não #fff. No modo escuro --severity-warn vira
-     âmbar claro e texto branco em cima dá contraste 2.24 — ilegível. Como
-     --surface acompanha o tema (claro no claro, escuro no escuro), ele
-     contrasta com o âmbar nos dois. Mesmo padrão das bolhas de mensagem. -->
-<div id="aviso-chave" style="display:none;background:var(--severity-warn,#8a6218);color:var(--surface);padding:.85rem 1rem;font-size:.85rem;line-height:1.45">
-  <div style="max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:.6rem;align-items:center">
-    <span style="flex:1;min-width:220px">
-      ⚠️ <b>Este dispositivo não pode salvar.</b>
-      Falta a chave de acesso — leitura funciona, gravação e anexos são recusados.
-    </span>
-    <input id="in-chave" type="password" placeholder="Colar chave" autocomplete="off"
-           style="flex:1;min-width:180px;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.5rem .7rem;border:none;border-radius:8px" />
-    <button id="btn-chave" style="font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;padding:.5rem 1rem;border:none;border-radius:8px;background:#fff;color:#000;cursor:pointer">Salvar chave</button>
-  </div>
-</div>
+<!-- A faixa de "colar chave" saiu daqui em 03/set/2026. Ela guardava a chave
+     numa gaveta só desta tela (`cnr_vendas_key`), separada da liberação do
+     aparelho — e um valor antigo esquecido ali passou a vencer a chave certa,
+     derrubando justamente esta página enquanto o resto do Gerador abria
+     normalmente. Liberação agora é uma só, em /entrar.html, e quem avisa
+     quando falta é assets/auth.js, igual em todas as telas. -->
 <div class="wrap" id="app">
   <header>
     <h1>Registro de Vendas</h1>
@@ -428,34 +413,17 @@ const moeda = n => (n || n === 0) ? Number(n).toLocaleString('pt-BR', {style:'cu
 const dataBR = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
 const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-let KEY = localStorage.getItem('cnr_vendas_key') || '';
-
-// O aviso da chave NÃO aparece sozinho. Uso normal é sem chave nenhuma
-// (VENDAS_KEY não definida na Vercel → o guard da API fica inerte).
-// Ele só é revelado se uma gravação voltar 401 de verdade, ou seja, se a
-// chave for reativada um dia. Avisar antes disso seria só barulho.
-(function configChave() {
-  const aviso = document.getElementById('aviso-chave');
-  if (!aviso) return;
-
-  document.getElementById('btn-chave')?.addEventListener('click', () => {
-    const v = (document.getElementById('in-chave')?.value || '').trim();
-    if (!v) { alert('Cole a chave antes de salvar.'); return; }
-    try {
-      localStorage.setItem('cnr_vendas_key', v);
-    } catch (e) {
-      alert('Não foi possível guardar a chave neste navegador:\n\n' + e.message);
-      return;
-    }
-    KEY = v;
-    aviso.style.display = 'none';
-    toast('✓ Chave salva neste dispositivo. Já pode salvar e anexar.', 'ok', 5000);
-  });
-})();
+// A chave de acesso é responsabilidade de assets/auth.js, que envolve o
+// fetch de todas as telas. Esta página tinha um sistema próprio
+// (`cnr_vendas_key`) de antes disso, e ele passou a atrapalhar: um valor
+// antigo esquecido no navegador era enviado no lugar do certo — o envelope
+// não sobrescreve header que a página já pôs — e a tela levava 401 sozinha,
+// enquanto entrar.html dizia "liberado" no mesmo navegador. Foi exatamente
+// o que aconteceu no notebook do Yuri em 03/set.
+//
+// A liberação é feita em /entrar.html, uma vez por aparelho.
 function headers(extra) {
-  const h = { 'Content-Type': 'application/json' };
-  if (KEY) h['x-cnr-key'] = KEY;
-  return Object.assign(h, extra || {});
+  return Object.assign({ 'Content-Type': 'application/json' }, extra || {});
 }
 
 
@@ -1322,15 +1290,13 @@ $('m-salvar').onclick = async () => {
     // some em 6s. Confiar só na tarja foi o que fez um salvamento parecer
     // silencioso por uma noite inteira.
     console.error('[SALVAR ERRO]', e);
-    if (/acesso negado/i.test(e.message || '')) {
-      // Mesma causa do anexo: dispositivo sem a chave. No celular isso era
-      // invisível e a venda parecia simplesmente não salvar.
-      document.getElementById('aviso-chave').style.display = '';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      alert('Este dispositivo não está autorizado a salvar.\n\n' +
-            'Cole a chave de acesso no aviso que apareceu no topo da página. ' +
-            'Ela é pedida uma vez por aparelho.\n\n' +
-            'Seus dados continuam preenchidos — salve de novo depois.');
+    if (/acesso negado|não liberado|nao liberado/i.test(e.message || '')) {
+      // Aparelho sem liberação. No celular isso era invisível e a venda
+      // parecia simplesmente não salvar.
+      alert('Este aparelho ainda não foi liberado.\n\n' +
+            'Abra /entrar.html uma vez neste aparelho — depois disso ele não ' +
+            'pergunta mais nada.\n\n' +
+            'Seus dados continuam preenchidos aqui; salve de novo depois.');
       return;
     }
     toast('Falha ao salvar: ' + e.message, 'erro', 6000);
@@ -1405,13 +1371,11 @@ $('file-input').addEventListener('change', async (e) => {
     // aviso no topo da página que sumia em 5s — quem anexa está num card
     // mais abaixo e nunca via.
     console.error('[ANEXO ERRO]', err);
-    const semChave = /acesso negado/i.test(err.message || '');
+    const semChave = /acesso negado|não liberado|nao liberado/i.test(err.message || '');
     if (semChave) {
-      document.getElementById('aviso-chave').style.display = '';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      alert('Este dispositivo não está autorizado a salvar.\n\n' +
-            'Cole a chave de acesso no aviso que apareceu no topo da página. ' +
-            'Ela é pedida uma vez por aparelho.');
+      alert('Este aparelho ainda não foi liberado.\n\n' +
+            'Abra /entrar.html uma vez neste aparelho — depois disso ele não ' +
+            'pergunta mais nada.');
     } else {
       toast('Falha ao anexar: ' + err.message, 'erro', 10000);
     }

@@ -38,6 +38,16 @@
     } catch (e) { /* modo privado: segue sem guardar */ }
   })();
 
+  // Gavetas antigas, de quando cada tela guardava a própria chave. Um valor
+  // esquecido nelas vencia a chave certa — a página punha o header primeiro e
+  // o envelope, por desenho, não sobrescreve. Resultado em 03/set: entrar.html
+  // dizia "liberado" e vendas.html dizia "não liberado", no mesmo navegador.
+  // O código que as lia já saiu; apagar o valor evita que volte a assombrar.
+  try {
+    localStorage.removeItem('cnr_vendas_key');
+    localStorage.removeItem('cnr_catalogo_key');
+  } catch (e) { /* modo privado */ }
+
   // ── Envelopa o fetch ────────────────────────────────────────────
   var original = window.fetch.bind(window);
 

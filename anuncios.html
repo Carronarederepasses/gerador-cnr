@@ -918,10 +918,11 @@ async function adicionarCatalogo(id) {
       console.warn('[CATALOGO] leitura do título falhou, criando sem os campos:', e.message);
     }
 
-    // Lê chave do catálogo (se configurada)
-    const catKey = localStorage.getItem('cnr_catalogo_key') || localStorage.getItem('cnr_vendas_key') || '';
+    // A chave é posta por assets/auth.js, que envolve o fetch. Ler
+    // `cnr_catalogo_key`/`cnr_vendas_key` aqui era pior que inútil: um valor
+    // antigo sobrevivendo no navegador venceria a chave certa (o envelope não
+    // sobrescreve header que a página já pôs) e a tela levava 401 sozinha.
     const headers = { 'Content-Type': 'application/json' };
-    if (catKey) headers['x-cnr-key'] = catKey;
 
     // Cria veículo no catálogo com dados do anúncio
     const resp = await fetch('/api/catalogo', {
