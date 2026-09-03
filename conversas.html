@@ -51,6 +51,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
   font-size:.66rem;color:var(--text-faint)}
 .conv .bolha{background:var(--accent);color:var(--surface);border-radius:20px;
   padding:.05rem .4rem;font-size:.62rem;font-weight:700}
+/* Conversa com mensagem que o Gerador ainda não espelhou */
+.conv.nova{background:var(--accent-soft)}
+.conv.nova .prev{color:var(--text);font-weight:500}
+.conv .ponto{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;
+  background:var(--accent);margin-right:.4rem;vertical-align:middle;flex:none}
+.aviso-inbox{padding:.55rem .85rem;font-size:.72rem;line-height:1.45;
+  border-bottom:1px solid var(--line);color:var(--text-mid);background:var(--surface-raise)}
+.aviso-inbox b{color:var(--text)}
 
 /* ── Thread ── */
 .thread{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--surface)}
@@ -121,6 +129,11 @@ let ANUNCIOS  = {};
 let ATUAL     = null;
 let _timerAuto = null;
 
+// listing_ids com mensagem que o Gerador ainda não espelhou, segundo a
+// última leitura da caixa de entrada da OLX feita pela extensão.
+let NOVIDADES = new Set();
+let NOVIDADES_EM = null;
+
 const esc = s => (s == null ? '' : String(s))
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -162,8 +175,9 @@ function renderLista() {
 
   el.innerHTML = lista.map(c => {
     const meu = c.direction === 'outgoing';
-    return `<button class="conv${ATUAL === c.listing_id ? ' on' : ''}" data-id="${esc(c.listing_id)}">
-      <div class="tit">${esc(tituloDe(c.listing_id))}</div>
+    const nova = NOVIDADES.has(String(c.listing_id));
+    return `<button class="conv${ATUAL === c.listing_id ? ' on' : ''}${nova ? ' nova' : ''}" data-id="${esc(c.listing_id)}">
+      <div class="tit">${nova ? '<span class="ponto" title="Mensagem nova na OLX"></span>' : ''}${esc(tituloDe(c.listing_id))}</div>
       <div class="prev">${meu ? '<span style="opacity:.6">Você: </span>' : ''}${esc((c.ultima || '').replace(/\s+/g,' '))}</div>
       <div class="pe">
         <span title="${esc(c.detected_at || '')}">${quando(c.detected_at)}</span>
@@ -311,14 +325,66 @@ async function carregar() {
   }
 }
 
+// ── Novidades vindas da extensão ──────────────────────────────────
+// A extensão lê a caixa de entrada da OLX quando ela está aberta e guarda
+// quais conversas têm mensagem que o Gerador ainda não espelhou. Aqui só
+// perguntamos — a página não fala com a OLX.
+//
+// Silêncio da extensão não é erro: pode não estar instalada, ou a aba do
+// Gerador pode ter ficado órfã depois de um reload dela. Nesse caso a lista
+// funciona igual, só não acende.
+function pedirNovidades() {
+  return new Promise((resolve) => {
+    const encerrar = () => { clearTimeout(t); window.removeEventListener('message', ouvinte); };
+    const t = setTimeout(() => { encerrar(); resolve(null); }, 3000);
+    function ouvinte(e) {
+      if (e.source !== window || e.data?.cnr_type !== 'CNR_INBOX') return;
+      encerrar();
+      resolve(e.data);
+    }
+    window.addEventListener('message', ouvinte);
+    window.postMessage({ cnr_type: 'CNR_GET_INBOX' }, '*');
+  });
+}
+
+async function atualizarNovidades() {
+  const r = await pedirNovidades();
+  if (!r) return; // extensão muda: mantém o que já estava
+  NOVIDADES = new Set((r.itens || []).map(i => String(i.listing_id)));
+  NOVIDADES_EM = r.em;
+  renderLista();
+  mostrarAvisoInbox();
+}
+
+// Diz há quanto tempo a caixa de entrada foi lida. Sem isso, "nenhuma
+// novidade" é ambíguo: pode ser que não haja, ou que ninguém tenha olhado.
+function mostrarAvisoInbox() {
+  const antes = document.getElementById('aviso-inbox');
+  if (antes) antes.remove();
+  if (!NOVIDADES_EM) return;
+
+  const min = Math.round((Date.now() - new Date(NOVIDADES_EM)) / 60000);
+  const quando = min < 2 ? 'agora' : min < 60 ? `há ${min} min`
+    : `há ${Math.round(min / 60)}h`;
+  const div = document.createElement('div');
+  div.id = 'aviso-inbox';
+  div.className = 'aviso-inbox';
+  div.innerHTML = NOVIDADES.size
+    ? `<b>${NOVIDADES.size}</b> conversa(s) com mensagem nova na OLX · lido ${quando}`
+    : `Sem novidades na OLX · lido ${quando}`;
+  document.querySelector('.coluna .busca').after(div);
+}
+
 // Abre direto numa conversa quando vem de outra tela (?listing_id=)
 carregar().then(() => {
+  atualizarNovidades();
   const alvo = new URLSearchParams(location.search).get('listing_id');
   if (alvo) abrir(alvo);
 });
 
 // A lista se atualiza sozinha; a thread aberta tem o próprio ciclo de 10s.
 setInterval(carregar, 30000);
+setInterval(atualizarNovidades, 30000);
 </script>
 </body>
 </html>
