@@ -2314,7 +2314,14 @@ async function processarParceiro() {
     });
 
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'Erro desconhecido');
+    if (!resp.ok) {
+      // A API agora diz o motivo real (sobrecarga, chave recusada, sem
+      // crédito, imagem grande) em vez de "serviço indisponível" para tudo.
+      // `detalhe` traz o que cada modelo respondeu — vai para o console, para
+      // quando a mesma falha voltar e não der para reproduzir na hora.
+      if (Array.isArray(data.detalhe)) console.error('[IA] falhas por modelo:', data.detalhe);
+      throw new Error(data.error || 'Erro desconhecido');
+    }
 
     const fill = (id, val) => { if (val) document.getElementById(id).value = val; };
     fill('colet-veiculo', data.veiculo);
@@ -2461,7 +2468,14 @@ async function processarIA() {
     });
 
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'Erro desconhecido');
+    if (!resp.ok) {
+      // A API agora diz o motivo real (sobrecarga, chave recusada, sem
+      // crédito, imagem grande) em vez de "serviço indisponível" para tudo.
+      // `detalhe` traz o que cada modelo respondeu — vai para o console, para
+      // quando a mesma falha voltar e não der para reproduzir na hora.
+      if (Array.isArray(data.detalhe)) console.error('[IA] falhas por modelo:', data.detalhe);
+      throw new Error(data.error || 'Erro desconhecido');
+    }
 
     const fill = (id, val) => { if (val) document.getElementById(id).value = val; };
     fill('colet-veiculo', data.veiculo);

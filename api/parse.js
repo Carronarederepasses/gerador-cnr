@@ -10,6 +10,46 @@ const MODELS = [
   'openai/gpt-oss-120b:free',
 ];
 
+// Traduz o motivo real da falha para uma frase que diz o que fazer.
+//
+// Os códigos internos (rate_limit:429, http_error:402, no_json) já existiam,
+// mas iam só para o console do servidor — que o operador não vê. Na tela
+// aparecia "Serviço temporariamente indisponível. Tente novamente", igual
+// para sobrecarga passageira, chave vencida e conta sem crédito. Três
+// problemas com respostas muito diferentes, e a mesma frase para os três.
+//
+// Nenhum código carrega segredo: são status HTTP e rótulos nossos.
+function motivoLegivel(codigos) {
+  const todos = codigos.join(' ');
+
+  if (/rate_limit:(429|503)/.test(todos)) {
+    return { texto: 'A IA está sobrecarregada agora. Espere alguns segundos e clique de novo — costuma passar sozinho.',
+             tipo: 'passageiro' };
+  }
+  if (/http_error:40[13]/.test(todos)) {
+    return { texto: 'A chave da IA foi recusada. Precisa renovar a OPENROUTER_API_KEY na Vercel.',
+             tipo: 'configuracao' };
+  }
+  if (/http_error:402/.test(todos)) {
+    return { texto: 'A conta da IA está sem crédito. Recarregue no OpenRouter para voltar a ler anúncios.',
+             tipo: 'configuracao' };
+  }
+  if (/http_error:413/.test(todos)) {
+    return { texto: 'A imagem é grande demais para a IA. Tente com uma foto menor ou recorte só o card do anúncio.',
+             tipo: 'entrada' };
+  }
+  if (/no_json/.test(todos)) {
+    return { texto: 'A IA respondeu, mas fora do formato esperado. Tente de novo, ou cole o texto do anúncio em vez da imagem.',
+             tipo: 'passageiro' };
+  }
+  if (/http_error:5\d\d/.test(todos)) {
+    return { texto: 'O serviço de IA está fora do ar. Não é o Gerador — tente daqui a pouco.',
+             tipo: 'passageiro' };
+  }
+  return { texto: 'Não consegui ler com nenhum modelo de IA. Tente de novo; se insistir, me mostre o detalhe abaixo.',
+           tipo: 'desconhecido' };
+}
+
 // Modelos com suporte a visão (imagem) — usados no modo parceiro
 const MODELS_VISION = [
   'anthropic/claude-sonnet-4-5',
@@ -166,36 +206,38 @@ module.exports = async (req, res) => {
     const { imagem, laudoTexto } = req.body || {};
     if (!imagem) return res.status(400).json({ error: 'Campo imagem obrigatório' });
 
-    let lastErr = '';
+    const falhas = [];
     for (const model of MODELS_VISION) {
       try {
         const parsed = await tryModelParceiro(apiKey, model, imagem, laudoTexto || '');
         console.log(`parceiro OK com modelo: ${model}`);
         return res.status(200).json(parsed);
       } catch (err) {
-        lastErr = err.message;
+        falhas.push(`${model} → ${err.message}`);
         console.error(`parceiro falhou em ${model}: ${err.message}`);
         continue;
       }
     }
-    return res.status(500).json({ error: 'Serviço temporariamente indisponível. Tente novamente.' });
+    const m = motivoLegivel(falhas);
+    return res.status(500).json({ error: m.texto, tipo: m.tipo, detalhe: falhas });
   }
 
   const { texto } = req.body || {};
   if (!texto?.trim()) return res.status(400).json({ error: 'Campo texto obrigatório' });
 
-  let lastErr = '';
+  const falhas = [];
   for (const model of MODELS) {
     try {
       const parsed = await tryModel(apiKey, model, texto);
       console.log(`OK com modelo: ${model}`);
       return res.status(200).json(parsed);
     } catch (err) {
-      lastErr = err.message;
+      falhas.push(`${model} → ${err.message}`);
       console.error(`parse falhou em ${model}: ${err.message}`);
       continue; // tenta o próximo modelo em qualquer falha
     }
   }
 
-  return res.status(500).json({ error: 'Serviço temporariamente indisponível. Tente novamente em alguns segundos.' });
+  const m = motivoLegivel(falhas);
+  return res.status(500).json({ error: m.texto, tipo: m.tipo, detalhe: falhas });
 };
