@@ -347,11 +347,16 @@ function pedirNovidades() {
   });
 }
 
+let INBOX_LIDAS = null;
+let INBOX_SEM_CASAR = null;
+
 async function atualizarNovidades() {
   const r = await pedirNovidades();
   if (!r) return; // extensão muda: mantém o que já estava
   NOVIDADES = new Set((r.itens || []).map(i => String(i.listing_id)));
   NOVIDADES_EM = r.em;
+  INBOX_LIDAS = r.lidas;
+  INBOX_SEM_CASAR = r.sem_casar;
   renderLista();
   mostrarAvisoInbox();
 }
@@ -369,9 +374,24 @@ function mostrarAvisoInbox() {
   const div = document.createElement('div');
   div.id = 'aviso-inbox';
   div.className = 'aviso-inbox';
-  div.innerHTML = NOVIDADES.size
-    ? `<b>${NOVIDADES.size}</b> conversa(s) com mensagem nova na OLX · lido ${quando}`
-    : `Sem novidades na OLX · lido ${quando}`;
+  // "Sem novidades" só pode ser dito quando de fato foi possível conferir.
+  // Se a extensão leu conversas e não reconheceu nenhuma, isso não é ausência
+  // de novidade — é ausência de verificação, e dizer a primeira coisa seria
+  // dar uma garantia que não existe.
+  const naoConferiu = INBOX_LIDAS > 0 && INBOX_SEM_CASAR === INBOX_LIDAS;
+
+  if (NOVIDADES.size) {
+    div.innerHTML = `<b>${NOVIDADES.size}</b> conversa(s) com mensagem nova na OLX · lido ${quando}`;
+  } else if (naoConferiu) {
+    div.innerHTML = `⚠️ Li <b>${INBOX_LIDAS}</b> conversa(s) na OLX, mas nenhuma bateu com os anúncios do Gerador. `
+      + `<b>Não dá para afirmar que não há novidade.</b> · lido ${quando}`;
+    div.style.color = 'var(--severity-warn)';
+  } else if (INBOX_SEM_CASAR > 0) {
+    div.innerHTML = `Sem novidades nas conversas conhecidas · `
+      + `${INBOX_SEM_CASAR} da OLX sem correspondência aqui · lido ${quando}`;
+  } else {
+    div.innerHTML = `Sem novidades na OLX · lido ${quando}`;
+  }
   document.querySelector('.coluna .busca').after(div);
 }
 
