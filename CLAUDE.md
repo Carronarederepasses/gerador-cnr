@@ -2651,7 +2651,7 @@ hoje. Ninguém está marcado como Particular ou Fonte."*
 
 Eram **dois**: Tania Maria Minini Caldeira (vendedora do Renegade, 01/set) e
 Ruan (vendedor do C3, 17/ago) — os dois particulares de quem ele comprou.
-Marcados por ele como .
+Marcados por ele como `pessoa_fisica`.
 
 **Confirmado pela própria tela:** a faixa em Clientes passou de "17 de 17" para
 **15 clientes recebem ofertas**. A proteção deixou de ser teórica.
