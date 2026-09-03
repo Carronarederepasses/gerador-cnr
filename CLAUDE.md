@@ -2141,3 +2141,66 @@ não foi espelhada. Reespelha sozinho se ele reabrir a conversa.
 - Logs `[CNR Inbox]` mantidos: se pagaram duas vezes hoje.
 
 *Registrado em 02/setembro/2026.*
+
+═══════════════════════════════════════════════════════════════════
+
+# CHECKPOINT DO DIA — 2 de setembro de 2026
+
+**56 commits de código** (43 no Gerador, 13 na extensão), fora documentação.
+Tudo em produção e verificado na própria aplicação, não só no editor.
+
+## O objetivo do dia, nas palavras do Yuri
+
+> *"Usar a interface do gerador, mas usando a OLX por trás. Serei eu quem
+> irei escrever a msg e desenrolar a conversa com cada vendedor."*
+
+Ao fim do dia isso está de pé, ponta a ponta: o radar traz os anúncios das 4
+cidades → ABORDAR pelo card → conversa espelhada nos dois sentidos →
+resposta pelo Gerador → **aviso quando alguém responde numa conversa
+fechada** → venda registrada com anexos, pelo celular.
+
+## O que mudou de fato
+
+| Frente | O que era | O que é |
+|---|---|---|
+| Anexos e vendas no celular | 401 invisível: nada salvava | funciona sem chave nenhuma |
+| Leitura de anúncio da OLX | servidor com `User-Agent` forjado | aba do próprio navegador |
+| Radar | 3 slots fixos na extensão de cada máquina | tela `/radar.html`, 4 cidades |
+| `+ Catálogo` | descartava o que a IA lia do título | veículo nasce preenchido |
+| Anúncio do WhatsApp | siglas destruídas, linhas em branco duplas | corrigido |
+| FIPE | combustível ignorado; até 21s | respeitado; 3–4s, 0,5s repetido |
+| Vendas | 114 registros sem busca | busca instantânea, sem acento |
+| Conversas | uma por card, sem saber de respostas | `/conversas.html` + aviso |
+
+## Erros meus, e o que aprendi com cada um
+
+- **Duas vezes** construí algo que já existia (editor de `valor_compra`, busca
+  em Vendas), por sondar com um padrão estreito e concluir sobre o sistema.
+  → Listar o que a página tem, não procurar pelo nome que espero.
+- **Três vezes** inferi a estrutura da página da OLX em vez de olhar o que
+  vinha (inicial do avatar como título, dia da semana como mensagem, aviso da
+  OLX como conversa). → Imprimir os dois lados **antes** de investigar.
+- Escrevi log no console do service worker e mandei olhar no da página.
+- Criei uma tarja que dizia **"sem novidades"** quando não conseguia
+  verificar — o mesmo falso sucesso que passei o dia corrigindo em código
+  antigo, reproduzido em código feito na mesma hora.
+- Afirmei que o 401 explicava a venda do Renegade. Não explicava — ele
+  corrigiu. Duas falhas próximas no tempo não são a mesma falha.
+- Tratei "campo vazio no histórico" como "campo inútil". Ele corrigiu: são
+  registros anteriores aos campos existirem.
+
+## Pendências, por ordem de consequência
+
+1. **`icons/`, `popup/`, `setup/` fora do git na extensão.** O manifest
+   referencia os três. O repositório não produz extensão funcional se
+   clonado — e é o que será feito no notebook da mãe do Yuri no fim do mês.
+   `content/olx-chat.js` também está modificado e não commitado.
+2. **`GET` público da API** — expõe vendas e compradores (CPF, telefone).
+   Pré-requisito do primeiro parceiro externo, junto de multi-tenancy.
+3. Contato do irmão com a OLX — documento pronto; decidir conta compartilhada.
+4. Subaru com lixo espelhado; 13 conversas nunca espelhadas.
+5. Logs DIAG antigos (envio, radar) — mantidos enquanto se observa.
+
+*Fechado em 2 de setembro de 2026, 22h.*
+
+═══════════════════════════════════════════════════════════════════
