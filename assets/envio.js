@@ -37,6 +37,16 @@
     return ('contacts' in navigator) && ('ContactsManager' in window);
   }
 
+  // Abas só fazem sentido no computador. No celular o wa.me abre o
+  // aplicativo do WhatsApp — abrir cinco seguidos troca de tela cinco vezes
+  // e sobra só a última. Checa ponteiro grosso (dedo) além da largura,
+  // porque notebook com tela sensível ao toque continua sendo computador.
+  function noComputador() {
+    var estreito = window.matchMedia('(max-width: 767px)').matches;
+    var dedo     = window.matchMedia('(pointer: coarse)').matches;
+    return !(estreito || dedo);
+  }
+
   var estado = null;   // escolha em andamento
   var fila   = null;   // fila em andamento
 
@@ -88,6 +98,9 @@
       '.cnre-msg{margin:.6rem 1.2rem;padding:.55rem .75rem;font-size:.84rem;color:var(--text-mid);line-height:1.55;',
       '  border-left:2px solid var(--line);background:var(--surface);border-radius:0 6px 6px 0;',
       '  white-space:pre-wrap;max-height:9rem;overflow-y:auto}',
+      '.cnre-todas{padding:.9rem 1.2rem .2rem;display:flex;flex-direction:column;gap:.45rem}',
+      '.cnre-todas-btn{width:100%}',
+      '.cnre-todas .cnre-nota{max-width:none;margin-top:0}',
       '.cnre-fim{padding:2.2rem 1.2rem 2.6rem;text-align:center}',
       '.cnre-fim-ico{font-size:2rem}',
       '.cnre-fim-txt{font-weight:700;margin-top:.5rem}',
@@ -133,6 +146,10 @@
         '</div><button class="cnre-x" id="cnre-fechar2">✕</button></div>' +
         '<div class="cnre-barra"><i id="cnre-f-barra"></i></div>' +
         '<div id="cnre-f-corpo">' +
+          '<div class="cnre-todas" id="cnre-f-todas-wrap">' +
+            '<button class="cnre-btn cnre-todas-btn" id="cnre-f-todas"></button>' +
+            '<div class="cnre-nota" id="cnre-f-todas-nota"></div>' +
+          '</div>' +
           '<div class="cnre-passo" id="cnre-f-passo"></div>' +
           '<div class="cnre-quem" id="cnre-f-quem"></div>' +
           '<div class="cnre-msg" id="cnre-f-msg"></div>' +
@@ -159,6 +176,7 @@
     document.getElementById('cnre-salvar').onclick  = salvarLista;
     document.getElementById('cnre-comecar').onclick = comecar;
     document.getElementById('cnre-f-pular').onclick = avancar;
+    document.getElementById('cnre-f-todas').onclick = abrirTodas;
   }
 
   // ── Escolha ────────────────────────────────────────────────────
@@ -365,6 +383,9 @@
     document.getElementById('cnre-f-sub').textContent = op.detalhe || '';
     document.getElementById('cnre-f-corpo').style.display = '';
     document.getElementById('cnre-f-fim').style.display   = 'none';
+    // Limpa o aviso da rodada anterior — senão um "3 bloqueadas" antigo
+    // reapareceria numa lista nova e ele procuraria problema que não existe.
+    document.getElementById('cnre-f-todas-nota').textContent = '';
     document.getElementById('cnre-fila').classList.add('on');
     desenharItem();
   }
@@ -382,6 +403,23 @@
     document.getElementById('cnre-f-nota').textContent  =
       'Confira antes de enviar — o WhatsApp abre com o texto pronto.';
 
+    // "Abrir todas" só no computador: no celular o wa.me chama o aplicativo,
+    // e abrir cinco seguidos só troca de tela cinco vezes e sobra a última.
+    // Mostrar o botão lá seria oferecer algo que não funciona.
+    var faltam = total - fila.i;
+    var wrap = document.getElementById('cnre-f-todas-wrap');
+    if (noComputador() && faltam > 1) {
+      wrap.style.display = '';
+      document.getElementById('cnre-f-todas').textContent =
+        '⚡ Abrir as ' + faltam + ' conversas de uma vez';
+      if (!document.getElementById('cnre-f-todas-nota').textContent) {
+        document.getElementById('cnre-f-todas-nota').textContent =
+          'Abre uma aba por contato. Você passa aba por aba clicando em enviar, sem voltar aqui.';
+      }
+    } else {
+      wrap.style.display = 'none';
+    }
+
     var wa = document.getElementById('cnre-f-wa');
     wa.href = 'https://wa.me/55' + c.tel + '?text=' + encodeURIComponent(msg);
     wa.onclick = function () {
@@ -391,6 +429,53 @@
       }
       setTimeout(avancar, 350);
     };
+  }
+
+  // ── Abrir todas as conversas de uma vez ────────────────────────
+  // É assim que o Yuri imaginou, e é melhor que o um-por-um: abre uma aba
+  // por contato, e ele passa aba a aba clicando em enviar, sem voltar aqui.
+  //
+  // O envio continua sendo dele. Uma página não consegue enviar mensagem no
+  // WhatsApp — o wa.me só ABRE a conversa com o texto pronto. Abrir várias
+  // não muda isso: são N conversas prontas, N cliques dele.
+  //
+  // Só no computador. No celular o wa.me chama o aplicativo, e abrir cinco
+  // seguidos só troca de tela cinco vezes e sobra a última.
+  //
+  // O navegador costuma bloquear abas em série. Não dá para saber de fora
+  // se bloqueou: `window.open` devolve null quando bloqueia, e é isso que a
+  // função conta. Sem essa contagem, ele acharia que abriu tudo e ficaria
+  // faltando gente sem ninguém avisar.
+  function abrirTodas() {
+    if (!fila) return;
+    var pendentes = fila.contatos.slice(fila.i);
+    var abertas = 0, bloqueadas = 0;
+
+    pendentes.forEach(function (c) {
+      var msg = typeof fila.mensagem === 'function' ? fila.mensagem(c) : fila.mensagem;
+      var w = window.open('https://wa.me/55' + c.tel + '?text=' + encodeURIComponent(msg), '_blank');
+      if (w) {
+        abertas++;
+        if (typeof fila.aoEnviar === 'function') {
+          try { fila.aoEnviar(c, msg); } catch (e) { console.warn('[ENVIO] registro falhou:', e); }
+        }
+      } else {
+        bloqueadas++;
+      }
+    });
+
+    var nota = document.getElementById('cnre-f-todas-nota');
+    if (bloqueadas) {
+      nota.innerHTML = '<strong>' + abertas + ' aberta(s), ' + bloqueadas + ' bloqueada(s) pelo navegador.</strong><br>' +
+        'Clique no ícone de bloqueio na barra de endereço, escolha <em>Sempre permitir pop-ups</em> ' +
+        'e toque aqui de novo. Ou siga um por um abaixo.';
+    } else {
+      nota.textContent = abertas + ' conversa(s) aberta(s) em abas. Passe aba por aba e clique em enviar.';
+      fila.enviados += abertas;
+      // -1 porque avancar() incrementa antes de checar o fim.
+      fila.i = fila.contatos.length - 1;
+      avancar();
+    }
   }
 
   function avancar() {
