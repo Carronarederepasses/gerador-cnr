@@ -143,4 +143,42 @@
   body { padding-top: 3.6rem !important; }
   /* Empurra o logo para não ficar sob o botão hamburguer */
   .cnr-sb-logo { padding-left: 3.5rem; }
+
+  /* Marca no topo — ao lado do botão de menu, dentro da faixa de 3,6rem que
+     o padding-top acima já reserva. Não empurra conteúdo.
+     `pointer-events: none` de propósito: fica encostada no botão de menu, e
+     um toque de raspão não pode navegar para outro lugar. */
+  #cnr-marca-topo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: fixed;
+    top: .75rem;
+    left: 3.65rem;
+    height: 2.5rem;          /* mesma altura do botão, para alinhar a base */
+    z-index: 300;
+    pointer-events: none;
+    line-height: 1.05;
+  }
+  .cnr-mt-nome {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: .92rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: .01em;
+  }
+  .cnr-mt-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .5rem;
+    font-weight: 500;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: .12rem;
+  }
+}
+
+/* No desktop a barra lateral já mostra o nome — a marca do topo some. */
+@media (min-width: 768px) {
+  #cnr-marca-topo { display: none; }
 }

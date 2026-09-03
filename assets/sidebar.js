@@ -160,6 +160,26 @@
     buildModal();
     document.getElementById('cnr-sb-dados-btn').addEventListener('click', abrirMeusDados);
 
+    // Marca no topo — só aparece no celular (ver sidebar.css).
+    //
+    // No celular a barra lateral vira gaveta, então o nome "Carro na Rede" só
+    // aparecia depois de abrir o menu: no aparelho onde o Yuri mais trabalha,
+    // a marca não estava em lugar nenhum. A marca d'água do fundo não resolve
+    // isso — medido em 03/set: com os cartões ocupando a largura toda, 0% dela
+    // fica descoberta no celular, contra 83% no notebook.
+    //
+    // Vai na faixa de 3,6rem que o próprio sidebar.css já reserva no topo para
+    // o botão de menu, então não empurra conteúdo nenhum.
+    //
+    // Texto e não a silhueta: o desenho do logo é malha de linhas finas e vira
+    // borrão nesse tamanho. O nome lê nítido.
+    var marca = document.createElement('div');
+    marca.id = 'cnr-marca-topo';
+    marca.setAttribute('aria-hidden', 'true'); // decorativo: o nome já está na gaveta
+    marca.innerHTML = '<span class="cnr-mt-nome">Carro na Rede</span>'
+                    + '<span class="cnr-mt-sub">Repasses</span>';
+    document.body.prepend(marca);
+
     // Hamburger
     var ham = document.createElement('button');
     ham.id = 'cnr-ham';
