@@ -700,10 +700,30 @@ async function carregarRelatorio() {
 
 async function carregarNegociacoes() {
   try {
-    const r = await fetch('/api/compradores?neg=1');
-    if (!r.ok) throw new Error();
-    const todas = await r.json();
-    const ativas = todas.filter(n => n.status !== 'descartado');
+    // As vendas entram no cruzamento porque "comprado" sozinho não quer dizer
+    // encerrado. `buscar` guarda a promessa, então isto reaproveita a chamada
+    // que o resto do Painel já faz — não custa ida nova à rede.
+    const [todas, vendasReg] = await Promise.all([
+      fetch('/api/compradores?neg=1').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      buscar('/api/vendas').catch(() => []),
+    ]);
+
+    // Mesma regra de negociacoes.html (`jaVirouVenda`): a ligação
+    // negociação→venda só existe como evento em `historico`, então o
+    // cruzamento é pelo veiculo_id, que as duas guardam.
+    const comVenda = new Set(
+      (Array.isArray(vendasReg) ? vendasReg : []).map(v => v.veiculo_id).filter(Boolean)
+    );
+    const jaVirouVenda = n => !!n.veiculo_id && comVenda.has(n.veiculo_id);
+
+    // Comprada COM venda registrada não pede mais nada: sai da lista e para de
+    // empurrar as ativas para baixo. Comprada SEM venda continua — é ela que
+    // precisa do próximo passo. Esta regra foi feita em negociacoes.html em
+    // 02/set e não chegou aqui, porque o Painel tem cópia própria da lista:
+    // Renegade e C3, vendidos, apareciam como "COMPRADO! urgente".
+    const ativas = todas.filter(n =>
+      n.status !== 'descartado' && !(n.status === 'comprado' && jaVirouVenda(n))
+    );
 
     document.getElementById('kpi-neg').textContent = ativas.length;
     document.getElementById('kpi-neg-sub').textContent = ativas.length === 1 ? 'em andamento' : 'em andamento';
@@ -725,6 +745,8 @@ async function carregarNegociacoes() {
     const ATIVOS_NEG = ['primeiro-contato','respondeu','negociando','aguardando'];
 
     const urgente = n => {
+      // Comprada que chegou até aqui é comprada SEM venda registrada — o filtro
+      // acima já tirou as encerradas. Aí urgente é verdade: falta lançar a venda.
       if (n.status === 'comprado') return true;
       if (!ATIVOS_NEG.includes(n.status)) return false;
       const ref = n.ultimo_contato

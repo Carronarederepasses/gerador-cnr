@@ -1,18 +1,32 @@
 // CNR Sidebar — componente compartilhado de navegação
 (function () {
+  // Treze itens em lista única não diziam o que era o quê: os seis usados todo
+  // dia ficavam misturados com os de vez em quando. Os grupos são as duas
+  // metades reais da operação, na ordem em que acontecem — o carro entra em
+  // Captar e sai em Vender. Nenhum endereço mudou; só ganharam título.
+  //
+  // "Foto" virou "Arte" porque o nome colidia três vezes: item da lateral,
+  // aba FOTO do Gerador (o mesmo editor, duplicado) e aba FOTOS (as fotos do
+  // veículo, que é outra coisa).
   var PAGES = [
     { href: '/home.html',        emoji: '🏠', label: 'Painel' },
-    { href: '/index.html',       emoji: '📝', label: 'Gerador' },
-    { href: '/catalogo.html',    emoji: '📂', label: 'Catálogo' },
-    { href: '/anuncios.html',    emoji: '📡', label: 'Anúncios' },
+
+    { grupo: 'Captar' },
     { href: '/radar.html',       emoji: '🎯', label: 'Radar' },
+    { href: '/anuncios.html',    emoji: '📡', label: 'Anúncios' },
     { href: '/conversas.html',   emoji: '💬', label: 'Conversas' },
+    { href: '/index.html',       emoji: '📝', label: 'Gerador' },
+
+    { grupo: 'Vender' },
+    { href: '/catalogo.html',    emoji: '📂', label: 'Catálogo' },
     { href: '/compradores.html', emoji: '👥', label: 'Clientes' },
-    { href: '/vendas.html',      emoji: '📋', label: 'Vendas' },
     { href: '/negociacoes.html', emoji: '🤝', label: 'Negociações' },
+    { href: '/vendas.html',      emoji: '📋', label: 'Vendas' },
+
+    { grupo: 'Apoio' },
     { href: '/consultas.html',   emoji: '🔍', label: 'Consulta' },
     { href: '/busca.html',       emoji: '🔎', label: 'Busca' },
-    { href: '/foto.html',        emoji: '📸', label: 'Foto' },
+    { href: '/foto.html',        emoji: '🎨', label: 'Arte' },
     { href: '/ideias.html',      emoji: '💡', label: 'Ideias' },
   ];
 
@@ -119,6 +133,7 @@
 
   function buildHTML() {
     var links = PAGES.map(function (p) {
+      if (p.grupo) return '<div class="cnr-sb-grupo">' + p.grupo + '</div>';
       var cls = 'cnr-sb-link' + (paginaAtiva(p.href) ? ' ativo' : '');
       return '<a class="' + cls + '" href="' + p.href + '"><span class="cnr-sb-emoji">' + p.emoji + '</span>' + p.label + '</a>';
     }).join('');

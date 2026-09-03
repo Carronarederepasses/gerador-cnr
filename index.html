@@ -367,8 +367,6 @@
     <a class="mode-btn" href="/foto.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center">📸 Foto</a>
   </div>
 
-  <button onclick="limparEstado()" style="width:100%;margin-bottom:1.4rem;background:none;border:1px solid var(--border);color:var(--mid);padding:.65rem;font-family:'DM Sans',sans-serif;font-size:.64rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer">🗑️ Limpar dados (novo anúncio)</button>
-
   <!-- ── TABS CAPTAÇÃO ── -->
   <div class="cap-tabs" id="cap-tabs">
     <button class="cap-tab on" id="cap-t0" onclick="trocarAba(0)">Anúncio</button>
@@ -744,6 +742,19 @@
 
   <input type="file" id="cap-foto-input" accept="image/*" multiple style="display:none" onchange="onCapFotos(this)">
   <input type="file" id="cap-avaria-input" accept="image/*" style="display:none">
+
+  <!-- Limpar dados: ficava entre a barra de modos e a barra de abas — no
+       caminho exato da mão de quem só queria trocar de aba. Uma ação que
+       apaga o carro inteiro, no ponto de maior tráfego da tela. Desceu para o
+       fim da coluna e perdeu a moldura de botão. Continua a um clique de quem
+       procura, e limparEstado() segue pedindo confirmação. -->
+  <div style="padding:2.2rem 0 .5rem;text-align:center">
+    <button onclick="limparEstado()"
+            style="background:none;border:none;color:var(--mid);padding:.5rem .8rem;
+                   font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.06em;
+                   cursor:pointer;text-decoration:underline;text-underline-offset:.25em;
+                   text-decoration-color:var(--border)">🗑️ Limpar dados e começar outro anúncio</button>
+  </div>
 
 </div>
 
