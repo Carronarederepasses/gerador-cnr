@@ -2027,3 +2027,64 @@ seletores do monitor foram refinados depois. Limpável com o DELETE de
 `?mensagens=1&listing_id=`.
 
 *Registrado em 02/setembro/2026.*
+
+---
+
+### Caixa de entrada da OLX — a peça que fechou o ciclo (02/set/2026)
+
+Última coisa que ainda obrigava o Yuri a entrar na OLX: descobrir que alguém
+respondeu numa conversa que ele não abriu.
+
+#### Descobertas sobre a página da OLX
+
+- A extensão sempre abre o chat com `?list-id=` ou `?chat-id=`, que é a
+  **visão de conversa única** — nela não existe lista lateral nenhuma. A
+  lista só existe em `chat.olx.com.br` **sem parâmetros**.
+- As linhas da lista **não têm link nem atributo com o `listing_id`**.
+- Não há `__NEXT_DATA__`.
+- O `innerText` de cada linha é: inicial do avatar, título do anúncio,
+  vendedor, prévia, hora. **A prévia vem completa, não cortada.**
+
+#### Desenho que evita depender do HTML deles
+
+1. `listing_id` vem de casar o **título** com a tabela `anuncios`. Título
+   repetido em dois anúncios vira ambíguo e é descartado — errar a identidade
+   acenderia a conversa errada.
+2. "Não lida" **não** é lido do estilo da OLX. Compara-se a prévia com a
+   última mensagem já espelhada. Diferente = novidade. Nenhuma mudança visual
+   deles quebra isso.
+3. A lista é achada pela **forma** (maior grupo de irmãos com altura de
+   linha), porque as classes são geradas por build.
+
+Zero carregamento extra: lê o que a OLX já desenhou, só quando a aba está
+aberta.
+
+#### O bug que custou 5 idas e vindas
+
+18 de 18 conversas não casavam. Causa: eu pegava a **primeira linha** do
+`innerText` como título, e a primeira linha é a **inicial do avatar** —
+`olx_diz` vinha como `["S","R","Z"]`. Linhas de até 3 caracteres passaram a
+ser descartadas.
+
+> Lição de processo: quando algo "não casa", mostrar **os dois lados** antes
+> de investigar o mecanismo. Gastei quatro probes mapeando estrutura de
+> página quando um diagnóstico lado a lado resolvia no primeiro.
+>
+> Lição 2: o service worker tem console próprio. Escrevi o log num e mandei
+> olhar no outro. Diagnóstico agora volta dentro da resposta.
+
+#### Dois defeitos meus, corrigidos no mesmo dia em que os criei
+
+- A tarja dizia **"Sem novidades na OLX"** quando não conseguia verificar
+  nada. Lê-se como "ninguém respondeu" quando era "não consegui conferir" —
+  o mesmo padrão de falso sucesso que custou caro a sessão inteira. Agora
+  distingue as três situações.
+- A tarja dizia **"16 conversas com mensagem nova"** enquanto 3 linhas
+  acendiam. As outras 13 são conversas nunca espelhadas, onde tudo conta como
+  novo. Separado em acionável × não espelhada.
+
+#### Estado
+
+Funcionando em produção. Falta remover os logs DIAG quando estabilizar.
+
+*Registrado em 02/setembro/2026.*
