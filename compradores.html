@@ -204,15 +204,31 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       </div>
     </div>
 
-    <!-- 🤝 Relação com o CNR -->
-    <div class="sec-hdr">🤝 Relação com o CNR</div>
-    <div class="field">
-      <label>Papel no negócio</label>
-      <select id="m-papel">
-        <option value="comprador">Comprador — recebe ofertas de carros</option>
-        <option value="fonte">Fonte / Parceiro — nos envia carros para repassar</option>
-        <option value="ambos">Ambos — compra e envia carros</option>
-      </select>
+    <!-- 🤝 Relação com a CNR — some para Particular (ver atualizarBlocoFat).
+         "com a", não "com o": Carro na Rede é nome feminino. -->
+    <div id="sec-relacao">
+      <div class="sec-hdr">🤝 Relação com a CNR</div>
+      <div class="field">
+        <label>Papel no negócio</label>
+        <select id="m-papel">
+          <option value="comprador">Comprador — recebe ofertas de carros</option>
+          <option value="fonte">Fonte / Parceiro — nos envia carros para repassar</option>
+          <option value="ambos">Ambos — compra e envia carros</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Aparece no lugar do bloco acima quando o tipo é Particular. Dizer
+         por que o campo sumiu evita a dúvida de "cadê o papel?" e deixa a
+         regra visível onde ela vale. -->
+    <div id="sec-relacao-pf" style="display:none">
+      <div class="sec-hdr">🤝 Relação com a CNR</div>
+      <div style="font-size:.82rem;color:var(--text-mid);line-height:1.5;
+                  background:var(--surface);border-left:2px solid var(--line);
+                  padding:.6rem .8rem;border-radius:0 8px 8px 0">
+        Particular <strong>não recebe ofertas de repasse</strong> — o preço de
+        repasse é de atacado. Ele fica fora do Motor de Match automaticamente.
+      </div>
     </div>
 
     <!-- 📍 Contato e endereço -->
@@ -293,21 +309,26 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div class="field"><label>Chave Pix</label><input id="m-pix_chave" type="text" placeholder="cole a chave aqui"></div>
     </div>
 
-    <!-- 🎯 Perfil de compra -->
-    <div class="sec-hdr">🎯 Perfil de compra</div>
-    <div class="g2">
-      <div class="field">
-        <label>Preço mínimo (R$)</label>
-        <input id="m-pmin" type="text" inputmode="numeric" placeholder="ex: 30.000 ou 30000">
+    <!-- 🎯 Perfil de compra — some para Particular (ver atualizarBlocoFat).
+         Faixa de preço e marcas de interesse existem para o Motor de Match
+         ranquear quem compra repasse. Particular não entra nesse pool, então
+         são campos que ele nunca teria o que preencher. -->
+    <div id="sec-perfil">
+      <div class="sec-hdr">🎯 Perfil de compra</div>
+      <div class="g2">
+        <div class="field">
+          <label>Preço mínimo (R$)</label>
+          <input id="m-pmin" type="text" inputmode="numeric" placeholder="ex: 30.000 ou 30000">
+        </div>
+        <div class="field">
+          <label>Preço máximo (R$)</label>
+          <input id="m-pmax" type="text" inputmode="numeric" placeholder="ex: 120.000 ou 120000">
+        </div>
       </div>
       <div class="field">
-        <label>Preço máximo (R$)</label>
-        <input id="m-pmax" type="text" inputmode="numeric" placeholder="ex: 120.000 ou 120000">
+        <label>Marcas de interesse — clique para selecionar</label>
+        <div class="marcas-wrap" id="marcas-wrap"></div>
       </div>
-    </div>
-    <div class="field">
-      <label>Marcas de interesse — clique para selecionar</label>
-      <div class="marcas-wrap" id="marcas-wrap"></div>
     </div>
 
     <!-- 🧠 O que sabemos — conhecimento estruturado (somente ao editar) -->
@@ -801,6 +822,23 @@ function atualizarBlocoFat(tipo) {
 
   // Proprietário / Responsável — lojista e repassador
   document.getElementById('field-proprietario').style.display = isPJ ? '' : 'none';
+
+  // Relação com a CNR — Particular não escolhe papel.
+  //
+  // Ele não recebe oferta de repasse (decisão do Yuri em 03/set: repasse é
+  // preço de atacado e não pode chegar a cliente final), então o campo
+  // ofereceria uma escolha que não muda nada. No lugar entra a frase que
+  // explica a regra, para o campo não parecer que sumiu por defeito.
+  //
+  // O valor de `papel` NÃO é alterado aqui de propósito: se ele trocar o tipo
+  // de volta para Lojista, o que estava escolhido continua lá. Mexer no dado
+  // por causa de um campo escondido é como se perde informação sem perceber.
+  document.getElementById('sec-relacao').style.display    = isPF ? 'none' : '';
+  document.getElementById('sec-relacao-pf').style.display = isPF ? '' : 'none';
+
+  // Perfil de compra — faixa de preço e marcas servem ao Motor de Match,
+  // que Particular não alimenta.
+  document.getElementById('sec-perfil').style.display = isPF ? 'none' : '';
 
   // Documentação — campos condicionais
   document.getElementById('fd-razao_social').style.display   = isPJ ? '' : 'none';
