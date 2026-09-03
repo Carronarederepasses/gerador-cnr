@@ -129,6 +129,11 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <option value="fonte">Fontes / Parceiros</option>
       <option value="ambos">Ambos</option>
     </select>
+    <label id="f-pool-wrap" style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;
+           color:var(--text-mid);cursor:pointer;white-space:nowrap">
+      <input type="checkbox" id="f-pool" onchange="filtrar()" style="accent-color:var(--accent)">
+      📤 Recebem ofertas
+    </label>
     <select id="f-ordem" onchange="filtrar()">
       <option value="">Ordem A–Z</option>
       <option value="compras">Mais compras</option>
@@ -136,6 +141,21 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     </select>
     <button class="btn-agenda" onclick="importarAgenda()" title="Importar contatos da agenda do celular">📒 Agenda</button>
     <button class="btn-add" onclick="abrirModal()">+ Novo cliente</button>
+  </div>
+
+  <!-- Quantos clientes o Motor de Match ofereceria hoje. O pool é decidido
+       por dois campos que quase não se olha (`papel`, que já vem 'comprador',
+       e `tipo`), e antes disto o resultado só aparecia numa oferta indo para
+       quem não devia. -->
+  <div id="aviso-pool" style="display:none;background:var(--surface-raise);border:1px solid var(--line);
+       border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:.8rem 1rem;
+       margin-bottom:1rem;font-size:.86rem;line-height:1.5;display:flex;gap:.7rem;
+       align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <span id="aviso-pool-txt"></span>
+    <button onclick="document.getElementById('f-pool').checked=true;filtrar()"
+            style="font-family:'DM Sans',sans-serif;font-size:.78rem;padding:.4rem .8rem;
+                   border:1px solid var(--line);border-radius:8px;background:none;
+                   color:var(--text);cursor:pointer;white-space:nowrap">Ver quem são</button>
   </div>
 
   <div class="lista" id="lista"></div>
@@ -422,15 +442,50 @@ function renderKpis() {
     : '—';
 }
 
+// Quem o Motor de Match ofereceria hoje. Espelha exatamente o filtro de
+// api/compradores.js?match=1 — se um mudar, o outro tem que mudar junto.
+//
+// Existe porque o Yuri não tinha como VER isso. O pool é decidido por dois
+// campos que ele quase nunca olha (`papel`, que já vem 'comprador', e `tipo`),
+// e o resultado só aparecia lá na frente, numa oferta indo para quem não
+// devia. Agora a tela diz o número e lista quem são.
+function recebeOfertas(c) {
+  const papel = c.papel || 'comprador';
+  return c.ativo !== false
+      && (papel === 'comprador' || papel === 'ambos')
+      && c.tipo !== 'pessoa_fisica';
+}
+
+function atualizarAvisoPool() {
+  const el = document.getElementById('aviso-pool');
+  if (!el) return;
+  const pool = TODOS.filter(recebeOfertas);
+  // Sem papel escolhido no cadastro o campo grava 'comprador'. Estes são os
+  // que entraram no pool por omissão, não por decisão — é onde o particular
+  // se esconde.
+  const porOmissao = pool.filter(c => !c.papel).length;
+
+  if (!pool.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  document.getElementById('aviso-pool-txt').innerHTML =
+    `<strong>${pool.length} cliente(s) recebem ofertas</strong> do Motor de Match hoje.` +
+    (porOmissao
+      ? ` <span style="color:var(--severity-warn)">${porOmissao} ${porOmissao > 1 ? 'deles entraram' : 'entrou'} sem papel definido</span> — o cadastro assume "comprador" quando o campo fica em branco.`
+      : '');
+}
+
 function filtrar() {
   const q    = document.getElementById('busca').value.toLowerCase();
   const tipo = document.getElementById('f-tipo').value;
   const ord  = document.getElementById('f-ordem').value;
   const papel = document.getElementById('f-papel').value;
+  const soPool = document.getElementById('f-pool')?.checked;
   let res = TODOS.filter(c => {
     const txt = `${c.nome} ${c.cidade || ''} ${(c.marcas||[]).join(' ')}`.toLowerCase();
-    return (!q || txt.includes(q)) && (!tipo || c.tipo === tipo) && (!papel || (c.papel || 'comprador') === papel);
+    return (!q || txt.includes(q)) && (!tipo || c.tipo === tipo) && (!papel || (c.papel || 'comprador') === papel)
+        && (!soPool || recebeOfertas(c));
   });
+  atualizarAvisoPool();
   if (ord === 'compras') {
     res = [...res].sort((a, b) => {
       const ha = HIST_COMP[a.id] || HIST_COMP[a.nome] || { count: 0 };

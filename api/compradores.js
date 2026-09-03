@@ -407,7 +407,20 @@ module.exports = async (req, res) => {
     // ── MATCH ─────────────────────────────────────────────────
     if ('match' in q) {
       const [rComp, rVendas, rEventos] = await Promise.all([
-        sb('compradores?select=*&ativo=eq.true&papel=in.(comprador,ambos)&order=nome.asc'),
+        // Particular (pessoa_fisica) NUNCA entra no pool de ofertas.
+        // Decisão do Yuri em 03/set/2026: repasse é preço de atacado, e mandar
+        // isso para cliente final expõe a margem a quem compraria no varejo.
+        //
+        // O filtro por `papel` sozinho não bastava: o cadastro grava
+        // `papel: valor || 'comprador'`, então quem foi cadastrado às pressas
+        // — o caso típico do particular que vendeu um carro — virou comprador
+        // e entrou no pool sem ninguém decidir isso.
+        //
+        // `or=(tipo.is.null,...)` e não `tipo=neq.pessoa_fisica` sozinho:
+        // em SQL, NULL <> 'x' é NULL, não verdadeiro. Com o neq puro, todo
+        // cliente sem tipo preenchido sumiria do Match em silêncio.
+        sb('compradores?select=*&ativo=eq.true&papel=in.(comprador,ambos)' +
+           '&or=(tipo.is.null,tipo.neq.pessoa_fisica)&order=nome.asc'),
         sb('vendas?select=comprador_id,marca,valor_venda,data_venda&comprador_id=not.is.null'),
         sb('eventos?select=comprador_id,resultado,created_at,veiculo_id&tipo=eq.match_notificado'),
       ]);
