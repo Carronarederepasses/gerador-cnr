@@ -4,7 +4,7 @@
 #cnr-sidebar {
   position: fixed;
   left: 0; top: 0; bottom: 0;
-  width: 220px;
+  width: var(--sidebar-w);   /* medida única, declarada em tokens.css */
   background: var(--surface-raise);
   border-right: 1px solid var(--line);
   display: flex;
@@ -128,7 +128,7 @@
 
 /* Desktop — sidebar sempre visível */
 @media (min-width: 768px) {
-  body { padding-left: 220px !important; }
+  body { padding-left: var(--sidebar-w) !important; }
 }
 
 /* Mobile — sidebar como drawer */

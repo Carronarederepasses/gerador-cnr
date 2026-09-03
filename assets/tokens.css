@@ -54,6 +54,12 @@
   --severity-crit: #e0846a;
 
   --green:  #25D366; /* WhatsApp — só para ações de WhatsApp, nunca para status */
+
+  /* Largura da barra lateral. Mora aqui, e não em sidebar.css, porque três
+     lugares dependem dela: a própria barra, o recuo do body e o centro da
+     marca d'água. Repetir o número em três arquivos é como um deles fica
+     para trás quando a barra mudar de largura. */
+  --sidebar-w: 220px;
 }
 
 /*
@@ -104,7 +110,12 @@ body{
 body::before{
   content:'';
   position:fixed;
-  left:50%;
+  /* Centrada na ÁREA DE TRABALHO, não na janela. `position:fixed` mede a
+     partir da borda da janela, então 50% caía 110px à esquerda do centro do
+     que o Yuri olha — a barra lateral come 220px. Medido: centro da marca
+     683, centro do conteúdo 793. Abaixo de 768px a barra vira gaveta e não
+     ocupa espaço, então o deslocamento sai. */
+  left:calc(50% + var(--sidebar-w) / 2);
   top:50%;
   transform:translate(-50%, -50%);
   width:min(52rem, 88vw);
@@ -115,6 +126,10 @@ body::before{
   opacity:.09;
   z-index:-1;
   pointer-events:none;
+}
+@media (max-width:767px){
+  /* Sem barra lateral ocupando espaço, o centro volta a ser o da janela. */
+  body::before{ left:50%; }
 }
 
 /*
