@@ -1,49 +1,83 @@
 /*
  * Carro na Rede Repasses — tokens de design compartilhados
- * Fase 1 do plano de UX/UI: uma única fonte de verdade de cor/tipografia
- * pras 6 páginas do app (hoje cada uma redeclarava sua própria paleta).
- * Tema claro/escuro nativo — nada de "tema do gerador" vs "tema do catálogo".
+ * Fonte única de cor para as 16 telas do app. Tema claro/escuro nativo.
+ *
+ * ── Preto e branco, 03/set/2026 ─────────────────────────────────
+ * A paleta anterior era creme (#f2efe6), preto amarelado (#17150f),
+ * linha bege (#ddd6c3) e acento azul (#33526e). Bonita, mas não era a
+ * identidade: o documento da marca diz "preto e branco, identidade
+ * editorial", e o Yuri pediu que o app tivesse a cara da Carro na Rede.
+ *
+ * Os cinzas são neutros de propósito — sem viés de matiz. Numa identidade
+ * que É preto e branco, um cinza puxado para o quente ou para o frio lê
+ * como cor mal resolvida, não como escolha.
+ *
+ * O acento é a própria tinta: preto no claro, branco no escuro. Não existe
+ * "cor de destaque" numa identidade editorial preto e branco — o destaque
+ * é o contraste. Onde algo precisa saltar, salta por peso e por inversão,
+ * não por matiz.
+ *
+ * ── A exceção deliberada: cor que carrega informação ────────────
+ * --severity-ok / warn / crit continuam coloridos, e isso não contradiz o
+ * preto e branco: eles não decoram, eles informam. Um alerta que só se
+ * distingue por tom de cinza obriga a ler o texto para saber a gravidade,
+ * e quem opera de celular no pátio não vai ler. Cor semântica é o único
+ * lugar onde matiz entra, e por isso mesmo ela fica reservada a isso.
+ *
+ * --green é o verde do WhatsApp e serve só para ações de WhatsApp. Não é
+ * cor de status, e não é da nossa paleta: é citação de outro produto.
+ * Mesma razão pela qual o preview do anúncio imita as cores do WhatsApp.
+ *
+ * ── Regra ao usar ───────────────────────────────────────────────
+ * Fundo --accent pede texto --surface (nunca #fff fixo): no escuro o
+ * acento é branco, e branco sobre branco some. Esse defeito já apareceu
+ * duas vezes aqui — na faixa de aviso de vendas.html e no filtro de
+ * anuncios.html, ambos em 03/set.
  */
 :root{
   color-scheme: light dark;
 
-  --surface:       #f2efe6;
-  --surface-raise: #ffffff;
-  --text:          #17150f;
-  --text-mid:      #56513f;
-  --text-faint:    #8c8570;
-  --line:          #ddd6c3;
-  --accent:        #33526e;
-  --accent-soft:   #e4ebee;
-  --severity-ok:   #3f6b52;
-  --severity-warn: #93701f;
-  --severity-crit: #a2432a;
+  --surface:       #f4f5f5;  /* papel */
+  --surface-raise: #ffffff;  /* cartão sobre o papel */
+  --text:          #101112;
+  --text-mid:      #55585c;
+  --text-faint:    #767a7f;  /* 4.6:1 sobre o papel — legível, não decorativo */
+  --line:          #dfe1e2;
+  --accent:        #101112;  /* a tinta é o acento */
+  --accent-soft:   #e9ebec;
 
-  --green:  #25D366; /* WhatsApp — reservado só pra ações de WhatsApp, não pra status */
+  --severity-ok:   #1f6b45;
+  --severity-warn: #8a6218;
+  --severity-crit: #a32b18;
+
+  --green:  #25D366; /* WhatsApp — só para ações de WhatsApp, nunca para status */
 }
 
 @media (prefers-color-scheme: dark){
-  :root{
-    --surface:       #16140f;
-    --surface-raise: #1e1c15;
-    --text:          #efe9da;
-    --text-mid:      #b3ab97;
-    --text-faint:    #877f6c;
-    --line:          #34301f;
-    --accent:        #7fa2c0;
-    --accent-soft:   #24333d;
-    --severity-ok:   #7fb494;
-    --severity-warn: #d1a752;
-    --severity-crit: #d17356;
+  :root:not([data-theme="light"]){
+    --surface:       #0b0c0d;
+    --surface-raise: #16181a;
+    --text:          #f2f3f3;
+    --text-mid:      #a6aaae;
+    --text-faint:    #7e8286;
+    --line:          #26292c;
+    --accent:        #f2f3f3;  /* no escuro, a tinta é branca */
+    --accent-soft:   #22262a;
+
+    --severity-ok:   #63b98d;
+    --severity-warn: #d6a75a;
+    --severity-crit: #e0846a;
   }
 }
+
 :root[data-theme="dark"]{
-  --surface:#16140f; --surface-raise:#1e1c15; --text:#efe9da; --text-mid:#b3ab97; --text-faint:#877f6c;
-  --line:#34301f; --accent:#7fa2c0; --accent-soft:#24333d;
-  --severity-ok:#7fb494; --severity-warn:#d1a752; --severity-crit:#d17356;
+  --surface:#0b0c0d; --surface-raise:#16181a; --text:#f2f3f3; --text-mid:#a6aaae; --text-faint:#7e8286;
+  --line:#26292c; --accent:#f2f3f3; --accent-soft:#22262a;
+  --severity-ok:#63b98d; --severity-warn:#d6a75a; --severity-crit:#e0846a;
 }
+
 :root[data-theme="light"]{
-  --surface:#f2efe6; --surface-raise:#ffffff; --text:#17150f; --text-mid:#56513f; --text-faint:#8c8570;
-  --line:#ddd6c3; --accent:#33526e; --accent-soft:#e4ebee;
-  --severity-ok:#3f6b52; --severity-warn:#93701f; --severity-crit:#a2432a;
+  --surface:#f4f5f5; --surface-raise:#ffffff; --text:#101112; --text-mid:#55585c; --text-faint:#767a7f;
+  --line:#dfe1e2; --accent:#101112; --accent-soft:#e9ebec;
+  --severity-ok:#1f6b45; --severity-warn:#8a6218; --severity-crit:#a32b18;
 }

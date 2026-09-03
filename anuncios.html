@@ -68,7 +68,9 @@
   .filtro-btn.ativo{background:var(--text);color:var(--surface);border-color:var(--text)}
   .filtro-btn .cnt{font-size:.72rem;margin-left:.3rem;opacity:.75}
   .filtro-btn.fila-dia-btn{border-color:var(--accent);color:var(--accent)}
-  .filtro-btn.fila-dia-btn.ativo{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* color: var(--surface), não #fff. No tema escuro o acento é branco, e
+     branco sobre branco some. Mesmo defeito da faixa de vendas.html. */
+  .filtro-btn.fila-dia-btn.ativo{background:var(--accent);color:var(--surface);border-color:var(--accent)}
 
   .meta-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;font-size:.82rem;color:var(--text-mid)}
 
