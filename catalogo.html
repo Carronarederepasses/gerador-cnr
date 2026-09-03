@@ -21,7 +21,6 @@
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <script src="/assets/sidebar.js" defer></script>
-<script src="/assets/envio.js" defer></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);line-height:1.5;padding:1.5rem 1rem 4rem}
@@ -679,7 +678,6 @@ function card(v) {
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
-      <button onclick="abrirEnvio('${v.id}')">📣 Enviar para lista</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
       <button class="venda" onclick="registrarVenda('${v.id}')">💰 Registrar Venda</button>
@@ -1238,28 +1236,6 @@ async function abrirCentral(veiculoId) {
 
   _renderCentralItem();
   document.getElementById('central-modal').classList.add('show');
-}
-
-// Lista de envio — a tela e a fila vivem em assets/envio.js, compartilhadas
-// com o Gerador. Aqui só se diz qual carro e qual texto.
-//
-// A Central de Distribuição abaixo continua com fila própria, de propósito:
-// ela é do Match (score, motivos, exclusão de quem já recebeu) e mexer nela
-// agora seria risco sem ganho. Fica anotado como duplicação a resolver.
-function abrirEnvio(veiculoId) {
-  const v = CACHE[veiculoId];
-  if (!v || !window.CNR_ENVIO) return;
-  CNR_ENVIO.escolher({
-    titulo:    nomeVeiculo(v),
-    mensagem:  mensagemDoAnuncio(v),
-    veiculoId: veiculoId,
-    aoEnviar:  (c, msg) => {
-      // Contato vindo da agenda não tem ficha no CRM — não há oferta a
-      // registrar, e inventar um id sujaria o histórico.
-      if (c.origem !== 'crm') return;
-      _registrarOferta(veiculoId, c.id, 0, [], msg, nomeVeiculo(v), c.nome, c.tel);
-    },
-  });
 }
 
 // Fecha a Central e limpa o estado.
