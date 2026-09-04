@@ -59,7 +59,17 @@ function score(haystack, needle, skipBasePenaltyFor = []) {
   const sep = s => s
     .replace(/([a-záàâãéêíóôõúüç])(\d)/g, '$1 $2')
     .replace(/(\d)([a-záàâãéêíóôõúüç])/g, '$1 $2');
-  const words  = sep(nRaw).split(/[\s\-\/.()\[\]{}]+/).filter(w => w.length > 0);
+  // Cada palavra conta UMA vez. Sem o Set, um nome que repete o mesmo pedaço
+  // ganha pontos por repetição — e nomes longos da FIPE repetem muito.
+  //
+  // Foi assim que "Gol 1.0" de 2018 casou com
+  // "Gol GL 1.6 Mi/Star 1.6 e 1.8/Atlanta 1.6": o "1" aparece quatro vezes
+  // nesse nome, somou +4, e passou na frente de "Gol 1.0 Flex 12V 5p", que
+  // é o carro certo. Depois, como esse modelo não tem 2018, o resultado saiu
+  // com ano 1998 e R$ 17.219 — indistinguível de um acerto na tela.
+  //
+  // Casar o mesmo pedaço quatro vezes não torna o carro mais parecido.
+  const words  = [...new Set(sep(nRaw).split(/[\s\-\/.()\[\]{}]+/).filter(w => w.length > 0))];
   const h      = sep(hRaw);
   const hWords = h.split(/[\s\-\/.()\[\]{}]+/).filter(Boolean); // palavras isoladas do texto
 
@@ -258,6 +268,8 @@ module.exports = async (req, res) => {
     });
     const anosCand = (c) => anosDe.get(`${c.marca.codigo}/${c.modelo.codigo}`) || [];
 
+    const escolhidoNome = (c) => `${c.marca.nome} ${c.modelo.nome}`;
+
     const doAno = (anos) =>
       anos.filter(a => a.nome.includes(anoLimpo) || a.codigo.startsWith(anoLimpo));
     const bateComb = (a) => a.nome.toLowerCase().includes(combLower);
@@ -299,7 +311,29 @@ module.exports = async (req, res) => {
         .filter(a => a.n > 0);
       const anoInt = parseInt(anoLimpo);
       anosReais.sort((a, b) => Math.abs(a.n - anoInt) - Math.abs(b.n - anoInt));
-      escolhido = c; anoObj = anosReais[0]?.obj || null; anoFallback = true;
+
+      // Ano distante demais não é aproximação: é outro carro.
+      //
+      // "Gol 1.0" de 2018 devolvia "Gol GL 1.6 Mi/Star 1.6 e 1.8/Atlanta 1.6"
+      // de **1998** por R$ 17.219 — e com found:true, indistinguível de um
+      // acerto na tela. A VW tem dezenas de variantes de Gol; as certas
+      // ficaram fora dos 12 melhores por nome, e o "mais próximo" virou um
+      // carro de vinte anos antes.
+      //
+      // Até 2 anos ainda é plausível (ano modelo, versão que saiu de linha no
+      // meio do ano) e segue passando, com o aviso de anoFallback. Além disso
+      // a resposta passa a ser "não identifiquei" — que abre a cascata manual
+      // e devolve a escolha para quem sabe qual é o carro.
+      const perto = anosReais[0];
+      const distancia = perto ? Math.abs(perto.n - anoInt) : Infinity;
+      if (distancia > 2) {
+        return res.status(200).json({
+          found: false,
+          reason: `só encontrei ${escolhidoNome(c)} para ${perto ? perto.n : '—'}, e você pediu ${anoLimpo}`,
+        });
+      }
+
+      escolhido = c; anoObj = perto?.obj || null; anoFallback = true;
     }
 
     if (!anoObj) return res.status(200).json({ found: false, reason: 'sem anos disponíveis' });

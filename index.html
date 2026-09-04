@@ -199,9 +199,15 @@
   textarea.paste-area{width:100%;background:var(--gray);border:1px solid var(--border);color:var(--white);font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:300;padding:.75rem .85rem;outline:none;resize:vertical;min-height:160px;transition:border-color .2s;line-height:1.65}
   textarea.paste-area:focus{border-color:rgba(245,243,238,.35)}
   textarea.paste-area::placeholder{color:var(--text-faint)}
-  .parse-st{font-size:.68rem;margin-top:.35rem;min-height:1rem;color:var(--mid)}
+  /* white-space:pre-line para o modelo casado ficar na própria linha. Valor e
+     modelo grudados viram um borrão que ninguém lê — e ler o modelo é
+     justamente o que evita levar a FIPE errada. */
+  .parse-st{font-size:.68rem;margin-top:.35rem;min-height:1rem;color:var(--mid);
+    white-space:pre-line;line-height:1.5}
   .parse-st.ok{color:var(--green)}
   .parse-st.err{color:var(--red)}
+  /* Achou, mas não no ano pedido. Nem acerto nem erro: é "confira". */
+  .parse-st.warn{color:var(--yellow)}
   .btn-parse{width:100%;background:var(--gray2);border:1px solid var(--border);color:var(--light);padding:.72rem;font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:400;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:.5rem}
   .btn-parse:hover:not(:disabled){border-color:rgba(245,243,238,.35);color:var(--white)}
   .btn-parse:disabled{opacity:.4;cursor:not-allowed}
@@ -1711,8 +1717,21 @@ function copiar() {
 // ══════════════════════════════════════════════
 // BUSCA FIPE AUTOMÁTICA (modo Coletados)
 // ══════════════════════════════════════════════
+// Quanto o valor achado pode divergir do que o anúncio declara antes de virar
+// suspeita. Arredondamento de anúncio fica na casa de poucos por cento; 20% já
+// é outro carro.
+const FIPE_DIVERGENCIA = 0.20;
+
+const _soNumero = (t) => {
+  const n = parseFloat(String(t || '').replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel) {
   const avisoP = parcial ? ' ⚠️ Do link vieram só veículo e ano — preencha KM, cor, preço e região.' : '';
+  // A FIPE que veio escrita no anúncio, antes de qualquer sobrescrita. É a
+  // referência para saber se a busca casou o carro certo — ver abaixo.
+  const fipeDoTexto = _soNumero(document.getElementById('colet-fipe')?.value);
   try {
     setParseSt('Buscando FIPE...', '');
     const resp = await fetch('/api/fipe-search', {
@@ -1726,6 +1745,37 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel)
       abrirCascataColet();
       return;
     }
+    // Se o anúncio já dizia a FIPE e a busca discorda muito, o suspeito é a
+    // busca — não o anúncio.
+    //
+    // O código antes sobrescrevia SEMPRE, com o argumento de que valor de
+    // anúncio vem arredondado e a tabela é exata. O argumento erra o
+    // essencial: R$ 298.000 arredondado do carro certo vale mais que
+    // R$ 438.663 exato do carro errado.
+    //
+    // Caso real (03/set): "Bmw X6 M Coupe 2018", anúncio dizia 298.000 e a
+    // busca trouxe 438.663 — 47% acima. Na BMW o "M" tanto é o modelo
+    // esportivo quanto o pacote M Sport num X6 comum, e a busca casou o
+    // esportivo. O vendedor sabe qual é o carro dele; nossa busca chuta.
+    const achado = _soNumero(data.valorNumerico);
+    const divergiu = fipeDoTexto && achado &&
+                     Math.abs(achado - fipeDoTexto) / fipeDoTexto > FIPE_DIVERGENCIA;
+
+    if (divergiu) {
+      const pct = Math.round(Math.abs(achado - fipeDoTexto) / fipeDoTexto * 100);
+      const casouNome = [data.marca, data.modelo].filter(Boolean).join(' ');
+      // Mantém o do anúncio e mostra o outro, em vez de escolher calado.
+      setParseSt(
+        `⚠️ Duas FIPEs diferentes — não sobrescrevi.\n` +
+        `Anúncio: R$ ${fipeDoTexto.toLocaleString('pt-BR')}  ·  ` +
+        `Busca: ${data.valor} (${casouNome}), ${pct}% de diferença.\n` +
+        `Mantive a do anúncio. Se a busca é que está certa, ajuste na busca manual. 👇` + avisoP,
+        'warn');
+      abrirCascataColet();
+      buscarMercadoML(`${veiculoTexto} ${anoTexto}`, 'cml-st');
+      return;
+    }
+
     // Só sobrescreve se o usuário não corrigiu manualmente
     if (!_coletFipeManual) {
       document.getElementById('colet-fipe').value = data.valorNumerico;
@@ -1733,8 +1783,22 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel)
     // Preenche o combustível caso a IA não tenha identificado no texto
     const combEl = document.getElementById('colet-combustivel');
     if (combEl && !combEl.value && data.combustivel) combEl.value = data.combustivel;
-    const avisoAno = data.anoFallback ? ` (ano ${data.ano} — mais recente disponível)` : '';
-    setParseSt(`✓ FIPE ${data.mesReferencia || 'atual'}: ${data.valor}${avisoAno}.${avisoP || ' Se a versão veio errada, ajuste na busca manual abaixo. 👇'}`, 'ok');
+    // Dizer QUAL carro casou, não só o valor.
+    //
+    // Antes a mensagem era "✓ FIPE atual: R$ 17.219" — e um acerto ficava
+    // idêntico a um erro. O Gol 1.0 de 2018 casava com um Gol GL 1.6 de 1998
+    // e ele não tinha como perceber: o número aparecia com ✓ verde igual.
+    //
+    // É o que o MasterFipe faz e por isso não erra: lá ele escolhe da lista e
+    // vê o que escolheu. Aqui a escolha é automática, então mostrar o que foi
+    // escolhido é o mínimo.
+    const casou = [data.marca, data.modelo].filter(Boolean).join(' ');
+    const avisoAno = data.anoFallback ? ` — ano ${data.ano}, o mais próximo disponível` : '';
+    setParseSt(
+      `✓ FIPE ${data.mesReferencia || 'atual'}: ${data.valor}\n` +
+      `${casou}${avisoAno}` +
+      `${avisoP || ' — confira se é esse mesmo; se não for, use a busca manual abaixo. 👇'}`,
+      data.anoFallback ? 'warn' : 'ok');
     // Busca preços no Mercado Livre para contexto de mercado
     buscarMercadoML(`${veiculoTexto} ${anoTexto}`, 'cml-st');
   } catch(e) {
@@ -2495,8 +2559,13 @@ async function processarIA() {
       .filter(k => data[k]).join(', ');
     setParseSt('✓ Preenchido: ' + (preenchidos || 'nenhum campo detectado') + ' — buscando FIPE...', 'ok');
 
-    // Busca FIPE automaticamente se não veio no texto
-    // Sempre busca FIPE na API — ignora valor do texto (pode estar arredondado)
+    // Busca a FIPE oficial mesmo quando o anúncio já traz um valor — o do
+    // anúncio costuma vir arredondado. Mas a busca NÃO sobrescreve calada:
+    // se os dois divergirem muito, quem decide é ele (ver buscarFIPEColetados).
+    //
+    // Os dois comentários que estavam aqui se contradiziam — um dizia "se não
+    // veio no texto", o outro "sempre busca, ignora o texto" — e o que valia
+    // era o segundo. Foi por isso que a X6 saiu com a FIPE de outro carro.
     if (data.veiculo && data.ano) {
       _coletFipeManual = false; // novo processamento → permite busca automática
       buscarFIPEColetados(data.veiculo, data.ano, linkParcial, data.combustivel);
