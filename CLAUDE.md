@@ -2879,3 +2879,18 @@ opções morreram no primeiro contato com o navegador. **Pesquisa de fonte não
 substitui execução;** ela só diz o que vale a pena testar.
 
 *Registrado em 4 de setembro de 2026.*
+
+### Encerrado por decisão do Yuri: nada de "instalar" no computador
+
+Eu vinha oferecendo desde 3/set acrescentar a seção **desktop** à
+`instalar.html` — instalar o Gerador como janela própria (PWA) no notebook,
+para tirá-lo da conta das abas do navegador.
+
+**Ele organizou as abas na mão e dispensou.** Não é falta de tempo: é decisão.
+O problema que a instalação resolveria já não existe.
+
+**Não voltar a propor isso** — nem eu, nem os sócios via CONTEXTO.md. O PWA
+segue íntegro no manifest para quem usa pelo celular; o que está encerrado é a
+instalação no computador.
+
+*Registrado em 4 de setembro de 2026.*
