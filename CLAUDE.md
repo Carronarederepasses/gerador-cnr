@@ -3052,3 +3052,52 @@ anúncios, sem clique e sem página extra** — exatamente o que o Yuri esperava
 👁 continua valendo para a descrição.
 
 *Registrado em 4 de setembro de 2026, tarde.*
+
+### O km vem de graça — o Yuri estava certo
+
+Testado: **a página de busca da OLX já traz o km no card** ("125.000 km", ao
+lado da cor). O `olx-search.js` lia título, preço, localização e thumbnail e
+passava batido por ele.
+
+Agora o km vem **na varredura normal, em todos os anúncios, sem clique e sem
+página extra.** O 👁 continua necessário só para a **descrição**, que de fato
+só existe na página do anúncio.
+
+**O primeiro diagnóstico que eu mandei estava errado** e quase encerrou a
+questão com "não dá": ele só olhava elementos sem filhos (`children.length === 0`),
+e o km da OLX vem num span junto com um ícone. Reportou "nenhum" enquanto o km
+estava no texto do card, ali na mesma saída. **O texto bruto do card salvou** —
+eu tinha pedido para imprimir junto, e foi ele que mostrou. Diagnóstico que só
+responde sim/não pode mentir; junto o material cru, dá para conferir.
+
+Lido do **texto**, não de seletor: as classes da OLX são hashes de
+styled-components e mudam a cada deploy deles.
+
+Armadilhas que os testes pegaram:
+
+- **Sem `\b` no fim do regex.** O caminho de retry do `olx-search.js` usa
+  `textContent`, que cola os nós vizinhos: `"125.000 kmBranco"`.
+- **A alternância testa o formato com milhar primeiro.** Senão o `125` de
+  `125.000` venceria e gravaria 125 km.
+- `kmDoCard` mora no escopo externo, não dentro de `extractAll()` — o retry é
+  função irmã. Estava errado e teria dado `ReferenceError` só no retry, que é
+  o caminho raro, ou seja: quebraria em produção e quase nunca no teste.
+
+### O upsert agora agrupa sozinho
+
+Havia um cuidado antigo: linhas **com** e **sem** thumbnail iam em dois upserts
+separados, porque `columns` diz o que o Postgres pode sobrescrever — uma
+varredura sem foto apagaria a foto boa já salva.
+
+Com o km seriam quatro grupos; cinco campos opcionais dariam 32. Virou
+genérico: agrupa pela combinação de opcionais **presentes** e cada grupo
+declara só as suas colunas.
+
+**O teste do agrupamento revelou um buraco real:** `km: 0` passava pela
+validação (`!== null && !== ''` aceita zero) e sobrescreveria a quilometragem
+boa. O `kmDoCard` nunca devolve 0, mas **a API é a fronteira** — a extensão
+pode estar numa versão velha, alterada, ou o corpo pode vir de outro lugar.
+Faixa conferida nos dois lados.
+
+*Registrado em 4 de setembro de 2026, fim de tarde.*
+
