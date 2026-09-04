@@ -2737,3 +2737,78 @@ falsas: *"a VENDAS_KEY foi removida, sem senha na interface"* e *"o GET da API
 errado** vindo deles. Corrigido, com as decisões e lições do dia.
 
 *Registrado em 3 de setembro de 2026, noite.*
+
+---
+
+## Checkpoint — 4 de setembro de 2026, manhã
+
+### Faxina no `index.html`: 418 linhas de editor de foto duplicado
+
+O `index.html` tinha **três modos**: Captação, Parceiros e um terceiro,
+`'editor'`, com o editor de foto inteiro dentro dele — CSS, markup e JS.
+
+Esse editor **também vive em `foto.html`**, a tela "Arte" da barra lateral. E o
+terceiro botão do topo do Gerador já é um `<a href="/foto.html">`, não um
+`setMode('editor')`. Ou seja: a migração para a página própria já tinha sido
+feita em algum momento, e **o cadáver ficou para trás**. Nada no arquivo
+chamava `setMode('editor')`; o modo era inalcançável.
+
+Removidos:
+
+| o quê | linhas |
+|---|---|
+| CSS `.editor-*`, `.canvas-*`, `.btn-download` | 23 |
+| markup `<div id="modo-editor">` | 74 |
+| JS de `setEditorMode` a `downloadFoto` | 321 |
+| `pushSecao()`, helper sem nenhuma chamada | 7 |
+
+`index.html`: **3555 → 3115 linhas.**
+
+`setMode()` agora só conhece `'captacao'` e `'coletados'`, e **normaliza
+qualquer outro valor para `'captacao'`**. Isso não é zelo à toa: o auto-save
+grava `mode` no `localStorage`, e um rascunho salvo antes desta mudança traz
+`mode:'editor'`. Sem a normalização, `restaurarEstado()` chamaria
+`setMode('editor')` e a página quebraria na primeira linha que procurasse um
+elemento que não existe mais.
+
+### O que eu tinha dito de manhã e estava errado
+
+Anunciei "três construtores de texto de anúncio" para unificar. **São dois** —
+`montarTextoAnuncio()` e `gerarColetados()` — e eles diferem de verdade: só o
+de Parceiros tem a seção `*GASTOS:*`. Já havia um comentário no código
+explicando exatamente isso, escrito por mim numa sessão anterior. Ficam os
+dois.
+
+Também anunciei "~150 linhas" de editor fantasma. Eram 418.
+
+**A lição:** número de memória, dito antes de abrir o arquivo, é chute com cara
+de fato. O Yuri escolheu por qual tarefa começar ouvindo a minha estimativa.
+
+### Varredura de código morto
+
+Escrevi `orfas.js` (scratchpad) para listar funções declaradas que ninguém
+chama. Antes: 109 funções, 1 órfã (`pushSecao`). Depois: 108, nenhuma.
+
+Errei o escape do regex **duas vezes** tentando rodar isso como one-liner pelo
+shell — os dois resultados vieram falsos (marcaram as 109 como órfãs) e eu
+quase reportei. É exatamente a lição de 3/set que eu tinha acabado de
+registrar: **teste em arquivo, nunca em one-liner pelo shell.**
+
+### Conferido no navegador, não só no diff
+
+Servidor estático em `localhost:3000` (`scratchpad/serve.js`; o
+`.claude/launch.json` da raiz aponta para `vercel dev`, que não sobe aqui).
+
+- Captação ↔ Parceiros trocam certo — visibilidade dos blocos e botão ativo
+- `gerarColetados()` gera o anúncio completo com `*GASTOS:*`
+- `gerar()` gera o anúncio de captação
+- `setMode('editor')` cai em captação **sem erro**
+- `foto.html` intacto: zona de upload, canvas, 6 sliders, as três funções
+- único 404: `/api/fipe` — o servidor de teste não tem API
+
+### Pendências que apareceram
+
+Três arquivos `.bak` de `anuncios.html` (30/ago e 1/set) parados na pasta,
+fora do git. **Não apaguei** — falta a autorização dele.
+
+*Registrado em 4 de setembro de 2026, manhã.*
