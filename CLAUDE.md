@@ -3101,3 +3101,76 @@ Faixa conferida nos dois lados.
 
 *Registrado em 4 de setembro de 2026, fim de tarde.*
 
+
+### Por que a resposta do Fastback não chegou
+
+O Yuri respondeu no **celular**, pelo app da OLX. A Captação Inteligente é uma
+**extensão de Chrome de desktop** — ela não existe no telefone. Nenhum dos dois
+caminhos de detecção estava lá para ver.
+
+O diagnóstico descartou a hipótese que eu tinha levantado (título ambíguo):
+`títulos iguais no banco: 1`, `status: enviado`, `mensagens espelhadas: 0`.
+
+**Os dois caminhos de detecção, ambos dependentes de o Yuri abrir a OLX no
+notebook:**
+
+| caminho | o que faz | o que NÃO faz |
+|---|---|---|
+| conversa aberta (`RESPOSTA_DETECTADA`) | status → `respondeu` + espelha | — |
+| caixa de entrada (`CAIXA_ENTRADA`) | acende a novidade em Conversas | **não muda o status** |
+
+### Achado colateral: a novidade não sai do notebook
+
+`conferirCaixaEntrada` guarda o resultado em **`chrome.storage.local`** — o
+armazenamento da extensão, naquela máquina. Não vai para o banco.
+
+Ou seja: mesmo quando o notebook detecta, **o celular nunca fica sabendo.** A
+tela Conversas no telefone sempre parece vazia. Isso é anterior a qualquer
+conversa sobre notificação e tem a mesma raiz.
+
+### Notificação no celular: descartada pelo Yuri, com boa razão
+
+A corrente seria `alguém detecta → o servidor sabe → push no celular`. O
+primeiro elo hoje é o próprio Yuri, no notebook — o push avisaria de respostas
+que ele já leu no telefone.
+
+Ele decidiu não fazer: *"quando eu estiver na rua, o app da OLX vai me avisar.
+E quando eu estiver em casa, o app também avisa."* Está certo — seria duplicar
+um aviso que já existe. **Não voltar a propor.**
+
+Fica registrado o limite estrutural, que vale para outras decisões: enquanto a
+OLX só é alcançável pelo navegador logado do Yuri, **nada detecta enquanto ele
+está na rua com o celular.** Isso encosta no que ele já disse sobre o app
+precisar servir Android e iOS.
+
+### Notificação no notebook: onde havia buraco de verdade
+
+O app da OLX avisa de mensagem, mas **não avisa de anúncio novo** que casa com
+as buscas. Esse buraco é do Radar — que rodava de hora em hora e só mexia num
+badge no ícone da extensão, perdido entre as outras trinta.
+
+Feito: `chrome.notifications` ao fim de cada varredura, com os títulos dos
+carros. Decisões que valem lembrar:
+
+- **Não avisa na primeira execução.** Ali todo anúncio é novo: a mensagem seria
+  "139 carros novos", que não é notícia, é o inventário inicial.
+- **Id fixo** (`cnr-radar-novos`): o aviso novo substitui o anterior em vez de
+  empilhar. Depois de uma tarde fora seriam seis balões para ler em sequência;
+  o que ele quer saber é quantos há **agora**.
+- **Mostra os títulos, não só o número.** "3 carros novos" obriga a abrir para
+  saber se vale a pena.
+- O listener de clique fica **no topo, fora de async**: em MV3 o service worker
+  morre e renasce, e listener registrado dentro de promise se perde.
+
+Conferido com o payload montado a partir do arquivo real em 5 casos.
+
+### Lição do dia, repetida
+
+Errei o escape do shell pela **quarta** vez hoje — agora um here-string do
+PowerShell numa mensagem de commit, que virou dezenas de `pathspec did not
+match`. As quatro vezes tinham a mesma forma: texto longo passando por shell.
+A regra já estava escrita e eu não segui. **Texto longo vai para arquivo;
+comando recebe o caminho.**
+
+*Registrado em 4 de setembro de 2026, noite.*
+
