@@ -2988,3 +2988,35 @@ saiu o X6 a R$ 438 mil. É hipótese com boa razão para ser verdadeira, mas é
 hipótese: **medir antes de afirmar.**
 
 *Registrado em 4 de setembro de 2026, tarde.*
+
+### Em produção, funcionando — e uma pendência aberta
+
+Primeiro uso real (Jeep Compass): o card trouxe **189.000 km, Diesel,
+Automático, vendedor e a descrição completa**. O caminho inteiro funciona.
+
+**Não era bug:** o Yuri estranhou que só o Compass mostrasse km. É o desenho —
+a ficha só é lida no clique do 👁, um anúncio por vez. Os outros cards ainda
+estavam com o botão. Vale como aviso de UX: *"aparece só onde tu clicou"* não
+é óbvio olhando a tela.
+
+**PENDENTE — emoji viram `?` na descrição.** No Compass a descrição saiu:
+
+```
+? Manual chave reserva
+? Cautelar aprovado
+? Mecânica revisada
+```
+
+Os `?` deviam ser os emojis do vendedor. **"Mecânica" e "econômico" saíram com
+acento correto** — logo não é problema geral de UTF-8, é específico com emoji
+(fora do BMP, pares substitutos). Suspeitos a verificar, sem chutar:
+
+1. o próprio ld+json da OLX já vir assim
+2. `lerFichaNaAba` — a limpeza de `<br>`/tags não deveria tocar neles
+3. a gravação (PATCH → PostgREST → coluna `text`)
+4. a renderização no card (`esc()` + innerHTML)
+
+O jeito de descobrir é comparar o texto nos quatro pontos, no mesmo anúncio.
+Não diagnosticar por screenshot.
+
+*Registrado em 4 de setembro de 2026, tarde.*
