@@ -2661,3 +2661,79 @@ E deduzir "é particular" do nome continua fora de cogitação — é conhecimen
 do negócio dele, não regra que dê para chutar.
 
 *Registrado em 3 de setembro de 2026, noite.*
+
+### 03/set/2026 (noite II) — APIs auditadas, fechadas, e três defeitos de FIPE
+
+#### As 12 portas, listadas
+
+Levantamento função por função, conferido em produção. Publicado como
+artefato para o Yuri. O achado:
+
+**O portão da manhã cobriu as 4 que devolvem dados. Ficaram 8 abertas — e 5
+delas cobram por chamada na conta dele.** Testado de fora, sem chave:
+
+```
+GET /api/consulta?placa=ABC1D23   →   HTTP 200
+```
+
+Consultar Placa cobra por consulta. As outras quatro pagas (APiBrasil,
+OpenRouter ×2, remove.bg) pedem POST com corpo — que está no JavaScript da
+página, à vista.
+
+**Todas fechadas.** Exceção deliberada e nomeada: `utils?type=ping`, que é o
+cron da Vercel mantendo o Supabase acordado. Cron não manda cabeçalho nosso;
+fechar ali derrubaria o projeto em ~7 dias por uma proteção que não protege
+nada.
+
+Conferido depois: as 12 devolvem 401 sem chave, e o ping devolve `{ok:true}`.
+
+#### FIPE — três defeitos, todos com caso real
+
+O Yuri perguntou se existe API melhor. **Não** — a FIPE não tem API oficial
+pública, e a BrasilAPI estava fora do ar na parte que importa no momento do
+teste. Mas trocar não resolveria: **quando ele busca pela placa, a FIPE já vem
+exata** (a APiBrasil resolve a placa). O erro está no caminho que adivinha a
+partir de texto livre.
+
+1. **A pontuação somava a mesma palavra várias vezes.** `Gol 1.0` casava com
+   `Gol GL 1.6 Mi/Star 1.6 e 1.8/Atlanta 1.6` porque o `1` aparece quatro
+   vezes nesse nome. Agora cada palavra conta uma.
+
+2. **Ano distante virava "aproximação".** Sem 2018 naquele modelo, pegava o
+   "mais próximo": **1998**, R$ 17.219, com `found:true` — indistinguível de
+   um acerto. Acima de 2 anos agora recusa e explica.
+
+3. **A busca sobrescrevia a FIPE que o anúncio trazia.** Caso do Yuri:
+   `Bmw X6 M Coupe 2018` — anúncio dizia 298.000, busca gravou 438.663 (47%
+   acima). Na BMW o "M" é tanto o modelo esportivo quanto o pacote M Sport.
+   O código fazia isso **de propósito**, com o argumento de que valor de
+   anúncio vem arredondado. O argumento erra o essencial: **arredondado do
+   carro certo vale mais que exato do carro errado.** Acima de 20% de
+   divergência, mostra os dois e mantém o do anúncio.
+
+   Os dois comentários naquele ponto se contradiziam — "se não veio no texto"
+   e "sempre busca, ignora o texto" — e o que valia era o segundo.
+
+4. **A tela passou a dizer qual carro casou**, não só o valor. É como o
+   MasterFipe (o app que ele usa) evita errar: lá ele escolhe da lista e vê o
+   que escolheu.
+
+Verificado: 12 buscas reais e 8 casos da regra de divergência. Testado e
+**descartado por medição**: olhar 24 candidatos em vez de 12 não acha o Gol e
+dobra o tempo.
+
+#### Achado colateral
+
+Bati em **429 da Parallelum** testando. Não afetou a produção (os testes saem
+desta máquina; o Gerador chama da Vercel), mas revela fragilidade: a API é
+grátis **sem token**, com limite por IP. Token grátis em `fipe.api.br` sobe o
+limite. Pendente.
+
+#### CONTEXTO.md atualizado
+
+O documento dos "sócios" (as outras IAs) afirmava duas coisas que hoje são
+falsas: *"a VENDAS_KEY foi removida, sem senha na interface"* e *"o GET da API
+é público"*. Documento desatualizado ali não é só desleixo — vira **conselho
+errado** vindo deles. Corrigido, com as decisões e lições do dia.
+
+*Registrado em 3 de setembro de 2026, noite.*

@@ -1,7 +1,7 @@
 # Gerador CNR — contexto do projeto
 
 Documento de handoff. Serve para colocar alguém (ou outra IA) a par do estado
-do sistema sem precisar ler o código. Atualizado em **2 de setembro de 2026**.
+do sistema sem precisar ler o código. Atualizado em **3 de setembro de 2026**.
 
 ---
 
@@ -30,13 +30,21 @@ HTML estático + funções serverless na **Vercel**, banco **Supabase**
 `<script>` inline. Sem build step.
 
 Páginas: `home`, `index` (gerador de anúncio com IA), `catalogo`, `anuncios`
-(mesa de captação), `radar` (config das buscas), `compradores`, `vendas`,
-`negociacoes`, `consultas`, `busca`, `foto`, `artes`, `site`, `instalar`.
+(mesa de captação), `radar` (config das buscas), `conversas`, `compradores`,
+`vendas`, `negociacoes`, `consultas`, `busca`, `foto`, `ideias`, `entrar`
+(liberação do aparelho), `artes`, `site`, `instalar`.
+
+A barra lateral agrupa em **Captar · Vender · Apoio**. Identidade preto e
+branco, tema único (ver decisões).
 
 ### Extensão Chrome "Captação Inteligente" (Manifest V3)
 Roda no navegador do operador, na sessão OLX já autenticada dele.
 Não é publicada na Web Store — instalada descompactada, em modo
 desenvolvedor.
+
+Repositório **privado** em `github.com/Carronarederepasses/captacao-inteligente`
+desde 03/set — antes existia só no notebook do Yuri, sem cópia em lugar
+nenhum. Instalar em máquina nova é `git clone` + carregar sem compactação.
 
 - `background/sw.js` — service worker, o núcleo
 - `content/olx-search.js` — extrai anúncios das páginas de busca
@@ -46,7 +54,8 @@ desenvolvedor.
 
 ### Supabase
 Tabelas: `veiculos`, `anuncios`, `buscas`, `vendas`, `compradores`,
-`negociacoes`, `eventos`, `olx_mensagens`.
+`negociacoes`, `eventos`, `olx_mensagens`, `ideias`, `historico`,
+`observacoes`.
 
 Acesso **exclusivamente** pelas funções serverless, com `SERVICE_ROLE_KEY`.
 Nenhuma página fala com o Supabase direto. RLS ligado nas tabelas, sem
@@ -88,6 +97,8 @@ Estados de um anúncio: `novo → preparado → enviado → respondeu | morto`.
 - Registro de vendas com anexos, operado **pelo celular**
 - Geração de anúncio por IA a partir de link ou texto colado
 - Consulta de placa, FIPE, CEP, remoção de fundo de foto
+- **API inteira atrás de chave**, com liberação uma vez por aparelho (03/set)
+- **Motor de Match não oferece repasse a particular** (03/set)
 
 ---
 
@@ -104,6 +115,9 @@ Estas não são preferências. Quebram o sistema se ignoradas.
 | **PostgREST: `DESC` é `NULLS FIRST` por padrão** | Já causou um bug em que registros novos sumiam no fim da lista e pareciam não ter salvo. Usar `.desc.nullslast`. |
 | **Captação exige a sessão OLX no navegador daquela máquina** | Celular nunca capta. Celular é gestão; desktop é captação. |
 | **React ignora `input.value = x`** | Para preencher campos da OLX é preciso o setter nativo do prototype. |
+| **`utils?type=ping` tem de continuar SEM chave** | É o cron da Vercel (9h diário) que mantém o Supabase acordado, e cron não manda cabeçalho nosso. Fechar ali derruba o projeto inteiro em ~7 dias, por uma proteção que não protege nada — o ping lê um id e devolve `{ok:true}`. |
+| **`transition` + variável de tema congela a propriedade** | Medido em 03/set: elemento com `transition` fica preso no valor antigo quando a variável muda. Resolvido pela raiz ao adotar tema único — sem troca de tema, não há o que congelar. Reintroduzir tema claro traz o defeito de volta. |
+| **Parallelum (FIPE) é grátis e sem token, com limite por IP** | Um dia de muito uso pode bater 429 e a FIPE simplesmente para. Pegar token grátis em `fipe.api.br` sobe o limite — pendente. |
 
 ---
 
@@ -129,9 +143,36 @@ e foi removida em 02/set; a API hoje **recusa URLs da OLX** de propósito.
 aparece. Três bugs caros nasceram de código que reportava sucesso ou silêncio
 onde havia falha.
 
-**Sem senha na interface.** Operador único, sem tela de login. A `VENDAS_KEY`
-foi removida — ela quebrava o uso pelo celular, onde não há console para
-configurá-la.
+**Sem senha digitada — mas com chave.** *(revisto em 03/set; a versão
+anterior deste documento dizia que não havia chave nenhuma)*
+
+Não há tela de login e o Yuri não digita senha durante o uso. Mas a API
+inteira exige a chave `CNR_KEY`: o aparelho é liberado **uma vez** em
+`/entrar.html` e nunca mais pergunta. A chave viaja no fragmento (`#`) da
+URL, que não é enviado ao servidor.
+
+O motivo não foi proteger o Yuri de si mesmo: `/api/compradores` devolvia
+**nome, telefone, CPF e dados bancários dos compradores** a quem soubesse a
+URL, e não tinha guarda nem para escrita. Dado de terceiro, não dele.
+
+Detalhe que já custou caro: o envelope de `assets/auth.js` só põe o cabeçalho
+quando a página não pôs nenhum. Telas com chave própria antiga
+(`cnr_vendas_key`) venciam o envelope e se auto-derrubavam.
+
+**Particular nunca recebe oferta de repasse.** Repasse é preço de atacado;
+chegar a cliente final expõe a margem a quem compraria no varejo. O Match
+filtra `papel` **e** `tipo`, porque o cadastro grava `papel || 'comprador'` —
+particular salvo às pressas entrava no pool por omissão.
+
+**Um visual só, fundo preto.** O app não segue mais o tema do sistema. Além
+da identidade da marca, tema único elimina a classe de bug do `transition`
+congelado e corta pela metade a superfície para erro de contraste.
+
+**A FIPE do anúncio vence a busca quando divergem muito.** A busca por texto
+chuta qual carro é; o vendedor sabe. Acima de 20% de diferença o Gerador
+mostra os dois e mantém o do anúncio. Caso que originou a regra: `Bmw X6 M
+Coupe 2018` — anúncio dizia 298.000, a busca gravou 438.663 (o X6 M
+esportivo, não o X6 com pacote M Sport).
 
 **Colar URL da OLX, nunca montar filtro do zero.** Os parâmetros da OLX mudam
 sem aviso. A tela decompõe uma URL que já funciona e **preserva intacto o que
@@ -169,8 +210,10 @@ anúncios e conversas em ferramenta própria.
 
 | Item | Situação |
 |---|---|
-| `GET` da API é público (expõe vendas e compradores, com CPF e telefone) | Risco prático baixo hoje — app não indexado, URL não adivinhável. Classificado como **pré-requisito do primeiro parceiro externo**, junto do trabalho de multi-tenancy. |
-| Multi-tenancy | A API usa `SERVICE_ROLE_KEY` sem escopo de usuário; `seen`/`queue` vivem no storage local de cada máquina. Vender a terceiros exige auth + RLS de verdade. |
+| ~~`GET` da API é público~~ | **Resolvido em 03/set.** As 12 funções exigem chave; única exceção nomeada é `utils?type=ping`, para o cron. |
+| Multi-tenancy | A API usa `SERVICE_ROLE_KEY` sem escopo de usuário; `seen`/`queue` vivem no storage local de cada máquina. Vender a terceiros exige auth + RLS de verdade. A chave de hoje é **uma só, compartilhada** — não identifica quem é quem. |
+| `Access-Control-Allow-Origin: *` em toda a API | Não é explorável com o portão ligado (a chave mora no `localStorage` do domínio do Gerador). Deixado como está para não quebrar a extensão, que fala de outra origem. |
+| Token da Parallelum (FIPE) | Grátis, sobe o limite de requisições. Sem ele, um dia de muito uso pode derrubar a FIPE com 429. |
 | `host_permissions: ["https://*.vercel.app/*"]` | Amplo demais para passar na revisão da Chrome Web Store. |
 | Logs de diagnóstico na extensão | Poluem o console; precisam sair. |
 | Mensagens novas em conversas não abertas | O monitor só enxerga a conversa aberta. Ideia: observar a lista lateral do chat. |
@@ -194,6 +237,25 @@ Escrito a partir do que já deu errado.
 - **Ele testa em produção, no celular.** Não existe console lá. Feedback tem
   que ser visível na interface.
 - **Português do Brasil**, direto, sem enrolação.
+- **Perguntar como ele trabalha antes de construir para um cenário.** Em
+  03/set foram construídas duas versões de uma "lista de transmissão" — uma
+  com fila, outra abrindo várias abas — antes de descobrir que ele usa
+  **WhatsApp pelo celular**, onde o app mostra uma conversa por vez. O recurso
+  foi removido no mesmo dia. A pergunta certa custava uma linha.
+- **Procurar o que já existe antes de mandá-lo configurar algo.** Duas vezes
+  se construiu o que já estava pronto (editor de `valor_compra`, busca em
+  Vendas), e uma vez ele digitou a mesma chave quatro vezes porque uma chave
+  antiga em outra tela não tinha sido procurada.
+- **"Não funciona" pode ser "funciona e não dá para notar".** Um filtro
+  correto parecia quebrado porque a lista não mudava — todos os clientes
+  estavam no conjunto filtrado. Perguntar o que apareceu na tela antes de
+  investigar o mecanismo.
+- **Relato dele vale mais que blog de fornecedor.** Sobre a lista de
+  transmissão do WhatsApp, as fontes disponíveis eram conteúdo de marketing de
+  empresas que vendem ferramenta de disparo, e se contradiziam. Ele usa.
+- **Segredo nunca em campo de texto visível.** Uma chave vazou num print que
+  ele mandou para pedir ajuda. Campo de credencial é `type="password"` desde
+  a primeira versão.
 
 ---
 
