@@ -2812,3 +2812,49 @@ Três arquivos `.bak` de `anuncios.html` (30/ago e 1/set) parados na pasta,
 fora do git. **Não apaguei** — falta a autorização dele.
 
 *Registrado em 4 de setembro de 2026, manhã.*
+
+### Recorte grátis no navegador: testado e DESCARTADO
+
+Proposta minha: trocar a `remove.bg` (paga por imagem) por um modelo rodando
+dentro do navegador — custo zero, sem upload. **Medido e reprovado.**
+
+| Modelo | Licença | Resultado |
+|---|---|---|
+| BiRefNet_lite | MIT | **Estourou a memória do WASM** — `model execution: "350824064"` |
+| ormbg | Apache-2.0 | Rodou em **29,5 s** e **não recortou o carro** |
+| BEN2 | MIT | +2 min só baixando; não concluiu |
+| RMBG 1.4 / 2.0 | não-comercial | Fora por licença |
+| `@imgly/background-removal` | **AGPL** | Obrigaria a abrir o código do Gerador |
+
+O BiRefNet era o único com licença certa **e** treino certo para carro (DIS5K,
+objetos em geral) — e é transformer, não cabe no WASM a 1024×1024. A ormbg cabe,
+mas é treinada em **pessoas**: devolveu máscara mole, com parede, palmeiras e
+piso ainda visíveis. E 29,5 s num notebook significa muito pior no celular, que
+é onde o Yuri usa.
+
+**Decisão do Yuri: fica como está.** A `remove.bg` continua.
+
+Ressalva registrada: a foto do teste era uma saída do editor (carro já dentro do
+estúdio), input atípico. Com foto crua de pátio o resultado pode mudar. A página
+de teste (`scratchpad/recorte.html`) roda no navegador e não custa nada — se um
+dia houver 3 ou 4 fotos de origem, dá para fechar a questão com dado.
+
+### O que continua valendo (não dependia do recorte)
+
+- **Melhorar a composição do modo Fiel**: borda, sombra de contato, luz. A
+  diferença entre Fiel e IA **não é o recorte, é a iluminação** — o gpt-image
+  redesenha o carro sob as spots; o Fiel cola o carro chapado.
+- **`bg-cnr.jpg` tem 1537 × 1023 px** e o canvas é dimensionado por ele: esse é
+  o teto de toda foto exportada hoje, nos dois modos. Um estúdio maior levanta
+  a saída inteira de graça.
+- O modo IA **redesenha o carro** — o próprio código avisa "confira a placa".
+  Em anúncio de repasse isso é risco, não estética.
+
+### Lição
+
+Eu recomendei a troca de manhã dizendo "mesma qualidade, custo zero", com base
+em pesquisa de licença e arquitetura — sem ter rodado nada. Três de cinco
+opções morreram no primeiro contato com o navegador. **Pesquisa de fonte não
+substitui execução;** ela só diz o que vale a pena testar.
+
+*Registrado em 4 de setembro de 2026.*
