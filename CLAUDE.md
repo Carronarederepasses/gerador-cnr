@@ -2806,10 +2806,31 @@ Servidor estático em `localhost:3000` (`scratchpad/serve.js`; o
 - `foto.html` intacto: zona de upload, canvas, 6 sliders, as três funções
 - único 404: `/api/fipe` — o servidor de teste não tem API
 
-### Pendências que apareceram
+### Os três `.bak` de `anuncios.html` — conferidos e apagados
 
-Três arquivos `.bak` de `anuncios.html` (30/ago e 1/set) parados na pasta,
-fora do git. **Não apaguei** — falta a autorização dele.
+`bak-diag-envio`, `bak-entrada-responder` e `bak-thread` (30/ago e 1/set),
+sobras da construção da conversa espelhada da OLX, fora do git.
+
+Antes de apagar, comparei os três contra **as 20 versões** que o git guarda do
+arquivo (`scratchpad/baks.js`, `difbak.js` — hash por conteúdo, CRLF
+normalizado):
+
+- `bak-thread`: **idêntico** ao commit `a09125c`
+- os outros dois: **4 linhas** inéditas — três comentários e um rascunho mais
+  estreito da caixa de resposta (`a.status === 'respondeu'`, contra
+  `'respondeu' || 'enviado' || 'novo'` no arquivo de hoje)
+
+Nada único, nada mais novo. Apagados com autorização do Yuri; cópia de rede no
+scratchpad da sessão.
+
+O risco não era o espaço: `anuncios.html.bak-entrada-responder` ficava a um
+duplo-clique de `anuncios.html`, com quase 500 linhas de diferença e o mesmo
+começo de nome. **Backup indistinguível do arquivo real deixou de ser backup.**
+
+Errei o escape do shell pela terceira vez no dia montando essa checagem: a
+primeira versão carregou 1 versão em vez de 20 e concluiu, errado, que os três
+eram cópias únicas. Quase reportei. A correção que funcionou foi `execFileSync`
+com argumentos em array — **nada passando pelo shell.**
 
 *Registrado em 4 de setembro de 2026, manhã.*
 
