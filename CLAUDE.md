@@ -2894,3 +2894,97 @@ segue íntegro no manifest para quem usa pelo celular; o que está encerrado é 
 instalação no computador.
 
 *Registrado em 4 de setembro de 2026.*
+
+---
+
+## Checkpoint — 4 de setembro de 2026, tarde
+
+### Ficha do anúncio no card do Radar
+
+Ideia do Yuri, no meio do uso: *"antes de abordar preciso abrir o anúncio para
+ler se tem alguma informação que valha a pena."* O card mostrava título, preço,
+local e foto — nada do que decide a abordagem.
+
+**Onde estava a descrição.** Não estava em lugar nenhum. O upsert do Radar
+grava só `titulo/preco/localizacao/thumbnail`, a página de busca da OLX não
+traz descrição nos cards, e a extensão nunca tocava na página do anúncio (os
+content scripts rodam em `*.vercel.app` e `chat.olx.com.br`, só).
+
+**A descoberta.** Pedi ao Yuri um diagnóstico no console de um anúncio aberto.
+A página **não tem `__NEXT_DATA__`** (a OLX saiu do Next.js, ou mudou de lugar),
+mas tem um `<script type="application/ld+json">` de 2492 chars — schema.org,
+publicado para o Google. Dentro dele:
+
+| campo | valor no anúncio testado |
+|---|---|
+| `description` | texto do vendedor, 319 chars |
+| `mileageFromOdometer` | `130236` — número |
+| `brand` / `model` / `modelDate` | Renault / Expression Flex 1.0 12V 5P / 2018 |
+| `fuelType` / `vehicleTransmission` | Flex / Manual |
+| `name` (Person) | nome público do anunciante |
+| `image` | 18 fotos |
+
+**Por que o ld+json e não o HTML.** As classes da OLX são hashes de
+styled-components (`ad__sc-1nl326o-0`) e mudam a cada deploy deles — os cards
+esvaziariam sem aviso. O ld+json é contrato público: quebrá-lo estragaria o
+próprio SEO da OLX.
+
+### A regra que moldou o desenho
+
+Buscar a ficha dos ~40 anúncios de cada varredura seria **4 páginas → 44**, dez
+vezes o peso na OLX. Isso deixa de ser "as minhas buscas" e vira varredura do
+site, que é a regra que o Yuri me deu. Então:
+
+> **Botão 👁 no card. Uma página por clique dele.** Mesma forma do ABORDAR.
+
+Ganho honesto: **não economiza o carregamento da página, economiza a viagem.**
+Ele já abria o anúncio; agora não sai do Gerador. E o dado fica salvo — lido uma
+vez, é dele para sempre.
+
+### O que foi construído
+
+- `supabase/migration-anuncio-detalhes.sql` — 9 colunas nullable + índice
+  parcial para "ainda não lidos". Rodada pelo Yuri.
+- `lerFichaNaAba()` + `LER_FICHA` no `sw.js`, irmãs de `lerAnuncioNaAba` — a
+  máquina de abrir/ler/fechar aba **já existia**, com o raciocínio de
+  conformidade documentado nela.
+- `CNR_LER_FICHA` / `CNR_FICHA_LIDA` no `cnr-bridge.js`
+- PATCH do `?radar=1` com **lista fechada** de campos: o corpo vem do navegador
+  e não pode escolher que coluna escrever. `status` e `first_seen_at` de fora.
+- Botão + chips + caixa de descrição no `anuncios.html`
+
+**Três decisões que valem lembrar:**
+
+`detalhes_em` separa *"nunca li"* de *"li e o vendedor não escreveu nada"*. Sem
+essa coluna os dois casos ficariam NULL e o 👁 reapareceria para sempre num
+anúncio sem texto — ele clicaria de novo, gastaria outra página, e nada viria.
+
+`km` é `integer`. O `preco` é `text` desde o começo e por isso não ordena nem
+filtra. Não repeti.
+
+O carimbo de leitura é feito **no servidor**, não com o relógio do navegador.
+
+### Conferido
+
+Extrator rodado contra o **ld+json real** do anúncio (`scratchpad/ficha.js`,
+que extrai a função de dentro do `sw.js` — se eu mudar o código e esquecer, o
+teste quebra) mais 4 casos de borda: json quebrado antes do bom, anúncio sem
+descrição, página sem ld+json, ld+json que não é veículo. Os 5 bateram.
+
+Card renderizado nos quatro estados no navegador. Descrição longa **rola dentro
+da caixa** em vez de esticar o card e quebrar o alinhamento do grid.
+
+Peguei um erro meu antes de subir: usei `var(--border)`, que **não existe**
+neste projeto — o token é `--line`. Um `var()` inválido não dá erro, só pinta
+errado. Agora `scratchpad/checa.js` compara todo `var(--x)` do HTML contra os
+tokens realmente definidos, e também confere se as colunas da migration batem
+com o que o PATCH aceita.
+
+### Próximo, ainda não feito
+
+Medir se `brand`/`model`/`modelDate`/`fuelType` **separados** melhoram a busca
+FIPE. Hoje o `fipe-search.js` recebe um título solto e adivinha — foi daí que
+saiu o X6 a R$ 438 mil. É hipótese com boa razão para ser verdadeira, mas é
+hipótese: **medir antes de afirmar.**
+
+*Registrado em 4 de setembro de 2026, tarde.*
