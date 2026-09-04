@@ -208,6 +208,12 @@ async function handleRadar(req, res) {
       localizacao:  l.location    || '',
       thumbnail:    l.thumbnail   || null,
       search_name:  l.search_name || null,
+      // Km vem do próprio card da busca — de graça, sem abrir o anúncio.
+      // A faixa é conferida AQUI e não só na extensão: o corpo chega do
+      // navegador, e a extensão pode ser recarregada, alterada ou ficar
+      // numa versão velha. Um `km: 0` aceito aqui sobrescreveria a
+      // quilometragem boa que já estava salva.
+      km: (Number.isFinite(l.km) && l.km >= 100 && l.km <= 1500000) ? Math.trunc(l.km) : null,
       last_seen_at: now,
     }));
 
@@ -231,48 +237,57 @@ async function handleRadar(req, res) {
     //   - anúncio existente → UPDATE somente das colunas listadas em `columns`
     //                         (status, vehicle_id e first_seen_at são preservados)
     //
-    // Thumbnail — estratégia de dois grupos:
-    //   rowsWithThumb    → inclui thumbnail em columns (grava/atualiza a foto)
-    //   rowsWithoutThumb → omite thumbnail de columns (preserva a foto já salva no banco)
-    // Isso impede que um re-scan sem foto sobrescreva uma foto válida existente.
-    const colsBase  = 'origem,listing_id,url,titulo,preco,localizacao,search_name,last_seen_at';
-    const colsThumb = colsBase + ',thumbnail';
+    // Campos opcionais — o problema e a estratégia:
+    //
+    // Nem todo card da busca entrega tudo. Uma foto pode não ter carregado;
+    // um anúncio pode não declarar km. Se a coluna entrasse em `columns`
+    // mesmo assim, o valor nulo desta varredura APAGARIA o que já estava
+    // salvo — a foto boa de ontem viraria vazio hoje.
+    //
+    // Por isso as linhas são agrupadas pela combinação de campos opcionais
+    // que realmente têm, e cada grupo faz um upsert declarando só as suas
+    // colunas. O que o grupo não declara, o Postgres não toca.
+    //
+    // Era escrito à mão para dois grupos (com/sem thumbnail). Com o km
+    // seriam quatro, e cinco campos dariam 32 — daí a versão genérica.
+    const colsBase   = 'origem,listing_id,url,titulo,preco,localizacao,search_name,last_seen_at';
+    const OPCIONAIS  = ['thumbnail', 'km'];
 
-    const rowsWithThumb    = rows.filter((r) => r.thumbnail);
-    const rowsWithoutThumb = rows.filter((r) => !r.thumbnail);
-
-    if (rowsWithThumb.length > 0) {
-      const r1 = await sb(`anuncios?columns=${colsThumb}&on_conflict=origem,listing_id`, {
-        method:  'POST',
-        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body:    JSON.stringify(rowsWithThumb),
-      });
-      if (!r1.ok) {
-        const err = await r1.text();
-        console.error('[radar] upsert (com thumbnail) falhou:', err);
-        return res.status(500).json({ error: 'Falha ao salvar anúncios.' });
-      }
+    const grupos = new Map();
+    for (const row of rows) {
+      const presentes = OPCIONAIS.filter((c) => row[c] !== null && row[c] !== undefined && row[c] !== '');
+      const chave = presentes.join(',');
+      if (!grupos.has(chave)) grupos.set(chave, []);
+      // Campo ausente sai do corpo também: mandar `km: null` com a coluna
+      // fora de `columns` é inofensivo, mas mandar sem deixa o payload
+      // dizendo a mesma coisa que o `columns`.
+      const limpo = { ...row };
+      for (const c of OPCIONAIS) if (!presentes.includes(c)) delete limpo[c];
+      grupos.get(chave).push(limpo);
     }
 
-    if (rowsWithoutThumb.length > 0) {
-      const r2 = await sb(`anuncios?columns=${colsBase}&on_conflict=origem,listing_id`, {
+    const resumo = {};
+    for (const [chave, lote] of grupos) {
+      if (lote.length === 0) continue;
+      const columns = chave ? `${colsBase},${chave}` : colsBase;
+      const r = await sb(`anuncios?columns=${columns}&on_conflict=origem,listing_id`, {
         method:  'POST',
         headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body:    JSON.stringify(rowsWithoutThumb),
+        body:    JSON.stringify(lote),
       });
-      if (!r2.ok) {
-        const err = await r2.text();
-        console.error('[radar] upsert (sem thumbnail) falhou:', err);
+      if (!r.ok) {
+        const err = await r.text();
+        console.error(`[radar] upsert (opcionais: ${chave || 'nenhum'}) falhou:`, err);
         return res.status(500).json({ error: 'Falha ao salvar anúncios.' });
       }
+      resumo[chave || 'nenhum'] = lote.length;
     }
 
     return res.status(200).json({
       ok: true,
       count: rows.length,
       raw: rowsRaw.length,
-      withThumb: rowsWithThumb.length,
-      withoutThumb: rowsWithoutThumb.length,
+      grupos: resumo,
     });
   }
 
