@@ -373,6 +373,9 @@
         <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius:9px;border:1px solid var(--text);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
       </div>
       <div id="placa-st" style="font-size:.72rem;min-height:1rem;margin-top:.35rem;color:var(--mid)"></div>
+      <!-- Cidade de emplacamento. Vive fora do #placa-st porque aquele é
+           reescrito com textContent no fim da consulta e apagaria isto. -->
+      <div id="placa-emplacamento" style="display:none;font-size:.72rem;margin-top:.3rem;color:var(--mid)"></div>
     </div>
 
     <div class="field" style="margin-bottom:.7rem">
@@ -1059,10 +1062,36 @@ async function buscarPlacaGerador() {
     const fipeEl = document.getElementById('fipe-val');
     if (fipeEl && fipe.valor) fipeEl.value = Number(fipe.valor).toLocaleString('pt-BR');
 
-    // Preenche região com UF/município se vazio
-    const regiaoEl = document.getElementById('regiao');
-    if (regiaoEl && !regiaoEl.value && vei.municipio && vei.uf)
-      regiaoEl.value = vei.municipio + '-' + vei.uf;
+    // ── Emplacamento ≠ onde o carro está ──────────────────────────────
+    // Antes isto preenchia "região" com o município da placa. São coisas
+    // diferentes: o March estava em Garopaba com placa de Canela, e o
+    // anúncio saía mandando os interessados para a cidade errada.
+    //
+    // Pior: "região" é justamente o campo que o Yuri borra de propósito,
+    // para não entregarem a origem do carro. Preencher sozinho tirava
+    // dele a decisão que o campo existe para tomar.
+    //
+    // Agora o dado aparece, e ele decide se serve.
+    const empEl = document.getElementById('placa-emplacamento');
+    if (empEl) {
+      if (vei.municipio && vei.uf) {
+        const local = `${vei.municipio}-${vei.uf}`;
+        empEl.innerHTML =
+          `📄 Emplacado em <strong>${local}</strong> ` +
+          `<button type="button" id="btn-usar-emplac" ` +
+          `style="font-family:inherit;font-size:.68rem;padding:.15rem .45rem;margin-left:.3rem;` +
+          `border:1px solid var(--line);background:none;color:var(--text);` +
+          `border-radius:6px;cursor:pointer">usar como região</button>`;
+        empEl.style.display = '';
+        document.getElementById('btn-usar-emplac').onclick = () => {
+          const r = document.getElementById('regiao');
+          if (r) { r.value = local; salvarEstadoDebounced(); }
+        };
+      } else {
+        empEl.style.display = 'none';
+        empEl.innerHTML = '';
+      }
+    }
 
     // Auto-fill cascata FIPE por nome
     if (fipe.marca) await preencherCascataPlaca(fipe.marca, fipe.modelo, fipe.anoModelo);
@@ -1517,6 +1546,19 @@ function montarTextoAnuncio() {
   }
   if (obsIds.length) { linhas.push(''); obsIds.forEach(id => linhas.push(obsMap[id] || id)); }
   if (obsCustom) { linhas.push(''); linhas.push(obsCustom); }
+
+  // Avaliação e gastos eram lidos no topo desta função e nunca usados: o
+  // texto ia dos opcionais direto para o VALOR. O Yuri preenchia os dois,
+  // salvava no catálogo (onde chegavam certos) e o anúncio saía sem eles.
+  //
+  // O comentário em gerarColetados() dizia que os dois montadores "de fato
+  // diferem — só ele tem a seção *GASTOS:*". Não era decisão, era este bug.
+  //
+  // O VALOR dos gastos (#gastos-valor) fica de fora de propósito: é custo
+  // dele, e no anúncio entregaria a margem.
+  if (avaliacao) { linhas.push(''); linhas.push('*AVALIAÇÃO:*'); linhas.push(avaliacao); }
+  if (gastos)    { linhas.push(''); linhas.push('*GASTOS:*');    linhas.push(gastos); }
+
   linhas.push('');
   if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
   if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
