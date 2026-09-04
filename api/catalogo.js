@@ -33,7 +33,9 @@ const EXT_DOC = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/jpg': 'j
 // Campos aceitos no POST/PATCH (whitelist — ignora o resto)
 const CAMPOS = [
   'marca', 'modelo', 'versao', 'complemento', 'ano', 'ano_int',
-  'km', 'cor', 'combustivel', 'regiao', 'placa', 'valor', 'fipe',
+  // `regiao` é o que sai no anúncio (rotulado "Localização" na tela);
+  // `emplacado_em` é a cidade da placa, uso interno, nunca publicada.
+  'km', 'cor', 'combustivel', 'regiao', 'emplacado_em', 'placa', 'valor', 'fipe',
   'opcionais', 'observacoes', 'anuncio_texto', 'status', 'fotos', 'documentos', 'avaliacao',
   'valor_compra', 'gastos', 'gastos_valor', 'renavam', 'vendedor_nome', 'vendedor_telefone',
 ];

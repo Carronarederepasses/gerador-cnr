@@ -373,9 +373,18 @@
         <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius:9px;border:1px solid var(--text);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
       </div>
       <div id="placa-st" style="font-size:.72rem;min-height:1rem;margin-top:.35rem;color:var(--mid)"></div>
-      <!-- Cidade de emplacamento. Vive fora do #placa-st porque aquele é
-           reescrito com textContent no fim da consulta e apagaria isto. -->
-      <div id="placa-emplacamento" style="display:none;font-size:.72rem;margin-top:.3rem;color:var(--mid)"></div>
+    </div>
+
+    <!-- Onde o carro está EMPLACADO — não é onde ele está.
+         Fato do documento: importa para transferência e procedência, e
+         nunca sai no anúncio. Mesma regra da placa e do RENAVAM. -->
+    <div class="field" style="margin-bottom:.9rem">
+      <label>🔒 Emplacado em <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— uso interno, NÃO aparece no anúncio</span></label>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <input type="text" id="emplacado-em" placeholder="preenchido pela consulta de placa" style="flex:1">
+        <button type="button" id="btn-usar-emplac" onclick="usarEmplacamentoComoLocal()" title="Copia para Localização — só quando o carro está na mesma cidade da placa"
+                style="display:none;font-family:'DM Sans',sans-serif;font-size:.7rem;padding:.5rem .7rem;border-radius:9px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer;white-space:nowrap">↓ usar como localização</button>
+      </div>
     </div>
 
     <div class="field" style="margin-bottom:.7rem">
@@ -428,7 +437,7 @@
           <option>Diesel</option><option>Híbrido</option><option>Elétrico</option><option>GNV</option>
         </select>
       </div>
-      <div class="field"><label>Região</label><input type="text" id="regiao" placeholder="Garopaba-SC"></div>
+      <div class="field"><label>Localização <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— o que sai no anúncio</span></label><input type="text" id="regiao" placeholder="Garopaba-SC"></div>
     </div>
   </div>
 
@@ -499,7 +508,7 @@
       </div>
     </div>
     <div class="g2" style="margin-top:.7rem">
-      <div class="field"><label>Região</label><input type="text" id="colet-regiao" placeholder="Garopaba-SC"></div>
+      <div class="field"><label>Localização <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— o que sai no anúncio</span></label><input type="text" id="colet-regiao" placeholder="Garopaba-SC"></div>
       <div class="field"><label>Valor de venda (R$)</label><input type="text" id="colet-valor" placeholder="88.990,00"></div>
     </div>
     <div class="field" style="margin-top:.7rem">
@@ -1071,26 +1080,16 @@ async function buscarPlacaGerador() {
     // para não entregarem a origem do carro. Preencher sozinho tirava
     // dele a decisão que o campo existe para tomar.
     //
-    // Agora o dado aparece, e ele decide se serve.
-    const empEl = document.getElementById('placa-emplacamento');
-    if (empEl) {
-      if (vei.municipio && vei.uf) {
-        const local = `${vei.municipio}-${vei.uf}`;
-        empEl.innerHTML =
-          `📄 Emplacado em <strong>${local}</strong> ` +
-          `<button type="button" id="btn-usar-emplac" ` +
-          `style="font-family:inherit;font-size:.68rem;padding:.15rem .45rem;margin-left:.3rem;` +
-          `border:1px solid var(--line);background:none;color:var(--text);` +
-          `border-radius:6px;cursor:pointer">usar como região</button>`;
-        empEl.style.display = '';
-        document.getElementById('btn-usar-emplac').onclick = () => {
-          const r = document.getElementById('regiao');
-          if (r) { r.value = local; salvarEstadoDebounced(); }
-        };
-      } else {
-        empEl.style.display = 'none';
-        empEl.innerHTML = '';
-      }
+    // Agora o dado tem campo próprio e a Localização fica com ele.
+    const empEl = document.getElementById('emplacado-em');
+    const btnEmp = document.getElementById('btn-usar-emplac');
+    if (empEl && vei.municipio && vei.uf) {
+      empEl.value = `${vei.municipio}-${vei.uf}`;
+      if (btnEmp) btnEmp.style.display = '';
+      salvarEstadoDebounced();
+    } else if (btnEmp && !(empEl && empEl.value)) {
+      // Consulta sem município: esconde o atalho em vez de oferecer copiar vazio.
+      btnEmp.style.display = 'none';
     }
 
     // Auto-fill cascata FIPE por nome
@@ -1125,6 +1124,18 @@ async function buscarPlacaGerador() {
   } finally {
     btn.disabled = false;
   }
+}
+
+// Copia o emplacamento para a Localização. Existe porque muitas vezes as
+// duas coincidem — mas é um clique dele, nunca automático: quando não
+// coincidem, o anúncio mandaria os interessados para a cidade errada.
+function usarEmplacamentoComoLocal() {
+  const emp = document.getElementById('emplacado-em');
+  const loc = document.getElementById(currentMode === 'coletados' ? 'colet-regiao' : 'regiao');
+  if (!emp || !loc || !emp.value.trim()) return;
+  loc.value = emp.value.trim();
+  salvarEstadoDebounced();
+  toast('Localização preenchida com a cidade da placa.', 'ok');
 }
 
 // FIPE — Netlify Function proxy para API oficial (sem CORS, sem chave)
@@ -1526,7 +1537,7 @@ function montarTextoAnuncio() {
   const det = [!badSel(anoNome)?anoNome:'', combustivel, km, cor?cor.toLowerCase():''].filter(Boolean);
   if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
   if (l1) linhas.push(l1);
-  if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
+  if (regiao) linhas.push(`\n📍 Localização: ${regiao}`);
   const itensOn = onIds.filter(id => id !== 'blindado');
   const extras = linhasExtras();
   if (itensOn.length || onIds.includes('blindado') || extras.length) {
@@ -1841,6 +1852,8 @@ function coletarFichaVeiculo() {
     cor:          txtOrNull(document.getElementById('cor').value),
     combustivel:  txtOrNull(document.getElementById('combustivel').value),
     regiao:       txtOrNull(document.getElementById('regiao').value),
+    // Uso interno, ao lado de placa e renavam — nunca entra no anúncio.
+    emplacado_em: txtOrNull(document.getElementById('emplacado-em')?.value),
     placa:        (txtOrNull(document.getElementById('placa').value) || '').toUpperCase() || null,
     valor:        numFromR(document.getElementById('valor').value),
     fipe:         numFromR(document.getElementById('fipe-val').value),
@@ -2532,7 +2545,7 @@ function gerarColetados() {
   if (det.length) l1 += (veiculo ? ', ' : '') + det.join(', ');
   if (l1) linhas.push(l1);
 
-  if (regiao) linhas.push(`\n📍 Carro na região de ${regiao}`);
+  if (regiao) linhas.push(`\n📍 Localização: ${regiao}`);
 
   const itensOn = onIds.filter(id => id !== 'blindado');
   const extras = linhasExtras();
@@ -2584,7 +2597,7 @@ function gerarColetados() {
 // AUTO-SAVE — preserva o preenchimento se a aba recarregar (comum no celular)
 // ══════════════════════════════════════════════
 const SAVE_KEY = 'cnr_form_v1';
-const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','placa','renavam','valor','fipe-val','combustivel',
+const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','placa','renavam','emplacado-em','valor','fipe-val','combustivel',
   'texto-colado','colet-veiculo','colet-km','colet-cor','colet-ano','colet-regiao','colet-valor','colet-fipe','colet-combustivel',
   'avaliacao','gastos','obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km',
   'valor-compra','vendedor-nome','vendedor-telefone','gastos-valor'];
