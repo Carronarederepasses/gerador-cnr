@@ -93,6 +93,13 @@
   .bs-morto    {background:var(--surface);color:var(--text-mid);border:1px solid var(--line)}
   .card-preco{font-size:1.1rem;font-weight:700}
   .card-meta{font-size:.78rem;color:var(--text-mid);display:flex;flex-wrap:wrap;gap:.2rem .8rem}
+  /* Ficha lida do anúncio. Altura limitada com rolagem própria: descrição
+     de vendedor varia de uma linha a vinte, e um card esticado quebraria
+     o alinhamento do grid inteiro. */
+  .ficha-box{font-size:.8rem;line-height:1.45;color:var(--text);background:var(--surface);
+    border-left:2px solid var(--line);border-radius:0 6px 6px 0;padding:.55rem .7rem;
+    margin:.5rem 0;max-height:9.5rem;overflow-y:auto;white-space:pre-line}
+  .ficha-vazia{font-size:.74rem;color:var(--text-faint);font-style:italic;margin:.5rem 0}
   .card-footer{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:auto;padding-top:.6rem;border-top:1px dashed var(--line)}
 
   /* Chip "HOJE" */
@@ -484,6 +491,14 @@ function cardHTML(a) {
   let btns = '';
   if (a.status !== 'morto') {
     btns += `<button class="btn-acao" onclick="abrirOLX('${esc(a.url)}')">↗ OLX</button>`;
+    // 👁 só aparece enquanto a ficha nunca foi lida. `detalhes_em` é o que
+    // distingue "não li" de "li e o vendedor não escreveu descrição" — sem
+    // ele o botão voltaria para sempre nos anúncios sem texto.
+    if (!a.detalhes_em) {
+      btns += `<button class="btn-acao" id="btn-ficha-${a.id}"
+                 title="Abre o anúncio em segundo plano, lê a descrição e fecha"
+                 onclick="lerFicha('${a.id}','${esc(a.listing_id)}','${esc(a.url)}')">👁 Ficha</button>`;
+    }
   }
   if (a.status === 'novo') {
     // ABORDAR abre a caixa de escrita AQUI, com a mensagem padrão pronta, e
@@ -518,6 +533,25 @@ function cardHTML(a) {
 
   const searchInfo = a.search_name ? `<span>📡 ${esc(a.search_name)}</span>` : '';
 
+  // ── Ficha lida da página do anúncio (botão 👁) ────────────────────
+  // Os chips entram na mesma linha de meta do card: km é o dado que mais
+  // pesa na decisão e até agora não aparecia em lugar nenhum.
+  const fmtKmCard = (n) => Number.isFinite(n) ? n.toLocaleString('pt-BR') + ' km' : null;
+  const fichaChips = [
+    fmtKmCard(a.km) ? `<span>🛣️ ${fmtKmCard(a.km)}</span>` : '',
+    a.combustivel   ? `<span>⛽ ${esc(a.combustivel)}</span>` : '',
+    a.cambio        ? `<span>⚙️ ${esc(a.cambio)}</span>` : '',
+    a.vendedor      ? `<span>👤 ${esc(a.vendedor)}</span>` : '',
+  ].filter(Boolean).join('');
+
+  // Vendedor que não escreveu nada é resultado legítimo, não falha: dizer
+  // isso evita que ele abra a OLX para conferir se o Gerador errou.
+  const fichaSection = a.detalhes_em
+    ? (a.descricao
+        ? `<div class="ficha-box" id="ficha-${a.id}">${esc(a.descricao)}</div>`
+        : `<div class="ficha-vazia">Sem descrição — o vendedor não escreveu nada.</div>`)
+    : '';
+
   // Seção de resposta inline — disponível em 'enviado' e 'respondeu'
   // (ambos são estados onde já existe conversa com o vendedor).
   // Começa colapsada, abre ao clicar ✏️ Responder / 🔥 RESPOSTA NOVA.
@@ -551,6 +585,7 @@ function cardHTML(a) {
       ${a.preco ? `<div class="card-preco">${esc(a.preco)}</div>` : ''}
       <div class="card-meta">
         ${chipHoje ? `<span>${chipHoje}</span>` : ''}
+        ${fichaChips}
         ${a.localizacao ? `<span>📍 ${esc(a.localizacao)}</span>` : ''}
         <span>OLX</span>
         <span>Encontrado ${foundAgo}</span>
@@ -558,6 +593,7 @@ function cardHTML(a) {
         ${searchInfo}
         ${a.vehicle_id ? `<span><a href="/catalogo.html?id=${esc(a.vehicle_id)}" style="color:var(--accent)">Ver no catálogo →</a></span>` : ''}
       </div>
+      ${fichaSection}
       <div class="card-footer">${btns}</div>
       ${replySection}
     </div>
@@ -707,6 +743,71 @@ async function avancar(id, novoStatus) {
     alert('Falha ao atualizar status. Tente novamente.');
     if (btn) btn.disabled = false;
   }
+}
+
+// ── LER FICHA (👁) ───────────────────────────────────────────────
+// Traz descrição e ficha do veículo para o card, para decidir a abordagem
+// sem abrir a OLX. A extensão abre a página em segundo plano, lê o
+// ld+json e fecha a aba: uma página por clique, nunca na varredura.
+async function lerFicha(id, listing_id, url) {
+  const btn = document.getElementById('btn-ficha-' + id);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Lendo…'; }
+
+  const restaurar = (txt) => { if (btn) { btn.disabled = false; btn.textContent = txt || '👁 Ficha'; } };
+
+  // A extensão pode estar ausente, desligada ou com o SW dormindo. Sem
+  // prazo, o botão ficaria em "Lendo…" para sempre e pareceria travado.
+  const ficha = await new Promise((resolve) => {
+    let respondeu = false;
+    const handler = (e) => {
+      if (e.source !== window || e.data?.cnr_type !== 'CNR_FICHA_LIDA') return;
+      if (e.data.listing_id && e.data.listing_id !== listing_id) return; // resposta de outro card
+      respondeu = true;
+      window.removeEventListener('message', handler);
+      resolve(e.data.ok ? e.data.ficha : { _erro: e.data.err || 'falhou' });
+    };
+    window.addEventListener('message', handler);
+    window.postMessage({ cnr_type: 'CNR_LER_FICHA', url, listing_id }, '*');
+    setTimeout(() => {
+      if (respondeu) return;
+      window.removeEventListener('message', handler);
+      resolve({ _erro: 'sem_resposta' });
+    }, 40000);
+  });
+
+  if (!ficha || ficha._erro) {
+    const motivo = {
+      sem_resposta:  'A extensão não respondeu. Ela está instalada e ligada?',
+      url_nao_olx:   'Este anúncio não é da OLX — a leitura só funciona lá.',
+      sem_ld_json:   'A OLX não publicou a ficha nesta página.',
+    }[ficha?._erro] || ('Falhou: ' + (ficha?._erro || 'motivo desconhecido'));
+    mostrarToast('⚠️ ' + motivo);
+    restaurar();
+    return;
+  }
+
+  try {
+    const r = await fetch(`/api/fetch-anuncio?radar=1&id=${encodeURIComponent(id)}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(ficha),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+  } catch (e) {
+    // A ficha foi lida, só não gravou. Mostrar assim mesmo é melhor que
+    // perder a leitura — mas sem `detalhes_em` ela some no próximo refresh,
+    // e é isso que o aviso diz.
+    const alvo = TODOS.find((x) => x.id === id);
+    if (alvo) Object.assign(alvo, ficha, { detalhes_em: new Date().toISOString() });
+    renderGrid();
+    mostrarToast('⚠️ Li a ficha mas não consegui salvar. Ela some se atualizar a página.');
+    return;
+  }
+
+  const alvo = TODOS.find((x) => x.id === id);
+  if (alvo) Object.assign(alvo, ficha, { detalhes_em: new Date().toISOString() });
+  renderGrid();
+  mostrarToast(ficha.descricao ? '👁 Ficha lida.' : '👁 Lido — o vendedor não escreveu descrição.');
 }
 
 // ── ABORDAR ──────────────────────────────────────────────────────

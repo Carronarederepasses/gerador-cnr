@@ -297,6 +297,21 @@ async function handleRadar(req, res) {
     if (body.motivo_morte !== undefined) payload.motivo_morte = body.motivo_morte;
     if (body.vehicle_id   !== undefined) payload.vehicle_id   = body.vehicle_id;
 
+    // Ficha lida da página do anúncio (botão 👁 no card) — ver
+    // supabase/migration-anuncio-detalhes.sql. A lista é fechada de
+    // propósito: o corpo vem do navegador e não pode escolher que coluna
+    // escrever. `status` e `first_seen_at` ficam de fora — a ficha
+    // descreve o veículo, não mexe no fluxo de captação.
+    const CAMPOS_FICHA = ['descricao','km','marca','modelo','ano_modelo','combustivel','cambio','vendedor'];
+    let temFicha = false;
+    for (const campo of CAMPOS_FICHA) {
+      if (body[campo] !== undefined) { payload[campo] = body[campo]; temFicha = true; }
+    }
+    // Carimba a leitura no servidor, não com o relógio do navegador. É o
+    // que distingue "nunca li" de "li e o vendedor não escreveu nada" —
+    // sem isso o 👁 reapareceria para sempre em anúncio sem descrição.
+    if (temFicha) payload.detalhes_em = new Date().toISOString();
+
     if (Object.keys(payload).length === 0) {
       return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
     }
