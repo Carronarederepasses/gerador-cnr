@@ -3020,3 +3020,35 @@ O jeito de descobrir é comparar o texto nos quatro pontos, no mesmo anúncio.
 Não diagnosticar por screenshot.
 
 *Registrado em 4 de setembro de 2026, tarde.*
+
+### Pendência dos emojis: ENCERRADA — não era nossa
+
+O Yuri respondeu de imediato: **os `?` são erro da própria OLX**, que troca por
+`?` os caracteres que o sistema deles não identifica. Conhecido de quem usa a
+plataforma. Não é o `lerFichaNaAba`, não é a gravação, não é o card.
+
+Lição: eu já tinha listado quatro suspeitos técnicos e um plano de comparar o
+texto nos quatro pontos. **Nenhum deles era a resposta, e o Yuri sabia antes de
+qualquer medição.** Perguntar a quem usa a plataforma vem antes de instrumentar
+o código.
+
+### O km deveria aparecer em todos os cards?
+
+O Yuri: *"tinha entendido que iria aparecer em todos os cards."*
+
+Eu tinha explicado o mecanismo — clique por clique, uma página por vez — e ele
+entendeu. O que não bate é a **expectativa sobre o resultado**: km não é
+detalhe de ficha, é dado básico de card, do nível do preço. Para repassador é
+filtro primário. A explicação do mecanismo não muda isso.
+
+Pergunta que ficou aberta desde o começo e nunca foi testada: **a página de
+BUSCA da OLX já traz o km?** O diagnóstico do `__NEXT_DATA__` foi rodado por
+engano numa página de anúncio, não de busca. O `olx-search.js` lê hoje só
+título, preço, localização e thumbnail de `section.olx-adcard` — nunca procurou
+km.
+
+Se o km estiver no card da busca, ele vem **na varredura normal, em todos os
+anúncios, sem clique e sem página extra** — exatamente o que o Yuri esperava. O
+👁 continua valendo para a descrição.
+
+*Registrado em 4 de setembro de 2026, tarde.*
