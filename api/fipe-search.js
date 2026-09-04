@@ -1,4 +1,6 @@
 // Vercel API Route — busca FIPE completa server-side a partir de texto livre
+const { exigirChave } = require('./_auth');
+
 const FIPE_BASE = 'https://parallelum.com.br/fipe/api/v1/carros';
 
 // Cache em memória do processo. A tabela FIPE muda uma vez por mês, e a lista
@@ -131,6 +133,10 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Idem fipe.js — e esta faz dezenas de chamadas por consulta.
+  if (exigirChave(req, res)) return;
+
 
   const { veiculo, ano, combustivel } = req.body || {};
   if (!veiculo || !ano) return res.status(400).json({ error: 'veiculo e ano obrigatórios' });

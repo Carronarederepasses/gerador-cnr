@@ -1,6 +1,8 @@
 // Utilitários gratuitos: CEP (BrasilAPI), preços ML (Mercado Livre), ping Supabase
 // Rota por ?type=cep | ?type=mercado | ?type=ping
 
+const { exigirChave } = require('./_auth');
+
 const ML_CATEGORIA = 'MLB1744'; // Carros e Caminhonetes
 const PRECO_MINIMO = 8000;
 
@@ -56,9 +58,20 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   try {
     const type = req.query.type;
+
+    // O ping fica ABERTO de propósito. Quem o chama é o cron da Vercel
+    // (vercel.json, todo dia às 9h), e cron não manda cabeçalho nosso —
+    // fechar aqui pararia o ping, e o Supabase pausa sozinho depois de ~7
+    // dias parado no plano grátis. O ping lê um id e devolve {ok:true}:
+    // não expõe nada e não gasta nada.
+    if (type === 'ping')    return await handlePing(res);
+
+    // CEP e Mercado Livre são gratuitos, mas proxy aberto é proxy de todo
+    // mundo — e o tráfego sai com o nome do projeto dele.
+    if (exigirChave(req, res)) return;
+
     if (type === 'cep')     return await handleCep(req.query.cep, res);
     if (type === 'mercado') return await handleMercado(req.query.q, res);
-    if (type === 'ping')    return await handlePing(res);
     return res.status(400).json({ error: 'type deve ser cep, mercado ou ping' });
   } catch (err) {
     console.error('utils error:', err.message);

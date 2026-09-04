@@ -1,10 +1,16 @@
 // Vercel API Route — remove fundo via remove.bg
 // Env var necessária: REMOVE_BG_API_KEY
 
+const { exigirChave } = require('./_auth');
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // remove.bg gasta credito por imagem.
+  if (exigirChave(req, res)) return;
+
 
   const apiKey = process.env.REMOVE_BG_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'REMOVE_BG_API_KEY não configurada no Vercel' });

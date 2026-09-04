@@ -1,4 +1,6 @@
 // Vercel API Route — proxy Parallelum FIPE + anos/versões (sem CORS, sem chave)
+const { exigirChave } = require('./_auth');
+
 const FIPE_BASE = 'https://parallelum.com.br/fipe/api/v1/carros';
 
 async function fipeGet(endpoint, retries = 3) {
@@ -32,6 +34,10 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Parallelum e gratis, mas proxy aberto e proxy de todo mundo.
+  if (exigirChave(req, res)) return;
+
 
   // ── Modo anos/versões: ?marca=<codigo>&base=<nome-base> ──────────────────
   if (req.query.marca && req.query.base) {

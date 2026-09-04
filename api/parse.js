@@ -1,6 +1,8 @@
 // Vercel API Route — parse de anúncio via OpenRouter (LLM free tier)
 // Env var necessária: OPENROUTER_API_KEY
 
+const { exigirChave } = require('./_auth');
+
 const MODELS = [
   // Pago barato e confiável (principal) — ~R$ 0,001 por anúncio
   'openai/gpt-4o-mini',
@@ -197,6 +199,10 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // OpenRouter cobra por chamada.
+  if (exigirChave(req, res)) return;
+
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OPENROUTER_API_KEY não configurada' });

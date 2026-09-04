@@ -5,6 +5,8 @@
 // POST /api/consulta?acao=solicitar body{placa}→ solicita relatório completo
 // GET  /api/consulta?acao=verificar&protocolo= → verifica status / retorna PDF URL
 
+const { exigirChave } = require('./_auth');
+
 const CP_EMAIL = process.env.CP_EMAIL;
 const CP_KEY   = process.env.CP_KEY;
 
@@ -20,6 +22,10 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Consultar Placa cobra por consulta. Aberto, qualquer um gastava a fatura do Yuri.
+  if (exigirChave(req, res)) return;
+
 
   if (!CP_EMAIL || !CP_KEY) {
     return res.status(500).json({ error: 'API não configurada (CP_EMAIL / CP_KEY no Vercel).' });
