@@ -649,6 +649,7 @@ function card(v) {
       ${v.placa ? `<button class="placa-busca-btn" onclick="event.stopPropagation();buscarPlaca('${v.id}')">🔍 Buscar</button>` : ''}
       <span class="edit">✏️</span>
     </div>
+    ${v.emplacado_em ? `<div class="renavam-linha">📄 Emplacado em ${esc(v.emplacado_em)}</div>` : ''}
     ${v.renavam ? `<div class="renavam-linha">RENAVAM ${esc(v.renavam)}</div>` : ''}
     <div class="fotos" id="fotos-${v.id}">
       ${thumbs}
