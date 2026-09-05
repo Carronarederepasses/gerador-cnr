@@ -3509,3 +3509,46 @@ lojista de outra cidade. Problema diferente, e não é o da mãe.
 
 *Registrado em 5 de setembro de 2026.*
 
+
+### Fechamento — 5 de setembro de 2026
+
+Dia curto de código e longo de decisão.
+
+**Consertado:** o espelho das vendas no Google Sheets, quebrado por dois dias
+pela tranca que eu subi em 3/set. Chave saiu do código, trava contra
+auto-apagamento, carimbo de data. Nada perdido — a falha caiu num intervalo
+sem vendas.
+
+**Decidido pelo Yuri:** o Gerador vira produto para outros repassadores, com
+consulta veicular embutida. E o desmembramento vale pelo dia a dia dele,
+independente disso.
+
+**Corrigido por ele:** dois registros meus. Ver a seção de correção acima.
+
+### O que eu erraria de novo se não estivesse escrito
+
+Três erros meus hoje, e os três têm a mesma forma — **eu supus em vez de
+perguntar ou conferir**:
+
+1. Fechei a API sem perguntar o que consumia ela fora do repositório.
+2. Deduzi a direção do espelho pelo horário do arquivo, e ele me corrigiu
+   (acabei acertando, mas por sorte de evidência, não por método).
+3. Congelei o desmembramento supondo conflito com multiusuário. Não conferi.
+   Não havia conflito.
+
+A regra, escrita de um jeito que serve para os três: **quando a resposta está
+fora do código, perguntar; quando está dentro, conferir. Não deduzir nenhuma
+das duas.**
+
+### Fila, na ordem que faz sentido
+
+| | |
+|---|---|
+| CNPJ | Destrava o site de consultas **e** a venda do Gerador. Gargalo dos dois |
+| Antes da mãe | Chave própria + coluna `operador`. Pequeno, e é o que falta de verdade |
+| Desmembramento | Liberado. Entender o fluxo de captação dele **antes** de desenhar |
+| RENAVAM | Precisa do diagnóstico rodando junto com uma consulta real |
+| Senha | Levantamento dele, sem cobrança |
+
+*Registrado em 5 de setembro de 2026, fim de tarde.*
+
