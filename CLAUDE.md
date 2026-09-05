@@ -3464,3 +3464,48 @@ Registrado também em memória: `produto-vender-gerador.md`.
 
 *Registrado em 5 de setembro de 2026.*
 
+
+### Correção: dois registros meus de hoje estavam errados
+
+O Yuri perguntou se a mãe usaria a mesma conta, e disse que o desmembramento
+vale **"independente de vender o CNR — antes de qualquer coisa, penso na
+facilidade do meu dia a dia."** As duas coisas expuseram erro meu.
+
+**1. Congelei o desmembramento sem motivo técnico.**
+
+Eu escrevi que ele devia esperar a definição do multiusuário. Errado:
+
+- **Página é tela; multiusuário é dado.** São camadas que não se cruzam.
+  Separar Captação e Parceiros em duas páginas não atrapalha a tenancy —
+  facilita, porque cada tela fica menor.
+- **Adiei melhoria real e presente por futuro hipotético.** A dor do "clica
+  ali, clica aqui" é de 3/set. A venda do sistema é de daqui a meses e
+  incerta.
+
+**Descongelado.** E fica a regra: não adiar melhoria de uso por arquitetura
+futura, a menos que exista conflito técnico real — e **conferir se existe**,
+em vez de supor que existe.
+
+**2. Chamei a mãe de "piloto do produto". Dramatizei.**
+
+Yuri e mãe são **o mesmo negócio**. Ele *quer* ver os carros que ela achou e as
+conversas que ela está tendo. Separar os dados dos dois esconderia dele metade
+da própria operação — seria trabalhar contra o usuário.
+
+**Mesma conta, mesmos dados.** O que falta ali não é multiusuário, é
+**atribuição**:
+
+- **Chave própria para ela.** O `_auth.js` já aceita mais de uma chave válida
+  (a lista `LEGADAS` mais a `CNR_KEY`). Custa minutos, e permite cortar o
+  acesso dela sem derrubar o dele — com chave compartilhada, cortar a dela
+  derruba os dois.
+- **Coluna `operador`.** O card diz "enviado", não diz **por quem**. Com duas
+  pessoas abordando, os dois vão querer saber quem falou com qual vendedor.
+
+Isso é um décimo do trabalho de multiusuário e é o que eles precisam de fato.
+
+Multiusuário de verdade — cada assinante isolado do outro — é para vender ao
+lojista de outra cidade. Problema diferente, e não é o da mãe.
+
+*Registrado em 5 de setembro de 2026.*
+
