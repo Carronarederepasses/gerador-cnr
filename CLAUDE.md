@@ -3335,3 +3335,84 @@ que mais consome a API. A resposta não está no código.
 
 *Registrado em 5 de setembro de 2026.*
 
+
+### Pesquisa: APIs veiculares e o plano do site de consultas
+
+O Yuri quer montar um site de consulta veicular como segunda renda, com o
+que Dekra e Super Visão usam: **leilão, sinistro, débitos, restrições**.
+
+**O achado que organiza tudo: os dados veiculares vêm em três camadas, com
+regras diferentes.**
+
+| Camada | O que é | Regra |
+|---|---|---|
+| 1 — Veículo | marca, modelo, ano, cor, município, FIPE | Barato, **sem CNPJ** |
+| 2 — Situação | débitos, multas, restrições, leilão, sinistro, gravame | **CNPJ + credenciamento** |
+| 3 — Dono | nome, CPF do proprietário | **Não existe comercialmente** |
+
+**Camada 1, preços verificados:** APIBrasil R$ 0,02/consulta, recarga mínima
+R$ 50, sem mensalidade e sem cartão para cadastrar (ele **já tem conta**).
+API Placas (Aetheria) R$ 0,03, mínimo 1.000 = R$ 30, atende "empresas **e
+pessoas físicas**". BrasilAPI não tem consulta por placa — o pedido está
+aberto desde 2020.
+
+**Camada 2 — o bloqueio, com citação.** Página de parceria da API Full:
+*"O parceiro deve possuir empresa com CNPJ ativo, preferencialmente do tipo
+ME, EPP ou LTDA."* AvaliService: *"Entendemos o volume e o caso de uso, e
+liberamos as credenciais."* Infosimples DETRAN-SP pede `login_cpf`,
+`login_senha` e **certificado digital do próprio cliente** — não é comprar
+dado, é automatizar o acesso dele. Banco do Brasil: exclusiva PJ.
+
+**Não é frescura de fornecedor:** o DETRAN credencia a fonte e a LGPD
+responsabiliza quem revende. **Fornecedor que vende essa camada sem
+credenciar é justamente o que ele não quer.**
+
+**Camada 3:** proprietário só com mandado judicial ou B.O. Serve para não
+prometer isso no site e para reconhecer fornecedor picareta.
+
+### A decisão dele e a ordem certa
+
+Ele **não** quer ser revendedor white-label: quer plataforma própria, com
+gateway, construída comigo. Legítimo — e o argumento mais forte é que, sendo
+dele a plataforma, **o fornecedor de dados vira peça trocável.**
+
+Mas construir não escapa do CNPJ: ele é exigido por quem vende o dado, seja
+o Yuri parceiro ou cliente direto.
+
+Ordem combinada, e o motivo de não começar a construir agora:
+**o preço do dado define se o negócio existe.**
+
+1. CNPJ (confirmar com contador se MEI cobre a atividade)
+2. Preços com os fornecedores
+3. Fazer a conta
+4. Só então construir
+
+Fornecedores mapeados: AvaliService, Consultar Placa, Company Conferi (essa
+é focada em quem **emite laudo cautelar** — o ramo da Dekra), AnyCar,
+Autolist, AutoScore, Checktudo, API Full.
+
+### A pergunta que ele fez e que vale mais que a pesquisa
+
+*"Esse white-label é algo que podemos implementar no nosso Gerador, quando
+formos vendê-lo?"*
+
+Sim — e possivelmente é negócio melhor que o site de consultas, porque **o
+Gerador já existe e funciona**, e ele é o especialista do ramo.
+
+**Mas hoje o Gerador é construído para uma pessoa só.** Uma conta, um banco,
+um conjunto de buscas, uma chave. Não há separação entre "dados do Yuri" e
+"dados de outro assinante" porque nunca precisou haver. Multiusuário é a
+mudança arquitetural mais séria que este projeto teria.
+
+**E o primeiro teste disso já está marcado:** a segunda operadora (mãe dele),
+fim de setembro. Aquilo não é só mais uma pessoa abordando — é a primeira vez
+que o sistema atende duas pessoas. O que for decidido ali vira a fundação.
+
+**Isso muda decisões de agora.** O desmembramento do Gerador em Captação e
+Parceiros, por exemplo: se vai ser vendido, o desenho muda.
+
+**Pendente de decisão dele: quer vender o Gerador?** Decidido cedo, muda
+pouco esforço; decidido tarde, muda muito. Ver [[segunda-operadora]].
+
+*Registrado em 5 de setembro de 2026.*
+
