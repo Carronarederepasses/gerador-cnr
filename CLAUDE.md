@@ -3416,3 +3416,51 @@ pouco esforço; decidido tarde, muda muito. Ver [[segunda-operadora]].
 
 *Registrado em 5 de setembro de 2026.*
 
+
+### DECISÃO: o Gerador vira produto
+
+O Yuri decidiu, em 05/set/2026: **vai vender o Gerador para outros
+repassadores**, e o sistema de consulta veicular entra **como serviço dentro
+dele** — não como site separado.
+
+A combinação é mais forte que as duas ideias soltas. Site de consulta avulso
+compete por SEO com empresa grande, vendendo para desconhecido. Dentro do
+Gerador, a consulta vira ferramenta no momento exato em que o assinante avalia
+um carro — mesmo CNPJ, mesmo cliente, sem custo de aquisição.
+
+### O que isso muda agora
+
+**A segunda operadora deixou de ser favor de família e virou o piloto do
+produto.** É em três semanas.
+
+Até aqui eu tratava aquilo como "mais uma pessoa abordando". Não é: é a
+primeira vez que o sistema atende **dois donos diferentes**, e o jeito de
+resolver ali vira o alicerce de tudo.
+
+Duas formas de fazer, e a diferença é o custo do arrependimento:
+
+- **Gambiarra:** compartilha a conta, os dados se misturam, funciona. Quando
+  aparecer o terceiro, não dá para separar o que é de quem — e é reescrever.
+- **Direito:** cada linha sabe de quem é. Uma tarde hoje; migração em produção
+  com assinante pagando, depois.
+
+**Hoje `veiculos`, `vendas`, `compradores`, `anuncios`, `buscas` e `ideias` não
+têm coluna de dono** — nunca precisou ter.
+
+### O que fica em espera por causa disso
+
+**O desmembramento do Gerador em Captação e Parceiros deve esperar.** Se o
+sistema vai ser vendido, o desenho muda: cada assinante com fluxo próprio,
+telas que não assumem um Yuri só. Fazer antes de definir o modelo é construir
+duas vezes.
+
+### O que eu NÃO vou fazer
+
+Não vou começar a reescrever para multiusuário agora. Ele tem negócio para
+tocar e o Gerador funciona. É conversa para ter **antes** de montar o acesso da
+mãe — não depois, e não hoje.
+
+Registrado também em memória: `produto-vender-gerador.md`.
+
+*Registrado em 5 de setembro de 2026.*
+
