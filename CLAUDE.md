@@ -3253,3 +3253,85 @@ e não acende aviso nenhum.
 
 *Registrado em 4 de setembro de 2026, noite.*
 
+
+---
+
+## Checkpoint — 5 de setembro de 2026
+
+### Fechei a porta sem perguntar quem tinha a chave
+
+Chegou um e-mail do Google: o script **VENDAS CRR (ESPELHO)** falhava desde
+3/set com `401 {"error":"Aparelho não liberado.","codigo":"sem_chave"}`.
+
+É uma planilha Google com um Apps Script preso a ela, que roda todo dia às
+06:13, chama `GET /api/vendas` e reescreve a planilha com as vendas do sistema.
+**É o backup do Yuri** — a única cópia das vendas fora do Supabase.
+
+Quando fechei a API em 3/set, eu **pensei** no risco de quebrar algo em uso.
+Está escrito no próprio `_auth.js`:
+
+> *"Chaves antigas continuam valendo. Sem isto, a extensão instalada nas
+> máquinas pararia de captar no instante em que o portão ligasse, e o Yuri
+> descobriria pelo silêncio."*
+
+Protegi **a extensão** — que está no repositório. Nunca perguntei o que existia
+**fora** dele. O script não está no código, não está no git, não aparece nem na
+busca do Drive (script preso a planilha é invisível ali). Eu não tinha como
+ver — mas tinha como **perguntar**, e não perguntei.
+
+E a rede de segurança que eu montei estava furada: `LEGADAS` monta a lista com
+`.filter(Boolean)`, e `VENDAS_KEY` **não está configurada na Vercel**. A lista
+ficava vazia. O script mandava chave (`x-cnr-key`), mas não batia com nada.
+
+**A ironia:** o defeito que aquele comentário dizia estar evitando —
+*"descobriria pelo silêncio"* — foi exatamente o que aconteceu, num lugar que
+eu não olhei.
+
+### O que o Google fez e o sistema não fazia
+
+O único motivo de alguém ter descoberto é que o **Google manda e-mail de resumo
+de falhas**. Sem isso, o backup ficaria parado indefinidamente, com cara de
+completo.
+
+Backup que falha calado é pior que não ter backup: o Yuri contava com ele.
+
+### Consertado
+
+- A chave saiu do código e foi para **Propriedades do Script** (o equivalente
+  no Google às variáveis de ambiente da Vercel), usando a `CNR_KEY` forte
+- **Trava do backup:** o código antigo fazia `clearContents()` **antes** de
+  saber o que escrever. Se a API respondesse 200 com lista vazia — bug, banco
+  fora do ar, filtro errado — o backup inteiro sumia. Agora ele se recusa a
+  apagar quando a resposta vem vazia e a planilha tem dados.
+- **Carimbo de data** numa célula do cabeçalho: `Atualizado em dd/MM/aaaa HH:mm
+  — N vendas`. É o que faltava para a falha não ser silenciosa: agora dá para
+  ver a defasagem abrindo a planilha, sem depender de e-mail.
+
+Verificado: 114 vendas, de 21/02/2024 a **01/09/2026**. A última venda é
+anterior ao dia da falha — **o buraco de dois dias não custou nada**, porque
+nenhuma venda foi fechada nesse intervalo.
+
+### Achado grave, de outra natureza
+
+A chave hardcoded no script era `Carronarede2024@` — e o Yuri confirmou que é a
+**senha dele de tudo da Carro na Rede: e-mail e Instagram**.
+
+O e-mail `carronarederepasses@gmail.com` é a conta de recuperação de Vercel,
+Supabase, OLX e Instagram. Uma senha só protege todas.
+
+Medido antes de alarmar: `get_file_permissions` mostrou a planilha **privada**,
+sem compartilhamento e sem link público. Ninguém de fora viu.
+
+Recomendado, nesta ordem: verificação em duas etapas no Gmail (não exige trocar
+senha, e é a de maior valor), depois senhas distintas. **Ele decidiu levantar
+antes onde usa a senha** — decisão certa, evita travar o próprio acesso. Não
+insistir; ele sabe o estado.
+
+### Registrado em memória
+
+Criado `integracoes-externas.md`: **o repositório não é o sistema inteiro.**
+Antes de mexer em autenticação, chave, header ou endpoint — perguntar ao Yuri o
+que mais consome a API. A resposta não está no código.
+
+*Registrado em 5 de setembro de 2026.*
+
