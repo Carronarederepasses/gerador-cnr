@@ -3174,3 +3174,82 @@ comando recebe o caminho.**
 
 *Registrado em 4 de setembro de 2026, noite.*
 
+
+## Checkpoint — 4 de setembro de 2026, noite
+
+### AVALIAÇÃO e GASTOS sumiam do anúncio — e eu já tinha passado por isso
+
+O Yuri lançou um March, preencheu avaliação e gastos, salvou no catálogo, gerou
+o anúncio, e os dois não estavam no texto.
+
+Em `montarTextoAnuncio()` (aba Captação) os dois campos eram lidos no topo da
+função e **nunca usados**. O texto ia dos opcionais direto para o `*VALOR:*`. O
+catálogo recebia os dois certos — só o WhatsApp saía incompleto.
+
+**A parte que é minha:** na faxina desta manhã eu li o comentário em
+`gerarColetados()` dizendo que os dois montadores *"de fato diferem — só ele tem
+a seção `*GASTOS:*`"*, aceitei como decisão de produto, decidi **não** unificar,
+e ainda registrei aqui que *"eles diferem de verdade"*. **Não era decisão, era
+este bug.** O arquivo estava aberto na minha frente e bastava ver que as
+variáveis não apareciam no corpo da função.
+
+Corrigido acima: aquela linha do checkpoint da manhã está errada.
+
+**A lição:** comentário no código é a intenção de alguém num dia; não é prova de
+que o código faz aquilo. Quando um comentário justifica uma diferença, conferir
+a diferença, não o comentário.
+
+### Emplacamento ≠ localização
+
+A consulta de placa escrevia o município de emplacamento no campo `regiao` — que
+é o que sai no anúncio. Um March emplacado em Canela-RS estava em Garopaba-SC, e
+o anúncio mandava os interessados para a cidade errada.
+
+Pior: `regiao` é justamente o campo que ele **borra de propósito**, para não
+entregarem a origem do carro e atravessarem o negócio. Preencher sozinho tirava
+dele a decisão que o campo existe para tomar.
+
+**Primeiro eu resolvi mal:** mostrei a cidade num aviso solto ao lado da
+consulta — some ao recarregar, não é salvo, não sai em relatório nenhum.
+
+**O desenho do Yuri é melhor:** dois campos com donos claros.
+
+| campo | o que é | onde aparece |
+|---|---|---|
+| `emplacado_em` | fato do documento | **uso interno**, ao lado de placa e RENAVAM |
+| `regiao` | o que ele escolhe mostrar | rotulado **"Localização"** na tela e no texto |
+
+O texto do anúncio passou de `📍 Carro na região de X` para `📍 Localização: X`,
+nos dois montadores. O botão "usar como localização" ficou — as duas cidades
+coincidem com frequência — mas é clique dele, nunca automático.
+
+### Três lugares que engoliriam o campo em silêncio
+
+Achados antes de entregar:
+
+1. **`api/catalogo.js` tem lista fechada de campos.** Sem entrar nela, o
+   `emplacado_em` era descartado no servidor: o campo pareceria salvar e não
+   salvaria.
+2. **`CAMPOS_SIMPLES` do auto-save** — sem isso o campo sumia ao recarregar.
+3. **A coluna no Supabase.**
+
+E um quarto que **eu não achei — o Yuri achou**: nenhuma tela mostrava o campo.
+Ele cadastrou um Polo, foi procurar o dado e não encontrou em lugar nenhum. Eu
+tinha construído entrada, transporte e armazenamento, e nenhuma saída.
+
+> **Campo novo não está pronto quando salva. Está pronto quando aparece.**
+
+Corrigido: aparece no card do catálogo, logo abaixo da placa, junto do RENAVAM.
+
+### O aviso "aparelho não liberado" que assustou
+
+Apareceu no painel de navegador que **eu** abri para conferir o deploy — aquele
+navegador nunca teve a chave. Era a tranca funcionando: 401 da API → overlay do
+`auth.js`. O Chrome dele seguia liberado.
+
+Custou um susto por nada. **Para conferir deploy, ler o código-fonte da página
+servida em vez de abrir a tela** — o `fetch` do HTML não dispara chamada de API
+e não acende aviso nenhum.
+
+*Registrado em 4 de setembro de 2026, noite.*
+
