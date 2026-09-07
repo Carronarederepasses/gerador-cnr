@@ -3626,3 +3626,40 @@ o preço do Gerador.
 
 *Registrado em 7 de setembro de 2026.*
 
+
+### `grill-me` instalada — e a pegadinha que quase passou
+
+Instalada a pedido do Yuri. Auditorias: Gen **Safe**, Socket **0 alertas**,
+Snyk **Low Risk**.
+
+**A pegadinha:** o conteúdo inteiro de `grill-me` é uma linha —
+*"Call the Skill tool with 'grilling'"*. Ela é **só um atalho**. O trabalho
+está em `grilling`, que é outra skill e **não vem junto**.
+
+Se eu tivesse parado no "instalação concluída", teria entregue uma placa
+apontando para rua vazia — exatamente o problema do `agent-browser`, que eu
+tinha acabado de diagnosticar na mesma conversa. Instalada também.
+
+### O que `grilling` manda fazer, e por que importa aqui
+
+- Entrevistar em **rodadas**, perguntando toda a "fronteira" de uma vez,
+  numerada, **com a resposta recomendada em cada pergunta**. O Yuri concorda
+  ou corrige, em vez de ter que inventar resposta — que é como ele já
+  trabalha.
+- **"Descobrir *fatos* é trabalho seu, nunca do usuário."** Não perguntar o
+  que dá para ir olhar. As **decisões** são dele; os **fatos** são meus.
+- **"Não aja até o usuário confirmar que houve entendimento comum."**
+
+As duas últimas linhas são o remédio direto para os três tropeços da semana,
+que foram todos a mesma coisa: construí antes de entender. E para o de ontem
+especificamente — eu perguntei se a planilha lia ou escrevia, quando devia ter
+ido ler o script.
+
+**Usar no desmembramento do Gerador**, que é o próximo da fila e é justamente
+uma tarefa onde o fluxo de trabalho dele decide o desenho.
+
+`grill-me` tem `disable-model-invocation: true` — **só o Yuri pode disparar**,
+com `/grill-me`. Eu não invoco sozinho.
+
+*Registrado em 7 de setembro de 2026.*
+
