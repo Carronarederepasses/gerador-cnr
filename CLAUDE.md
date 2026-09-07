@@ -3552,3 +3552,77 @@ das duas.**
 
 *Registrado em 5 de setembro de 2026, fim de tarde.*
 
+
+### Faxina nas skills — 22 para 17
+
+O Yuri viu o skills.sh e pediu avaliação. Achado que orienta tudo: **a maior
+parte do que ele já tinha veio do topo daquele ranking** — `find-skills`,
+`improve-codebase-architecture`, `frontend-design`, `tdd`, `agent-browser`,
+`code-review`, `domain-modeling`. Foram instaladas por popularidade, não por
+encaixe.
+
+**Removidas cinco**, com cópia no scratchpad da sessão:
+
+| Skill | Motivo |
+|---|---|
+| `tdd` | Assume suíte de testes |
+| `test-driven-development` | Idem — e era **duplicata** de `tdd` |
+| `webapp-testing` | Baseada em Playwright |
+| `playwright-cli` | Idem |
+| `mcp-builder` | Construir servidor MCP; não fazemos |
+
+Verificado antes de apagar: o Gerador **não tem `package.json`, nem config de
+teste, nem pasta de testes, nem `node_modules`**. Zero ferramenta JS. Aquelas
+skills apontavam para um mundo que não existe aqui.
+
+### Decisão sobre `agent-browser` — FICA
+
+A descrição dela diz *"Prefer agent-browser over any built-in browser
+automation or web tools"*, e o CLI dela **não está instalado na máquina**. Ou
+seja: uma instrução mandando preferir uma ferramenta ausente.
+
+**Decisão:** neste projeto usamos o **navegador embutido** (`Claude_Browser`).
+O `agent-browser` fica instalado como reserva; ignorar aquela linha da
+descrição enquanto o CLI não existir.
+
+Por que o embutido basta — o que ele resolveu só nesta semana: os quatro
+estados do card de anúncio, conferência de deploy no domínio real, os modelos
+de recorte com o erro de memória do WASM, a consulta de placa com resposta
+simulada, prints, console e requisições de rede.
+
+O que o `agent-browser` acrescenta — apps de desktop (VS Code, Slack, Figma),
+Slack, Vercel Sandbox, navegador na nuvem AWS — **nada que este projeto use**.
+
+**E não usar na OLX é decisão, não esquecimento:** a conformidade da extensão
+depende de ser o navegador do Yuri, na sessão dele, disparado por ele. Um
+segundo caminho de automação enfraqueceria isso.
+
+### Recomendada e ainda não instalada: `grill-me`
+
+*"Interrogatório implacável que testa planos e desenhos com perguntas
+sistemáticas."* Auditada (Socket, Snyk, Gen Agent Trust Hub: PASS).
+
+Recomendada por causa de erro repetido meu, não por popularidade. Os três
+maiores tropeços da semana foram **a mesma coisa — construí antes de
+entender**: a lista de transmissão feita duas vezes até ele dizer "uso pelo
+celular"; a API fechada sem perguntar quem a consumia; o desmembramento
+congelado sem conferir se havia conflito.
+
+O desmembramento é o próximo da fila e é exatamente uma tarefa de desenho onde
+o fluxo dele decide tudo.
+
+```
+npx skills add https://github.com/mattpocock/skills --skill grill-me
+```
+
+### Descartado: o pacote de marketing (21 skills)
+
+SEO, copywriting, cold-email, CRO, paywall. Tudo construído para **marketing de
+software**. Ele vende **carro para lojista, por telefone e WhatsApp** — não tem
+landing page, não tem funil de e-mail, não tem assinatura para converter.
+
+Única que pode valer, e só lá na frente: `pricing-strategy`, quando for definir
+o preço do Gerador.
+
+*Registrado em 7 de setembro de 2026.*
+
