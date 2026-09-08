@@ -214,9 +214,16 @@ async function loadMarcas() {
     });
     setSt('');
   } catch(e) {
-    const sel = document.getElementById('sel-marca');
-    if (sel) sel.innerHTML = '<option value="">Indisponível — recarregue a página</option>';
+    // Antes só consertava 'sel-marca', que é da Captação. Na tela de
+    // Parceiros o campo ficava em "Carregando..." para sempre, e o aviso ia
+    // para um elemento que não existe ali — falha muda, que é o pior tipo.
+    ['sel-marca', 'csel-marca'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (sel) sel.innerHTML = '<option value="">Indisponível — recarregue a página</option>';
+    });
     setSt('API FIPE indisponível — preencha a FIPE manualmente abaixo', 'err');
+    const cSt = document.getElementById('cfipe-st');
+    if (cSt) { cSt.textContent = 'API FIPE indisponível — preencha a FIPE manualmente.'; cSt.className = 'fipe-st err'; }
   }
 }
 
@@ -598,10 +605,24 @@ function coletarFichaVeiculo() {
   };
   const txtOrNull = v => { const t = (v || '').trim(); return t || null; };
 
-  const mNome     = getSelTxt('sel-marca');
-  const versaoTxt = getSelTxt('sel-versao');
-  const modBase   = getSelTxt('sel-modelo');
-  const anoTxt    = getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
+  // Cada tela guarda o carro em campos próprios. Antes esta função lia só os
+  // da Captação: no modo Parceiros ela devolvia tudo vazio e o "Salvar no
+  // catálogo" respondia "preencha marca e modelo" mesmo com a tela cheia.
+  // Na tela separada os campos nem existem, e aí quebrava de vez.
+  const PARC = (typeof currentMode !== 'undefined' && currentMode === 'coletados');
+  const val = id => document.getElementById(id)?.value ?? '';
+
+  // No Parceiros o veículo vem de um campo de texto só ("Jeep Renegade
+  // Longitude"), não de marca/modelo separados. A primeira palavra é a marca
+  // e o resto é o modelo — é o mesmo corte que o anúncio já faz.
+  const veicParc = val('colet-veiculo').trim();
+  const partes   = veicParc.split(/\s+/);
+
+  const mNome     = PARC ? (partes[0] || '')           : getSelTxt('sel-marca');
+  const modBase   = PARC ? partes.slice(1).join(' ')   : getSelTxt('sel-modelo');
+  const versaoTxt = PARC ? ''                          : getSelTxt('sel-versao');
+  const anoTxt    = PARC ? val('colet-ano').trim()
+                         : getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
 
   // Opcionais (rótulos legíveis) + extras (pneus, chave, etc.)
   const opcionais = getAllOnIds().map(id => id === 'blindado' ? 'Blindado' : getLblById(id));
@@ -610,25 +631,25 @@ function coletarFichaVeiculo() {
   // Observações: selecionadas + personalizada
   const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
   const obs = getOnIds('#obs-grid').map(id => (obsMap[id] || id).replace(/^[^\s]+\s/, ''));
-  const obsCustom = document.getElementById('obs-custom').value.trim();
+  const obsCustom = (document.getElementById('obs-custom')?.value || '').trim();
   if (obsCustom) obs.push(obsCustom);
 
   return {
     marca:        badSel(mNome) ? null : mNome,
     modelo:       badSel(modBase) ? null : modBase,
     versao:       badSel(versaoTxt) ? null : versaoTxt,
-    complemento:  txtOrNull(document.getElementById('complemento').value),
+    complemento:  txtOrNull(val('complemento')),
     ano:          badSel(anoTxt) ? null : anoTxt,
     ano_int:      parseInt((anoTxt.match(/\d{4}/) || [])[0], 10) || null,
-    km:           parseInt(document.getElementById('km').value.replace(/\D/g, ''), 10) || null,
-    cor:          txtOrNull(document.getElementById('cor').value),
-    combustivel:  txtOrNull(document.getElementById('combustivel').value),
-    regiao:       txtOrNull(document.getElementById('regiao').value),
+    km:           parseInt(val(PARC ? 'colet-km'          : 'km').replace(/\D/g, ''), 10) || null,
+    cor:          txtOrNull(val(PARC ? 'colet-cor'         : 'cor')),
+    combustivel:  txtOrNull(val(PARC ? 'colet-combustivel' : 'combustivel')),
+    regiao:       txtOrNull(val(PARC ? 'colet-regiao'      : 'regiao')),
     // Uso interno, ao lado de placa e renavam — nunca entra no anúncio.
     emplacado_em: txtOrNull(document.getElementById('emplacado-em')?.value),
-    placa:        (txtOrNull(document.getElementById('placa').value) || '').toUpperCase() || null,
-    valor:        numFromR(document.getElementById('valor').value),
-    fipe:         numFromR(document.getElementById('fipe-val').value),
+    placa:        (txtOrNull(val('placa')) || '').toUpperCase() || null,
+    valor:        numFromR(val(PARC ? 'colet-valor' : 'valor')),
+    fipe:         numFromR(val(PARC ? 'colet-fipe'  : 'fipe-val')),
     valor_compra:      numFromR(document.getElementById('valor-compra')?.value),
     gastos_valor:      numFromR(document.getElementById('gastos-valor')?.value),
     vendedor_nome:     txtOrNull(document.getElementById('vendedor-nome')?.value),
@@ -636,11 +657,11 @@ function coletarFichaVeiculo() {
     opcionais,
     observacoes:  obs.length ? obs.join('; ') : null,
     ...(txtOrNull(document.getElementById('renavam')?.value) ? { renavam: txtOrNull(document.getElementById('renavam').value) } : {}),
-    gastos:       txtOrNull(document.getElementById('gastos').value),
-    ...(txtOrNull(document.getElementById('avaliacao').value)
-        ? { avaliacao: { inspecao: txtOrNull(document.getElementById('avaliacao').value) } }
+    gastos:       txtOrNull(val('gastos')),
+    ...(txtOrNull(val('avaliacao'))
+        ? { avaliacao: { inspecao: txtOrNull(val('avaliacao')) } }
         : {}),
-    anuncio_texto: document.getElementById('btn-wa').dataset.texto || montarTextoAnuncio(),
+    anuncio_texto: document.getElementById('btn-wa')?.dataset.texto || montarTextoAnuncio(),
     status:       'disponivel',
   };
 }
