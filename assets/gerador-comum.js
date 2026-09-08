@@ -687,6 +687,19 @@ function calcMargem() {
   el.style.color = margem >= 0 ? '#4caf50' : '#e55';
 }
 
+// Qual veículo do catálogo esta tela está editando. Duas variáveis por
+// motivo histórico: `_catalogoId` é a do fluxo do anúncio, `catalogoId` a das
+// abas Fotos e Checklist. `salvarNoCatalogo` sincroniza as duas.
+//
+// Elas moram AQUI desde 08/set/2026. Quando este arquivo foi recortado do
+// index.html, as declarações ficaram para trás — fora das faixas recortadas —
+// e o código comum passou a usar duas variáveis que não existiam. Como a
+// leitura acontece dentro de um try, não quebrava a tela: virava um alerta
+// dizendo "Não consegui salvar: _catalogoId is not defined", que não quer
+// dizer nada para quem está com o carro na mão.
+let _catalogoId = null;
+let catalogoId  = null;
+
 async function salvarNoCatalogo(btnEl) {
   const btn = btnEl || document.getElementById('btn-salvar-catalogo');
   const ficha = coletarFichaVeiculo();
