@@ -469,7 +469,10 @@ function atualizarDesempenho() {
 
 // ── Contadores dos filtros ────────────────────────────────────────
 function atualizarContadores() {
-  const todos = TODOS.length;
+  // Conta o mesmo que o filtro mostra. Contador dizendo 136 e a tela
+  // desenhando 129 é o tipo de divergência que faz ele desconfiar dos dois
+  // números — e com razão.
+  const todos = TODOS.filter((a) => a.status !== 'morto').length;
   document.getElementById('cnt-todos').textContent   = todos ? ` ${todos}` : '';
   ['novo','enviado','respondeu','autorizado','morto'].forEach((s) => {
     const n = TODOS.filter((a) => a.status === s).length;
@@ -613,7 +616,18 @@ function renderGrid() {
   pararAutoThread();   // os cards vão ser recriados — o timer apontaria para DOM morto
 
   const grid = document.getElementById('grid');
-  let lista = filtro === 'todos'    ? TODOS
+  // "Todos" quer dizer "o que ainda pede ação" — ignorado sai da frente.
+  // Mesma regra que as Negociações adotaram em 02/set: a lista de trabalho
+  // mostra o que ainda tem próximo passo, e o que foi encerrado vive na sua
+  // própria aba.
+  //
+  // Sai da lista, NÃO do banco. Duas razões, as duas medidas:
+  //   1. O painel de desempenho conta os motivos em "Por que morreram" —
+  //      apagar cega justamente a parte que ensina.
+  //   2. O upsert do Radar preserva o `status` de quem já existe. É o `morto`
+  //      que segura o anúncio fora do caminho: apagado, ele volta como NOVO
+  //      na varredura seguinte, de hora em hora, para sempre.
+  let lista = filtro === 'todos'    ? TODOS.filter((a) => a.status !== 'morto')
             : filtro === 'fila-dia' ? TODOS.filter((a) => a.status === 'novo' && isRecente(a))
             : TODOS.filter((a) => a.status === filtro);
 
