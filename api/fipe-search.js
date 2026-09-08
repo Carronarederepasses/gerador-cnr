@@ -227,6 +227,11 @@ module.exports = async (req, res) => {
     }
 
     if (candidatos.length === 0) {
+      // Sem log, este caminho respondia 200 e não escrevia nada: os registros da
+      // Vercel mostravam a chamada acontecendo e nenhuma linha explicando.
+      // Foi o que atrasou o HB20S de 07/set.
+      console.log(`fipe-search: "${veiculo}" nenhum modelo pontuou — ` +
+        `marca detectada: ${melhorMarca ? `${melhorMarca.nome} (score ${melhorScore})` : 'nenhuma'}`);
       return res.status(200).json({ found: false, reason: 'modelo não identificado' });
     }
 
@@ -399,6 +404,12 @@ module.exports = async (req, res) => {
       const perto = anosReais[0];
       const distancia = perto ? Math.abs(perto.n - anoInt) : Infinity;
       if (distancia > 2) {
+        // Os anos disponíveis vão no log porque são eles que dizem se o
+        // candidato do topo era o carro errado (o Gol de 1998) ou se a FIPE
+        // realmente não tem aquele ano.
+        console.log(`fipe-search: "${veiculo}" ano ${anoLimpo} longe demais — ` +
+          `topo "${c.modelo.nome}" (score ${c.score}) tem [${anosReais.slice(0, 6).map(a => a.n).join(', ')}]` +
+          `${anosReais.length > 6 ? ` +${anosReais.length - 6}` : ''}, distância ${distancia}`);
         return res.status(200).json({
           found: false,
           reason: `só encontrei ${escolhidoNome(c)} para ${perto ? perto.n : '—'}, e você pediu ${anoLimpo}`,
@@ -408,7 +419,11 @@ module.exports = async (req, res) => {
       escolhido = c; anoObj = perto?.obj || null; anoFallback = true;
     }
 
-    if (!anoObj) return res.status(200).json({ found: false, reason: 'sem anos disponíveis' });
+    if (!anoObj) {
+      console.log(`fipe-search: "${veiculo}" escolheu "${escolhido?.modelo?.nome || '—'}" ` +
+        `mas ficou sem ano (ano pedido: ${anoLimpo || 'nenhum'})`);
+      return res.status(200).json({ found: false, reason: 'sem anos disponíveis' });
+    }
 
     // ── 4. VALOR FIPE ─────────────────────────────────────────────────────────
     // Se a escolha por preço já buscou este valor, reaproveita.
