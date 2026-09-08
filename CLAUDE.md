@@ -3664,6 +3664,95 @@ com `/grill-me`. Eu não invoco sozinho.
 *Registrado em 7 de setembro de 2026.*
 
 
+## Checkpoint — 7 de setembro de 2026: o desmembramento do Gerador
+
+Primeira vez usando o método da `grilling` (entrevista em rodadas, cada
+pergunta com resposta recomendada). Quatro rodadas, quinze perguntas.
+
+### O que ELE decidiu — não supor de novo
+
+| | |
+|---|---|
+| **Duas páginas**, não uma tela reorganizada | `captacao.html` e `parceiros.html` |
+| **Parceiros é a tela do dia a dia** | "tenho mais carros de parceiros do que captação própria" |
+| **Abas da Captação ficam como estão** | "não preciso pular nada… pode deixar do jeito que está" |
+| **O formulário da Captação não muda** | "tudo que tem ali, preciso preencher" |
+| **Preview nas duas telas** | Na Captação, só ocupa espaço quando tem texto |
+| **📸 Foto só no Parceiros** | |
+| **As duas juntas no grupo Captar** | Para ele tanto faz; escolhi não mudar o lugar que o dedo já conhece |
+| **`index.html` passa a abrir o Painel** | O favorito dele continua funcionando |
+| **Rascunhos separados** | Ele larga uma captação quando aparece carro de parceiro |
+
+### O que a entrevista corrigiu em mim
+
+**Q1 — eu entendi errado o que o atrasa.** Ele falou em "preencher
+formulários para alimentar a IA" e eu presumi que era o formulário do
+Gerador. Fui medir: no Parceiros a IA já preenche **16 dos 20 campos**
+sozinha, e ainda marca os opcionais. Não era ali. Era um questionário sobre
+compradores que ele acha que já foi removido.
+
+**Q7 — não há gordura para cortar.** "Tudo que tem ali, preciso preencher."
+
+**Q8 — não existe passo a passo fixo.** Carro captado vem de indicação, de
+loja parceira, da OLX. Nada de assistente que assume uma origem.
+
+**Q9 — ele me corrigiu e estava certo.** Eu disse que a IA não preenchia
+pneus. Preenche, desde a semana passada: `processarIA` chama
+`aplicarPneus(data.pneus)`. Meu grep procurava `fill|getElementById|value =`
+e essa linha não tem nenhum dos três.
+
+### Como foi construído
+
+Recorte de linha do `index.html`, nada redigitado. `assets/gerador-comum.js`
+(cascata FIPE, opcionais, helpers, catálogo, auto-save, select com busca) e
+`assets/gerador.css`. **O `index.html` não foi tocado** — segue no ar.
+
+Cada tela declara `const currentMode` antes de carregar o comum, e fornece
+`setMode` (no-op) e `montarTextoAnuncio`. O código compartilhado já sabia
+distinguir os modos, então funciona sem alteração.
+
+**Por que arquivo comum e não cópia:** os dois montadores de anúncio eram
+cópias e divergiram em silêncio até a AVALIAÇÃO e os GASTOS sumirem do texto,
+em 05/set.
+
+**Prova de fidelidade:** mesmas entradas nas duas telas produzem texto
+**idêntico, caractere por caractere**.
+
+### Erros meus que os testes pegaram
+
+- O recorte comia o `<div class="fsec">` que ficava entre o comentário e o
+  bloco removido, deixando o `</div>` órfão
+- Peguei linhas demais em dois recortes, engolindo o fecho do `.app`
+- **`#modo-coletados` nasce com `display:none`.** O teste funcional passou
+  (chamei `gerar()` direto) mas a tela abria nos Opcionais e a área de colar
+  o anúncio ficava invisível. **Só a captura de tela pegou** — testar por
+  dentro não substitui olhar.
+- O botão flutuante "Gerar" não aparecia no celular: o `style="display:none"`
+  na tag vencia a regra de CSS, e quem destravava era o `_atualizarBtnFloat`,
+  que não existe mais. Numa página de 3.276px isso é grave.
+- `setSt()` escrevia em `#fipe-st`, que só existe na Captação, e
+  `loadMarcas()` passa por lá: a tela quebrava na inicialização.
+
+### Achado colateral: bug antigo no catálogo
+
+`coletarFichaVeiculo` lia **só os campos da Captação**. No `index.html` esses
+campos existem mas ficam vazios no modo Parceiros — então **salvar no catálogo
+a partir de Parceiros nunca funcionou**: respondia "preencha marca e modelo"
+com a tela cheia. Corrigido: agora lê os campos da tela em que está.
+
+### Pendente
+
+- `captacao.html`
+- Trocar a barra lateral e ligar o redirecionamento — **só quando ele aprovar**
+- Tirar o atalho temporário 🧪
+- `#cnr-marca-topo` é fixo e transparente: o conteúdo passa por trás e aparece
+  através. Acontece em **todas** as telas, é meu, de 03/set. Mexe no
+  `sidebar.js`, então espera autorização.
+
+*Registrado em 8 de setembro de 2026.*
+
+---
+
 ## Checkpoint — 7/8 de setembro de 2026, noite
 
 ### A FIPE do HB20S: causa raiz achada, e a ideia foi dele
