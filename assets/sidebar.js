@@ -15,12 +15,14 @@
     { href: '/radar.html',       emoji: '🎯', label: 'Radar' },
     { href: '/anuncios.html',    emoji: '📡', label: 'Anúncios' },
     { href: '/conversas.html',   emoji: '💬', label: 'Conversas' },
-    { href: '/index.html',       emoji: '📝', label: 'Gerador' },
-    // TEMPORÁRIO — atalho para o Yuri testar a tela nova de Parceiros no
-    // celular, onde o app instalado não tem barra de endereço para digitar
-    // o link. Sai daqui quando o desmembramento for aprovado e o 'Gerador'
-    // acima virar as duas telas definitivas.
-    { href: '/parceiros.html',   emoji: '🧪', label: 'Parceiros (teste)' },
+    // O 'Gerador' era uma tela só com duas abas por dentro. Virou duas telas
+    // em 08/set — decisão do Yuri na entrevista de 07/set, pelo dia a dia
+    // dele: "tenho mais carros de parceiros do que captação própria", e larga
+    // uma captação no meio quando aparece carro de parceiro. Com telas
+    // separadas, cada uma guarda o próprio rascunho.
+    // Parceiros vem primeiro por ser a mais usada.
+    { href: '/parceiros.html',   emoji: '🚗', label: 'Parceiros' },
+    { href: '/captacao.html',    emoji: '📝', label: 'Captação' },
 
     { grupo: 'Vender' },
     { href: '/catalogo.html',    emoji: '📂', label: 'Catálogo' },

@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Captação — Carro na Rede Repasses</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="/assets/auth.js"></script>
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/tokens.css">
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<link rel="stylesheet" href="/assets/gerador.css">
+</head>
+<body>
+
+<div id="cnr-toast"></div>
+
+<!-- BOTÃO GERAR FLUTUANTE (mobile) -->
+<div id="btn-gerar-float">
+  <button onclick="gerar()">▶ Gerar Anúncio</button>
+</div>
+
+<!-- AVISO DADOS DO CARRO ANTERIOR -->
+<div id="aviso-rascunho" style="display:none;background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent);padding:.7rem 1.5rem;font-size:.8rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
+  <span style="color:var(--accent);font-weight:500">⚠️ Tem dados do carro anterior salvos. Limpar para iniciar novo anúncio?</span>
+  <div style="display:flex;gap:.5rem">
+    <button onclick="limparRascunho()" style="font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;background:var(--accent);color:var(--surface);border:none;padding:.4rem .9rem;cursor:pointer;font-weight:600">Limpar e começar novo</button>
+    <button onclick="document.getElementById('aviso-rascunho').style.display='none'" style="font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent);padding:.4rem .9rem;cursor:pointer">Manter dados</button>
+  </div>
+</div>
+
+<!-- AVISO DE NEGOCIAÇÕES PENDENTES -->
+<div id="neg-aviso" style="display:none;background:color-mix(in srgb,#f59e0b 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,#f59e0b 35%,transparent);padding:.65rem 2rem;font-size:.76rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
+  <span id="neg-aviso-txt" style="color:#f59e0b"></span>
+  <a href="/negociacoes.html" style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#f59e0b;text-decoration:none;border:1px solid color-mix(in srgb,#f59e0b 45%,transparent);padding:.3rem .7rem;white-space:nowrap">Ver negociações →</a>
+</div>
+
+<div class="app">
+
+<!-- ══ FORM ══ -->
+<div class="form-side">
+  <!-- ── TABS CAPTAÇÃO ── -->
+  <div class="cap-tabs show" id="cap-tabs">
+    <button class="cap-tab on" id="cap-t0" onclick="trocarAba(0)">Anúncio</button>
+    <button class="cap-tab" id="cap-t1" onclick="trocarAba(1)">Fotos</button>
+    <button class="cap-tab" id="cap-t2" onclick="trocarAba(2)">Checklist</button>
+    <span class="cap-autosave" id="cap-autosave"></span>
+  </div>
+  <!-- ── CAPTAÇÃO ── -->
+  <div id="modo-captacao">
+
+  <!-- VEÍCULO -->
+  <div class="fsec">
+    <div class="fsec-title">Veículo — dados da FIPE</div>
+
+    <!-- Placa + busca APiBrasil -->
+    <div class="field" style="margin-bottom:.9rem">
+      <label>🔒 Placa <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— uso interno, NÃO aparece no anúncio</span></label>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <input type="text" id="placa" placeholder="ABC1D23" style="text-transform:uppercase;flex:1" maxlength="8" oninput="this.value=this.value.toUpperCase()">
+        <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius:9px;border:1px solid var(--text);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+      </div>
+      <div id="placa-st" style="font-size:.72rem;min-height:1rem;margin-top:.35rem;color:var(--mid)"></div>
+    </div>
+
+    <!-- Onde o carro está EMPLACADO — não é onde ele está.
+         Fato do documento: importa para transferência e procedência, e
+         nunca sai no anúncio. Mesma regra da placa e do RENAVAM. -->
+    <div class="field" style="margin-bottom:.9rem">
+      <label>🔒 Emplacado em <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— uso interno, NÃO aparece no anúncio</span></label>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <input type="text" id="emplacado-em" placeholder="preenchido pela consulta de placa" style="flex:1">
+        <button type="button" id="btn-usar-emplac" onclick="usarEmplacamentoComoLocal()" title="Copia para Localização — só quando o carro está na mesma cidade da placa"
+                style="display:none;font-family:'DM Sans',sans-serif;font-size:.7rem;padding:.5rem .7rem;border-radius:9px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer;white-space:nowrap">↓ usar como localização</button>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:.7rem">
+      <label>RENAVAM <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— preenchido automaticamente pela consulta de placa</span></label>
+      <input type="text" id="renavam" placeholder="00000000000" maxlength="11" inputmode="numeric"
+             oninput="this.value=this.value.replace(/\D/g,'').slice(0,11)">
+    </div>
+
+    <div class="g2" style="margin-bottom:.7rem">
+      <div class="field">
+        <label>Marca</label>
+        <select id="sel-marca" onchange="onMarca()"><option value="">Carregando...</option></select>
+      </div>
+      <div class="field">
+        <label>Modelo</label>
+        <select id="sel-modelo" disabled onchange="onModelo()"><option value="">— selecione a marca</option></select>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-bottom:.7rem">
+      <div class="field">
+        <label>Ano</label>
+        <select id="sel-ano" disabled onchange="onAno()"><option value="">— selecione o modelo</option></select>
+      </div>
+      <div class="field">
+        <label>Versão</label>
+        <select id="sel-versao" disabled onchange="onVersao()"><option value="">— selecione o ano</option></select>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:.4rem">
+      <label>Complemento (opcional)</label>
+      <input type="text" id="complemento" placeholder="ex: pacote premium, acessórios...">
+    </div>
+
+    <div class="fipe-st" id="fipe-st"></div>
+    <div class="fipe-st" id="ml-st" style="cursor:pointer"></div>
+  </div>
+
+  <!-- DETALHES -->
+  <div class="fsec">
+    <div class="fsec-title">Detalhes</div>
+    <div class="g4">
+      <div class="field"><label>KM</label><input type="text" id="km" placeholder="5.000 km"></div>
+      <div class="field"><label>Cor</label><input type="text" id="cor" placeholder="Prata"></div>
+      <div class="field"><label>Combustível</label>
+        <select id="combustivel">
+          <option value="">—</option>
+          <option>Flex</option><option>Gasolina</option><option>Álcool</option>
+          <option>Diesel</option><option>Híbrido</option><option>Elétrico</option><option>GNV</option>
+        </select>
+      </div>
+      <div class="field"><label>Localização <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— o que sai no anúncio</span></label><input type="text" id="regiao" placeholder="Garopaba-SC"></div>
+    </div>
+  </div>
+
+  </div><!-- /modo-captacao -->
+  <!-- Blocos compartilhados por Captação e Coletados (escondidos no modo Foto) -->
+  <div id="blocos-anuncio">
+
+  <!-- OPCIONAIS POR CATEGORIA -->
+  <div class="fsec">
+    <div class="fsec-title fsec-toggle" onclick="toggleOpcionais()">
+      <span>Opcionais</span>
+      <span class="opc-count" id="opc-count"></span>
+      <span class="fsec-chevron" id="opc-chevron">▸</span>
+    </div>
+    <div id="opc-collapse" style="display:none">
+      <div class="fsec-hint">Padrão já marcado. Desmarque o que NÃO tem. Marque o que TEM nos diferenciais.</div>
+      <div id="opcionais-wrap"></div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTAÇÃO & HISTÓRICO (sempre visível) -->
+  <div class="fsec">
+    <div class="fsec-title">Documentação &amp; Histórico</div>
+    <div id="opc-docs"></div>
+  </div>
+
+  <!-- PNEUS -->
+  <div class="fsec">
+    <div class="fsec-title">Pneus</div>
+    <div class="fsec-hint">Se forem mistos, use a 2ª linha (ex: 2 novos + 2 meia-vida).</div>
+    <div class="g2">
+      <div class="field">
+        <label>Quantidade</label>
+        <select id="pneus-qtd-1">
+          <option value="4">4 pneus</option>
+          <option value="3">3 pneus</option>
+          <option value="2">2 pneus</option>
+          <option value="1">1 pneu</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="pneus-estado-1">
+          <option value="">Não informar</option>
+          <option value="novos">Novos</option>
+          <option value="bons">Bons</option>
+          <option value="meia-vida">Meia-vida</option>
+          <option value="fracos">A trocar (fracos)</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2" style="margin-top:.6rem">
+      <div class="field">
+        <label>+ Quantidade (se misto)</label>
+        <select id="pneus-qtd-2">
+          <option value="2">2 pneus</option>
+          <option value="1">1 pneu</option>
+          <option value="3">3 pneus</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>+ Estado (se misto)</label>
+        <select id="pneus-estado-2">
+          <option value="">—</option>
+          <option value="novos">Novos</option>
+          <option value="bons">Bons</option>
+          <option value="meia-vida">Meia-vida</option>
+          <option value="fracos">A trocar (fracos)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTOS E ITENS -->
+  <div class="fsec">
+    <div class="fsec-title">Documentos e itens</div>
+    <div class="g2">
+      <div class="field">
+        <label>Chave reserva</label>
+        <select id="chave-reserva">
+          <option value="">Não informar</option>
+          <option value="tem">Tem</option>
+          <option value="nao-tem">Não tem</option>
+          <option value="confirmar">A confirmar</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Manual do veículo</label>
+        <select id="manual-veiculo">
+          <option value="">Não informar</option>
+          <option value="tem">Tem</option>
+          <option value="nao-tem">Não tem</option>
+          <option value="confirmar">A confirmar</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-top:.7rem">
+      <label>Revisões registradas até (km) — opcional</label>
+      <input type="text" id="revisoes-km" placeholder="ex: 40.000">
+    </div>
+  </div>
+
+  <!-- BLINDAGEM -->
+  <div class="blind-wrap" id="blind-wrap">
+    <div class="fsec-title" style="border:none;padding:0;margin-bottom:.8rem">Detalhes da Blindagem</div>
+    <div class="field"><label>Marca da blindagem</label><input type="text" id="blind-marca" placeholder="ex: Hevox, Inbrap, Blindex..."></div>
+    <div class="field"><label>Nível de proteção</label><input type="text" id="blind-nivel" placeholder="ex: IIIA, Nível III-A..."></div>
+    <div class="field"><label>Tipo de vidro</label><input type="text" id="blind-vidro" placeholder="ex: vidros originais blindados..."></div>
+  </div>
+
+  <!-- AVALIAÇÃO / GASTOS / OBSERVAÇÃO LIVRE -->
+  <div class="fsec">
+    <div class="g2" id="campo-vendedor" style="margin-bottom:.6rem">
+      <div class="field"><label>Nome do vendedor</label><input type="text" id="vendedor-nome" placeholder="ex: João Silva"></div>
+      <div class="field"><label>Telefone do vendedor</label><input type="text" id="vendedor-telefone" placeholder="ex: (48) 9 9999-9999"></div>
+    </div>
+
+    <div class="field" id="campo-avaliacao">
+      <label>Avaliação <span style="color:var(--light)">(carro de captação)</span></label>
+      <textarea id="avaliacao" rows="4" placeholder="ex: Carro selado frente e traseira; pneus bons, bom de câmbio, motor e suspensão; riscos superficiais que saem no polimento." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+
+    <div class="field" style="margin-top:.5rem">
+      <label>Gastos — descrição</label>
+      <textarea id="gastos" rows="3" placeholder="ex: Pintar para-choque dianteiro; higienização e preparação de loja." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+    <div class="field" id="campo-gastos-valor" style="margin-top:.4rem">
+      <label>Gastos (R$) <span style="color:var(--light)">↳ estimativa para cálculo de margem</span></label>
+      <input type="text" id="gastos-valor" placeholder="ex: 2.500,00" oninput="calcMargem()">
+    </div>
+
+    <div class="field" style="margin-top:.5rem">
+      <label>Observações rápidas</label>
+      <div id="obs-grid" class="tog-grid"></div>
+    </div>
+
+    <div class="field" style="margin-top:.5rem">
+      <label>Observação livre</label>
+      <textarea id="obs-custom" rows="3" placeholder="ex: *IPVA 2026 ABERTO 2% (R$ 3.810,00)*  •  *TETO-SOLAR*  •  Aceita troca" style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+  </div>
+
+  <!-- VALORES (Captação tem campos próprios; no Coletados é escondido pois há colet-valor/colet-fipe) -->
+  <div class="fsec" id="bloco-valores">
+    <div class="fsec-title">Valores</div>
+    <div class="g2">
+      <div class="field"><label>Valor de venda (R$)</label><input type="text" id="valor" placeholder="88.990,00" oninput="calcMargem()"></div>
+      <div class="field"><label>FIPE (R$) — preenchida auto</label><input type="text" id="fipe-val" placeholder="—"></div>
+    </div>
+    <div class="g2" id="bloco-captacao-valores" style="margin-top:.5rem">
+      <div class="field"><label>Valor de compra (R$) <span style="color:var(--light)">↳ pago ao vendedor</span></label><input type="text" id="valor-compra" placeholder="85.000,00" oninput="calcMargem()"></div>
+      <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end">
+        <label>Margem estimada</label>
+        <div id="margem-display" style="padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;font-size:.84rem;color:var(--light);min-height:2.4rem;display:flex;align-items:center">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btns-form" style="grid-template-columns:1fr 1fr">
+    <button class="btn-gen btn-sec" onclick="gerar()">▶ Gerar Anúncio</button>
+    <button id="btn-salvar-catalogo" class="btn-gen" onclick="salvarNoCatalogo(this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.35rem"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Salvar no catálogo
+    </button>
+  </div>
+
+  <!-- PAINEL PÓS-SALVAMENTO -->
+  <div id="pos-save-panel" style="display:none;margin-top:.8rem;padding:.9rem 1rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;text-align:center">
+    <div style="font-size:.88rem;font-weight:600;color:#4caf50;margin-bottom:.7rem">✓ Veículo salvo no catálogo</div>
+    <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+      <a id="link-ver-catalogo" href="#" target="_blank" class="btn-gen" style="font-size:.75rem;padding:.45rem .9rem;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem">🚗 Ver no catálogo</a>
+      <button class="btn-gen btn-sec" onclick="iniciarNovaCaptacao()" style="font-size:.75rem;padding:.45rem .9rem">➕ Captar outro</button>
+    </div>
+  </div>
+
+  </div><!-- /blocos-anuncio -->
+  <!-- ── ABA FOTOS ── -->
+  <div id="cap-aba-1" style="display:none">
+    <div class="fsec-title" style="margin-bottom:.8rem">Fotos do veículo</div>
+    <div id="cap-foto-grid" class="cap-foto-grid"></div>
+    <div class="cap-foto-st" id="cap-foto-st"></div>
+    <button class="btn-gen" onclick="document.getElementById('cap-foto-input').click()" style="margin-top:.6rem;font-size:.74rem">+ Adicionar fotos</button>
+  </div>
+
+  <!-- ── ABA CHECKLIST ── -->
+  <div id="cap-aba-2" style="display:none">
+    <div class="cap-av-nota-row">
+      <label>Nota geral</label>
+      <select id="cap-av-nota">
+        <option value="">— selecione</option>
+        <option value="acima">Acima da média</option>
+        <option value="media">Na média</option>
+        <option value="abaixo">Abaixo da média</option>
+      </select>
+    </div>
+    <div id="cap-av-secoes"></div>
+    <div class="field" style="margin-top:1rem">
+      <label>Observações internas</label>
+      <textarea id="cap-av-obs" rows="3" placeholder="ex: revisão feita, procedência conhecida..." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+    <button class="cap-av-save-btn" onclick="salvarChecklist()">▶ Salvar Checklist</button>
+  </div>
+
+  <input type="file" id="cap-foto-input" accept="image/*" multiple style="display:none" onchange="onCapFotos(this)">
+  <input type="file" id="cap-avaria-input" accept="image/*" style="display:none">
+
+  <!-- Limpar dados: ficava entre a barra de modos e a barra de abas — no
+       caminho exato da mão de quem só queria trocar de aba. Uma ação que
+       apaga o carro inteiro, no ponto de maior tráfego da tela. Desceu para o
+       fim da coluna e perdeu a moldura de botão. Continua a um clique de quem
+       procura, e limparEstado() segue pedindo confirmação. -->
+  <div style="padding:2.2rem 0 .5rem;text-align:center">
+    <button onclick="limparEstado()"
+            style="background:none;border:none;color:var(--mid);padding:.5rem .8rem;
+                   font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.06em;
+                   cursor:pointer;text-decoration:underline;text-underline-offset:.25em;
+                   text-decoration-color:var(--border)">🗑️ Limpar dados e começar outro anúncio</button>
+  </div>
+
+</div>
+
+<!-- ══ PREVIEW ══ -->
+<div class="preview-side">
+  <div class="prev-header">
+    <div class="prev-title">Preview do Anúncio</div>
+  </div>
+  <div class="wa-wrap">
+    <div class="empty" id="empty"><div class="empty-ico">💬</div><div class="empty-txt">Preencha e clique em Gerar</div></div>
+    <div id="wa-preview" style="display:none">
+      <div class="wa-bubble">
+        <div class="wa-txt" id="wa-txt" contenteditable="true" spellcheck="false" oninput="onPreviewEdit()"></div>
+        <div class="wa-time" id="wa-time"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="share-row" id="share-row">
+    <div class="share-label">Compartilhar</div>
+    <div class="share-btns">
+      <a class="btn-wa" id="btn-wa" href="#" target="_blank" onclick="agendarLimpeza()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        WhatsApp
+      </a>
+      <button class="btn-icon" id="btn-copy" onclick="copiar()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copiar
+      </button>
+      <button class="btn-icon" id="btn-share" onclick="compartilharNativo()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Compartilhar
+      </button>
+      <!-- Chamava autoSalvarParceiros() SEM argumento: `dados` chegava
+           undefined e a requisição ia sem corpo. Só não aparecia porque o
+           registro já existia (o Gerar Anúncio criava antes), então virava um
+           PATCH vazio — sem efeito e sem erro. Agora usa salvarNoCatalogo,
+           que confere marca/modelo, cria ou atualiza, e avisa se falhar. -->
+      <button class="btn-icon" id="btn-catalogo" onclick="salvarNoCatalogo(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+        Salvar no catálogo
+      </button>
+    </div>
+    <div class="share-link"><a href="/catalogo.html">📂 Abrir catálogo de oportunidades</a></div>
+  </div>
+</div>
+</div>
+
+<script>
+// Esta tela é o modo "captacao" do Gerador antigo. O código comum já sabia
+// distinguir os dois modos, então declarar isto aqui faz tudo funcionar sem
+// precisar editar aquele arquivo.
+const currentMode = 'captacao';
+
+// O comum chama esta; aqui não há o que alternar — uma tela, um modo.
+function setMode() {}
+
+// O setMode do Gerador antigo também carimbava isto, e o CSS usa:
+// body[data-mode='coletados'] esconde os botões de catálogo. Sem o carimbo,
+// o Parceiros passou a mostrar um botão que lá era escondido de propósito.
+document.body.dataset.mode = currentMode;
+</script>
+<script src="/assets/gerador-comum.js"></script>
+<script>
+
+// ═══════════════════════════════════════════════════════════════
+// CAPTAÇÃO — específico desta tela
+// Recortado do index.html em 08/set/2026, verbatim.
+// ═══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════
+// ── Auto-fill cascata FIPE a partir da busca por placa ───────────────────────
+function normalizar(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim(); }
+
+function melhorMatch(opcoes, texto) {
+  const alvo = normalizar(texto);
+  let melhor = null, melhorScore = 0;
+  for (const op of opcoes) {
+    const t = normalizar(op.text);
+    if (t === alvo) return op; // exato
+    // conta palavras em comum
+    const wordsAlvo = alvo.split(' ');
+    const wordsOp   = t.split(' ');
+    const comuns    = wordsAlvo.filter(w => w.length > 1 && wordsOp.includes(w)).length;
+    if (comuns > melhorScore) { melhorScore = comuns; melhor = op; }
+  }
+  return melhorScore > 0 ? melhor : null;
+}
+
+function aguardarOpcoes(sel, ms = 4000) {
+  return new Promise(resolve => {
+    const check = () => {
+      const ops = Array.from(sel.options).filter(o => o.value && o.value !== '');
+      if (ops.length > 0) return resolve(ops);
+    };
+    check();
+    const obs = new MutationObserver(() => { check(); });
+    obs.observe(sel, { childList: true });
+    setTimeout(() => { obs.disconnect(); resolve([]); }, ms);
+  });
+}
+
+function esperar(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
+  const selMarca  = document.getElementById('sel-marca');
+  const selModelo = document.getElementById('sel-modelo');
+  const selAno    = document.getElementById('sel-ano');
+  const selVersao = document.getElementById('sel-versao');
+  if (!selMarca) return;
+
+  // 1. Marca
+  const opcMarcas = await aguardarOpcoes(selMarca);
+  const opMarca   = melhorMatch(opcMarcas, marcaNome);
+  if (!opMarca) return;
+  selMarca.value = opMarca.value;
+  if (_ssSync['sel-marca']) _ssSync['sel-marca']();
+  selMarca.dispatchEvent(new Event('change'));
+  await esperar(300);
+
+  if (!modeloNome) return;
+
+  // 2. Modelo — aguarda os modelos carregarem após a troca de marca
+  await aguardarOpcoes(selModelo);
+  await esperar(200);
+  const opcModelos = Array.from(selModelo.options).filter(o => o.value);
+  const opModelo   = melhorMatch(opcModelos, modeloNome);
+  if (!opModelo) return;
+  selModelo.value = opModelo.value;
+  if (_ssSync['sel-modelo']) _ssSync['sel-modelo']();
+  selModelo.dispatchEvent(new Event('change'));
+  await esperar(300);
+
+  if (!anoModelo) return;
+
+  // 3. Ano
+  await aguardarOpcoes(selAno);
+  await esperar(200);
+  const opcAnos = Array.from(selAno.options).filter(o => o.value);
+  const opAno   = opcAnos.find(o => String(o.text).startsWith(String(anoModelo)));
+  if (!opAno) return;
+  selAno.value = opAno.value;
+  selAno.dispatchEvent(new Event('change'));
+  await esperar(300);
+
+  // 4. Versão — tenta casar; se não achar, pega a primeira
+  await aguardarOpcoes(selVersao);
+  await esperar(200);
+  const opcVersoes = Array.from(selVersao.options).filter(o => o.value);
+  if (opcVersoes.length > 0) {
+    const opVersao = melhorMatch(opcVersoes, modeloNome) || opcVersoes[0];
+    selVersao.value = opVersao.value;
+    selVersao.dispatchEvent(new Event('change'));
+  }
+}
+
+// ── Busca pela placa (APiBrasil) ─────────────────────────────────────────────
+async function buscarPlacaGerador() {
+  const placa = (document.getElementById('placa').value || '').trim().toUpperCase();
+  const st    = document.getElementById('placa-st');
+  const btn   = document.getElementById('btn-buscar-placa');
+  if (!placa) { st.textContent = 'Digite a placa antes de buscar.'; return; }
+
+  st.style.color = 'var(--yellow)';
+  st.textContent = '⏳ Consultando...';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch('/api/placa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ placa }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erro na consulta');
+
+    const inner = data.data || {};
+    const fipe  = (inner.data || []).find(f => f.principal) || (inner.data || [])[0] || {};
+    const vei   = inner.veiculo || {};
+    if (vei.renavam) {
+      const renavEl = document.getElementById('renavam');
+      if (renavEl) renavEl.value = vei.renavam; // APiBrasil → campo RENAVAM (não limpa se vazio)
+    }
+
+    // Preenche cor
+    const corEl = document.getElementById('cor');
+    if (corEl && vei.cor) corEl.value = vei.cor.charAt(0).toUpperCase() + vei.cor.slice(1).toLowerCase();
+
+    // Preenche valor FIPE
+    const fipeEl = document.getElementById('fipe-val');
+    if (fipeEl && fipe.valor) fipeEl.value = Number(fipe.valor).toLocaleString('pt-BR');
+
+    // ── Emplacamento ≠ onde o carro está ──────────────────────────────
+    // Antes isto preenchia "região" com o município da placa. São coisas
+    // diferentes: o March estava em Garopaba com placa de Canela, e o
+    // anúncio saía mandando os interessados para a cidade errada.
+    //
+    // Pior: "região" é justamente o campo que o Yuri borra de propósito,
+    // para não entregarem a origem do carro. Preencher sozinho tirava
+    // dele a decisão que o campo existe para tomar.
+    //
+    // Agora o dado tem campo próprio e a Localização fica com ele.
+    const empEl = document.getElementById('emplacado-em');
+    const btnEmp = document.getElementById('btn-usar-emplac');
+    if (empEl && vei.municipio && vei.uf) {
+      empEl.value = `${vei.municipio}-${vei.uf}`;
+      if (btnEmp) btnEmp.style.display = '';
+      salvarEstadoDebounced();
+    } else if (btnEmp && !(empEl && empEl.value)) {
+      // Consulta sem município: esconde o atalho em vez de oferecer copiar vazio.
+      btnEmp.style.display = 'none';
+    }
+
+    // Auto-fill cascata FIPE por nome
+    if (fipe.marca) await preencherCascataPlaca(fipe.marca, fipe.modelo, fipe.anoModelo);
+
+    // Re-força FIPE da API após cascata terminar de calcular
+    if (fipe.valor) setTimeout(() => {
+      const val = Number(fipe.valor).toLocaleString('pt-BR');
+      const el = document.getElementById('fipe-val');
+      if (el) el.value = val;
+      const stEl = document.getElementById('fipe-st');
+      if (stEl) { stEl.textContent = `✓ FIPE ${fipe.mesReferencia || ''}: R$ ${val}`; stEl.className = 'fipe-st ok'; }
+    }, 2500);
+
+    const partes = [fipe.marca, fipe.modelo, fipe.anoModelo].filter(Boolean);
+    const resumo = partes.length ? partes.join(' • ') : 'Dados obtidos';
+    const fipeStr = fipe.valor ? ' — FIPE R$ ' + Number(fipe.valor).toLocaleString('pt-BR') : '';
+
+    // Contador de créditos APiBrasil (sessão)
+    const usado = (parseInt(sessionStorage.getItem('cnr_placa_count') || '0')) + 1;
+    sessionStorage.setItem('cnr_placa_count', usado);
+    if (fipe.marca) {
+      st.style.color = 'var(--green)';
+      st.textContent = '✓ ' + resumo + fipeStr + ` (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
+    } else {
+      st.style.color = 'var(--yellow)';
+      st.textContent = `⚠️ FIPE não identificada para esta placa. Confira/preencha Marca e Modelo manualmente antes de gerar o anúncio. (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
+    }
+  } catch (e) {
+    st.style.color = 'var(--red)';
+    st.textContent = '✗ ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Copia o emplacamento para a Localização. Existe porque muitas vezes as
+// duas coincidem — mas é um clique dele, nunca automático: quando não
+// coincidem, o anúncio mandaria os interessados para a cidade errada.
+function usarEmplacamentoComoLocal() {
+  const emp = document.getElementById('emplacado-em');
+  const loc = document.getElementById(currentMode === 'coletados' ? 'colet-regiao' : 'regiao');
+  if (!emp || !loc || !emp.value.trim()) return;
+  loc.value = emp.value.trim();
+  salvarEstadoDebounced();
+  toast('Localização preenchida com a cidade da placa.', 'ok');
+}
+
+function montarTextoAnuncio() {
+  const mNome     = getSelTxt('sel-marca');
+  const versaoTxt = getSelTxt('sel-versao');
+  const modNome   = !badSel(versaoTxt) ? versaoTxt : getSelTxt('sel-modelo');
+  const anoNome   = getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
+  const compl     = document.getElementById('complemento').value.trim();
+  const kmRaw     = document.getElementById('km').value.trim();
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
+  const cor       = document.getElementById('cor').value.trim();
+  const regiao    = document.getElementById('regiao').value.trim();
+  const valor     = document.getElementById('valor').value.trim();
+  const fipeDigit = document.getElementById('fipe-val').value.trim();
+  const avaliacao   = document.getElementById('avaliacao').value.trim();
+  const gastos      = document.getElementById('gastos').value.trim();
+  const obsCustom   = document.getElementById('obs-custom').value.trim();
+  const combustivel = document.getElementById('combustivel').value.trim();
+  const onIds  = getAllOnIds();
+  const obsIds = getOnIds('#obs-grid');
+  const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
+
+  let linhas = [];
+  // A FIPE não é consistente na caixa: manda "VIRTUS 1.6 MSI" e "ASTON MARTIN"
+  // ao lado de "Corolla" e "Audi". Sem isto, o anúncio de alguns carros saía
+  // gritando enquanto o de outros saía normal.
+  const partes = [
+    !badSel(mNome)   ? toTitleCase(mNome)   : '',
+    !badSel(modNome) ? toTitleCase(modNome) : '',
+    compl,
+  ].filter(Boolean);
+  const nomeVeic = partes.join(' ');
+  let l1 = '';
+  if (nomeVeic) l1 += `*${nomeVeic}*`;
+  const det = [!badSel(anoNome)?anoNome:'', combustivel, km, cor?cor.toLowerCase():''].filter(Boolean);
+  if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
+  if (l1) linhas.push(l1);
+  if (regiao) linhas.push(`\n📍 Localização: ${regiao}`);
+  const itensOn = onIds.filter(id => id !== 'blindado');
+  const extras = linhasExtras();
+  if (itensOn.length || onIds.includes('blindado') || extras.length) {
+    linhas.push('');
+    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
+    extras.forEach(l => linhas.push(l));
+    if (onIds.includes('blindado')) {
+      const bM = document.getElementById('blind-marca').value.trim();
+      const bN = document.getElementById('blind-nivel').value.trim();
+      const bV = document.getElementById('blind-vidro').value.trim();
+      let bl = '🛡️ Blindado';
+      if (bM) bl += ` — ${bM}`;
+      if (bN) bl += `, ${bN}`;
+      if (bV) bl += ` (${bV})`;
+      linhas.push(bl);
+    }
+  }
+  if (obsIds.length) { linhas.push(''); obsIds.forEach(id => linhas.push(obsMap[id] || id)); }
+  if (obsCustom) { linhas.push(''); linhas.push(obsCustom); }
+
+  // Avaliação e gastos eram lidos no topo desta função e nunca usados: o
+  // texto ia dos opcionais direto para o VALOR. O Yuri preenchia os dois,
+  // salvava no catálogo (onde chegavam certos) e o anúncio saía sem eles.
+  //
+  // O comentário em gerarColetados() dizia que os dois montadores "de fato
+  // diferem — só ele tem a seção *GASTOS:*". Não era decisão, era este bug.
+  //
+  // O VALOR dos gastos (#gastos-valor) fica de fora de propósito: é custo
+  // dele, e no anúncio entregaria a margem.
+  if (avaliacao) { linhas.push(''); linhas.push('*AVALIAÇÃO:*'); linhas.push(avaliacao); }
+  if (gastos)    { linhas.push(''); linhas.push('*GASTOS:*');    linhas.push(gastos); }
+
+  linhas.push('');
+  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
+  if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
+  linhas.push('');
+  linhas.push('https://instagram.com/carronarederepasses');
+  return _normalizarAnuncio(linhas);
+}
+
+// ══════════════════════════════════════════════
+// GERAR
+// ══════════════════════════════════════════════
+function gerar() {
+  if (currentMode === 'coletados') { gerarColetados(); return; }
+  const mNome     = getSelTxt('sel-marca');
+  // Usa a versão completa (FIPE); se não escolhida, cai no modelo-base
+  const versaoTxt = getSelTxt('sel-versao');
+  const modNome   = !badSel(versaoTxt) ? versaoTxt : getSelTxt('sel-modelo');
+  // Remove o sufixo "— Diesel/Gasolina" (só serve pra desambiguar a cascata);
+  // quem representa o combustível no texto é o campo Combustível abaixo.
+  const anoNome   = getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
+  const compl     = document.getElementById('complemento').value.trim();
+  const kmRaw     = document.getElementById('km').value.trim();
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
+  const cor       = document.getElementById('cor').value.trim();
+  const regiao    = document.getElementById('regiao').value.trim();
+  const valor     = document.getElementById('valor').value.trim();
+  const fipeDigit = document.getElementById('fipe-val').value.trim();
+  const avaliacao   = document.getElementById('avaliacao').value.trim();
+  const gastos      = document.getElementById('gastos').value.trim();
+  const obsCustom   = document.getElementById('obs-custom').value.trim();
+  const combustivel = document.getElementById('combustivel').value.trim();
+
+  // O texto do anuncio e montado num lugar so. Antes esta funcao repetia,
+  // linha por linha, a mesma composicao de montarTextoAnuncio() — duas
+  // copias que podiam divergir sem ninguem notar, ja que so uma delas
+  // aparecia no preview.
+  const texto = montarTextoAnuncio();
+
+  // Render preview
+  renderPreview(texto);
+  mostrarShare(texto);
+
+  // Gerar o texto do anúncio NÃO cria mais veículo no catálogo.
+  //
+  // Decisão do Yuri em 03/set/2026, com o motivo que faltava do lado dele:
+  // "carros captados de parceiros não são estoque meu; só vão para o
+  // relatório de vendas caso eu venda, caso contrário é lixo mesmo".
+  // O mesmo vale para um anúncio gerado só para mandar no WhatsApp.
+  //
+  // Como estava, todo clique em Gerar Anúncio criava um carro DISPONIVEL —
+  // contando em KPI, em dias parados e no Motor de Match. Foi assim que um
+  // Corolla apareceu no catálogo "do nada" (registro de 02/set 19:50,
+  // provavelmente criado nos meus próprios testes).
+  //
+  // O veículo passa a nascer só por ato dele: "Salvar no catálogo", anexar
+  // foto, ou salvar o checklist — os três já criam sob demanda e avisam
+  // quando falta marca/modelo.
+}
+
+// ══════════════════════════════════════════════
+// CAPTAÇÃO TABS — Anúncio / Fotos / Checklist
+// ══════════════════════════════════════════════
+// `catalogoId` é declarado no gerador-comum.js.
+let capAbaAtual  = 0;
+
+
+const AVAL_LOCAL = [
+  { id:'documentacao', titulo:'Documentação', itens:[
+    { id:'situacao', nome:'Situação', opts:['OK','Pendência'] },
+  ]},
+  { id:'estrutura', titulo:'Estrutura / Chassi', itens:[
+    { id:'geral', nome:'Estrutura geral', opts:['Íntegra','Avariada'] },
+  ]},
+  { id:'pintura', titulo:'Lataria e Pintura', opts:['Original','Repintura','Avariada'], fotoQuando:'Avariada', itens:[
+    {id:'capo',nome:'Capô'},{id:'teto',nome:'Teto'},{id:'porta_malas',nome:'Porta-malas'},
+    {id:'porta_diant_dir',nome:'Porta diant. direita'},{id:'porta_tras_dir',nome:'Porta tras. direita'},
+    {id:'porta_diant_esq',nome:'Porta diant. esquerda'},{id:'porta_tras_esq',nome:'Porta tras. esquerda'},
+    {id:'paralama_diant_dir',nome:'Paralama diant. direito'},{id:'paralama_diant_esq',nome:'Paralama diant. esquerdo'},
+    {id:'lateral_tras_dir',nome:'Lateral tras. direita'},{id:'lateral_tras_esq',nome:'Lateral tras. esquerda'},
+    {id:'parachoque_diant',nome:'Parachoque dianteiro'},{id:'parachoque_tras',nome:'Parachoque traseiro'},
+  ]},
+  { id:'pneus', titulo:'Pneus', itens:[
+    { id:'estado', nome:'Estado geral', opts:['Novos','Bons','Meia-vida','Trocar'] },
+  ]},
+  { id:'mecanica', titulo:'Mecânica', opts:['OK','Atenção','Crítico'], itens:[
+    {id:'motor',nome:'Motor'},{id:'cambio',nome:'Câmbio'},{id:'suspensao',nome:'Suspensão'},
+    {id:'freios',nome:'Freios'},{id:'vazamentos',nome:'Vazamentos'},
+  ]},
+  { id:'itens', titulo:'Itens & Conforto', itens:[
+    {id:'ar',   nome:'Ar-condicionado', opts:['Gelando','Não gela'], sub:{quando:'Não gela',nome:'Motivo',opts:['Falta gás','Defeito compressor']}},
+    {id:'estepe',   nome:'Estepe',    opts:['Novo','Usado','Não tem']},
+    {id:'macaco',   nome:'Macaco',    opts:['Tem','Não tem']},
+    {id:'triangulo',nome:'Triângulo', opts:['Tem','Não tem']},
+  ]},
+];
+
+let AVAL_RES_LOCAL = {};
+let AVAL_SCORES_LOCAL = {};  // scores por categoria, carregados do banco e preservados no save
+let AVAL_DATA_LOCAL   = null; // ISO string da 1ª avaliação; preservado em edições subsequentes
+function avCelLocal(sec,item){ if(!AVAL_RES_LOCAL[sec]) AVAL_RES_LOCAL[sec]={}; if(!AVAL_RES_LOCAL[sec][item]) AVAL_RES_LOCAL[sec][item]={}; return AVAL_RES_LOCAL[sec][item]; }
+function sevAvLocal(opts,idx){ if(idx===0) return 'bom'; if(idx===opts.length-1&&opts.length>=3) return 'ruim'; return 'alerta'; }
+
+async function trocarAba(n) {
+  capAbaAtual = n;
+  [0,1,2].forEach(i => { const t=document.getElementById('cap-t'+i); if(t) t.classList.toggle('on',i===n); });
+  const capt = document.getElementById('modo-captacao');
+  const bloc = document.getElementById('blocos-anuncio');
+  const a1   = document.getElementById('cap-aba-1');
+  const a2   = document.getElementById('cap-aba-2');
+  if (capt) capt.style.display = n===0 ? '' : 'none';
+  if (bloc) bloc.style.display = n===0 ? '' : 'none';
+  if (a1)   a1.style.display   = n===1 ? '' : 'none';
+  if (a2)   a2.style.display   = n===2 ? '' : 'none';
+  _atualizarBtnFloat();
+  // Antes, só entrar na aba Fotos ou Checklist já criava o veículo no
+  // catálogo. Olhar não é decidir estocar — e o carro aparecia como
+  // DISPONIVEL, contando em KPI, dias parados e Motor de Match.
+  //
+  // Não faz falta: quem realmente precisa do veículo cria na hora
+  // (onCapFotos, salvarChecklist, avaria), cada um com aviso próprio se
+  // faltar marca/modelo. As duas telas abaixo lidam com catalogoId nulo.
+  if (n === 1) await carregarFotosExistentes();
+  if (n === 2) { await carregarChecklistExistente(); renderAvalLocal(); }
+}
+
+function _atualizarBtnFloat() {
+  const el = document.getElementById('btn-gerar-float');
+  if (!el) return;
+  const visivel = (currentMode === 'captacao' || currentMode === 'coletados') && capAbaAtual === 0;
+  el.style.display = visivel ? '' : 'none';  // '' devolve o controle ao CSS
+}
+
+async function autoSalvar() {
+  const st = document.getElementById('cap-autosave');
+  const ficha = coletarFichaVeiculo();
+  const nome = [ficha.marca, ficha.versao || ficha.modelo].filter(Boolean).join(' ');
+  if (!nome && !ficha.anuncio_texto) return;
+  try {
+    if (st) { st.textContent = '⟳ salvando…'; st.className = 'cap-autosave'; }
+    let r;
+    if (catalogoId) {
+      r = await fetch('/api/catalogo?id=' + catalogoId, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(ficha),
+      });
+    } else {
+      r = await fetch('/api/catalogo', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(ficha),
+      });
+      if (r.ok) { const d = await r.json(); catalogoId = d.id; }
+    }
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    if (st) { st.textContent = '✓ salvo'; st.className = 'cap-autosave ok'; setTimeout(()=>{ if(st) st.textContent=''; },2500); }
+  } catch(e) {
+    if (st) { st.textContent = '⚠ erro ao salvar'; st.className = 'cap-autosave err'; }
+  }
+}
+
+// ── Fotos ──────────────────────────────────────
+let capFotosCache = [];
+
+async function carregarFotosExistentes() {
+  if (!catalogoId) { renderCapFotos(); return; }
+  try {
+    const r = await fetch('/api/catalogo?id=' + catalogoId);
+    if (r.ok) { const v = await r.json(); if (v && Array.isArray(v.fotos)) capFotosCache = [...v.fotos]; }
+  } catch {}
+  renderCapFotos();
+}
+
+function renderCapFotos() {
+  const grid = document.getElementById('cap-foto-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  capFotosCache.forEach((url, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cap-foto-cell';
+    cell.innerHTML = `<img src="${url}" loading="lazy"><button class="cap-foto-del" onclick="removerCapFoto(${i})" title="Remover">✕</button>`;
+    grid.appendChild(cell);
+  });
+  const btn = document.createElement('button');
+  btn.className = 'cap-foto-add-btn';
+  btn.textContent = '+';
+  btn.onclick = () => document.getElementById('cap-foto-input').click();
+  grid.appendChild(btn);
+  const st = document.getElementById('cap-foto-st');
+  if (st) st.textContent = capFotosCache.length ? capFotosCache.length + ' foto(s) adicionada(s)' : '';
+}
+
+async function onCapFotos(input) {
+  const MAX_FOTOS = 15;
+  let files = Array.from(input.files);
+  if (!files.length) return;
+  if (capFotosCache.length >= MAX_FOTOS) {
+    toast(`Limite de ${MAX_FOTOS} fotos atingido. Remova algumas antes de adicionar novas.`, 'erro', 4000);
+    input.value = ''; return;
+  }
+  const disponivel = MAX_FOTOS - capFotosCache.length;
+  if (files.length > disponivel) {
+    toast(`${files.length} selecionadas, mas só ${disponivel} cabem (limite ${MAX_FOTOS}). Enviando as primeiras ${disponivel}.`, '', 5000);
+    files = files.slice(0, disponivel);
+  }
+  if (!catalogoId) { await autoSalvar(); }
+  if (!catalogoId) { alert('Preencha ao menos a marca/modelo antes de adicionar fotos.'); return; }
+  const st = document.getElementById('cap-foto-st');
+  if (st) st.textContent = 'Enviando…';
+  let ok = 0;
+  for (const file of files) {
+    try {
+      const b64 = await comprimirLocal(file);
+      const r = await fetch('/api/catalogo?foto=1', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ veiculoId: catalogoId, imageBase64: b64, mimeType: 'image/jpeg' }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || 'erro');
+      const d = await r.json();
+      if (Array.isArray(d.fotos)) capFotosCache = d.fotos;
+      ok++;
+    } catch(e) { console.error('Foto:', e.message); }
+  }
+  input.value = '';
+  if (st) st.textContent = capFotosCache.length + ' foto(s) adicionada(s)';
+  renderCapFotos();
+}
+
+async function removerCapFoto(idx) {
+  if (!catalogoId) return;
+  const url = capFotosCache[idx];
+  try {
+    const r = await fetch('/api/catalogo?foto=1', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ veiculoId: catalogoId, url }),
+    });
+    if (r.ok) { const d = await r.json(); if (Array.isArray(d.fotos)) capFotosCache = d.fotos; }
+  } catch {}
+  renderCapFotos();
+}
+
+function comprimirLocal(file, maxLado=1600, q=0.82) {
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let {width:w,height:h} = img;
+        if (Math.max(w,h) > maxLado) { const s=maxLado/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+        const c = document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',q).split(',')[1]);
+      };
+      img.onerror = reject; img.src = rd.result;
+    };
+    rd.onerror = reject; rd.readAsDataURL(file);
+  });
+}
+
+// ── Checklist ──────────────────────────────────
+async function carregarChecklistExistente() {
+  if (!catalogoId || Object.keys(AVAL_RES_LOCAL).length) return;
+  try {
+    const r = await fetch('/api/catalogo?id=' + catalogoId);
+    if (r.ok) {
+      const v = await r.json();
+      if (v && v.avaliacao && v.avaliacao.resultado) {
+        AVAL_RES_LOCAL = v.avaliacao.resultado;
+        if (v.avaliacao.scores) AVAL_SCORES_LOCAL = v.avaliacao.scores;
+        if (v.avaliacao.data)   AVAL_DATA_LOCAL   = v.avaliacao.data;
+        if (v.avaliacao.nota)     document.getElementById('cap-av-nota').value = v.avaliacao.nota;
+        if (v.avaliacao.obs)      document.getElementById('cap-av-obs').value  = v.avaliacao.obs;
+        if (v.avaliacao.inspecao) document.getElementById('avaliacao').value   = v.avaliacao.inspecao;
+      }
+    }
+  } catch {}
+}
+
+function renderAvalLocal() {
+  const cont = document.getElementById('cap-av-secoes');
+  if (!cont) return;
+  cont.innerHTML = AVAL_LOCAL.map(sec =>
+    `<div class="cap-av-sec"><div class="cap-av-stit">${sec.titulo}</div>${sec.itens.map(it => avItemLocalHTML(sec, it, sec.opts||it.opts)).join('')}</div>`
+  ).join('');
+}
+
+function avItemLocalHTML(sec, it, opts) {
+  const cur = (AVAL_RES_LOCAL[sec.id]&&AVAL_RES_LOCAL[sec.id][it.id]) || {};
+  const pills = opts.map((o,idx) =>
+    `<button type="button" class="cap-pill${cur.status===o?' on '+sevAvLocal(opts,idx):''}" onclick="setAvLocal('${sec.id}','${it.id}','${o}',this)">${o}</button>`
+  ).join('');
+  let sub = '';
+  if (it.sub) {
+    const show = cur.status===it.sub.quando;
+    const sp = it.sub.opts.map(o =>
+      `<button type="button" class="cap-pill${cur.sub===o?' on ruim':''}" onclick="setAvSubLocal('${sec.id}','${it.id}','${o}',this)">${o}</button>`
+    ).join('');
+    sub = `<div class="cap-av-sub" id="caps-${sec.id}-${it.id}" style="${show?'':'display:none'}"><span class="subnm">${it.sub.nome}:</span><div class="cap-av-pills">${sp}</div></div>`;
+  }
+  let foto = '';
+  if (sec.fotoQuando) {
+    const show = cur.status===sec.fotoQuando;
+    const thumb = cur.foto
+      ? `<img class="cap-av-fotothumb" src="${cur.foto}" onclick="window.open('${cur.foto}','_blank')"><button type="button" class="cap-av-fotodel" onclick="removerFotoAvLocal('${sec.id}','${it.id}')">✕ remover</button>`
+      : `<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${sec.id}','${it.id}')">📷 Foto</button>`;
+    foto = `<div class="cap-av-fotozone${show?' show':''}" id="capavf-${sec.id}-${it.id}">${thumb}</div>`;
+  }
+  return `<div class="cap-av-item"><div class="cap-av-l"><span class="nm">${it.nome}</span><div class="cap-av-pills">${pills}</div></div>${sub}${foto}</div>`;
+}
+
+function setAvLocal(sec, item, val, btn) {
+  const c = avCelLocal(sec, item);
+  c.status = (c.status===val) ? '' : val;
+  const box = btn.parentElement;
+  [...box.children].forEach(b => b.className='cap-pill');
+  if (c.status) { const opts=[...box.children].map(b=>b.textContent); btn.className='cap-pill on '+sevAvLocal(opts,opts.indexOf(val)); }
+  const subEl = document.getElementById('caps-'+sec+'-'+item);
+  if (subEl) {
+    const itCfg = AVAL_LOCAL.find(s=>s.id===sec).itens.find(i=>i.id===item);
+    if (itCfg.sub && c.status===itCfg.sub.quando) subEl.style.display='';
+    else { subEl.style.display='none'; c.sub=''; subEl.querySelectorAll('.cap-pill').forEach(b=>b.className='cap-pill'); }
+  }
+  const fEl = document.getElementById('capavf-'+sec+'-'+item);
+  if (fEl) {
+    const secCfg = AVAL_LOCAL.find(s=>s.id===sec);
+    if (c.status===secCfg.fotoQuando) fEl.classList.add('show');
+    else { fEl.classList.remove('show'); if(c.foto){ c.foto=''; fEl.innerHTML=`<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${sec}','${item}')">📷 Foto</button>`; } }
+  }
+}
+
+function setAvSubLocal(sec, item, val, btn) {
+  const c = avCelLocal(sec, item);
+  c.sub = (c.sub===val) ? '' : val;
+  const box = btn.parentElement;
+  [...box.children].forEach(b=>b.className='cap-pill');
+  if (c.sub) btn.className='cap-pill on ruim';
+}
+
+let _avAlvoLocal = null;
+function tirarFotoAvLocal(sec, item) {
+  _avAlvoLocal = {sec, item};
+  const inp = document.getElementById('cap-avaria-input');
+  inp.value=''; inp.click();
+}
+document.getElementById('cap-avaria-input').addEventListener('change', async (e) => {
+  const alvo = _avAlvoLocal; const f = e.target.files[0];
+  if (!alvo||!f) return;
+  if (!catalogoId) await autoSalvar();
+  const fEl = document.getElementById('capavf-'+alvo.sec+'-'+alvo.item);
+  if (!fEl) return;
+  fEl.innerHTML='<span style="font-size:.7rem;color:var(--text-mid)">Enviando…</span>';
+  try {
+    const b64 = await comprimirLocal(f);
+    const r = await fetch('/api/catalogo?avaria=1', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ veiculoId:catalogoId, item:alvo.sec+'-'+alvo.item, imageBase64:b64, mimeType:'image/jpeg' }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error||'erro');
+    const {url} = await r.json();
+    avCelLocal(alvo.sec, alvo.item).foto = url;
+    fEl.innerHTML=`<img class="cap-av-fotothumb" src="${url}" onclick="window.open('${url}','_blank')"><button type="button" class="cap-av-fotodel" onclick="removerFotoAvLocal('${alvo.sec}','${alvo.item}')">✕ remover</button>`;
+  } catch(err) {
+    fEl.innerHTML=`<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${alvo.sec}','${alvo.item}')">📷 Foto</button><span style="font-size:.68rem;color:var(--red)"> ${err.message}</span>`;
+  }
+});
+
+function removerFotoAvLocal(sec, item) {
+  avCelLocal(sec,item).foto='';
+  const el=document.getElementById('capavf-'+sec+'-'+item);
+  if(el) el.innerHTML=`<button type="button" class="cap-av-fotobtn" onclick="tirarFotoAvLocal('${sec}','${item}')">📷 Foto</button>`;
+}
+
+async function salvarChecklist() {
+  if (!catalogoId) { await autoSalvar(); }
+  if (!catalogoId) { alert('Preencha ao menos a marca/modelo (aba Anúncio) antes de salvar o checklist.'); return; }
+  const avaliacao = { nota: document.getElementById('cap-av-nota').value, obs: document.getElementById('cap-av-obs').value, resultado: AVAL_RES_LOCAL, scores: AVAL_SCORES_LOCAL, data: AVAL_DATA_LOCAL || new Date().toISOString(), inspecao: document.getElementById('avaliacao').value.trim() || null };
+  try {
+    const r = await fetch('/api/catalogo?id='+catalogoId, {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({avaliacao}),
+    });
+    if (!r.ok) throw new Error((await r.json()).error||'erro');
+    const btn = document.querySelector('.cap-av-save-btn');
+    if (btn) { const orig=btn.textContent; btn.textContent='✓ Checklist salvo!'; setTimeout(()=>btn.textContent=orig,2200); }
+  } catch(e) { alert('Erro ao salvar: '+e.message); }
+}
+
+// ══ AVISO NEGOCIAÇÕES ══
+(function checkNegociacoes() {
+  try {
+    const neg = JSON.parse(localStorage.getItem('cnr-negociacoes')) || [];
+    const STATUS_ATIVOS = ['primeiro-contato','respondeu','negociando','aguardando'];
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const pendentes = neg.filter(n => {
+      if (!STATUS_ATIVOS.includes(n.status)) return false;
+      if (!n.ultimoContato) return true;
+      const d = new Date(n.ultimoContato + 'T00:00:00');
+      return Math.floor((hoje - d) / 86400000) >= 1;
+    });
+    if (pendentes.length === 0) return;
+    const aviso = document.getElementById('neg-aviso');
+    const txt = document.getElementById('neg-aviso-txt');
+    txt.textContent = pendentes.length === 1
+      ? `⚠️ 1 negociação aguardando retorno — ${pendentes[0].veiculo}`
+      : `⚠️ ${pendentes.length} negociações aguardando retorno`;
+    aviso.style.display = 'flex';
+  } catch(e) {}
+})();
+
+// ── INIT ────────────────────────────────────────────────────────
+buildOpcionais();
+buildObs();
+(async () => {
+  await loadMarcas();
+  // Só a cascata desta tela: csel-marca/csel-modelo são do Parceiros.
+  ['sel-marca', 'sel-modelo'].forEach(id => makeSearchable(id, 'Digite para filtrar...'));
+
+  const temRascunho = (() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+      return !!(d && d.campos && Object.values(d.campos).some(v => v));
+    } catch (e) { return false; }
+  })();
+  const avisoEl = document.getElementById('aviso-rascunho');
+  if (temRascunho && avisoEl) avisoEl.style.display = 'flex';
+
+  await restaurarEstado();
+  resyncSearchables();
+
+  // Auto-save ligado só depois de restaurar, para não gravar durante a restauração.
+  document.addEventListener('input',  salvarEstadoDebounced);
+  document.addEventListener('change', salvarEstadoDebounced);
+  document.addEventListener('click', e => { if (e.target.closest('.tog')) salvarEstadoDebounced(); });
+})();
+
+</script>
+</body>
+</html>

@@ -346,6 +346,12 @@ const currentMode = 'coletados';
 
 // O comum chama estas duas; cada tela fornece a sua.
 function setMode() { /* uma tela, um modo — não há o que alternar */ }
+
+// O setMode do Gerador antigo também carimbava isto, e o CSS usa:
+// body[data-mode="coletados"] esconde #btn-salvar-catalogo e #btn-catalogo.
+// Sem o carimbo, esta tela passou a mostrar um botão que no Gerador antigo
+// era escondido de propósito — carro de parceiro não é estoque (03/set).
+document.body.dataset.mode = currentMode;
 function montarTextoAnuncio() { return montarTextoColetados(); }
 </script>
 <script src="/assets/gerador-comum.js"></script>
