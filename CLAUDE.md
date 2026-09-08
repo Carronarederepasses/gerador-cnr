@@ -3926,3 +3926,76 @@ degradação. Card conferido no navegador.
 - Levantamento da senha, sem cobrança
 
 *Registrado em 8 de setembro de 2026.*
+
+### 8 de setembro, tarde — o acesso da segunda operadora, em produção
+
+Configurado com o Yuri na tela, passo a passo. Está de pé e testado:
+
+```
+Aparelho liberado como Yuri     ← Chrome dele
+Aparelho liberado como Mãe      ← janela anônima, com a chave dela
+👤 Yuri                         ← card do Corolla, depois do ENVIEI
+```
+
+### Três defeitos apareceram no caminho, e nenhum era o código
+
+**1. A migration não tinha rodado.** Ele disse que rodou, eu aceitei e mandei
+testar. O log da Vercel entregou no minuto exato do clique:
+
+```
+15:32:13  PATCH /api/fetch-anuncio  200
+  fetch-anuncio: coluna `operador` ainda não existe no banco — regravando sem ela.
+```
+
+Duas coisas se provaram aí. A **rede de segurança** que eu tinha posto de
+manhã funcionou: o PATCH voltou 200, o status gravou, o ENVIEI não quebrou.
+E o **log** que eu tinha acrescentado horas antes foi o que achou a causa —
+sem ele, seria "não apareceu nada" e mais uma rodada de dedução.
+
+> É a regra de 05/set outra vez: *quando a resposta está dentro do código,
+> conferir.* Uma chamada teria evitado a volta inteira.
+
+**2. O nome estava lá e ele não viu.** Clicou em ENVIEI, olhou o card, não
+achou. O nome estava no meio de seis itens cinzas do mesmo tamanho e cor.
+Estava certo e não adiantava. Agora vai em branco, peso 600 — não virou
+etiqueta, só deixou de se esconder.
+
+**3. A chave da mãe foi cadastrada sem o prefixo do nome.** Ele colou só a
+chave, sem o `Mãe:` na frente. A chave abria a porta normalmente, o teste da
+janela anônima dizia "Aparelho liberado", e o engano **só apareceria daqui a
+três semanas**, num card saindo como "operador 2".
+
+Isso era um buraco de desenho, não descuido dele: **não havia como ver.**
+
+### A correção que fecha o buraco
+
+`api/utils.js?type=quem` — modo novo numa função que já existe (o teto de 12
+do Hobby segue intacto). Fica **depois** do portão: quem chega ali já tem
+acesso a tudo, então o nome não conta nada novo a ninguém.
+
+`/entrar.html` agora diz **"Aparelho liberado como Mãe"**. Quem configurar o
+próximo aparelho confere sozinho. Resposta estragada cai no texto antigo em
+vez de derrubar a tela — dizer "liberado" sem conseguir confirmar seria o
+falso sucesso de sempre.
+
+12 testes: 7 na API, 5 na tela. O caso que importa é o terceiro — chave **sem**
+prefixo responde "operador 2", ou seja, **o engano de hoje fica visível**.
+
+### Duas armadilhas da Vercel, para não redescobrir
+
+- **Variável nova exige redeploy.** Salvar não basta, e a Vercel avisa numa
+  tarja fácil de dispensar.
+- **Uma linha por ambiente.** `CNR_KEY_2` aparece três vezes (Production,
+  Preview, Development). Editar a de Production e marcar "All Environments"
+  dá erro de colisão com as outras duas — marca só Production. E **só a
+  Production importa**: é ela que serve `gerador-cnr.vercel.app`.
+- **Secret não se relê.** A chave dela existe legível só no bloco de notas
+  do Yuri. Sem ele, é gerar tudo de novo.
+
+### O que fica para o dia do notebook dela
+
+Abrir `/entrar.html`, colar **só a chave** (o `Nome:` mora na Vercel),
+Liberar, e instalar a extensão apontando o `gerador_url`. As buscas do Radar
+vêm sozinhas — retorno direto da tela Radar de 02/set.
+
+*Registrado em 8 de setembro de 2026, tarde.*
