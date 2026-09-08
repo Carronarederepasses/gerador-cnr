@@ -3999,3 +3999,78 @@ Liberar, e instalar a extensão apontando o `gerador_url`. As buscas do Radar
 vêm sozinhas — retorno direto da tela Radar de 02/set.
 
 *Registrado em 8 de setembro de 2026, tarde.*
+
+### 8 de setembro, fim de tarde — o desmembramento fechou
+
+O Yuri testou o Parceiros com carro de verdade e aprovou. A Captação foi
+construída, a barra lateral trocada e o `index.html` virou redirecionamento.
+
+**Fidelidade provada, não afirmada:** mesmo preenchimento nas duas telas
+(Gerador antigo em modo Captação × `captacao.html`) dá SHA-256 idêntico —
+`89b28080…`, 499 caracteres. Hash, não olho.
+
+### O que o recorte tinha estragado sem avisar
+
+Três coisas, e nenhuma dava erro no console:
+
+1. **Botão flutuante "Gerar" invisível no celular.** A tag vem com
+   `style="display:none"` e quem destravava era o `_atualizarBtnFloat()`, que
+   só roda ao **trocar** de aba. Abrindo a tela direto no Anúncio — que é o
+   normal — o botão nunca aparecia. Numa página de 3.648px, é o botão
+   principal sumido. Mesmo defeito que o Parceiros teve em 07/set: **eu
+   repeti o erro no arquivo seguinte.**
+   Corrigido nos dois lados: sem o `style` na tag, e a função devolve `''` em
+   vez de `'block'` — inline vence media query, e a barra aparecia no desktop
+   depois de passear pelas abas.
+
+2. **Barra de abas escondida.** `.cap-tabs` nasce `display:none` e quem punha
+   o `show` era o `setMode()`. Aqui `setMode` é vazio.
+
+3. **`data-mode` não era carimbado — e o CSS usa.**
+   `body[data-mode="coletados"]` esconde `#btn-salvar-catalogo` e
+   `#btn-catalogo`. Ou seja: no Parceiros o "Salvar no catálogo" era escondido
+   **de propósito** — carro de parceiro não é estoque, decisão dele de
+   03/set. Sem o carimbo, a tela nova passou a mostrar um botão que ninguém
+   decidiu mostrar. Restaurado nas duas.
+
+> As três têm a mesma forma: **o recorte trouxe o markup e deixou para trás
+> quem o ligava.** O que ligava não estava no bloco recortado — estava no
+> `setMode()`, que eu substituí por uma função vazia sem listar o que ele
+> fazia além de alternar telas.
+
+### E o defeito que apareceu no caminho
+
+`gerador-comum.js` usava `_catalogoId` e `catalogoId` sem declarar nenhuma
+das duas: as declarações ficaram no `index.html`, fora das faixas recortadas.
+Não quebrava a tela porque a leitura mora dentro de um `try` — virava um
+alerta dizendo *"Não consegui salvar: _catalogoId is not defined"*.
+
+Não apareceu no teste do Yuri porque ele exercitou **gerar** o anúncio; o
+salvar está atrás de outro botão. Declarações movidas para o comum, que é
+onde são usadas.
+
+### Decisões de entrega
+
+- **`index.html` vira redirecionamento** para o Painel. Dois caminhos de
+  propósito: `meta refresh` aguenta JavaScript desligado, `location.replace`
+  age antes e não deixa entrada no histórico — senão o Voltar do celular
+  ricocheteava. Se nada rodar, a página mostra links em vez de ficar branca.
+- **O Gerador antigo fica inteiro em `/gerador-antigo.html`, sem link.** Porta
+  de emergência das primeiras semanas. Sai quando as duas novas tiverem
+  rodado alguns carros de verdade. Git também guarda, mas `git checkout` não
+  é coisa para ele fazer num sábado à noite.
+- **Parceiros vem antes de Captação** na barra: é a mais usada, pelas palavras
+  dele.
+- `home.html`, `artes.html` e `instalar.html` repontados. Varredura das 20
+  páginas: nenhum link quebrado.
+
+### Conferido
+
+Navegador a 375px e 1280px: abas trocando nos dois sentidos com o que aparece
+e some certo em cada uma, checklist montando as 6 seções, 101 ids sem
+nenhum duplicado, sem rolagem horizontal, `/index.html` caindo em
+`/home.html`, e o botão de catálogo escondido de novo no Parceiros.
+Em produção: as cinco páginas em 200 e a barra lateral servida com os dois
+itens novos.
+
+*Registrado em 8 de setembro de 2026, fim de tarde.*
