@@ -587,6 +587,7 @@ function cardHTML(a) {
         ${chipHoje ? `<span>${chipHoje}</span>` : ''}
         ${fichaChips}
         ${a.localizacao ? `<span>📍 ${esc(a.localizacao)}</span>` : ''}
+        ${a.operador ? `<span>👤 ${esc(a.operador)}</span>` : ''}
         <span>OLX</span>
         <span>Encontrado ${foundAgo}</span>
         ${seenAgo ? `<span>Visto ${seenAgo}</span>` : ''}

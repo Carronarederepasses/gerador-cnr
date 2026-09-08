@@ -46,6 +46,31 @@ const LEGADAS = [
   process.env.CATALOGO_KEY,
 ].filter(Boolean);
 
+// ── Uma chave por pessoa ──────────────────────────────────────────
+// A partir de setembro/2026 são duas pessoas abordando anúncios. Chave
+// compartilhada tem dois defeitos: cortar o acesso de uma derruba as duas,
+// e o sistema não tem como saber quem fez o quê.
+//
+// Como acrescentar alguém, sem tocar em código:
+//   Vercel → Environment Variables → CNR_KEY_2 = "Mãe:<chave>"
+//   (CNR_KEY_2 até CNR_KEY_9; o nome antes dos dois-pontos é o que aparece
+//    no card. A chave é base64url e nunca contém ":", então a divisão é no
+//    PRIMEIRO dois-pontos e o resto é chave.)
+//
+// Apagar a variável corta só aquela pessoa. A CNR_KEY principal segue de pé.
+const OPERADORES = [];
+if (CNR_KEY) OPERADORES.push({ nome: process.env.CNR_OPERADOR || 'Yuri', chave: CNR_KEY });
+for (let i = 2; i <= 9; i++) {
+  const bruto = process.env[`CNR_KEY_${i}`];
+  if (!bruto) continue;
+  const corte = bruto.indexOf(':');
+  // Sem ":" a variável é só uma chave — vale, mas fica sem nome. Aceitar em
+  // vez de ignorar: chave que não abre a porta é o pior dos dois erros.
+  const nome  = corte > 0 ? bruto.slice(0, corte).trim() : `operador ${i}`;
+  const chave = corte > 0 ? bruto.slice(corte + 1).trim() : bruto.trim();
+  if (chave) OPERADORES.push({ nome, chave });
+}
+
 // Comparação de tempo constante. Pela rede a diferença é indetectável na
 // prática, mas custa quatro linhas fazer certo.
 function igual(a, b) {
@@ -60,8 +85,22 @@ function autorizado(req) {
   if (!CNR_KEY) return true; // portão desligado
   const enviada = req.headers['x-cnr-key'];
   if (!enviada) return false;
-  if (igual(enviada, CNR_KEY)) return true;
+  if (OPERADORES.some((o) => igual(enviada, o.chave))) return true;
   return LEGADAS.some((k) => igual(enviada, k));
+}
+
+// Quem está mandando, pelo que a chave diz. Devolve null quando não dá para
+// afirmar — portão desligado, chave legada (a extensão e o script da planilha
+// usam essas, e não são pessoa nenhuma) ou chave desconhecida.
+//
+// Devolver null em vez de chutar "Yuri" é de propósito: um registro que diz
+// quem foi está certo ou está vazio, nunca inventado.
+function operadorDe(req) {
+  if (!CNR_KEY) return null;
+  const enviada = req.headers['x-cnr-key'];
+  if (!enviada) return null;
+  const achado = OPERADORES.find((o) => igual(enviada, o.chave));
+  return achado ? achado.nome : null;
 }
 
 // Devolve true quando JÁ respondeu — quem chama deve dar `return`.
@@ -76,4 +115,9 @@ function exigirChave(req, res) {
   return true;
 }
 
-module.exports = { exigirChave, autorizado, portaoLigado: () => Boolean(CNR_KEY) };
+module.exports = {
+  exigirChave,
+  autorizado,
+  operadorDe,
+  portaoLigado: () => Boolean(CNR_KEY),
+};

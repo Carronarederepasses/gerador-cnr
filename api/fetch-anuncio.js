@@ -14,7 +14,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY
 //   RADAR_KEY  (opcional — se definida, exige x-cnr-key no POST)
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, operadorDe } = require('./_auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -312,6 +312,18 @@ async function handleRadar(req, res) {
     if (body.motivo_morte !== undefined) payload.motivo_morte = body.motivo_morte;
     if (body.vehicle_id   !== undefined) payload.vehicle_id   = body.vehicle_id;
 
+    // Quem mudou o status — ver supabase/migration-operador.sql.
+    // Vem da chave do aparelho, NUNCA do corpo: o corpo sai do navegador e
+    // poderia dizer qualquer nome. Só carimba quando o status muda, que é o
+    // ato de uma pessoa; ler a ficha (👁) não é abordagem.
+    // `operadorDe` devolve null para chave legada ou portão desligado, e aí a
+    // coluna não entra no payload — a de antes fica preservada, em vez de ser
+    // apagada por quem não sabe quem é.
+    if (body.status !== undefined) {
+      const quem = operadorDe(req);
+      if (quem) payload.operador = quem;
+    }
+
     // Ficha lida da página do anúncio (botão 👁 no card) — ver
     // supabase/migration-anuncio-detalhes.sql. A lista é fechada de
     // propósito: o corpo vem do navegador e não pode escolher que coluna
@@ -331,11 +343,33 @@ async function handleRadar(req, res) {
       return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
     }
 
-    const r = await sb(`anuncios?${filter}`, {
-      method:  'PATCH',
-      headers: { Prefer: 'return=minimal' },
-      body:    JSON.stringify(payload),
-    });
+    async function gravar(corpo) {
+      return sb(`anuncios?${filter}`, {
+        method:  'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body:    JSON.stringify(corpo),
+      });
+    }
+
+    let r = await gravar(payload);
+
+    // A coluna `operador` chega por migration (supabase/migration-operador.sql),
+    // e o deploy é automático no push: existe uma janela em que o código já
+    // manda a coluna e o banco ainda não a tem. Sem esta rede, o botão ENVIEI
+    // pararia de funcionar nessa janela — e o Yuri descobriria no meio de uma
+    // abordagem, que é exatamente o tipo de silêncio que já custou caro aqui.
+    // Grava de novo sem o campo e segue. Pode sair depois da migration rodar.
+    if (!r.ok && payload.operador !== undefined) {
+      const err = await r.text();
+      if (/operador/i.test(err)) {
+        console.log('fetch-anuncio: coluna `operador` ainda não existe no banco — ' +
+          'regravando sem ela. Rode supabase/migration-operador.sql.');
+        const { operador, ...semOperador } = payload;
+        r = await gravar(semOperador);
+      } else {
+        return res.status(500).json({ error: err });
+      }
+    }
 
     if (!r.ok) {
       const err = await r.text();
