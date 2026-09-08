@@ -3663,3 +3663,74 @@ com `/grill-me`. Eu não invoco sozinho.
 
 *Registrado em 7 de setembro de 2026.*
 
+
+## Checkpoint — 7/8 de setembro de 2026, noite
+
+### A FIPE do HB20S: causa raiz achada, e a ideia foi dele
+
+Confirmado em produção:
+
+```
+fipe-search: preço escolheu "HB20S Vision 1.0 Flex 12V Mec."
+             (R$ 62.030, anúncio R$ 62.000, 0%) entre 5 versões
+fipe-search: "Hyundai HB20S 1.0 Manual" 2021 → HB20S Vision 1.0 Flex 12V Mec.
+```
+
+**A causa raiz:** a pontuação partia no ponto, então `1.0` virava `1` e `0`.
+Como esses também saem de "1.6", "16V" e "12V", **os 135 HB20S empatavam** e a
+nota deixava de ordenar. A janela de 12 pegava doze quaisquer, e **o primeiro
+com 2021 estava na posição 13** — ficava de fora por UMA posição.
+
+Incoerência dentro do próprio arquivo: o filtro de palavra-chave já preservava
+`1.0`; só a pontuação destruía. Dois cortes diferentes para o mesmo texto.
+
+**Três mudanças, e a do meio é dele:**
+
+1. O ponto entre dígitos não separa mais
+2. **Escolha por preço** — ideia do Yuri
+3. Janela de 12 → 30
+
+### A ideia dele, e por que era melhor que a minha
+
+Eu propus mostrar os **nomes** das versões para a IA escolher. Ele apontou o
+certo: usar o **preço**.
+
+Nome não desempata — "1.0M Comfort Plus", "1.0M Vision" e "1.0M Sense" batem
+igual em "1.0 manual". Preço desempata: as versões diferem muito mais entre si
+do que o arredondamento do anúncio. Ele tinha acabado de fazer isso na mão.
+
+E isso teria evitado o X6 de 04/set, onde a resposta foi **avisar** da
+divergência. O aviso volta a ser rede de segurança, não solução.
+
+Limite de sanidade de 40%: se nem a mais próxima chega perto, o número não
+descreve versão nenhuma — acontece quando o parceiro põe o preço de VENDA no
+campo da FIPE. Aí o preço é ruído e a ordem por nome prevalece.
+
+### Como a causa foi achada — e o que atrasou
+
+**A Parallelum é pública e não exige chave.** Dava para reproduzir a busca
+inteira aqui, contra a FIPE real, desde o começo. Foi o que finalmente
+resolveu (`scratchpad/repro.js`, `repro2.js`, `fundo.js`, `valida.js` —
+este último roda a função de pontuação **recortada do arquivo real**).
+
+Antes disso eu consertei **duas vezes a coisa errada**, porque estava
+deduzindo em vez de medir:
+
+- A escolha por preço, que age depois de achar candidatos — e o caso dele
+  falhava antes
+- As leituras desprotegidas do catálogo, que eram bug real mas outro
+
+**E o meu próprio diagnóstico estava mudo:** três dos quatro caminhos de
+`found:false` não escrevem nada no log. Os registros da Vercel mostravam a
+chamada retornando 200 sem uma linha sequer. Vale acrescentar log em todos.
+
+**A regra:** quando a fonte de dados é pública, reproduzir localmente antes de
+mexer no código. Medir a causa custou menos que os dois consertos errados.
+
+### O desmembramento está inocente
+
+O Yuri testou o mesmo texto no Gerador antigo e deu a mesma mensagem. Mesmo
+caminho, mesmo resultado — a tela nova não introduziu isto.
+
+*Registrado em 8 de setembro de 2026.*
+
