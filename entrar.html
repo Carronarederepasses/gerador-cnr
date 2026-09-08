@@ -112,10 +112,18 @@ function mostrar(tipo, titulo, detalhe) {
 async function conferir() {
   const temChave = Boolean(window.CNR_AUTH.ler());
   try {
-    // Rota barata e sem dado sensível, só para saber se o portão abre.
-    const r = await fetch('/api/fetch-anuncio?buscas=1', { cache: 'no-store' });
+    // Rota barata e sem dado sensível, só para saber se o portão abre — e,
+    // de quebra, por qual nome este aparelho é conhecido.
+    const r = await fetch('/api/utils?type=quem', { cache: 'no-store' });
     if (r.ok) {
-      mostrar('ok', 'Aparelho liberado',
+      // O nome fecha um buraco real: em 08/set uma chave foi cadastrada sem o
+      // prefixo do nome. Ela abria a porta igual, e o engano só apareceria
+      // quando um card saísse com "operador 2" no lugar de "Mãe".
+      let quem = null;
+      try { quem = (await r.json()).operador; } catch (e) { /* corpo estranho: segue sem nome */ }
+
+      mostrar('ok',
+        quem ? 'Aparelho liberado como ' + quem : 'Aparelho liberado',
         temChave ? 'Pode usar o Gerador normalmente.'
                  : 'O portão ainda está desligado no servidor — todo mundo passa.');
       $('campo').style.display = 'block';

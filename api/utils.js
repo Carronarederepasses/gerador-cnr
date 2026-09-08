@@ -1,7 +1,8 @@
-// Utilitários gratuitos: CEP (BrasilAPI), preços ML (Mercado Livre), ping Supabase
-// Rota por ?type=cep | ?type=mercado | ?type=ping
+// Utilitários gratuitos: CEP (BrasilAPI), preços ML (Mercado Livre), ping
+// Supabase, e "quem é este aparelho".
+// Rota por ?type=cep | ?type=mercado | ?type=ping | ?type=quem
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, operadorDe, portaoLigado } = require('./_auth');
 
 const ML_CATEGORIA = 'MLB1744'; // Carros e Caminhonetes
 const PRECO_MINIMO = 8000;
@@ -70,9 +71,25 @@ module.exports = async (req, res) => {
     // mundo — e o tráfego sai com o nome do projeto dele.
     if (exigirChave(req, res)) return;
 
+    // Quem é este aparelho, pela chave que ele mandou. Passou pelo portão
+    // acima, então já tem acesso a tudo — o nome não conta nada novo a
+    // ninguém.
+    //
+    // Existe porque em 08/set o Yuri cadastrou a chave da mãe sem o prefixo
+    // do nome. A chave abria a porta normalmente, e não havia como descobrir
+    // o engano até alguém marcar ENVIEI e o card sair com "operador 2".
+    // A tela de liberação agora responde sozinha.
+    if (type === 'quem') {
+      return res.status(200).json({
+        ok: true,
+        operador:    operadorDe(req),        // null = chave legada ou portão desligado
+        portaoLigado: portaoLigado(),
+      });
+    }
+
     if (type === 'cep')     return await handleCep(req.query.cep, res);
     if (type === 'mercado') return await handleMercado(req.query.q, res);
-    return res.status(400).json({ error: 'type deve ser cep, mercado ou ping' });
+    return res.status(400).json({ error: 'type deve ser cep, mercado, ping ou quem' });
   } catch (err) {
     console.error('utils error:', err.message);
     return res.status(500).json({ error: err.message });
