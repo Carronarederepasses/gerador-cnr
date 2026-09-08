@@ -165,6 +165,15 @@
     buildModal();
     document.getElementById('cnr-sb-dados-btn').addEventListener('click', abrirMeusDados);
 
+    // Chão da faixa do topo — só aparece no celular (ver sidebar.css).
+    // Elemento próprio, e não um ::before da marca, porque precisa ficar ABAIXO
+    // da gaveta e do escurecedor. Como pseudo-elemento ele herdaria o z-index
+    // 300 da marca e cortaria o topo da gaveta aberta.
+    var topband = document.createElement('div');
+    topband.id = 'cnr-topband';
+    topband.setAttribute('aria-hidden', 'true');
+    document.body.prepend(topband);
+
     // Marca no topo — só aparece no celular (ver sidebar.css).
     //
     // No celular a barra lateral vira gaveta, então o nome "Carro na Rede" só
@@ -197,14 +206,18 @@
     backdrop.id = 'cnr-backdrop';
     document.body.appendChild(backdrop);
 
+    // A classe no body existe porque a marca do topo vem ANTES da gaveta no
+    // DOM: nenhum seletor de irmão alcança de uma para a outra.
     function abrir() {
       aside.classList.add('open');
       backdrop.classList.add('open');
+      document.body.classList.add('cnr-menu-aberto');
       ham.textContent = '✕';
     }
     function fechar() {
       aside.classList.remove('open');
       backdrop.classList.remove('open');
+      document.body.classList.remove('cnr-menu-aberto');
       ham.textContent = '☰';
     }
 

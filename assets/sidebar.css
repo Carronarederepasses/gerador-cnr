@@ -126,6 +126,28 @@
 }
 #cnr-backdrop.open { display: block; }
 
+/* Chão da faixa do topo (celular).
+   O `padding-top: 3.6rem` do bloco mobile reserva o espaço, mas ninguém
+   pintava: ao rolar, campos e rótulos passavam POR TRÁS da marca e apareciam
+   através das letras. O botão de menu não sofria porque tem fundo próprio.
+   Pinta com `--surface`, que é o chão que o `html` usa — o `body` é
+   transparente de propósito, por causa da marca d'água.
+   z-index 190 é escolhido, não sobra: acima do conteúdo da página (que vai
+   até 150) e ABAIXO da gaveta (200) e do escurecedor (199). Se subisse para
+   300, junto da marca, a faixa cortaria o topo da gaveta aberta e ficaria
+   acesa enquanto o resto da tela escurece.
+   Nasce escondida e é ligada no bloco `max-width: 767px`, mais abaixo. */
+#cnr-topband {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3.6rem;                 /* igual ao padding-top do body no celular */
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  z-index: 190;
+  pointer-events: none;
+}
+
 /* Desktop — sidebar sempre visível */
 @media (min-width: 768px) {
   body { padding-left: var(--sidebar-w) !important; }
@@ -160,6 +182,15 @@
     pointer-events: none;
     line-height: 1.05;
   }
+  /* A faixa do topo só existe no celular — a definição está lá em cima,
+     junto do backdrop, para que este `display` seja o último a falar. */
+  #cnr-topband { display: block; }
+
+  /* Com a gaveta aberta o nome aparecia DUAS VEZES, sobreposto: a marca fixa
+     (z 300) caía exatamente sobre o logo da própria gaveta (z 200). O ✕
+     continua, porque é o botão de fechar. */
+  body.cnr-menu-aberto #cnr-marca-topo { display: none; }
+
   .cnr-mt-nome {
     font-family: 'Playfair Display', Georgia, serif;
     font-size: .92rem;
@@ -178,7 +209,8 @@
   }
 }
 
-/* No desktop a barra lateral já mostra o nome — a marca do topo some. */
+/* No desktop a barra lateral já mostra o nome — a marca do topo some. A faixa
+   já nasce escondida e nem chega aqui. */
 @media (min-width: 768px) {
   #cnr-marca-topo { display: none; }
 }
