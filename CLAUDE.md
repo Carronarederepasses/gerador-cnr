@@ -3823,3 +3823,106 @@ caminho, mesmo resultado — a tela nova não introduziu isto.
 
 *Registrado em 8 de setembro de 2026.*
 
+---
+
+## Checkpoint — 8 de setembro de 2026, manhã
+
+Três pendências antigas fechadas, na ordem que ele escolheu.
+
+### 1. A faixa do topo não era pintada por ninguém
+
+Bug meu, de 03/set, em **todas** as telas do celular. O `padding-top: 3.6rem`
+reservava o espaço, mas nada pintava: ao rolar, campos e rótulos passavam por
+trás da marca e apareciam através das letras. O botão de menu não sofria
+porque tem fundo próprio — foi o que disfarçou o defeito por cinco dias.
+
+`#cnr-topband`, elemento fixo com `--surface` (o chão do `html`; o `body` é
+transparente de propósito, por causa da marca d'água).
+
+**z-index 190 é escolhido, não sobra:** acima do conteúdo (que vai até 150) e
+abaixo da gaveta (200) e do escurecedor (199). A primeira versão era um
+`::before` da marca, herdava o z-index 300 dela, e **cortava o topo da gaveta
+aberta**. É elemento próprio por causa disso — pseudo-elemento não tem como
+ficar abaixo do irmão que o hospeda.
+
+**Segundo defeito, achado no teste:** com a gaveta aberta o nome aparecia
+**duas vezes, sobreposto** — a marca fixa (300) caía exatamente sobre o logo
+da própria gaveta (200). Anterior a esta sessão. Agora a marca some enquanto o
+menu está aberto; o ✕ fica, que é o botão de fechar. A classe vai no `body`
+porque a marca vem **antes** da gaveta no DOM, e nenhum seletor de irmão
+alcança de uma para a outra.
+
+> **A armadilha:** `elementFromPoint` me disse que o botão de menu estava por
+> cima da faixa. Não estava. Ele estava por cima do **toque** — a marca tem
+> `pointer-events:none`, que a tira do teste de toque e **não** da pintura.
+> Quem contou a verdade foi a ordem no DOM.
+
+E uma captura mostrou a gaveta despencada no meio da tela; medir provou que
+estava em `0,0`, com 220×812. Era quadro no meio da animação. **Print no meio
+de transição não é medida.**
+
+### 2. A busca FIPE passou a dizer por que não achou
+
+Três dos quatro caminhos de `found:false` não escreviam nada — em 07/set os
+registros da Vercel mostravam a chamada do HB20S retornando 200 sem uma linha,
+e eu consertei duas vezes a coisa errada antes de reproduzir localmente.
+
+O mais útil é o do ano, que separa "peguei o candidato errado" de "a FIPE não
+tem esse ano":
+
+```
+fipe-search: "Fiat Uno Mille" ano 2026 longe demais —
+  topo "Uno Mille  ELX  2p e 4p" (score 8) tem [1997, 1996, 1995, 1994], distância 29
+```
+
+Conferido rodando o próprio arquivo contra a FIPE real. O quarto caminho
+("sem anos disponíveis") é ramo defensivo e **não foi exercitado** — fica
+declarado como não testado, não como testado.
+
+### 3. Chave por pessoa, e o card diz quem abordou
+
+**Não é multi-tenancy.** Yuri e a mãe são o mesmo negócio, com os mesmos dados
+de propósito — ele *quer* ver os carros que ela achou. O que faltava era
+atribuição.
+
+- `_auth.js` aceita `CNR_KEY_2..CNR_KEY_9`, no formato `Nome:chave`. Apagar a
+  variável dela corta **só ela**; com chave compartilhada, cortar a dela
+  derrubaria os dois. `CNR_OPERADOR` nomeia a chave principal.
+- Coluna `anuncios.operador`, carimbada pelo **servidor** a partir da chave,
+  nunca do corpo — e só quando o status muda. Ler a ficha com o 👁 não é
+  abordagem.
+- `operadorDe()` devolve `null` para chave legada (extensão, script da
+  planilha) e para portão desligado. Aí a coluna não entra no payload e a
+  anterior fica preservada. **Registro que diz quem foi está certo ou está
+  vazio, nunca chutado.**
+
+**A janela entre o deploy e a migration.** O deploy é automático no push e a
+migration é manual: existe um intervalo em que o código manda a coluna e o
+banco ainda não a tem. Sem rede, o PATCH voltaria 400 e o **botão ENVIEI
+pararia** — e ele descobriria no meio de uma abordagem. O PATCH detecta o erro
+da coluna, regrava sem ela e segue, deixando o motivo no log. Pode sair depois
+que a migration rodar.
+
+Foi o mesmo raciocínio de 03/set no `_auth.js` — só que ali eu protegi a
+extensão e esqueci o script da planilha. Desta vez a janela é conhecida e
+tratada.
+
+**22 testes, rodando os arquivos reais:** 13 no `_auth`, 8 no PATCH, 1 na
+degradação. Card conferido no navegador.
+
+### O que falta ao Yuri fazer
+
+| | |
+|---|---|
+| `supabase/migration-operador.sql` | Rodar no SQL Editor. Até lá o nome não aparece — e nada quebra |
+| `CNR_OPERADOR = Yuri` | Vercel → Environment Variables |
+| `CNR_KEY_2 = Mãe:<chave>` | Gerar a chave em `/entrar.html`, botão "criar chave" |
+
+### Pendente
+
+- `captacao.html` — espera ele testar o Parceiros com carros de verdade
+- Trocar a barra lateral e ligar o redirecionamento; tirar o atalho 🧪
+- CNPJ — trava o site de consultas e a venda do Gerador
+- Levantamento da senha, sem cobrança
+
+*Registrado em 8 de setembro de 2026.*
