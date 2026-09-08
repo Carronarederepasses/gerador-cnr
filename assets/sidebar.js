@@ -16,6 +16,11 @@
     { href: '/anuncios.html',    emoji: '📡', label: 'Anúncios' },
     { href: '/conversas.html',   emoji: '💬', label: 'Conversas' },
     { href: '/index.html',       emoji: '📝', label: 'Gerador' },
+    // TEMPORÁRIO — atalho para o Yuri testar a tela nova de Parceiros no
+    // celular, onde o app instalado não tem barra de endereço para digitar
+    // o link. Sai daqui quando o desmembramento for aprovado e o 'Gerador'
+    // acima virar as duas telas definitivas.
+    { href: '/parceiros.html',   emoji: '🧪', label: 'Parceiros (teste)' },
 
     { grupo: 'Vender' },
     { href: '/catalogo.html',    emoji: '📂', label: 'Catálogo' },
