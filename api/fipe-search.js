@@ -69,9 +69,20 @@ function score(haystack, needle, skipBasePenaltyFor = []) {
   // com ano 1998 e R$ 17.219 — indistinguível de um acerto na tela.
   //
   // Casar o mesmo pedaço quatro vezes não torna o carro mais parecido.
-  const words  = [...new Set(sep(nRaw).split(/[\s\-\/.()\[\]{}]+/).filter(w => w.length > 0))];
+  // O ponto entre dígitos NÃO separa: "1.0" é uma palavra, não "1" e "0".
+  //
+  // Medido em 07/set com "Hyundai HB20S 1.0 Manual" 2021: partindo no ponto,
+  // as palavras viravam [hb, 20s, 1, 0, manual]. Como "1" e "0" também saem
+  // de "1.6", "16V" e "12V", TODOS os 135 HB20S empatavam — a nota deixava de
+  // ordenar. O certo (Evolution 1.0 Mec.) caía para a posição 19, fora da
+  // janela, e a busca respondia que não encontrou.
+  //
+  // "1.0" inteiro tem 3 caracteres, entra na regra de palavra longa e vale
+  // pelo tamanho — e, principalmente, não casa com "1.6".
+  const CORTE  = /[\s\-\/()\[\]{}]+|\.(?!\d)|(?<!\d)\./;
+  const words  = [...new Set(sep(nRaw).split(CORTE).filter(w => w.length > 0))];
   const h      = sep(hRaw);
-  const hWords = h.split(/[\s\-\/.()\[\]{}]+/).filter(Boolean); // palavras isoladas do texto
+  const hWords = h.split(CORTE).filter(Boolean); // palavras isoladas do texto
 
   let pts = words.reduce((acc, w) => {
     if (w.length > 2) return acc + (h.includes(w) ? w.length : 0);
@@ -253,7 +264,18 @@ module.exports = async (req, res) => {
     const topCands = candidatos.filter(c =>
       c.marca.codigo === top.marca.codigo &&
       c.modelo.nome.toLowerCase().split(/[\s\-\/]+/)[0] === ancora
-    ).slice(0, 12);
+    // Janela de 30, não de 12.
+    //
+    // Medido em 07/set: para "HB20S 1.0 Manual" 2021, os primeiros modelos que
+    // TÊM 2021 estão nas posições 13, 14, 19, 20 e 30 — o primeiro ficava de
+    // fora por uma posição, e a busca respondia "não encontrei" para um carro
+    // que a FIPE tem. A Hyundai sozinha lista 261 modelos e 135 casam com
+    // "HB20S": doze é pouco para separar versões de um mesmo carro.
+    //
+    // O custo é a busca dos anos, que já é paralela (6 por vez): passa de 2
+    // para 5 rodadas. A concorrência segue em 6 de propósito — a Parallelum
+    // devolve 429 quando se abusa, e isso já aconteceu aqui em 04/set.
+    ).slice(0, 30);
 
     // A FIPE lista o mesmo ano separado por combustível (ex: "2020 Gasolina",
     // "2020 Diesel"), cada um com código e valor próprios. Sem essa
