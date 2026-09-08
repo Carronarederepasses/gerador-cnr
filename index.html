@@ -1684,7 +1684,10 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel)
     const resp = await fetch('/api/fipe-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ veiculo: veiculoTexto, ano: anoTexto, combustivel }),
+      // O valor que o anúncio declara vai junto: a busca usa ele para
+      // desempatar entre versões do mesmo carro, cujos nomes não distinguem
+      // ("1.0M Comfort Plus" x "1.0M Vision") mas cujos preços sim.
+      body: JSON.stringify({ veiculo: veiculoTexto, ano: anoTexto, combustivel, fipeTexto: fipeDoTexto }),
     });
     const data = await resp.json();
     if (!resp.ok || !data.found) {

@@ -148,7 +148,10 @@ module.exports = async (req, res) => {
   if (exigirChave(req, res)) return;
 
 
-  const { veiculo, ano, combustivel } = req.body || {};
+  // `fipeTexto` é o valor que o próprio anúncio declara, quando declara.
+  // Serve para desempatar entre versões do mesmo carro — ver o bloco
+  // "escolha por preço" mais abaixo.
+  const { veiculo, ano, combustivel, fipeTexto } = req.body || {};
   if (!veiculo || !ano) return res.status(400).json({ error: 'veiculo e ano obrigatórios' });
   const combLower = (combustivel || '').toLowerCase().trim();
 
@@ -275,32 +278,79 @@ module.exports = async (req, res) => {
     const bateComb = (a) => a.nome.toLowerCase().includes(combLower);
 
     let escolhido = null, anoObj = null, anoFallback = false;
+    let valorJaBuscado = null; // evita repetir a chamada da etapa 4
 
-    // 1ª passada: ano exato E combustível pedido.
+    // Todos os candidatos que têm o ano pedido, com o registro de ano que
+    // melhor serve a cada um.
     //
     // O combustível só era usado para escolher entre os anos de um modelo já
     // definido — nunca para escolher o modelo. Como o laço parava no primeiro
     // candidato com o ano certo, "Hilux SRV 2.8 diesel" caía na "Hilux CD SRV
     // 4x2 2.7 Flex" e "Corolla 2023 flex" caía na "Altis (Híbrido)": carros e
     // preços completamente diferentes do pedido.
-    if (combLower) {
-      for (const c of topCands) {
-        const match = doAno(anosCand(c)).find(bateComb);
-        if (match) { escolhido = c; anoObj = match; break; }
-      }
+    const comAno = [];
+    for (const c of topCands) {
+      const doAnoC = doAno(anosCand(c));
+      if (!doAnoC.length) continue;
+      const comComb = combLower ? doAnoC.find(bateComb) : null;
+      comAno.push({ c, ano: comComb || doAnoC[0], bateCombustivel: !!comComb });
     }
+    // Quem bate o combustível vem primeiro. `sort` é estável, então dentro de
+    // cada grupo a ordem por score é preservada — é exatamente a ordem que as
+    // duas passadas anteriores produziam.
+    comAno.sort((x, y) => (y.bateCombustivel ? 1 : 0) - (x.bateCombustivel ? 1 : 0));
 
-    // 2ª passada: ano exato, qualquer combustível (o comportamento antigo,
-    // agora como recuo e não como regra).
-    if (!escolhido) {
-      for (const c of topCands) {
-        const doAnoC = doAno(anosCand(c));
-        if (doAnoC.length) {
-          escolhido = c;
-          anoObj = (combLower && doAnoC.find(bateComb)) || doAnoC[0];
-          break;
+    if (comAno.length) {
+      let melhor = comAno[0];
+
+      // ── ESCOLHA POR PREÇO ──────────────────────────────────────────────
+      // Entre "HB20S 1.0M Comfort Plus", "1.0M Vision" e "1.0M Sense", todas
+      // batem igual em "HB20S 1.0 manual": o nome não desempata. O preço sim.
+      //
+      // Quando o anúncio declara a FIPE — o que é comum nos de parceiro,
+      // ainda que arredondada — busca o valor de cada versão e fica com a
+      // mais próxima. A diferença entre versões costuma ser muito maior que
+      // o arredondamento do anúncio, então arredondado serve.
+      //
+      // Isto teria evitado o X6 de 04/set: R$ 438 mil devolvidos para um
+      // anúncio que dizia R$ 298 mil. Lá a resposta foi AVISAR da divergência;
+      // aqui ela é escolher certo. O aviso continua, como rede de segurança.
+      const alvo = Number(fipeTexto);
+      if (Number.isFinite(alvo) && alvo > 0 && comAno.length > 1) {
+        const emReais = (s) => {
+          const n = parseFloat(String(s || '').replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
+          return Number.isFinite(n) && n > 0 ? n : null;
+        };
+        const cotados = (await emParalelo(comAno, 6, async (x) => {
+          const d = await fipeGet(`/marcas/${x.c.marca.codigo}/modelos/${x.c.modelo.codigo}/anos/${x.ano.codigo}`);
+          return { ...x, dados: d, valor: emReais(d.Valor) };
+        })).filter(x => x.valor);
+
+        if (cotados.length) {
+          cotados.sort((a, b) => Math.abs(a.valor - alvo) - Math.abs(b.valor - alvo));
+          const cand = cotados[0];
+          const dist = Math.abs(cand.valor - alvo) / alvo;
+
+          // Se nem a versão mais próxima chega perto, o número do anúncio não
+          // está descrevendo nenhuma delas — acontece quando o parceiro põe o
+          // preço de VENDA no campo da FIPE. Aí o preço não é pista, é ruído:
+          // melhor manter a ordem por nome e deixar o aviso de divergência
+          // falar, do que escolher uma versão com base em lixo.
+          if (dist <= 0.40) {
+            melhor = cand;
+            valorJaBuscado = cand.dados;
+            console.log(`fipe-search: preço escolheu "${cand.c.modelo.nome}" ` +
+                        `(R$ ${cand.valor}, anúncio R$ ${alvo}, ${Math.round(dist * 100)}%) ` +
+                        `entre ${cotados.length} versões`);
+          } else {
+            console.log(`fipe-search: preço ignorado — mais próximo é ${Math.round(dist * 100)}% ` +
+                        `do que o anúncio declara (R$ ${alvo}); mantida a ordem por nome`);
+          }
         }
       }
+
+      escolhido = melhor.c;
+      anoObj    = melhor.ano;
     }
 
     // 3ª passada: ninguém tem o ano exato → melhor score com ano mais próximo
@@ -339,7 +389,9 @@ module.exports = async (req, res) => {
     if (!anoObj) return res.status(200).json({ found: false, reason: 'sem anos disponíveis' });
 
     // ── 4. VALOR FIPE ─────────────────────────────────────────────────────────
-    const fipeData = await fipeGet(`/marcas/${escolhido.marca.codigo}/modelos/${escolhido.modelo.codigo}/anos/${anoObj.codigo}`);
+    // Se a escolha por preço já buscou este valor, reaproveita.
+    const fipeData = valorJaBuscado ||
+      await fipeGet(`/marcas/${escolhido.marca.codigo}/modelos/${escolhido.modelo.codigo}/anos/${anoObj.codigo}`);
 
     const result = {
       found: true,
