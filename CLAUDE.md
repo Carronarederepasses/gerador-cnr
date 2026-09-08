@@ -4077,3 +4077,83 @@ Em produção: as cinco páginas em 200 e a barra lateral servida com os dois
 itens novos.
 
 *Registrado em 8 de setembro de 2026, fim de tarde.*
+
+### 8 de setembro, noite — a Caixa Preta estava aberta
+
+Chegou alerta do Supabase (gerado em 06/set): *"Table publicly accessible"*.
+Estava certo, e a falha é minha, de 19/ago.
+
+### O que foi medido antes de mexer
+
+De fora, com a chave `publishable`:
+
+| | |
+|---|---|
+| `historico` | **50 linhas legíveis**, e `DELETE` aceito (HTTP 204) |
+| As outras 12 | 0 linhas — já tinham RLS |
+| Sem chave nenhuma | 401 em tudo |
+
+A `historico` é a pior para ficar aberta: guarda **cópias completas** de
+vendas, veículos e negociações. Campos vistos lá dentro: `comprador_cpf`,
+`comprador_telefone`, `vendedor_cpf`, `vendedor_telefone`, `chassi`, `placa`,
+`renavam`, `valor_compra`, `valor_venda`, `taxa_intermediacao`.
+
+**Esse CPF e esse telefone não são do Yuri.** É o mesmo argumento que fechou
+a API em 03/set, e não depende de probabilidade.
+
+### A origem, e ela estava escrita
+
+Checkpoint de 19/ago, Reforma 35 Etapa 1: *"Sem RLS nesta etapa — acesso via
+SERVICE_ROLE (server-side only)"*. Era verdade sobre o aplicativo e continuou
+verdade. O que faltou foi voltar. **Quem achou foi o robô do Supabase.**
+
+### Por que ligar RLS não quebrou nada
+
+Conferido antes de escrever a migration, não depois:
+
+- As 12 funções de `api/` usam `SUPABASE_SERVICE_ROLE_KEY`, e o `service_role`
+  **ignora RLS**. Nenhuma usa a chave anon.
+- **Zero menção a "supabase" em qualquer arquivo servido ao navegador.**
+- A extensão e o script da planilha falam com `/api`, não com o banco.
+
+`supabase/migration-rls.sql` liga RLS nas 10 tabelas conhecidas, **sem
+policy nenhuma** — de propósito: RLS ligada e sem policy significa que anon e
+authenticated não enxergam nada. Não existe usuário de banco neste sistema,
+existe o servidor.
+
+### Prova do depois
+
+```
+historico de fora:  50 linhas  →  Content-Range: */0
+rowsecurity:        12 de 13   →  13 de 13
+```
+
+E, o que importa mais, **o sistema seguiu escrevendo durante tudo**: o Yuri
+excluiu um veículo e duas negociações no meio do processo, e os três eventos
+entraram na Caixa Preta com hora certa. Ela foi de 50 para 53.
+
+Nenhum deploy: foi só banco.
+
+### O `.env` está limpo
+
+A chave `publishable` está no `.gitignore` e **nunca entrou no histórico do
+git** — conferido. Isso reduzia o risco de hoje, mas não é defesa:
+"publishable" é uma chave feita para ser exposta. Contar com o sigilo dela
+seria defesa fina demais.
+
+### Anotado, não construído: "vendeu na fonte"
+
+O Yuri excluiu um carro porque **venderam na fonte** antes de ele repassar.
+Não fez errado: o menu Status do catálogo só oferece Disponível, Reservado e
+Vendido — nenhum quer dizer isso. Excluir era a única saída.
+
+Contei antes de propor: das 7 exclusões de veículo no histórico, as de 19 e
+20/ago são meus testes e as quatro de 03/set são do dia da reorganização.
+**Caso real confirmado: um.**
+
+Um caso não sustenta campo novo — é a Estrutura Emergente do próprio projeto
+("o gatilho não é volume, é fricção"). Se repetir, vale, porque *quantos
+carros ele perde assim, e de quais fontes* é número de negócio. Por ora,
+anotado.
+
+*Registrado em 8 de setembro de 2026, noite.*
