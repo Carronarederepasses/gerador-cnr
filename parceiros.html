@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parceiros — Carro na Rede Repasses</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="/assets/auth.js"></script>
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/tokens.css">
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<link rel="stylesheet" href="/assets/gerador.css">
+</head>
+<body>
+
+<div id="cnr-toast"></div>
+
+<!-- BOTÃO GERAR FLUTUANTE (mobile) -->
+<div id="btn-gerar-float" style="display:none">
+  <button onclick="gerar()">▶ Gerar Anúncio</button>
+</div>
+
+<!-- AVISO DADOS DO CARRO ANTERIOR -->
+<div id="aviso-rascunho" style="display:none;background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent);padding:.7rem 1.5rem;font-size:.8rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
+  <span style="color:var(--accent);font-weight:500">⚠️ Tem dados do carro anterior salvos. Limpar para iniciar novo anúncio?</span>
+  <div style="display:flex;gap:.5rem">
+    <button onclick="limparRascunho()" style="font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;background:var(--accent);color:var(--surface);border:none;padding:.4rem .9rem;cursor:pointer;font-weight:600">Limpar e começar novo</button>
+    <button onclick="document.getElementById('aviso-rascunho').style.display='none'" style="font-family:'DM Sans',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);color:var(--accent);padding:.4rem .9rem;cursor:pointer">Manter dados</button>
+  </div>
+</div>
+
+<!-- AVISO DE NEGOCIAÇÕES PENDENTES -->
+<div id="neg-aviso" style="display:none;background:color-mix(in srgb,#f59e0b 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,#f59e0b 35%,transparent);padding:.65rem 2rem;font-size:.76rem;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
+  <span id="neg-aviso-txt" style="color:#f59e0b"></span>
+  <a href="/negociacoes.html" style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#f59e0b;text-decoration:none;border:1px solid color-mix(in srgb,#f59e0b 45%,transparent);padding:.3rem .7rem;white-space:nowrap">Ver negociações →</a>
+</div>
+
+<div class="app">
+
+<!-- ══ FORM ══ -->
+<div class="form-side">
+
+  <div class="mode-toggle">
+    <a class="mode-btn" href="/foto.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center">📸 Foto</a>
+  </div>
+
+  <div id="modo-coletados">
+
+  <!-- Sub-tabs Parceiros -->
+  <div class="parc-tabs">
+    <button class="parc-tab on" onclick="parcTab('texto')">Texto / Link</button>
+    <button class="parc-tab" onclick="parcTab('print')">Print + Laudo</button>
+  </div>
+
+  <!-- Sub: Texto / Link (existente) -->
+  <div id="parc-sub-texto">
+  <div class="fsec">
+    <div class="fsec-title">Texto ou link do anúncio</div>
+    <div class="fsec-hint"><b>Link da OLX:</b> cole o link direto — a extensão abre o anúncio no seu navegador e lê. <b>Outros sites:</b> colar o texto funciona sempre; o link pode ou não ser lido, depende do site.</div>
+    <div class="field">
+      <textarea class="paste-area" id="texto-colado" placeholder="Cole o link do anúncio da OLX, ou o texto de qualquer anúncio"></textarea>
+    </div>
+    <button class="btn-parse" id="btn-parse" onclick="processarIA()">▶ Processar com IA</button>
+    <div class="parse-st" id="parse-st"></div>
+  </div>
+  </div>
+
+  <!-- Sub: Print + Laudo -->
+  <div id="parc-sub-print" style="display:none">
+  <div class="fsec">
+    <div class="fsec-title">Print do site + Laudo Cautelar</div>
+    <div class="fsec-hint">Sobe o print do card e/ou o PDF da cautelar. Pode usar só um dos dois. A IA lê e preenche os campos abaixo — em caso de divergência na km, prevalece o laudo.</div>
+    <div class="parc-upload-row">
+      <div class="parc-drop" id="parc-drop-img" ondragover="parcDrag(event,'parc-drop-img')" ondragleave="parcDragLeave('parc-drop-img')" ondrop="parcDropImg(event)">
+        <input type="file" accept="image/*" id="parc-img-input" onchange="parcImgChange(event)">
+        <span class="parc-drop-ico">🖼️</span>
+        <span class="parc-drop-lbl">Print do site</span>
+        <span class="parc-drop-nm" id="parc-img-nm"></span>
+      </div>
+      <div class="parc-drop" id="parc-drop-pdf" ondragover="parcDrag(event,'parc-drop-pdf')" ondragleave="parcDragLeave('parc-drop-pdf')" ondrop="parcDropPdf(event)">
+        <input type="file" accept="application/pdf" id="parc-pdf-input" onchange="parcPdfChange(event)">
+        <span class="parc-drop-ico">📄</span>
+        <span class="parc-drop-lbl">Laudo Cautelar (PDF)</span>
+        <span class="parc-drop-nm" id="parc-pdf-nm"></span>
+      </div>
+    </div>
+    <button class="btn-parse" id="btn-parc-proc" onclick="processarParceiro()" disabled>▶ Processar com IA</button>
+    <div class="parc-st" id="parc-proc-st"></div>
+  </div>
+  </div>
+
+  <div class="fsec">
+    <div class="fsec-title">Dados do veículo</div>
+    <div class="field" style="margin-bottom:.7rem">
+      <label>Veículo (marca + modelo + versão)</label>
+      <input type="text" id="colet-veiculo" placeholder="ex: Volkswagen Virtus Sense 1.0 Flex">
+    </div>
+    <div class="g4">
+      <div class="field"><label>KM</label><input type="text" id="colet-km" placeholder="5.000 km"></div>
+      <div class="field"><label>Cor</label><input type="text" id="colet-cor" placeholder="Prata"></div>
+      <div class="field"><label>Ano</label><input type="text" id="colet-ano" placeholder="2023"></div>
+      <div class="field"><label>Combustível</label>
+        <select id="colet-combustivel">
+          <option value="">—</option>
+          <option>Flex</option><option>Gasolina</option><option>Álcool</option>
+          <option>Diesel</option><option>Híbrido</option><option>Elétrico</option><option>GNV</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2" style="margin-top:.7rem">
+      <div class="field"><label>Localização <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— o que sai no anúncio</span></label><input type="text" id="colet-regiao" placeholder="Garopaba-SC"></div>
+      <div class="field"><label>Valor de venda (R$)</label><input type="text" id="colet-valor" placeholder="88.990,00"></div>
+    </div>
+    <div class="field" style="margin-top:.7rem">
+      <label>FIPE (R$) — opcional</label>
+      <input type="text" id="colet-fipe" placeholder="—" oninput="_coletFipeManual = true">
+    </div>
+    <div class="fipe-st" id="cml-st" style="cursor:pointer"></div>
+
+    <!-- Cascata FIPE manual (fallback quando a automática erra/não acha) -->
+    <details id="colet-cascata" style="margin-top:.8rem">
+      <summary style="cursor:pointer;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);padding:.3rem 0">🔍 Buscar FIPE manualmente (se veio errada)</summary>
+      <div style="margin-top:.7rem">
+        <div class="g2" style="margin-bottom:.6rem">
+          <div class="field"><label>Marca</label><select id="csel-marca" onchange="onMarcaCol()"><option value="">Carregando...</option></select></div>
+          <div class="field"><label>Modelo</label><select id="csel-modelo" disabled onchange="onModeloCol()"><option value="">— selecione a marca</option></select></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Ano</label><select id="csel-ano" disabled onchange="onAnoCol()"><option value="">— selecione o modelo</option></select></div>
+          <div class="field"><label>Versão</label><select id="csel-versao" disabled onchange="onVersaoCol()"><option value="">— selecione o ano</option></select></div>
+        </div>
+        <div class="fipe-st" id="cfipe-st"></div>
+      </div>
+    </details>
+  </div>
+
+  </div><!-- /modo-coletados -->
+
+  <div id="blocos-anuncio">
+
+  <!-- OPCIONAIS POR CATEGORIA -->
+  <div class="fsec">
+    <div class="fsec-title fsec-toggle" onclick="toggleOpcionais()">
+      <span>Opcionais</span>
+      <span class="opc-count" id="opc-count"></span>
+      <span class="fsec-chevron" id="opc-chevron">▸</span>
+    </div>
+    <div id="opc-collapse" style="display:none">
+      <div class="fsec-hint">Padrão já marcado. Desmarque o que NÃO tem. Marque o que TEM nos diferenciais.</div>
+      <div id="opcionais-wrap"></div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTAÇÃO & HISTÓRICO (sempre visível) -->
+  <div class="fsec">
+    <div class="fsec-title">Documentação &amp; Histórico</div>
+    <div id="opc-docs"></div>
+  </div>
+
+  <!-- PNEUS -->
+  <div class="fsec">
+    <div class="fsec-title">Pneus</div>
+    <div class="fsec-hint">Se forem mistos, use a 2ª linha (ex: 2 novos + 2 meia-vida).</div>
+    <div class="g2">
+      <div class="field">
+        <label>Quantidade</label>
+        <select id="pneus-qtd-1">
+          <option value="4">4 pneus</option>
+          <option value="3">3 pneus</option>
+          <option value="2">2 pneus</option>
+          <option value="1">1 pneu</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="pneus-estado-1">
+          <option value="">Não informar</option>
+          <option value="novos">Novos</option>
+          <option value="bons">Bons</option>
+          <option value="meia-vida">Meia-vida</option>
+          <option value="fracos">A trocar (fracos)</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2" style="margin-top:.6rem">
+      <div class="field">
+        <label>+ Quantidade (se misto)</label>
+        <select id="pneus-qtd-2">
+          <option value="2">2 pneus</option>
+          <option value="1">1 pneu</option>
+          <option value="3">3 pneus</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>+ Estado (se misto)</label>
+        <select id="pneus-estado-2">
+          <option value="">—</option>
+          <option value="novos">Novos</option>
+          <option value="bons">Bons</option>
+          <option value="meia-vida">Meia-vida</option>
+          <option value="fracos">A trocar (fracos)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTOS E ITENS -->
+  <div class="fsec">
+    <div class="fsec-title">Documentos e itens</div>
+    <div class="g2">
+      <div class="field">
+        <label>Chave reserva</label>
+        <select id="chave-reserva">
+          <option value="">Não informar</option>
+          <option value="tem">Tem</option>
+          <option value="nao-tem">Não tem</option>
+          <option value="confirmar">A confirmar</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Manual do veículo</label>
+        <select id="manual-veiculo">
+          <option value="">Não informar</option>
+          <option value="tem">Tem</option>
+          <option value="nao-tem">Não tem</option>
+          <option value="confirmar">A confirmar</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-top:.7rem">
+      <label>Revisões registradas até (km) — opcional</label>
+      <input type="text" id="revisoes-km" placeholder="ex: 40.000">
+    </div>
+  </div>
+
+  <!-- BLINDAGEM -->
+  <div class="blind-wrap" id="blind-wrap">
+    <div class="fsec-title" style="border:none;padding:0;margin-bottom:.8rem">Detalhes da Blindagem</div>
+    <div class="field"><label>Marca da blindagem</label><input type="text" id="blind-marca" placeholder="ex: Hevox, Inbrap, Blindex..."></div>
+    <div class="field"><label>Nível de proteção</label><input type="text" id="blind-nivel" placeholder="ex: IIIA, Nível III-A..."></div>
+    <div class="field"><label>Tipo de vidro</label><input type="text" id="blind-vidro" placeholder="ex: vidros originais blindados..."></div>
+  </div>
+
+  <!-- AVALIAÇÃO / GASTOS / OBSERVAÇÃO LIVRE -->
+  <div class="fsec">
+    
+
+    
+
+    <div class="field" style="margin-top:.5rem">
+      <label>Gastos — descrição</label>
+      <textarea id="gastos" rows="3" placeholder="ex: Pintar para-choque dianteiro; higienização e preparação de loja." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+    
+
+    <div class="field" style="margin-top:.5rem">
+      <label>Observações rápidas</label>
+      <div id="obs-grid" class="tog-grid"></div>
+    </div>
+
+    <div class="field" style="margin-top:.5rem">
+      <label>Observação livre</label>
+      <textarea id="obs-custom" rows="3" placeholder="ex: *IPVA 2026 ABERTO 2% (R$ 3.810,00)*  •  *TETO-SOLAR*  •  Aceita troca" style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+  </div>
+
+  
+
+  <div class="btns-form" style="grid-template-columns:1fr 1fr">
+    <button class="btn-gen btn-sec" onclick="gerar()">▶ Gerar Anúncio</button>
+    <button id="btn-salvar-catalogo" class="btn-gen" onclick="salvarNoCatalogo(this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:.35rem"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Salvar no catálogo
+    </button>
+  </div>
+
+  <!-- PAINEL PÓS-SALVAMENTO -->
+  <div id="pos-save-panel" style="display:none;margin-top:.8rem;padding:.9rem 1rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;text-align:center">
+    <div style="font-size:.88rem;font-weight:600;color:#4caf50;margin-bottom:.7rem">✓ Veículo salvo no catálogo</div>
+    <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+      <a id="link-ver-catalogo" href="#" target="_blank" class="btn-gen" style="font-size:.75rem;padding:.45rem .9rem;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem">🚗 Ver no catálogo</a>
+      <button class="btn-gen btn-sec" onclick="iniciarNovaCaptacao()" style="font-size:.75rem;padding:.45rem .9rem">➕ Captar outro</button>
+    </div>
+  </div>
+
+  </div><!-- /blocos-anuncio -->
+
+</div><!-- /form-side -->
+
+<div class="preview-side">
+  <div class="prev-header">
+    <div class="prev-title">Preview do Anúncio</div>
+  </div>
+  <div class="wa-wrap">
+    <div class="empty" id="empty"><div class="empty-ico">💬</div><div class="empty-txt">Preencha e clique em Gerar</div></div>
+    <div id="wa-preview" style="display:none">
+      <div class="wa-bubble">
+        <div class="wa-txt" id="wa-txt" contenteditable="true" spellcheck="false" oninput="onPreviewEdit()"></div>
+        <div class="wa-time" id="wa-time"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="share-row" id="share-row">
+    <div class="share-label">Compartilhar</div>
+    <div class="share-btns">
+      <a class="btn-wa" id="btn-wa" href="#" target="_blank" onclick="agendarLimpeza()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        WhatsApp
+      </a>
+      <button class="btn-icon" id="btn-copy" onclick="copiar()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copiar
+      </button>
+      <button class="btn-icon" id="btn-share" onclick="compartilharNativo()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Compartilhar
+      </button>
+      <!-- Chamava autoSalvarParceiros() SEM argumento: `dados` chegava
+           undefined e a requisição ia sem corpo. Só não aparecia porque o
+           registro já existia (o Gerar Anúncio criava antes), então virava um
+           PATCH vazio — sem efeito e sem erro. Agora usa salvarNoCatalogo,
+           que confere marca/modelo, cria ou atualiza, e avisa se falhar. -->
+      <button class="btn-icon" id="btn-catalogo" onclick="salvarNoCatalogo(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+        Salvar no catálogo
+      </button>
+    </div>
+    <div class="share-link"><a href="/catalogo.html">📂 Abrir catálogo de oportunidades</a></div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// Esta tela é o modo "coletados" do Gerador antigo. O código comum já sabia
+// distinguir os dois modos, então declarar isto aqui faz tudo funcionar sem
+// precisar editar aquele arquivo.
+const currentMode = 'coletados';
+
+// O comum chama estas duas; cada tela fornece a sua.
+function setMode() { /* uma tela, um modo — não há o que alternar */ }
+function montarTextoAnuncio() { return montarTextoColetados(); }
+</script>
+<script src="/assets/gerador-comum.js"></script>
+<script>
+
+// ═══════════════════════════════════════════════════════════════
+// PARCEIROS — específico desta tela
+// Recortado do index.html em 07/set/2026, verbatim.
+// ═══════════════════════════════════════════════════════════════
+
+// BUSCA FIPE AUTOMÁTICA (modo Coletados)
+// ══════════════════════════════════════════════
+// Quanto o valor achado pode divergir do que o anúncio declara antes de virar
+// suspeita. Arredondamento de anúncio fica na casa de poucos por cento; 20% já
+// é outro carro.
+const FIPE_DIVERGENCIA = 0.20;
+
+const _soNumero = (t) => {
+  const n = parseFloat(String(t || '').replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel) {
+  const avisoP = parcial ? ' ⚠️ Do link vieram só veículo e ano — preencha KM, cor, preço e região.' : '';
+  // A FIPE que veio escrita no anúncio, antes de qualquer sobrescrita. É a
+  // referência para saber se a busca casou o carro certo — ver abaixo.
+  const fipeDoTexto = _soNumero(document.getElementById('colet-fipe')?.value);
+  try {
+    setParseSt('Buscando FIPE...', '');
+    const resp = await fetch('/api/fipe-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ veiculo: veiculoTexto, ano: anoTexto, combustivel }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.found) {
+      setParseSt('✓ Campos preenchidos — FIPE não identificada. Use a busca manual abaixo. 👇' + avisoP, 'ok');
+      abrirCascataColet();
+      return;
+    }
+    // Se o anúncio já dizia a FIPE e a busca discorda muito, o suspeito é a
+    // busca — não o anúncio.
+    //
+    // O código antes sobrescrevia SEMPRE, com o argumento de que valor de
+    // anúncio vem arredondado e a tabela é exata. O argumento erra o
+    // essencial: R$ 298.000 arredondado do carro certo vale mais que
+    // R$ 438.663 exato do carro errado.
+    //
+    // Caso real (03/set): "Bmw X6 M Coupe 2018", anúncio dizia 298.000 e a
+    // busca trouxe 438.663 — 47% acima. Na BMW o "M" tanto é o modelo
+    // esportivo quanto o pacote M Sport num X6 comum, e a busca casou o
+    // esportivo. O vendedor sabe qual é o carro dele; nossa busca chuta.
+    const achado = _soNumero(data.valorNumerico);
+    const divergiu = fipeDoTexto && achado &&
+                     Math.abs(achado - fipeDoTexto) / fipeDoTexto > FIPE_DIVERGENCIA;
+
+    if (divergiu) {
+      const pct = Math.round(Math.abs(achado - fipeDoTexto) / fipeDoTexto * 100);
+      const casouNome = [data.marca, data.modelo].filter(Boolean).join(' ');
+      // Mantém o do anúncio e mostra o outro, em vez de escolher calado.
+      setParseSt(
+        `⚠️ Duas FIPEs diferentes — não sobrescrevi.\n` +
+        `Anúncio: R$ ${fipeDoTexto.toLocaleString('pt-BR')}  ·  ` +
+        `Busca: ${data.valor} (${casouNome}), ${pct}% de diferença.\n` +
+        `Mantive a do anúncio. Se a busca é que está certa, ajuste na busca manual. 👇` + avisoP,
+        'warn');
+      abrirCascataColet();
+      buscarMercadoML(`${veiculoTexto} ${anoTexto}`, 'cml-st');
+      return;
+    }
+
+    // Só sobrescreve se o usuário não corrigiu manualmente
+    if (!_coletFipeManual) {
+      document.getElementById('colet-fipe').value = data.valorNumerico;
+    }
+    // Preenche o combustível caso a IA não tenha identificado no texto
+    const combEl = document.getElementById('colet-combustivel');
+    if (combEl && !combEl.value && data.combustivel) combEl.value = data.combustivel;
+    // Dizer QUAL carro casou, não só o valor.
+    //
+    // Antes a mensagem era "✓ FIPE atual: R$ 17.219" — e um acerto ficava
+    // idêntico a um erro. O Gol 1.0 de 2018 casava com um Gol GL 1.6 de 1998
+    // e ele não tinha como perceber: o número aparecia com ✓ verde igual.
+    //
+    // É o que o MasterFipe faz e por isso não erra: lá ele escolhe da lista e
+    // vê o que escolheu. Aqui a escolha é automática, então mostrar o que foi
+    // escolhido é o mínimo.
+    const casou = [data.marca, data.modelo].filter(Boolean).join(' ');
+    const avisoAno = data.anoFallback ? ` — ano ${data.ano}, o mais próximo disponível` : '';
+    setParseSt(
+      `✓ FIPE ${data.mesReferencia || 'atual'}: ${data.valor}\n` +
+      `${casou}${avisoAno}` +
+      `${avisoP || ' — confira se é esse mesmo; se não for, use a busca manual abaixo. 👇'}`,
+      data.anoFallback ? 'warn' : 'ok');
+    // Busca preços no Mercado Livre para contexto de mercado
+    buscarMercadoML(`${veiculoTexto} ${anoTexto}`, 'cml-st');
+  } catch(e) {
+    setParseSt('✓ Campos preenchidos — FIPE indisponível. Use a busca manual abaixo. 👇' + avisoP, 'ok');
+    abrirCascataColet();
+    console.error('buscarFIPEColetados:', e);
+  }
+}
+
+// ──────────────────────────────────────────────
+
+// PROCESSAR COM IA (modo Coletados)
+// ══════════════════════════════════════════════
+const OPCIONAIS_MAP = {
+  'ar-condicionado':       'ar',
+  'ar-condicionado digital':'ar_digital',
+  'direcao-eletrica':      'direcao',
+  'vidros-eletricos':      'vidros',
+  'travas-eletricaas':     'travas',
+  'travas-eletricas':      'travas',
+  'retrovisores-eletricos':'retrovisores',
+  'comandos-no-volante':   'volante',
+  'multimidia':            'multimidia',
+  'android-auto-carplay':  'carplay',
+  'piloto-automatico':     'piloto',
+  'bancos-em-couro':       'couro',
+  'teto-solar':            'teto_solar',
+  'teto-panoramico':       'teto_pan',
+  'keyless':               'keyless',
+  'partida-remota':        'partida_rem',
+  'freio-abs':             'abs',
+  'airbag':                'airbag',
+  'controle-de-tracao':    'controle_tr',
+  'sensor-estacionamento': 'sensor_estac',
+  'camera-re':             'camera_re',
+  'cambio-manual':         'cambio_man',
+  'cambio-automatico':     'cambio_aut',
+  'cambio-cvt':            'cambio_cvt',
+  'tracao-4x4':            'tracao_4x4',
+  'rodas-liga-leve':       'rodas_liga',
+  'farol-led-xenon':       'farol_led',
+  'unico-dono':            'unico_dono',
+  'ipva-pago':             'ipva_pago',
+  'sem-multas-debitos':    'sem_debitos',
+  'revisoes-concessionaria':'revisoes',
+  'na-garantia':           'garantia',
+  'cautelar-aprovada':     'cautelar',
+  'blindado':              'blindado',
+};
+
+function mapOpcionais(lista) {
+  if (!Array.isArray(lista) || !lista.length) return;
+  const toMark = new Set(lista.map(k => OPCIONAIS_MAP[k]).filter(Boolean));
+  // Só ADICIONA o que a IA encontrou — não toca nos que já estão marcados
+  document.querySelectorAll('#opcionais-wrap .tog, #opc-docs .tog').forEach(tog => {
+    if (toMark.has(tog.dataset.id) && !tog.classList.contains('on')) {
+      tog.classList.add('on');
+      tog.querySelector('.togbox').textContent = '✓';
+      if (tog.dataset.id === 'blindado') {
+        document.getElementById('blind-wrap').classList.add('show');
+      }
+    }
+  });
+  atualizaContagemOpc();
+}
+
+
+// ── PARCEIROS: sub-tabs ───────────────────────────────────────────────────
+function parcTab(sub) {
+  document.getElementById('parc-sub-texto').style.display = sub === 'texto' ? '' : 'none';
+  document.getElementById('parc-sub-print').style.display = sub === 'print' ? '' : 'none';
+  document.querySelectorAll('.parc-tab').forEach((b, i) => {
+    b.classList.toggle('on', (i === 0 && sub === 'texto') || (i === 1 && sub === 'print'));
+  });
+}
+
+// ── PARCEIROS: drag/drop helpers ─────────────────────────────────────────
+function parcDrag(e, id) { e.preventDefault(); document.getElementById(id).classList.add('drag'); }
+function parcDragLeave(id) { document.getElementById(id).classList.remove('drag'); }
+
+let _parcImgData  = null; // base64 da imagem do card
+let _parcPdfText  = null; // texto extraído do PDF
+let _parcPdfImg   = null; // página 1 do PDF renderizada como imagem (fallback quando não há card)
+
+function parcImgChange(e) { _loadParcImg(e.target.files[0]); }
+function parcDropImg(e) {
+  e.preventDefault();
+  document.getElementById('parc-drop-img').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) _loadParcImg(f);
+}
+function _loadParcImg(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    // Comprime para max 1200px e qualidade 80% — evita estourar limite do Vercel (4.5MB)
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      _parcImgData = canvas.toDataURL('image/jpeg', 0.80);
+      document.getElementById('parc-img-nm').textContent = file.name;
+      document.getElementById('parc-drop-img').classList.add('ok');
+      _atualizaBtnParc();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function parcPdfChange(e) { _loadParcPdf(e.target.files[0]); }
+function parcDropPdf(e) {
+  e.preventDefault();
+  document.getElementById('parc-drop-pdf').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type === 'application/pdf') _loadParcPdf(f);
+}
+function _loadParcPdf(file) {
+  if (!file) return;
+  document.getElementById('parc-pdf-nm').textContent = file.name;
+  document.getElementById('parc-drop-pdf').classList.add('ok');
+  setParcSt('Lendo laudo...', 'loading');
+
+  // Extrai texto e renderiza como imagem em paralelo
+  Promise.all([
+    _extrairTextoPdf(file).catch(() => ''),
+    _renderPdfParaImagem(file).catch(() => null),
+  ]).then(([txt, img]) => {
+    _parcPdfText = txt;
+    _parcPdfImg  = img;
+    _atualizaBtnParc();
+    const temTexto = txt && txt.trim().length > 20;
+    setParcSt(
+      img
+        ? 'Laudo pronto' + (temTexto ? ' (texto + imagem).' : ' (imagem renderizada).')
+        : 'Laudo carregado.',
+      'ok'
+    );
+  });
+}
+
+async function _renderPdfParaImagem(file) {
+  if (!window.pdfjsLib) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const buf  = await file.arrayBuffer();
+  const pdf  = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  const nPgs = Math.min(pdf.numPages, 2);
+
+  const canvases = [];
+  for (let i = 1; i <= nPgs; i++) {
+    const pg       = await pdf.getPage(i);
+    const viewport = pg.getViewport({ scale: 2.0 });
+    const c = document.createElement('canvas');
+    c.width  = viewport.width;
+    c.height = viewport.height;
+    await pg.render({ canvasContext: c.getContext('2d'), viewport }).promise;
+    canvases.push(c);
+  }
+
+  const totalH = canvases.reduce((s, c) => s + c.height, 0);
+  const final  = document.createElement('canvas');
+  final.width  = canvases[0].width;
+  final.height = totalH;
+  const ctx    = final.getContext('2d');
+  let y = 0;
+  for (const c of canvases) { ctx.drawImage(c, 0, y); y += c.height; }
+
+  return final.toDataURL('image/jpeg', 0.80);
+}
+
+function _atualizaBtnParc() {
+  document.getElementById('btn-parc-proc').disabled = !(_parcImgData || _parcPdfImg);
+}
+
+async function _extrairTextoPdf(file) {
+  // Carrega pdf.js dinamicamente (CDN) se ainda não carregou
+  if (!window.pdfjsLib) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const buf = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  const paginas = Math.min(pdf.numPages, 8); // primeiras 8 páginas são suficientes
+  let texto = '';
+  for (let i = 1; i <= paginas; i++) {
+    const pg = await pdf.getPage(i);
+    const content = await pg.getTextContent();
+    texto += content.items.map(it => it.str).join(' ') + '\n';
+  }
+  return texto.slice(0, 8000); // limita para não estourar o contexto da IA
+}
+
+function setParcSt(msg, cls) {
+  const el = document.getElementById('parc-proc-st');
+  el.textContent = msg;
+  el.className = 'parc-st' + (cls ? ' ' + cls : '');
+}
+
+async function processarParceiro() {
+  const imagem = _parcImgData || _parcPdfImg;
+  if (!imagem) { setParcSt('Suba o print ou o laudo primeiro.'); return; }
+
+  const btn = document.getElementById('btn-parc-proc');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⏳ Processando...';
+  setParcSt('Enviando para a IA...', 'loading');
+
+  try {
+    const resp = await fetch('/api/parse?parceiro=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imagem, laudoTexto: _parcPdfText || '' }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      // A API agora diz o motivo real (sobrecarga, chave recusada, sem
+      // crédito, imagem grande) em vez de "serviço indisponível" para tudo.
+      // `detalhe` traz o que cada modelo respondeu — vai para o console, para
+      // quando a mesma falha voltar e não der para reproduzir na hora.
+      if (Array.isArray(data.detalhe)) console.error('[IA] falhas por modelo:', data.detalhe);
+      throw new Error(data.error || 'Erro desconhecido');
+    }
+
+    const fill = (id, val) => { if (val) document.getElementById(id).value = val; };
+    fill('colet-veiculo', data.veiculo);
+    fill('colet-ano',     data.ano);
+    fill('colet-km',      data.km ? (fmtKm(String(data.km)) || data.km) + ' km' : null);
+    fill('colet-cor',     data.cor);
+    fill('colet-valor',   data.valor);
+    fill('colet-combustivel', data.combustivel);
+
+    if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
+    if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
+    aplicarPneus(data.pneus);
+    fill('revisoes-km', data.revisoes_km ? Number(String(data.revisoes_km).replace(/\D/g,'')).toLocaleString('pt-BR') : null);
+    fill('blind-marca', data.blindagem_marca);
+    fill('blind-nivel', data.blindagem_nivel);
+    fill('blind-vidro', data.blindagem_vidro);
+    if (data.blindagem_marca || data.blindagem_nivel || data.blindagem_vidro) {
+      document.getElementById('blind-wrap').classList.add('show');
+      document.querySelectorAll('.tog[data-id="blindado"]').forEach(tog => {
+        if (!tog.classList.contains('on')) {
+          tog.classList.add('on');
+          const box = tog.querySelector('.togbox');
+          if (box) box.textContent = '✓';
+        }
+      });
+      atualizaContagemOpc();
+    }
+    if (data.fipe) fill('colet-fipe', data.fipe);
+    if (data.gastos) { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
+    if (data.extras) { const e = document.getElementById('obs-custom'); if (e && !e.value) e.value = data.extras; }
+    // Fix IPVA: mesmo fallback que processarIA() — recupera 'ipva-pago' de extras antes de perder.
+    const IPVA_RE_PARC = /ipva[\s_-]*(pago|quitado|em\s*dia|ok|\d{4})/i;
+    if (IPVA_RE_PARC.test(data.extras) && !data.opcionais?.includes('ipva-pago')) {
+      data.opcionais = [...(data.opcionais || []), 'ipva-pago'];
+    }
+    mapOpcionais(data.opcionais);
+
+    setParcSt('✓ Campos preenchidos. Buscando FIPE...', 'ok');
+
+    // Dispara busca FIPE igual ao fluxo "Texto / Link"
+    if (data.veiculo && data.ano) {
+      _coletFipeManual = false; // novo processamento → permite busca automática
+      await buscarFIPEColetados(data.veiculo, data.ano, false, data.combustivel);
+    }
+
+    toast('Dados extraídos com sucesso!');
+    mostrarMatchPopup(data.veiculo ? data.veiculo.split(' ')[0] : null, data.valor);
+  } catch (err) {
+    setParcSt('Erro: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = '▶ Processar com IA';
+  }
+}
+
+// ── FIM PARCEIROS ─────────────────────────────────────────────────────────
+
+function setParseSt(msg, cls) {
+  const el = document.getElementById('parse-st');
+  el.textContent = msg;
+  el.className = 'parse-st' + (cls ? ' ' + cls : '');
+}
+
+// Pede à extensão que abra o anúncio numa aba em segundo plano e devolva o
+// texto renderizado. Rejeita em vez de cair no servidor: se a extensão não
+// respondeu (não instalada, ou content script órfão depois de recarregar a
+// extensão sem dar F5), o certo é dizer isso — cair no servidor calado
+// reintroduziria justamente a leitura que saímos de lá para evitar.
+function lerAnuncioPelaExtensao(url, teto = 45000) {
+  return new Promise((resolve, reject) => {
+    const encerrar = () => {
+      clearTimeout(timer);
+      window.removeEventListener('message', ouvinte);
+    };
+    const timer = setTimeout(() => {
+      encerrar();
+      reject(new Error('extensão não respondeu'));
+    }, teto);
+
+    function ouvinte(ev) {
+      if (ev.source !== window || ev.data?.cnr_type !== 'CNR_ANUNCIO_LIDO') return;
+      encerrar();
+      if (ev.data.ok && ev.data.texto) resolve(ev.data.texto);
+      else reject(new Error(ev.data.err || 'falha na leitura'));
+    }
+
+    window.addEventListener('message', ouvinte);
+    window.postMessage({ cnr_type: 'CNR_LER_ANUNCIO', url }, '*');
+  });
+}
+
+async function processarIA() {
+  let texto = document.getElementById('texto-colado').value.trim();
+  if (!texto) { setParseSt('Cole o texto ou o link antes de processar.'); return; }
+
+  const btn = document.getElementById('btn-parse');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = '⏳ Processando...';
+  setParseSt('Consultando IA...', '');
+
+  try {
+    // Se colou um link (ex: OLX), busca o conteúdo da página antes
+    let linkParcial = false;
+    const ehLink = /^https?:\/\/\S+$/i.test(texto);
+    if (ehLink) {
+      // Links da OLX são lidos pela extensão, no navegador do próprio
+      // operador e na sessão dele. Antes essa leitura partia do servidor da
+      // Vercel com User-Agent forjado — era o único trecho do sistema que se
+      // parecia com crawling. Outros sites seguem pelo servidor: os Termos da
+      // OLX não os alcançam.
+      if (/^https:\/\/([a-z0-9-]+\.)*olx\.com\.br\//i.test(texto)) {
+        setParseSt('Abrindo o anúncio no seu navegador...', '');
+        try {
+          texto = await lerAnuncioPelaExtensao(texto);
+        } catch (e) {
+          throw new Error(
+            'Não consegui ler o anúncio pelo navegador (' + e.message + '). ' +
+            'Confira se a extensão Captação Inteligente está ativa e recarregue esta página — ' +
+            'ou cole o texto do anúncio em vez do link.'
+          );
+        }
+        setParseSt('Anúncio lido — extraindo dados com a IA...', '');
+      } else {
+        setParseSt('Lendo o anúncio do link...', '');
+        const rl = await fetch('/api/fetch-anuncio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: texto }),
+        });
+        const dl = await rl.json();
+        if (!rl.ok || !dl.texto) throw new Error(dl.error || 'Não consegui ler o link.');
+        texto = dl.texto;
+        linkParcial = !!dl.parcial;
+        setParseSt('Link lido — extraindo dados com a IA...', '');
+      }
+    }
+
+    const resp = await fetch('/api/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      // A API agora diz o motivo real (sobrecarga, chave recusada, sem
+      // crédito, imagem grande) em vez de "serviço indisponível" para tudo.
+      // `detalhe` traz o que cada modelo respondeu — vai para o console, para
+      // quando a mesma falha voltar e não der para reproduzir na hora.
+      if (Array.isArray(data.detalhe)) console.error('[IA] falhas por modelo:', data.detalhe);
+      throw new Error(data.error || 'Erro desconhecido');
+    }
+
+    const fill = (id, val) => { if (val) document.getElementById(id).value = val; };
+    fill('colet-veiculo', data.veiculo);
+    fill('colet-ano',     data.ano);
+    fill('colet-km',      data.km ? (fmtKm(String(data.km)) || data.km) + ' km' : null);
+    fill('colet-cor',     data.cor);
+    fill('colet-regiao',  data.regiao);
+    fill('colet-valor',   data.valor);
+    fill('colet-combustivel', data.combustivel);
+    if (data.chave_reserva) document.getElementById('chave-reserva').value = data.chave_reserva;
+    if (data.manual)        document.getElementById('manual-veiculo').value = data.manual;
+    aplicarPneus(data.pneus);
+    if (data.gastos)        { const g = document.getElementById('gastos'); if (!g.value) g.value = data.gastos; }
+    fill('revisoes-km', data.revisoes_km ? Number(String(data.revisoes_km).replace(/\D/g,'')).toLocaleString('pt-BR') : null);
+    fill('blind-marca', data.blindagem_marca);
+    fill('blind-nivel', data.blindagem_nivel);
+    fill('blind-vidro', data.blindagem_vidro);
+    if (data.blindagem_marca || data.blindagem_nivel || data.blindagem_vidro) {
+      document.getElementById('blind-wrap').classList.add('show');
+      // Garantir que o toggle "blindado" também fica marcado quando a IA detectou blindagem
+      document.querySelectorAll('.tog[data-id="blindado"]').forEach(tog => {
+        if (!tog.classList.contains('on')) {
+          tog.classList.add('on');
+          const box = tog.querySelector('.togbox');
+          if (box) box.textContent = '✓';
+        }
+      });
+      atualizaContagemOpc();
+    }
+    // Pré-preenche FIPE do texto como fallback (API pode sobrescrever com valor oficial)
+    if (data.fipe) fill('colet-fipe', data.fipe);
+    // Extras: informações que não têm toggle — vai para Observação personalizada
+    // Filtro defensivo: remove menções a itens que já são opcionais (evita duplicatas)
+    if (data.extras) {
+      const EXTRAS_BLOQUEADOS = [
+        /ipva\s*pago/i, /único\s*dono/i, /unico\s*dono/i,
+        /sem\s*(multas?|débitos?|debitos?)/i, /na\s*garantia/i, /em\s*garantia/i,
+        /revisões?\s*(em\s*)?(concession[aá]ria|dealer)/i,
+        /pneus?\s*zero/i, /farol\s*(led|xenon)/i, /blindad[oa]/i, /blindagem/i,
+        /câmbio\s*(manual|automático|cvt)/i, /cambio\s*(manual|automatico|cvt)/i,
+        /ar[- ]condicionado/i, /direção\s*elétrica/i, /direcao\s*eletrica/i,
+        /vidros?\s*elétricos?/i, /travas?\s*elétrica/i, /multimidia/i,
+      ];
+      // Fix B — Caixa Preta: fallback IPVA — se extras contiver indicação de IPVA mas opcionais
+      // não trouxer 'ipva-pago' (IA classificou no campo errado), recupera o dado antes de perder.
+      const IPVA_RE = /ipva[\s_-]*(pago|quitado|em\s*dia|ok|\d{4})/i;
+      if (IPVA_RE.test(data.extras) && !data.opcionais?.includes('ipva-pago')) {
+        data.opcionais = [...(data.opcionais || []), 'ipva-pago'];
+      }
+      let extrasLimpo = data.extras;
+      EXTRAS_BLOQUEADOS.forEach(re => {
+        extrasLimpo = extrasLimpo.replace(re, '');
+      });
+      // Remove vírgulas e espaços soltos que sobraram
+      extrasLimpo = extrasLimpo.replace(/^[\s,]+|[\s,]+$/g, '').replace(/,\s*,/g, ',').trim();
+      if (extrasLimpo) {
+        const obsEl = document.getElementById('obs-custom');
+        obsEl.value = obsEl.value ? obsEl.value + ', ' + extrasLimpo : extrasLimpo;
+      }
+    }
+
+    mapOpcionais(data.opcionais);
+
+    const preenchidos = ['veiculo','ano','km','cor','regiao','valor']
+      .filter(k => data[k]).join(', ');
+    setParseSt('✓ Preenchido: ' + (preenchidos || 'nenhum campo detectado') + ' — buscando FIPE...', 'ok');
+
+    // Busca a FIPE oficial mesmo quando o anúncio já traz um valor — o do
+    // anúncio costuma vir arredondado. Mas a busca NÃO sobrescreve calada:
+    // se os dois divergirem muito, quem decide é ele (ver buscarFIPEColetados).
+    //
+    // Os dois comentários que estavam aqui se contradiziam — um dizia "se não
+    // veio no texto", o outro "sempre busca, ignora o texto" — e o que valia
+    // era o segundo. Foi por isso que a X6 saiu com a FIPE de outro carro.
+    if (data.veiculo && data.ano) {
+      _coletFipeManual = false; // novo processamento → permite busca automática
+      buscarFIPEColetados(data.veiculo, data.ano, linkParcial, data.combustivel);
+    }
+    mostrarMatchPopup(data.veiculo ? data.veiculo.split(' ')[0] : null, data.valor);
+
+  } catch (err) {
+    setParseSt('Erro: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.textContent = '▶ Processar com IA';
+  }
+}
+
+// ══════════════════════════════════════════════
+
+// GERAR — COLETADOS
+// ══════════════════════════════════════════════
+function montarTextoColetados() {
+  const veiculo   = document.getElementById('colet-veiculo').value.trim();
+  const kmRaw     = document.getElementById('colet-km').value.trim();
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
+  const cor       = document.getElementById('colet-cor').value.trim();
+  const ano       = document.getElementById('colet-ano').value.trim();
+  const regiao    = document.getElementById('colet-regiao').value.trim();
+  const valor       = document.getElementById('colet-valor').value.trim();
+  const fipeVal     = document.getElementById('colet-fipe').value.trim();
+  const gastos      = document.getElementById('gastos').value.trim();
+  const obsCustom   = document.getElementById('obs-custom').value.trim();
+  const combustivel = document.getElementById('colet-combustivel').value.trim();
+
+  const onIds  = getAllOnIds();
+  const obsIds = getOnIds('#obs-grid');
+  const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
+
+  let linhas = [];
+
+  let l1 = '';
+  if (veiculo) l1 += `*${toTitleCase(veiculo)}*`;
+  const det = [ano, combustivel, km, cor ? cor.toLowerCase() : ''].filter(Boolean);
+  if (det.length) l1 += (veiculo ? ', ' : '') + det.join(', ');
+  if (l1) linhas.push(l1);
+
+  if (regiao) linhas.push(`\n📍 Localização: ${regiao}`);
+
+  const itensOn = onIds.filter(id => id !== 'blindado');
+  const extras = linhasExtras();
+  if (itensOn.length || onIds.includes('blindado') || extras.length) {
+    linhas.push('');
+    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
+    extras.forEach(l => linhas.push(l));
+    if (onIds.includes('blindado')) {
+      const bM = document.getElementById('blind-marca').value.trim();
+      const bN = document.getElementById('blind-nivel').value.trim();
+      const bV = document.getElementById('blind-vidro').value.trim();
+      let bl = '🛡️ Blindado';
+      if (bM) bl += ` — ${bM}`;
+      if (bN) bl += `, ${bN}`;
+      if (bV) bl += ` (${bV})`;
+      linhas.push(bl);
+    }
+  }
+
+  if (obsIds.length) {
+    linhas.push('');
+    obsIds.forEach(id => linhas.push(obsMap[id] || id));
+  }
+  if (obsCustom) {
+    linhas.push('');
+    linhas.push(obsCustom);
+  }
+  if (gastos) { linhas.push(''); linhas.push('*GASTOS:*'); linhas.push(gastos); }
+
+  linhas.push('');
+  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
+  if (fipeVal) linhas.push(`*FIPE: ${fmtR(fipeVal)}*`);
+
+  linhas.push('');
+  linhas.push('https://instagram.com/carronarederepasses');
+
+  // Mesma normalização do anúncio comum. Este montador não foi unificado
+  // com montarTextoAnuncio() porque de fato difere — só ele tem a seção
+  // *GASTOS:*. As duas cópias já haviam divergido; o que se unifica aqui é
+  // a arrumação final, não a composição.
+  return _normalizarAnuncio(linhas);
+}
+
+// Monta e mostra. Separado do montador acima para que o catálogo possa pedir
+// só o texto, sem desenhar o balão.
+function gerarColetados() {
+  const texto = montarTextoColetados();
+  renderPreview(texto);
+  mostrarShare(texto);
+}
+
+// O botão da tela chama gerar(); aqui ele é sempre o de parceiros.
+function gerar() { gerarColetados(); }
+
+// ── INIT ────────────────────────────────────────────────────────
+buildOpcionais();
+buildObs();
+(async () => {
+  await loadMarcas();
+  // Só a cascata desta tela: sel-marca/sel-modelo são da Captação.
+  ['csel-marca', 'csel-modelo'].forEach(id => makeSearchable(id, 'Digite para filtrar...'));
+
+  const temRascunho = (() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+      return !!(d && d.campos && Object.values(d.campos).some(v => v));
+    } catch (e) { return false; }
+  })();
+  const avisoEl = document.getElementById('aviso-rascunho');
+  if (temRascunho && avisoEl) avisoEl.style.display = 'flex';
+
+  await restaurarEstado();
+  resyncSearchables();
+
+  // Auto-save ligado só depois de restaurar, para não gravar durante a restauração.
+  document.addEventListener('input',  salvarEstadoDebounced);
+  document.addEventListener('change', salvarEstadoDebounced);
+  document.addEventListener('click', e => { if (e.target.closest('.tog')) salvarEstadoDebounced(); });
+})();
+
+</script>
+</body>
+</html>
