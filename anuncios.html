@@ -93,6 +93,11 @@
   .bs-morto    {background:var(--surface);color:var(--text-mid);border:1px solid var(--line)}
   .card-preco{font-size:1.1rem;font-weight:700}
   .card-meta{font-size:.78rem;color:var(--text-mid);display:flex;flex-wrap:wrap;gap:.2rem .8rem}
+  /* Quem abordou. Fica na mesma linha do resto, mas em branco e mais pesado:
+     o Yuri clicou, olhou e não achou o nome no meio de seis itens cinzas do
+     mesmo tamanho. Com duas pessoas na mesma lista, "quem já falou com esse
+     vendedor" vale mais que "OLX", que é igual em todos os cards. */
+  .meta-operador{color:var(--text);font-weight:600}
   /* Ficha lida do anúncio. Altura limitada com rolagem própria: descrição
      de vendedor varia de uma linha a vinte, e um card esticado quebraria
      o alinhamento do grid inteiro. */
@@ -587,7 +592,7 @@ function cardHTML(a) {
         ${chipHoje ? `<span>${chipHoje}</span>` : ''}
         ${fichaChips}
         ${a.localizacao ? `<span>📍 ${esc(a.localizacao)}</span>` : ''}
-        ${a.operador ? `<span>👤 ${esc(a.operador)}</span>` : ''}
+        ${a.operador ? `<span class="meta-operador">👤 ${esc(a.operador)}</span>` : ''}
         <span>OLX</span>
         <span>Encontrado ${foundAgo}</span>
         ${seenAgo ? `<span>Visto ${seenAgo}</span>` : ''}
