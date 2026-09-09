@@ -245,10 +245,40 @@
 
 // ── Mensagem de abordagem (mesmo texto do olx-chat.js) ────────────
 // Usada como fallback de clipboard quando a extensão não está instalada.
+// Mensagem de abordagem — escrita pelo Yuri em 09/set/2026.
+//
+// A anterior gerava resposta desconfiada ("acham que é golpe"), e a causa
+// estava numa frase: "seu veículo pode ter um bom perfil para alguns dos
+// negócios que acompanho". Não dizia nada, e vago é o que o vendedor lê como
+// "não vou te contar o que eu faço". Junto com "compradores e parceiros do
+// setor automotivo", dava um tom de empresa que não é o dele.
+//
+// O que mudou, e por quê:
+//   - apresenta a marca como fato ("tenho um Instagram chamado Carro na
+//     Rede"), sem supor que o vendedor já conhece — sacada dele
+//   - diz o que ele faz PELO VENDEDOR: "conectamos vendedores a possíveis
+//     compradores". A versão antiga só falava dele.
+//   - saiu a pergunta do preço: pedir desconto antes de trocar duas palavras
+//     convida o "tá anunciado". Fica para a segunda mensagem.
+//
+// Cheguei a citar o nome do carro, contra "cheiro de disparo em massa". O
+// Yuri cortou, e estava certo: no chat da OLX a conversa já nasce grudada no
+// anúncio, com o carro no topo da tela. Nomear era redundante — o argumento
+// veio de e-mail frio, onde esse contexto não existe.
+//
+// A PRIMEIRA FRASE NÃO PODE MUDAR: 'Olá! Tudo bem? Meu nome é Yuri' é a
+// ÂNCORA que olx-chat-monitor.js usa para reconhecer a mensagem dele dentro
+// do chat e separá-la do que o vendedor escreveu. Mudar aqui sem mudar lá
+// quebra o espelho das conversas.
+//
+// Existe uma cópia deste texto em content/olx-chat.js na extensão, para o
+// caminho em que a mensagem é preenchida direto na página da OLX.
 const MSG_ABORDAGEM =
-  'Olá! Tudo bem? Meu nome é Yuri, sou de Garopaba e vi seu anúncio na OLX. ' +
-  'Trabalho com compradores e parceiros do setor automotivo e achei que seu veículo pode ter um bom perfil para alguns dos negócios que acompanho. ' +
-  'O veículo ainda está disponível? Se sim, qual seria o melhor valor para uma negociação à vista?';
+  'Olá! Tudo bem? Meu nome é Yuri, sou de Garopaba e vi seu anúncio. ' +
+  'Trabalho com carros aqui na região e tenho um Instagram chamado Carro na Rede ' +
+  '(@carronarederepasses), onde conectamos vendedores a possíveis compradores. ' +
+  'Acredito que consigo encontrar um comprador para o seu. ' +
+  'Ele ainda está disponível?';
 
 // ── Estado ───────────────────────────────────────────────────────
 let TODOS  = [];
