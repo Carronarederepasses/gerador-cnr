@@ -4316,3 +4316,32 @@ chat e separá-la do que o vendedor escreveu.
 **A extensão exige reload** em `chrome://extensions` para pegar o texto novo.
 
 *Registrado em 9 de setembro de 2026.*
+
+### Como o Yuri fotografa — corrigido por ele em 09/set
+
+Eu sugeri o atalho 📸 Foto também na Captação, achando que carro captado
+precisaria do estúdio. **Errado, e o motivo desmonta a premissa:**
+
+- **Ele mesmo tira as fotos** dos carros que capta, com **tampa-placa** e um
+  padrão próprio já definido.
+- **O estúdio não é acabamento — é descaracterização.** Existe para que as
+  fotos não sejam identificáveis, não para ficarem bonitas.
+- *"Não compensa financeiramente ficar editando todas as fotos."*
+
+Ou seja, a divisão está certa e agora com o motivo entendido:
+
+| | |
+|---|---|
+| Carro **captado** | ele fotografa, com tampa-placa → não passa pelo estúdio |
+| Carro de **parceiro** | as fotos vêm da loja, identificáveis → é aí que o estúdio serve |
+
+**Isso explica a decisão dele de 07/set** ("📸 Foto só no Parceiros"), que eu
+tinha registrado como preferência e é regra de negócio.
+
+**Não voltar a propor** edição de foto como etapa do fluxo de captação, nem
+melhorias no estúdio como se fossem prioridade. O gargalo dele não está ali.
+
+Ver também: o recorte grátis no navegador foi testado e descartado em 04/set,
+e o modo IA redesenha o carro (risco em anúncio de repasse).
+
+*Registrado em 9 de setembro de 2026.*
