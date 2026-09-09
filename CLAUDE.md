@@ -4157,3 +4157,76 @@ carros ele perde assim, e de quais fontes* é número de negócio. Por ora,
 anotado.
 
 *Registrado em 8 de setembro de 2026, noite.*
+
+### Pendente — a mensagem de abordagem da OLX (aberto em 08/set, noite)
+
+O Yuri achou a mensagem fraca. Medido antes de opinar, e o número **não diz
+que ela é fraca**:
+
+| | |
+|---|---|
+| Certeza que receberam mensagem | 19 (`enviado` + `respondeu` + `autorizado`) |
+| Responderam | 8 |
+| Taxa | **42%** — ou 30% se os 8 `morto` também tiverem sido abordados |
+
+A tabela `anuncios` **não tem `sent_at`**, então não dá para separar quem foi
+abordado-e-ignorado de quem foi descartado sem abordagem. A taxa real está
+entre 30% e 42%, com amostra de 19 a 27. Para abordagem fria, isso é bom.
+
+**O incômodo dele não é volume de resposta.** Perguntei o que ele via, e a
+resposta foi: *(3)* respondem desconfiados, achando que é golpe, e *(4)* o
+texto soa formal demais, não parece ele.
+
+### O que a mensagem tem de errado
+
+Texto atual (`anuncios.html:248` e `content/olx-chat.js:11` da extensão):
+
+> "Olá! Tudo bem? Meu nome é Yuri, sou de Garopaba e vi seu anúncio na OLX.
+> Trabalho com compradores e parceiros do setor automotivo e achei que seu
+> veículo pode ter um bom perfil para alguns dos negócios que acompanho. O
+> veículo ainda está disponível? Se sim, qual seria o melhor valor para uma
+> negociação à vista?"
+
+- **"bom perfil para alguns dos negócios que acompanho"** — não diz nada, e
+  vago é o sinal de golpe. O vendedor lê "não vou te contar o que eu faço".
+- **"compradores e parceiros do setor automotivo"** — vocabulário de empresa,
+  não de gente de Garopaba. É daí que vem o "formal demais".
+- **Duas perguntas de uma vez**, e a segunda pede desconto antes de qualquer
+  conversa — convida o "tá anunciado".
+- **Não nomeia o carro** → cheira a disparo em massa.
+- **Não dá como conferir quem ele é.** `@carronarederepasses` é perfil real,
+  com histórico; quem quer aplicar golpe não manda olhar o próprio perfil.
+
+### A decisão que é dele, e ainda não foi tomada
+
+**Assumir o repasse logo de cara ou não.** Hoje a mensagem esconde que ele é
+intermediário, e é isso que soa evasivo. Assumir perde quem não quer
+intermediário, mas derruba a desconfiança de quem fica. É conhecimento do
+mercado dele, não regra de texto — não dá para eu decidir.
+
+### Duas restrições técnicas, já verificadas
+
+1. **A primeira frase não pode mudar.** `olx-chat-monitor.js:27` usa
+   `'Olá! Tudo bem? Meu nome é Yuri'` como ÂNCORA para reconhecer a mensagem
+   dele dentro do chat e separá-la do que o vendedor escreveu. Mudar quebra o
+   espelho das conversas. Do resto em diante é livre — ou muda-se a âncora
+   junto, nos três arquivos.
+2. **Dá para citar o carro:** a extensão já recebe `title` no ABORDAR.
+
+### E o contexto que emoldura tudo
+
+Ele cogitou usar o **Muse** (agente da Meta, lançado 08/set, só EUA) para
+abordar e conduzir as conversas. Três motivos para não:
+
+- Não está no Brasil.
+- **Derruba a defesa com a OLX.** O documento do irmão se sustenta em "1
+  conta, ~72 páginas/dia, **0 mensagens automáticas**". Robô escrevendo torna
+  a terceira frase falsa, e aí sai da zona cinzenta.
+- Contradiz o que ele decidiu em 02/set: *"serei eu quem irei escrever a msg
+  e desenrolar a conversa com cada vendedor"* — que é o motivo de a extensão
+  PREENCHER e nunca enviar.
+
+O caminho que sobra e serve: o Gerador **sugerir** a resposta, com o carro e o
+histórico na mão, e ele editar e mandar. Autor continua sendo ele.
+
+*Registrado em 8 de setembro de 2026, noite.*
