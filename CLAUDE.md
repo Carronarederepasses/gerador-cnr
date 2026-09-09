@@ -4230,3 +4230,89 @@ O caminho que sobra e serve: o Gerador **sugerir** a resposta, com o carro e o
 histórico na mão, e ele editar e mandar. Autor continua sendo ele.
 
 *Registrado em 8 de setembro de 2026, noite.*
+
+### 9 de setembro — a mensagem de abordagem, reescrita por ele
+
+Fecha a pendência aberta em 08/set. **O texto é dele**; meu papel foi
+diagnosticar por que a antiga soava a golpe e depois sair da frente.
+
+> Olá! Tudo bem? Meu nome é Yuri, sou de Garopaba e vi seu anúncio. Trabalho
+> com carros aqui na região e tenho um Instagram chamado Carro na Rede
+> (@carronarederepasses), onde conectamos vendedores a possíveis compradores.
+> Acredito que consigo encontrar um comprador para o seu. Ele ainda está
+> disponível?
+
+302 caracteres, contra 310 da anterior.
+
+### A decisão dele: não falar do repasse, mas provar quem é
+
+Das três opções, escolheu a do meio — o assunto do repasse fica fora da
+primeira mensagem, e a desconfiança é atacada por outro lado: nome, cidade e
+um perfil que o vendedor pode ir conferir.
+
+**Mas a frase que ele escreveu resolve as duas coisas ao mesmo tempo.**
+"Conectamos vendedores a possíveis compradores" deixa claro que ele liga as
+pontas, sem precisar da palavra repasse. Melhor do que as duas versões que eu
+tinha proposto.
+
+### Duas correções dele, as duas certas
+
+**1. "ela ainda não é tão conhecida".** Eu escrevi *"tenho um Instagram
+chamado Carro na Rede — @carronarederepasses, caso queira dar uma olhada"*,
+tratando a marca como credencial. Ele apresentou como **fato**, sem supor que
+o vendedor já conhece. É a diferença entre exibir e informar.
+
+**2. Cortar o nome do carro.** Eu tinha implementado a citação do veículo
+("vi seu anúncio do Fiat Argo Drive 1.0"), inclusive com injeção do título via
+`sw.js` na extensão. Ele mandou cortar, e estava certo: **no chat da OLX a
+conversa já nasce grudada no anúncio**, com o carro no topo da própria tela.
+Nomear era redundante — meu argumento ("cheiro de disparo em massa") veio de
+e-mail frio, onde esse contexto não existe. A injeção no `sw.js` foi
+revertida; o arquivo está intocado.
+
+E ele trocou "e nele conectamos" por "onde conectamos" — liga direto no
+Instagram em vez de repetir o referente.
+
+### O que mais mudou, e por quê
+
+- Saiu **"bom perfil para alguns dos negócios que acompanho"** — não dizia
+  nada, e vago é o que o vendedor lê como "não vou te contar o que eu faço"
+- Saiu **"compradores e parceiros do setor automotivo"** — vocabulário de
+  empresa; era daí que vinha o "formal demais"
+- Saiu **a pergunta do preço**: pedir desconto antes de trocar duas palavras
+  convida o "tá anunciado". Fica para a segunda mensagem
+- Ficou **uma pergunta só**, e a fácil de responder
+
+### O número, para comparar depois
+
+Medido antes de mexer: **8 de 19** que com certeza receberam mensagem
+responderam — **42%**, ou 30% se os 8 `morto` também tiverem sido abordados
+(a tabela `anuncios` não tem `sent_at`, então não dá para separar). Para
+abordagem fria isso **não é ruim** — o incômodo dele era o tom, não o volume.
+
+Comparar de novo depois de ~20 abordagens com o texto novo. Abaixo disso o
+número não significa nada.
+
+**E se a desconfiança continuar**, o problema não é a abordagem: é a **segunda
+mensagem**, quando ele diz o valor.
+
+### Onde o texto vive
+
+Duas cópias, de propósito — são dois caminhos da mesma abordagem:
+
+| | |
+|---|---|
+| `anuncios.html` → `MSG_ABORDAGEM` | preenche a caixa no card do Gerador |
+| `content/olx-chat.js` → `MSG` | preenche direto na página da OLX |
+
+`scratchpad/confere-msg.js` roda as duas declarações **recortadas dos arquivos
+reais** e falha se divergirem ou se a mensagem deixar de começar pela âncora.
+Cópia que diverge em silêncio já custou caro aqui.
+
+**A âncora não muda:** `olx-chat-monitor.js` usa
+`'Olá! Tudo bem? Meu nome é Yuri'` para reconhecer a mensagem dele dentro do
+chat e separá-la do que o vendedor escreveu.
+
+**A extensão exige reload** em `chrome://extensions` para pegar o texto novo.
+
+*Registrado em 9 de setembro de 2026.*
