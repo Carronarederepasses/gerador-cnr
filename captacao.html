@@ -230,9 +230,16 @@
         </select>
       </div>
     </div>
-    <div class="field" style="margin-top:.7rem">
-      <label>Revisões registradas até (km) — opcional</label>
-      <input type="text" id="revisoes-km" placeholder="ex: 40.000">
+    <div class="g2" style="margin-top:.7rem">
+      <div class="field">
+        <label>Revisões registradas até (km) — opcional</label>
+        <input type="text" id="revisoes-km" placeholder="ex: 40.000">
+      </div>
+      <div class="field">
+        <label>Revisões até (mês/ano) — opcional</label>
+        <input type="text" id="revisoes-data" inputmode="numeric" maxlength="7"
+               placeholder="ex: 03/2025" oninput="cnrMesAnoMask(this)">
+      </div>
     </div>
   </div>
 
@@ -721,7 +728,8 @@ function montarTextoAnuncio() {
   const anoNome   = getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
   const compl     = document.getElementById('complemento').value.trim();
   const kmRaw     = document.getElementById('km').value.trim();
-  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
+  // Sem espaço antes do "km" — pedido do Yuri em 10/set: "78.000km".
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + 'km' : kmRaw;
   const cor       = document.getElementById('cor').value.trim();
   const regiao    = document.getElementById('regiao').value.trim();
   const valor     = document.getElementById('valor').value.trim();
@@ -795,24 +803,12 @@ function montarTextoAnuncio() {
 // ══════════════════════════════════════════════
 function gerar() {
   if (currentMode === 'coletados') { gerarColetados(); return; }
-  const mNome     = getSelTxt('sel-marca');
-  // Usa a versão completa (FIPE); se não escolhida, cai no modelo-base
-  const versaoTxt = getSelTxt('sel-versao');
-  const modNome   = !badSel(versaoTxt) ? versaoTxt : getSelTxt('sel-modelo');
-  // Remove o sufixo "— Diesel/Gasolina" (só serve pra desambiguar a cascata);
-  // quem representa o combustível no texto é o campo Combustível abaixo.
-  const anoNome   = getSelTxt('sel-ano').replace(/\s*—.*$/, '').trim();
-  const compl     = document.getElementById('complemento').value.trim();
-  const kmRaw     = document.getElementById('km').value.trim();
-  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
-  const cor       = document.getElementById('cor').value.trim();
-  const regiao    = document.getElementById('regiao').value.trim();
-  const valor     = document.getElementById('valor').value.trim();
-  const fipeDigit = document.getElementById('fipe-val').value.trim();
-  const avaliacao   = document.getElementById('avaliacao').value.trim();
-  const gastos      = document.getElementById('gastos').value.trim();
-  const obsCustom   = document.getElementById('obs-custom').value.trim();
-  const combustivel = document.getElementById('combustivel').value.trim();
+
+  // Aqui havia 14 declarações (mNome, km, cor, valor, fipeDigit...) que
+  // NINGUÉM usava: sobraram da unificação de 02/set, quando esta função
+  // deixou de montar o texto e passou a chamar montarTextoAnuncio().
+  // Removidas em 10/set. Ficavam como armadilha — mexer na linha do km aqui
+  // não mudava nada no anúncio, e o próximo a tentar perderia a tarde.
 
   // O texto do anuncio e montado num lugar so. Antes esta funcao repetia,
   // linha por linha, a mesma composicao de montarTextoAnuncio() — duas

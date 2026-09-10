@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <script src="/assets/auth.js"></script>
+<script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/tokens.css">
 <link rel="stylesheet" href="/assets/sidebar.css">
@@ -234,9 +235,16 @@
         </select>
       </div>
     </div>
-    <div class="field" style="margin-top:.7rem">
-      <label>Revisões registradas até (km) — opcional</label>
-      <input type="text" id="revisoes-km" placeholder="ex: 40.000">
+    <div class="g2" style="margin-top:.7rem">
+      <div class="field">
+        <label>Revisões registradas até (km) — opcional</label>
+        <input type="text" id="revisoes-km" placeholder="ex: 40.000">
+      </div>
+      <div class="field">
+        <label>Revisões até (mês/ano) — opcional</label>
+        <input type="text" id="revisoes-data" inputmode="numeric" maxlength="7"
+               placeholder="ex: 03/2025" oninput="cnrMesAnoMask(this)">
+      </div>
     </div>
   </div>
 
@@ -944,7 +952,8 @@ async function processarIA() {
 function montarTextoColetados() {
   const veiculo   = document.getElementById('colet-veiculo').value.trim();
   const kmRaw     = document.getElementById('colet-km').value.trim();
-  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + ' km' : kmRaw;
+  // Sem espaço antes do "km" — pedido do Yuri em 10/set: "78.000km".
+  const km        = fmtKm(kmRaw) ? fmtKm(kmRaw) + 'km' : kmRaw;
   const cor       = document.getElementById('colet-cor').value.trim();
   const ano       = document.getElementById('colet-ano').value.trim();
   const regiao    = document.getElementById('colet-regiao').value.trim();

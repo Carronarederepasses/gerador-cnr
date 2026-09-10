@@ -479,10 +479,16 @@ function fmtKm(v) {
   return isNaN(n) ? '' : n.toLocaleString('pt-BR');
 }
 
-// Linha de revisões registradas até X km (ou null)
+// Linha de revisões registradas — por km, por data, ou os dois.
+// A data (mês/ano) entrou em 10/set a pedido do Yuri: km sozinho não diz se a
+// revisão é recente. Os dois campos são opcionais e independentes.
 function linhaRevisoes() {
-  const km = fmtKm((document.getElementById('revisoes-km') || {}).value || '');
-  return km ? `🛠️ Revisões até ${km} km` : null;
+  const km   = fmtKm((document.getElementById('revisoes-km')   || {}).value || '');
+  const data = ((document.getElementById('revisoes-data') || {}).value || '').trim();
+  if (km && data) return `🛠️ Revisões até ${km}km (${data})`;
+  if (km)         return `🛠️ Revisões até ${km}km`;
+  if (data)       return `🛠️ Revisões até ${data}`;
+  return null;
 }
 
 // Todas as linhas extras (pneus, chave, manual, revisões) que entram no anúncio
@@ -885,7 +891,7 @@ function mostrarShare(texto) {
 const SAVE_KEY = 'cnr_form_' + currentMode;
 const CAMPOS_SIMPLES = ['complemento','km','cor','regiao','placa','renavam','emplacado-em','valor','fipe-val','combustivel',
   'texto-colado','colet-veiculo','colet-km','colet-cor','colet-ano','colet-regiao','colet-valor','colet-fipe','colet-combustivel',
-  'avaliacao','gastos','obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km',
+  'avaliacao','gastos','obs-custom','blind-marca','blind-nivel','blind-vidro','pneus-qtd-1','pneus-estado-1','pneus-qtd-2','pneus-estado-2','chave-reserva','manual-veiculo','revisoes-km','revisoes-data',
   'valor-compra','vendedor-nome','vendedor-telefone','gastos-valor'];
 const CAMPOS_CASCATA = ['sel-marca','sel-modelo','sel-ano','sel-versao'];
 let _saveTimer = null;

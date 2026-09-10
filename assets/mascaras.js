@@ -55,6 +55,20 @@
             .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
   }
 
+  // ── Mês/ano (MM/AAAA) ─────────────────────────────────────────
+  // Para datas em que o dia não interessa — "revisões até 03/2025". Digitar
+  // um mês que não existe é erro caro num anúncio, então o mês é corrigido
+  // enquanto se digita: um "3" sozinho vira "03", e "19" vira "12".
+  function mesAno(valor) {
+    const d = String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 6);
+    if (!d) return '';
+    if (d.length === 1) return d > '1' ? '0' + d + '/' : d;   // 3 → 03/ ; 1 → 1 (pode virar 10, 11, 12)
+    let mes = d.slice(0, 2);
+    if (mes === '00') mes = '01';
+    else if (Number(mes) > 12) mes = '12';
+    return d.length === 2 ? mes + '/' : mes + '/' + d.slice(2);
+  }
+
   // ── CEP ───────────────────────────────────────────────────────
   function cep(valor) {
     const d = String(valor == null ? '' : valor).replace(/\D/g, '').slice(0, 8);
@@ -106,9 +120,11 @@
     tel: tel,
     doc: doc,
     cep: cep,
+    mesAno: mesAno,
     telInput: aplicar(tel),
     docInput: aplicar(doc),
     cepInput: aplicar(cep),
+    mesAnoInput: aplicar(mesAno),
     placaHTML: placaHTML,
   };
 
@@ -116,7 +132,8 @@
 
   // Atalhos globais para usar direto no `oninput` do HTML, que é como as
   // telas deste projeto sempre ligaram máscara.
-  raiz.cnrTelMask = raiz.CNR_MASCARA.telInput;
-  raiz.cnrDocMask = raiz.CNR_MASCARA.docInput;
-  raiz.cnrCepMask = raiz.CNR_MASCARA.cepInput;
+  raiz.cnrTelMask    = raiz.CNR_MASCARA.telInput;
+  raiz.cnrDocMask    = raiz.CNR_MASCARA.docInput;
+  raiz.cnrCepMask    = raiz.CNR_MASCARA.cepInput;
+  raiz.cnrMesAnoMask = raiz.CNR_MASCARA.mesAnoInput;
 })(window);
