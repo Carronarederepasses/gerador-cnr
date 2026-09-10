@@ -695,7 +695,7 @@ function card(v) {
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
-      <button onclick="abrirStory('${v.id}')">📱 Story</button>
+      <button onclick="abrirStory('${v.id}')">📸 Story</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
       <button class="venda" onclick="registrarVenda('${v.id}')">💰 Registrar Venda</button>
@@ -2482,7 +2482,7 @@ async function gerarPDFAval(){
   doc.save(nomeArq);
 }
 
-// ── Story do carro (📱) ──────────────────────────────────────────
+// ── Story do carro (📸) ──────────────────────────────────────────
 // O desenho mora em assets/story.js — a tela Arte vai poder usar o mesmo
 // motor sem virar cópia, que é o defeito que mais voltou neste projeto.
 let _storyV = null, _storyFoto = 1;
@@ -2706,7 +2706,7 @@ carregarVendasMap().then(async () => {
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--surface-raise);border:1px solid var(--line);border-radius:16px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.15rem;border-bottom:1px solid var(--line)">
-      <span style="font-size:.85rem;font-weight:600">📱 Story — <span id="story-nome"></span></span>
+      <span style="font-size:.85rem;font-weight:600">📸 Story — <span id="story-nome"></span></span>
       <button onclick="fecharStory()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-faint);line-height:1">✕</button>
     </div>
 
