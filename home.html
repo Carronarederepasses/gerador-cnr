@@ -1231,30 +1231,68 @@ async function agApagar(id) {
 }
 
 // ── Mandar para o calendário do celular ───────────────────────
-// Google Agenda por link, e não arquivo .ics baixado: link abre direto nos
-// dois sistemas, sem download — e download dentro de app instalado (PWA) já
-// pregou peça aqui, foi o que quebrou o anexo de documentos em 02/set.
+// Arquivo .ics, e não link do Google Agenda: o Yuri não sabe qual calendário
+// o telefone dele usa ("calendário do telefone, não sei onde é do Google"),
+// e .ics é o formato que TODOS entendem — Google, Apple, Samsung. É o mesmo
+// arquivo daquele convite que chega por e-mail.
 //
-// A aposta é que o calendário dele é o do Google: a conta da CNR é Gmail.
-// Se não for, o caminho é gerar um .ics — some ~15 linhas, e aí funciona
-// com qualquer calendário. NÃO construído porque não foi confirmado.
+// Gerado aqui no navegador, e não pelo servidor: a API exige o cabeçalho da
+// chave, e link clicado não manda cabeçalho nenhum — cairia em 401.
+//
+// O ALARME é do telefone, não nosso: uma vez no calendário, toca offline,
+// com o Gerador fechado, na rua. VALARM pede 1h antes.
 function agUTC(d) {
   return new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
+
+// RFC 5545: barra invertida, ponto e vírgula, vírgula e quebra de linha
+// precisam ser escapados, senão o calendário lê o texto como novo campo e
+// engole o resto do compromisso.
+const agIcsTxt = (s) => String(s || '')
+  .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,')
+  .replace(/\r?\n/g, '\\n');
 
 function agParaCelular(id) {
   const a = AGENDA.find((x) => x.id === id);
   if (!a) return;
   const ini = new Date(a.quando);
   const fim = new Date(ini.getTime() + 60 * 60 * 1000); // 1h é chute razoável
-  const p = new URLSearchParams({
-    action: 'TEMPLATE',
-    text:   a.titulo || 'Avaliação',
-    dates:  `${agUTC(ini)}/${agUTC(fim)}`,
-    details: [a.observacao, 'Marcado pelo Gerador CNR'].filter(Boolean).join('\n'),
-    location: a.local || '',
-  });
-  window.open('https://calendar.google.com/calendar/render?' + p.toString(), '_blank', 'noopener');
+
+  const linhas = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Carro na Rede//Gerador CNR//PT-BR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${a.id}@carronarederepasses`,
+    `DTSTAMP:${agUTC(new Date())}`,
+    `DTSTART:${agUTC(ini)}`,
+    `DTEND:${agUTC(fim)}`,
+    `SUMMARY:${agIcsTxt(a.titulo || 'Avaliação')}`,
+    a.local ? `LOCATION:${agIcsTxt(a.local)}` : '',
+    `DESCRIPTION:${agIcsTxt([a.observacao, 'Marcado pelo Gerador CNR'].filter(Boolean).join('\n'))}`,
+    'BEGIN:VALARM',
+    'TRIGGER:-PT1H',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${agIcsTxt(a.titulo || 'Avaliação')}`,
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean);
+
+  // CRLF é o que a norma pede. Calendário exigente recusa arquivo com LF.
+  const blob = new Blob([linhas.join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'avaliacao.ics';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Sem o revoke o blob fica preso na memória da aba até fechar. O atraso é
+  // para o navegador terminar de ler antes de a URL sumir.
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 carregarKCR();
