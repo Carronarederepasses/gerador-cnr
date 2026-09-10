@@ -4735,3 +4735,65 @@ FIPE real ficam inconclusivas por ~24 h. A verificação no navegador não depen
 delas e passou.
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — a FIPE numa peça só: cache, token e cópia de socorro
+
+Fecha o que apareceu ao testar a correção da placa.
+
+**O quadro:** dois arquivos falando com a mesma API, um com cache e o outro
+sem — e o sem cache era justamente o que gastava.
+
+| | |
+|---|---|
+| `api/fipe-search.js` | `fipeGet` + cache TTL 6h, desde 02/set |
+| `api/fipe.js` | `fipeGet` **sem cache**, nunca teve |
+
+O `fipe.js` monta a lista de versões pedindo os anos de **cada modelo de nome
+parecido** — 43 chamadas só para o Corolla. Uma busca por placa custava ~45.
+
+**`api/_fipe.js`** (novo; o `_` não é roteado pela Vercel, então o teto de 12
+funções não se mexe — mesmo truque do `_auth.js`) virou a peça única:
+
+- cache por caminho, TTL 6h
+- **cópia de socorro por 7 dias**: expirada + FIPE fora devolve o preço de
+  ontem em vez de tela de erro. É exatamente o que faltou hoje
+- manda `Authorization: Bearer` quando existir `FIPE_TOKEN`, e segue sem ela
+  quando não existir — desenho do guard da `VENDAS_KEY`
+- **429 não é retentado**: o `retry-after` vem em horas, insistir só queima
+  cota. 500 continua sendo retentado 3×
+
+**Medido com a rede dublada** (`scratchpad/checa-fipe-cache.js`, 15 checagens):
+duas buscas seguidas do mesmo modelo caem de **88 para 44** requisições; o
+socorro devolve a cópia de ~7h quando a FIPE recusa; cópia de 8 dias já não
+serve; o cabeçalho só aparece com a variável presente.
+
+### Um número que eu tinha dado errado
+
+Falei ao Yuri em "1.000 consultas/dia". Conferindo a documentação:
+
+| | |
+|---|---|
+| **sem token** | **500/dia** ← é onde estávamos |
+| token grátis | 1.000/dia |
+
+Ou seja, o teto real era **metade** do que eu disse, e dividido com os outros
+projetos no mesmo IP da Vercel.
+
+### O que ficou por confirmar, e como confirmar
+
+O token é emitido em `fipe.api.br`, cuja documentação descreve a API **v2**
+(`fipe.parallelum.com.br/api/v2`). Nós usamos a **v1**. A documentação **não
+diz** se a v1 aceita o token.
+
+Indício a favor: foi a própria v1 que respondeu 429 mandando pegar token lá.
+Mas é indício, não prova — e cabeçalho desconhecido é ignorado em silêncio,
+que é o tipo de coisa que este projeto já aprendeu a não deixar passar.
+
+**Como se confirma, sem custo:** o painel *Uso da API* em `fipe.api.br`. Com o
+Gerador em uso, se aparecer requisição lá, a v1 aceita. Se ficar zerado, não
+aceita, e o caminho passa a ser migrar para a v2 — rotas e formato de resposta
+diferentes, trabalho de verdade.
+
+**O cache não depende disso.** Ele já resolve o consumo sozinho.
+
+*Registrado em 10 de setembro de 2026.*

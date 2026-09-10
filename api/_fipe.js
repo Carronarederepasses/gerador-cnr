@@ -55,6 +55,23 @@ function guardar(path, valor) {
 // Opcional de propósito: sem a variável, tudo segue funcionando pela cota
 // anônima — que é dividida com os outros clientes da Vercel, já que o IP é
 // compartilhado. Com ela, a cota passa a ser nossa.
+//
+// Limites conferidos na documentação em 10/set (não de memória):
+//   sem token   500 requisições/dia
+//   token grátis 1.000/dia
+//
+// ⚠️ PONTO NÃO CONFIRMADO: o token é emitido em fipe.api.br, cuja documentação
+// descreve a API **v2** (`fipe.parallelum.com.br/api/v2`). Nós usamos a **v1**
+// (`parallelum.com.br/fipe/api/v1/carros`), e a documentação não diz se a v1
+// aceita o token. O indício a favor é que foi a própria v1 que respondeu 429
+// mandando pegar token lá — seria estranho apontar para um token que ela
+// ignora. Mas é indício, não prova.
+//
+// Cabeçalho desconhecido é ignorado, então mandar não quebra nada. Como
+// confirmar: o painel "Uso da API" em fipe.api.br. Se as requisições
+// aparecerem lá, a v1 aceita. Se ficar zerado com o Gerador em uso, não
+// aceita — e aí o caminho é migrar para a v2, que tem rotas e formato de
+// resposta diferentes.
 function cabecalhos() {
   const token = process.env.FIPE_TOKEN;
   return token ? { Authorization: `Bearer ${token}` } : {};
