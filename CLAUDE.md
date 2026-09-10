@@ -4425,3 +4425,80 @@ dois. **Se virar rotina diária, a conta muda** — aí revisitar.
   tela pegou** — de novo. Ações desceram para uma linha própria.
 
 *Registrado em 9 de setembro de 2026, noite.*
+
+### 10 de setembro — a placa em destaque no catálogo
+
+Pedido dele: *"No catálogo, tem como deixarmos as placas mais destacadas nos
+cards? Fazer tipo o que é nas vendas?"*
+
+A etiqueta visual existia só em `vendas.html`. No catálogo a linha da placa era
+**texto apagado de propósito** — `font-size:.74rem; opacity:.78`, da Reforma
+Visual de 13/ago, quando placa e RENAVAM foram rebaixados para o nome do carro
+dominar. Ela é também o **botão de editar**, e hospeda o 🔍 Buscar.
+
+### Por que extrair em vez de copiar
+
+Copiar o desenho criaria a **quarta** cópia divergente deste projeto — depois
+do montador de anúncio (05/set), da máscara de telefone (10/set, manhã) e das
+declarações do catálogo (08/set). Nos três, as cópias divergiram em silêncio.
+
+| | |
+|---|---|
+| `assets/placa.css` (novo) | o desenho, com `.inline`, `.grande` e `.vazia` |
+| `assets/mascaras.js` | `placaHTML` / `cnrPlaca` — a classificação num lugar só |
+| `vendas.html` | perde o CSS local; `renderPlaca` delega |
+| `catalogo.html` | carrega os dois e mostra a `.grande` |
+
+**As cores são fixas de propósito, e não tokens do tema:** a placa Mercosul é
+azul e branca no mundo real, a antiga é cinza. Seguindo o tema, deixariam de
+parecer placa — que é a única razão de existirem.
+
+Sem placa, o catálogo mostra a etiqueta **vazia** (traços); vendas não mostra
+nada. A diferença é real: no catálogo aquilo é o botão de cadastrar a placa, em
+vendas o cabeçalho já é o nome do carro.
+
+### Dois erros meus, os dois pegos por medir
+
+**1. Escondi o "uso interno" em todas as telas.** A regra que eu substituí
+estava num bloco comentado como *"Reforma Visual Etapa 1 — Cards e Match"*, e
+eu li como se fosse o bloco de celular. **Não é media query — é global.** O
+`display:none` que eu pus no lugar tirou a frase do notebook também.
+
+Só apareceu porque a página de conferência **mede** `getComputedStyle`, em vez
+de eu olhar o print e achar bonito.
+
+**2. A frase não cabia.** Corrigido o lugar da regra, o texto passou a quebrar
+em duas linhas no card do meio e a empurrar o 🔍 Buscar — cards com alturas
+diferentes (50 · 74 · 50). Tentei `flex-wrap`, e aí quem desceu foi o ✏️.
+
+Resolvido tirando a frase: ficou **só o cadeado**, com o texto no `title`. É o
+que a linha já dizia antes ("🔒 Placa:") e cabe sempre.
+
+> A tentação era manter as três palavras porque eu as tinha escrito. O card não
+> tem espaço para elas, e altura desigual entre cards é pior que uma frase a
+> menos.
+
+### Como foi conferido
+
+`scratchpad/ver-placa.html` — página que **puxa o CSS do `catalogo.html` real**
+(não uma cópia) e monta os três casos. A 375px e a 1280px:
+
+```
+alturas de linha:  50 · 50 · 50      alturas de card:  180 · 180 · 180
+rolagem horizontal: 0                elementos estourando: nenhum
+```
+
+E `scratchpad/checa-placa.js`, 12 checagens rodando a função **recortada do
+arquivo real**: 8 casos de placa (Mercosul, com hífen, antiga, minúscula, com
+espaços, vazia, nula), variante inline, tokens CSS, e a garantia de que nenhuma
+das duas telas voltou a ter cópia local do desenho.
+
+### Achado que não é meu, e fica pendente
+
+`catalogo.html` usa **11 tokens CSS que ninguém define** — `--border`,
+`--text-muted`, `--bg-success`, `--font-sans` e mais sete. Conferido contra
+`HEAD:catalogo.html`: são **anteriores** a esta mudança. `var()` inválido não dá
+erro, só cai no valor herdado — foi assim que `--border` mordeu em 04/set.
+Listados em `checa-placa.js` para não mascararem um órfão novo.
+
+*Registrado em 10 de setembro de 2026.*
