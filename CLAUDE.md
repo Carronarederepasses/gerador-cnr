@@ -4502,3 +4502,66 @@ erro, só cai no valor herdado — foi assim que `--border` mordeu em 04/set.
 Listados em `checa-placa.js` para não mascararem um órfão novo.
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — os apelidos de cor que ninguém tinha criado
+
+Achado de passagem ao conferir a placa. O Yuri: *"nem sei o que isso
+significa"* — e depois *"pode fazer o que achar melhor"*.
+
+O sistema chama as cores por apelido (`--text` é a cor do texto, `--line` a das
+divisórias) para poder trocar num lugar só. O `catalogo.html` pedia **11
+apelidos que ninguém nunca criou**: `--border`, `--text-muted`, `--font-sans`,
+`--text-primary`, `--text-secondary` e os seis de status.
+
+**E `var()` inválido não dá erro nem aviso** — o navegador descarta a linha e
+usa o padrão dele. Por isso ficou anos ali sem ninguém ver.
+
+### O efeito, medido e não suposto
+
+Um só lugar: a **prévia que abre no botão 📄 PDF**, dentro da avaliação.
+
+| | hoje | conserto |
+|---|---|---|
+| divisórias entre blocos | `border-bottom: none` | `solid` |
+| selo da nota | fundo transparente | verde 18% |
+| ✓ ✗ ! | os três brancos | verde, âmbar, vermelho |
+
+**O PDF gerado não era afetado** — `gerarPDFAval` usa RGB fixo. Só a prévia.
+
+### O susto que era erro meu de medição
+
+Meu primeiro levantamento acusou **7 arquivos e 122 ocorrências**, e cheguei a
+dizer isso ao Yuri antes de conferir. Estava errado: `assets/gerador.css`
+declara esses aliases num bloco `:root`, e `:root` vale para a página inteira —
+quem carrega o `gerador.css` (Captação, Parceiros) está coberto.
+
+A conta certa não é "quantas vezes aparece no projeto", é **o que cada página
+carrega de fato**. Refeita assim (`scratchpad/tokens-orfaos.js`, nas 20
+páginas): **1 página, 11 apelidos** — exatamente o que eu tinha dito antes de
+me assustar sozinho.
+
+> Grep conta ocorrência; não sabe o que a página carrega. Contar não é medir.
+
+### Trocado, não apelidado
+
+Criar os 11 apelidos seria mais rápido, e é o que o `gerador.css` faz. Mas
+apelido é **um segundo nome para a mesma cor** — a divergência silenciosa que
+já mordeu quatro vezes neste projeto. O `gerador.css` tem o dele por motivo
+histórico (foi extraído verbatim do `index.html` em 07/set), não como padrão.
+
+36 trocas. Os três de fundo viraram `color-mix`, como o resto do catálogo já
+faz em `.sr-chip` e `.match-wa` — os tokens de severidade são cor de texto, não
+de fundo.
+
+### Um erro dentro do próprio teste
+
+A página de conferência saiu com os ✓ ✗ ! **brancos**, e por um instante
+pareceu que o conserto não tinha pegado. Não era o produto: minha âncora era
+`sev === 'bom' ? '...'`, e a linha **anterior** do arquivo tem a mesma forma e
+devolve o **ícone**. O teste injetou `'✓'` no lugar da cor.
+
+> Segunda vez hoje que a ferramenta de conferir errou e quase acusou o código
+> certo. A âncora precisa apontar para o que é único — `const cor  =`, não a
+> forma que se repete.
+
+*Registrado em 10 de setembro de 2026.*
