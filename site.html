@@ -68,7 +68,13 @@
   a { color: inherit; text-decoration: none; }
 
   /* ── Typography ──────────────────────────────────────────────── */
-  .serif { font-family: 'Playfair Display', Georgia, serif; }
+  /* `lining-nums` põe os algarismos todos na mesma altura. Sem isto a
+     Playfair usa o estilo antigo — o 1 e o 2 baixinhos, o 5 e o 9 descendo —
+     e os números que mais importam nesta página ("+200", "48h", "100%") saem
+     desalinhados. Esta página não carrega assets/tokens.css, onde a mesma
+     regra vale para o resto do sistema. */
+  .serif { font-family: 'Playfair Display', Georgia, serif;
+           font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1; }
   h1, h2, h3 { text-wrap: balance; line-height: 1.15; }
   .eyebrow {
     font-size: 11px;

@@ -40,6 +40,23 @@
 :root{
   color-scheme: dark;
 
+  /* ── Números alinhados ──────────────────────────────────────────
+     A Playfair Display desenha algarismos no estilo antigo por padrão: o 1 e
+     o 2 na altura da minúscula, o 5 e o 9 descendo abaixo da linha. Em texto
+     corrido isso é bonito; num título como
+        "Volkswagen Fox Xtreme 1.6 Flex 8V 5P 2020"
+     vira ruído — o Yuri reportou em 10/set, achando que era a fonte errada e
+     pedindo para trocar por Calibri ou Times New Roman.
+
+     Não era a fonte, era este ajuste desligado. `lining-nums` põe todos os
+     dígitos na mesma altura e mantém a identidade do projeto.
+
+     Fica no :root porque a propriedade é herdada: uma linha resolve as 18
+     telas que carregam este arquivo, e as que vierem depois. Na DM Sans não
+     muda nada — ela já usa algarismos alinhados. */
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1;   /* navegador antigo que ignora o de cima */
+
   --surface:       #0a0a0a;  /* o papel é preto */
   --surface-raise: #151515;  /* cartão sobre o papel */
   --text:          #f5f5f5;

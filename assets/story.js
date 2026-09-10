@@ -75,17 +75,46 @@
     for (const ch of txt) { cx.fillText(ch, cur, y); cur += cx.measureText(ch).width + esp; }
   }
 
-  // Encolhe a fonte até o texto caber na largura — nome de carro varia muito
-  // ("March S" contra "ALTIS/A.Premiu. 2.0"), e cortar com "..." num story
-  // fica pior do que diminuir.
-  function fonteQueCabe(cx, txt, base, familia, peso, maxLarg) {
-    let px = base;
-    while (px > 40) {
-      cx.font = `${peso} ${px}px ${familia}`;
-      if (cx.measureText(txt).width <= maxLarg) break;
-      px -= 4;
+  // ── Nome do carro: letras em Playfair, números em DM Sans ───────
+  //
+  // A Playfair desenha algarismos no estilo antigo — o 1 e o 2 na altura da
+  // minúscula, o 4 e o 8 descendo. Em "Polo Highline 200 TSI" o "200" fica
+  // parecendo "zoo". O Yuri reportou isso em 10/set nas telas, onde resolvi
+  // com uma linha de CSS (`lining-nums`, em assets/tokens.css).
+  //
+  // Aqui não dá: **canvas 2D não tem font-variant-numeric**. Conferido — só
+  // existe `fontVariantCaps`, que é outra coisa, e passar "lining-nums" na
+  // string da fonte é ignorado.
+  //
+  // Então os trechos numéricos saem em DM Sans, que já tem algarismos
+  // alinhados. A 0,86 do corpo eles casam com a altura das maiúsculas da
+  // serifada; comparado lado a lado antes de escolher o número.
+  const ESCALA_NUM = 0.86;
+  const PARTES = (txt) => String(txt).split(/(\d[\d.,]*)/).filter(Boolean);
+  const fontePara = (parte, px) => /^\d/.test(parte)
+    ? `700 ${Math.round(px * ESCALA_NUM)}px "DM Sans"`
+    : `700 ${px}px "Playfair Display"`;
+
+  function medirMisto(cx, txt, px) {
+    return PARTES(txt).reduce((s, p) => { cx.font = fontePara(p, px); return s + cx.measureText(p).width; }, 0);
+  }
+
+  function desenharMisto(cx, txt, xCentro, y, px) {
+    cx.textAlign = 'left';
+    let cur = xCentro - medirMisto(cx, txt, px) / 2;
+    for (const p of PARTES(txt)) {
+      cx.font = fontePara(p, px);
+      cx.fillText(p, cur, y);
+      cur += cx.measureText(p).width;
     }
-    return `${peso} ${px}px ${familia}`;
+  }
+
+  // Encolhe até caber — nome de carro varia muito ("March S" contra
+  // "ALTIS/A.Premiu. 2.0"), e cortar com "..." num story fica pior.
+  function pxQueCabe(cx, txt, base, maxLarg) {
+    let px = base;
+    while (px > 40 && medirMisto(cx, txt, px) > maxLarg) px -= 4;
+    return px;
   }
 
   async function carregarFontes() {
@@ -158,9 +187,8 @@
 
     const nome = limparVersao(v.versao || v.modelo);
     y += 104;
-    texto(cx, nome, meio, y,
-      { font: fonteQueCabe(cx, nome, 92, '"Playfair Display"', 700, W - 120),
-        cor: '#f5f5f5', alinha: 'center' });
+    cx.fillStyle = '#f5f5f5';
+    desenharMisto(cx, nome, meio, y, pxQueCabe(cx, nome, 92, W - 120));
 
     const cambio = op.mostrarCambio ? cambioDe(v.versao || v.modelo) : '';
     const partes = [op.mostrarAno === false ? '' : v.ano, v.km ? fmtKm(v.km) : '', cambio].filter(Boolean);
