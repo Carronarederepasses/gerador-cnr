@@ -423,88 +423,166 @@ document.body.dataset.mode = currentMode;
 
 // ══════════════════════════════════════════════
 // ── Auto-fill cascata FIPE a partir da busca por placa ───────────────────────
-function normalizar(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim(); }
+// O ponto ENTRE DÍGITOS não separa: "2.0" é um token, não "2" e "0". Sem isso,
+// "1.0" e "1.6" e "16V" viram os mesmos pedacinhos e a nota deixa de ordenar —
+// foi exatamente o que segurou o HB20S em 07/set, no fipe-search.
+function normalizar(s) {
+  return String(s || '').toLowerCase()
+    .replace(/(\d)[.,](\d)/g, '$1_$2')       // protege o decimal
+    .replace(/[^a-z0-9_]/g, ' ')
+    .replace(/_/g, '.')                      // devolve o ponto ao token
+    .replace(/\s+/g, ' ').trim();
+}
 
-function melhorMatch(opcoes, texto) {
+// Devolve a melhor opção E a nota dela. A nota importa: é como se compara
+// candidatos de listas DIFERENTES (as versões de cada combustível do mesmo ano).
+function pontuarMatch(opcoes, texto) {
   const alvo = normalizar(texto);
+  const wordsAlvo = [...new Set(alvo.split(' ').filter(w => w.length > 1))];
   let melhor = null, melhorScore = 0;
   for (const op of opcoes) {
     const t = normalizar(op.text);
-    if (t === alvo) return op; // exato
-    // conta palavras em comum
-    const wordsAlvo = alvo.split(' ');
-    const wordsOp   = t.split(' ');
-    const comuns    = wordsAlvo.filter(w => w.length > 1 && wordsOp.includes(w)).length;
+    if (t === alvo) return { op, score: 999 }; // exato ganha de tudo
+    const wordsOp = new Set(t.split(' '));
+    // Palavras DISTINTAS em comum: antes, um alvo com "2 0" duas vezes somava
+    // duas vezes, e empate ia para o primeiro da lista — que é sorteio.
+    const comuns = wordsAlvo.filter(w => wordsOp.has(w)).length;
     if (comuns > melhorScore) { melhorScore = comuns; melhor = op; }
   }
-  return melhorScore > 0 ? melhor : null;
+  return melhorScore > 0 ? { op: melhor, score: melhorScore } : null;
 }
 
-function aguardarOpcoes(sel, ms = 4000) {
+function melhorMatch(opcoes, texto) {
+  const r = pontuarMatch(opcoes, texto);
+  return r ? r.op : null;
+}
+
+// Espera a lista de um <select> ser preenchida.
+//
+// Devolve `{ opcoes, desistiu }` — e o `desistiu` não é detalhe. Antes isto
+// devolvia `[]` tanto quando a lista veio vazia de verdade quanto quando o
+// tempo acabou, e quem chamava não tinha como distinguir. Resultado medido em
+// 10/set: montar a lista de anos do Corolla leva ~4,0 s (são 43 modelos
+// "Corolla" na FIPE, um pedido de anos para cada), ou seja, encostava no teto.
+// Quando estourava, a tela dizia "a FIPE não tem 2023 para este modelo" —
+// que é falso, e é o tipo de mentira que já custou caro neste projeto.
+//
+// Teto maior por padrão porque o trabalho é genuinamente lento: o antigo 4000
+// era menor que a própria operação que ele esperava.
+function aguardarOpcoes(sel, ms = 12000) {
   return new Promise(resolve => {
+    let pronto = false;
     const check = () => {
       const ops = Array.from(sel.options).filter(o => o.value && o.value !== '');
-      if (ops.length > 0) return resolve(ops);
+      if (ops.length > 0) { pronto = true; obs.disconnect(); resolve({ opcoes: ops, desistiu: false }); }
     };
-    check();
-    const obs = new MutationObserver(() => { check(); });
+    const obs = new MutationObserver(check);
     obs.observe(sel, { childList: true });
-    setTimeout(() => { obs.disconnect(); resolve([]); }, ms);
+    check();
+    setTimeout(() => { if (!pronto) { obs.disconnect(); resolve({ opcoes: [], desistiu: true }); } }, ms);
   });
 }
 
 function esperar(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Espera a consulta FIPE da VERSÃO terminar e devolve o valor que ela achou
+// (ou null). O sinal é o próprio rótulo de status, que cascataVersao() marca
+// como 'loading' enquanto busca — é o único ponto que sabe quando acabou.
+// Existe teto: se a FIPE não responder, a busca por placa não pode ficar presa.
+async function esperarFipeDaVersao(teto = 9000) {
+  const st  = document.getElementById('fipe-st');
+  const val = document.getElementById('fipe-val');
+  if (!st || !val) return null;
+  const ate = Date.now() + teto;
+  // Dá um instante para o 'loading' aparecer — sem isso eu leria o estado
+  // anterior e concluiria "já terminou" antes de a consulta começar.
+  await esperar(120);
+  while (Date.now() < ate && st.className.includes('loading')) await esperar(120);
+  const n = Number(String(val.value).replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
 
 async function preencherCascataPlaca(marcaNome, modeloNome, anoModelo) {
   const selMarca  = document.getElementById('sel-marca');
   const selModelo = document.getElementById('sel-modelo');
   const selAno    = document.getElementById('sel-ano');
   const selVersao = document.getElementById('sel-versao');
-  if (!selMarca) return;
+  if (!selMarca) return { versaoOk:false, motivo:'a tela não tem a cascata' };
 
   // 1. Marca
-  const opcMarcas = await aguardarOpcoes(selMarca);
-  const opMarca   = melhorMatch(opcMarcas, marcaNome);
-  if (!opMarca) return;
+  const eMarcas   = await aguardarOpcoes(selMarca);
+  if (eMarcas.desistiu) return { versaoOk:false, motivo:'a lista de marcas da FIPE não carregou' };
+  const opMarca   = melhorMatch(eMarcas.opcoes, marcaNome);
+  if (!opMarca) return { versaoOk:false, motivo: `marca "${marcaNome}" não existe na tabela FIPE` };
   selMarca.value = opMarca.value;
   if (_ssSync['sel-marca']) _ssSync['sel-marca']();
   selMarca.dispatchEvent(new Event('change'));
   await esperar(300);
 
-  if (!modeloNome) return;
+  if (!modeloNome) return { versaoOk:false, motivo:'a consulta não trouxe o modelo' };
 
   // 2. Modelo — aguarda os modelos carregarem após a troca de marca
-  await aguardarOpcoes(selModelo);
+  const eModelos = await aguardarOpcoes(selModelo);
+  if (eModelos.desistiu) return { versaoOk:false, motivo: `a FIPE demorou demais para listar os modelos de ${marcaNome}` };
   await esperar(200);
   const opcModelos = Array.from(selModelo.options).filter(o => o.value);
   const opModelo   = melhorMatch(opcModelos, modeloNome);
-  if (!opModelo) return;
+  if (!opModelo) return { versaoOk:false, motivo: `modelo "${modeloNome}" não bate com nenhum da FIPE` };
   selModelo.value = opModelo.value;
   if (_ssSync['sel-modelo']) _ssSync['sel-modelo']();
   selModelo.dispatchEvent(new Event('change'));
   await esperar(300);
 
-  if (!anoModelo) return;
+  if (!anoModelo) return { versaoOk: false, motivo: 'sem ano' };
 
-  // 3. Ano
-  await aguardarOpcoes(selAno);
+  // 3 + 4. Ano e versão ESCOLHIDOS JUNTOS
+  //
+  // Antes eram dois passos independentes, e o do ano fazia:
+  //   opcAnos.find(o => o.text.startsWith('2023'))
+  //
+  // Só que o mesmo ano aparece uma vez POR COMBUSTÍVEL — o Corolla 2023 tem
+  // "2023 — Híbrido" e "2023 — Flex", nessa ordem. O `find` pegava o primeiro,
+  // ou seja Híbrido, e a partir dali a lista de versões só tinha híbrido:
+  // o XEi 2.0 Flex do carro nem estava lá para ser escolhido.
+  //
+  // Resultado real (Corolla 2023, placa consultada em 10/set): ficha preenchida
+  // com "Corolla Altis 1.8 Híbrido" e FIPE R$ 137.850, no lugar de
+  // "Corolla XEi 2.0 Flex 16V Aut." e R$ 125.829 — R$ 12 mil de diferença.
+  //
+  // Agora as versões de TODOS os combustíveis daquele ano concorrem, e vence a
+  // que casa melhor com o que a APiBrasil devolveu. Trocar o ano é barato:
+  // cascataAno() é síncrona, só redesenha a lista com dados já baixados.
+  const eAnos = await aguardarOpcoes(selAno);
+  if (eAnos.desistiu) return { versaoOk:false, motivo:'a FIPE demorou demais para listar os anos' };
   await esperar(200);
   const opcAnos = Array.from(selAno.options).filter(o => o.value);
-  const opAno   = opcAnos.find(o => String(o.text).startsWith(String(anoModelo)));
-  if (!opAno) return;
-  selAno.value = opAno.value;
-  selAno.dispatchEvent(new Event('change'));
-  await esperar(300);
+  const doAno   = opcAnos.filter(o => String(o.text).startsWith(String(anoModelo)));
+  if (!doAno.length) return { versaoOk: false, motivo: `a FIPE não tem ${anoModelo} para este modelo` };
 
-  // 4. Versão — tenta casar; se não achar, pega a primeira
-  await aguardarOpcoes(selVersao);
-  await esperar(200);
-  const opcVersoes = Array.from(selVersao.options).filter(o => o.value);
-  if (opcVersoes.length > 0) {
-    const opVersao = melhorMatch(opcVersoes, modeloNome) || opcVersoes[0];
-    selVersao.value = opVersao.value;
-    selVersao.dispatchEvent(new Event('change'));
+  let escolha = null;
+  for (const opAno of doAno) {
+    selAno.value = opAno.value;
+    selAno.dispatchEvent(new Event('change'));   // síncrono
+    const versoes = Array.from(selVersao.options).filter(o => o.value);
+    const r = pontuarMatch(versoes, modeloNome);
+    if (r && (!escolha || r.score > escolha.score)) escolha = { opAno, opVersao: r.op, score: r.score };
   }
+
+  if (!escolha) {
+    // Nenhuma versão casou. Antes isto caía em `|| opcVersoes[0]` — pegava a
+    // primeira da lista e seguia calado, que é como um palpite vira "dado".
+    // Deixa o ano marcado (esse a APiBrasil acertou) e a versão em branco.
+    selAno.value = doAno[0].value;
+    selAno.dispatchEvent(new Event('change'));
+    return { versaoOk: false, motivo: 'nenhuma versão da FIPE casou com a descrição' };
+  }
+
+  selAno.value = escolha.opAno.value;
+  selAno.dispatchEvent(new Event('change'));
+  await esperar(50);
+  selVersao.value = escolha.opVersao.value;
+  selVersao.dispatchEvent(new Event('change'));  // dispara a consulta FIPE da versão
+  return { versaoOk: true, versao: escolha.opVersao.text, ano: escolha.opAno.text };
 }
 
 // ── Busca pela placa (APiBrasil) ─────────────────────────────────────────────
@@ -565,16 +643,42 @@ async function buscarPlacaGerador() {
     }
 
     // Auto-fill cascata FIPE por nome
-    if (fipe.marca) await preencherCascataPlaca(fipe.marca, fipe.modelo, fipe.anoModelo);
+    const cascata = fipe.marca
+      ? await preencherCascataPlaca(fipe.marca, fipe.modelo, fipe.anoModelo)
+      : { versaoOk: false, motivo: 'a consulta não trouxe a marca' };
 
-    // Re-força FIPE da API após cascata terminar de calcular
-    if (fipe.valor) setTimeout(() => {
-      const val = Number(fipe.valor).toLocaleString('pt-BR');
+    // ── Quem manda no campo FIPE ──────────────────────────────────────────
+    // Antes isto era um setTimeout de 2500 ms "para depois da cascata". Não
+    // era depois de nada: a cascata leva de ~2 a mais de 4 s (43 consultas à
+    // FIPE só para montar a lista do Corolla, mais o cold start da Vercel).
+    // Quem escrevia por último no campo era decidido no cronômetro — às vezes
+    // o valor da placa, às vezes o da versão. O mesmo carro dava resultado
+    // diferente conforme a internet do momento.
+    //
+    // Agora é regra, não relógio: numa consulta por PLACA o valor da APiBrasil
+    // manda, porque ele veio do chassi daquele carro, não de um palpite sobre
+    // o texto. Só que espero a versão terminar antes de escrever — senão ela
+    // sobrescreve depois e voltamos ao mesmo lugar.
+    let aviso = '';
+    if (fipe.valor) {
+      const daPlaca = Number(fipe.valor);
+      const daVersao = await esperarFipeDaVersao();          // null se não veio
       const el = document.getElementById('fipe-val');
-      if (el) el.value = val;
+      if (el) el.value = daPlaca.toLocaleString('pt-BR');
       const stEl = document.getElementById('fipe-st');
-      if (stEl) { stEl.textContent = `✓ FIPE ${fipe.mesReferencia || ''}: R$ ${val}`; stEl.className = 'fipe-st ok'; }
-    }, 2500);
+      if (stEl) {
+        stEl.textContent = `✓ FIPE ${fipe.mesReferencia || ''}: R$ ${daPlaca.toLocaleString('pt-BR')}`;
+        stEl.className = 'fipe-st ok';
+      }
+      // Divergência grande = a versão escolhida provavelmente não é a do carro.
+      // Mesmo critério dos 20% adotado em 03/set para a FIPE do anúncio.
+      if (daVersao && Math.abs(daVersao - daPlaca) / daPlaca > 0.20) {
+        aviso = ` ⚠️ a versão marcada abaixo vale R$ ${daVersao.toLocaleString('pt-BR')} — confira qual é a certa.`;
+      }
+    }
+    if (fipe.marca && !cascata.versaoOk) {
+      aviso += ` ⚠️ versão não preenchida (${cascata.motivo}) — escolha na cascata abaixo.`;
+    }
 
     const partes = [fipe.marca, fipe.modelo, fipe.anoModelo].filter(Boolean);
     const resumo = partes.length ? partes.join(' • ') : 'Dados obtidos';
@@ -584,8 +688,8 @@ async function buscarPlacaGerador() {
     const usado = (parseInt(sessionStorage.getItem('cnr_placa_count') || '0')) + 1;
     sessionStorage.setItem('cnr_placa_count', usado);
     if (fipe.marca) {
-      st.style.color = 'var(--green)';
-      st.textContent = '✓ ' + resumo + fipeStr + ` (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
+      st.style.color = aviso ? 'var(--yellow)' : 'var(--green)';
+      st.textContent = '✓ ' + resumo + fipeStr + ` (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)` + aviso;
     } else {
       st.style.color = 'var(--yellow)';
       st.textContent = `⚠️ FIPE não identificada para esta placa. Confira/preencha Marca e Modelo manualmente antes de gerar o anúncio. (${usado} consulta${usado > 1 ? 's' : ''} nesta sessão)`;
