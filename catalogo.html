@@ -78,6 +78,11 @@
   /* Opções do story. Precisa desfazer o `label{}` global desta página, que é
      rótulo de formulário: bloco, maiúsculas e espaçado. Aqui o texto anda ao
      lado da caixinha e se lê como frase. */
+  /* Ícone do Instagram, desenhado — não existe emoji de marca no Unicode, e
+     imagem raster borraria ao escalar. `currentColor` faz ele acompanhar a
+     cor do botão, inclusive no hover. */
+  .ico-ig{width:1em;height:1em;vertical-align:-.13em;flex:0 0 auto}
+
   .story-op{display:flex;align-items:center;gap:.55rem;font-size:.86rem;cursor:pointer;
             text-transform:none;letter-spacing:normal;color:var(--text);margin:0;font-weight:400}
   .story-op input{margin:0;cursor:pointer;width:16px;height:16px;flex:0 0 auto}
@@ -695,7 +700,7 @@ function card(v) {
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
-      <button onclick="abrirStory('${v.id}')">📸 Story</button>
+      <button onclick="abrirStory('${v.id}')">${ICO_IG} Story</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
       <button class="venda" onclick="registrarVenda('${v.id}')">💰 Registrar Venda</button>
@@ -2482,7 +2487,22 @@ async function gerarPDFAval(){
   doc.save(nomeArq);
 }
 
-// ── Story do carro (📸) ──────────────────────────────────────────
+// ── Story do carro ───────────────────────────────────────────────
+// O ícone é desenhado (SVG) e não emoji: o Unicode não tem logo de marca, e
+// o 📱/📸 não diziam "Instagram". Traço fino, monocromático, herdando a cor
+// do botão — é como a própria Meta pede que o ícone seja usado quando não
+// cabe a versão colorida.
+//
+// Nota para quando o Gerador virar produto: a Meta tem regras de uso do
+// logo. Trocar por texto ou por um ícone genérico é uma linha, aqui e no
+// título do modal.
+const ICO_IG = '<svg class="ico-ig" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+  'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<rect x="2" y="2" width="20" height="20" rx="5.5"/>' +
+  '<circle cx="12" cy="12" r="4.2"/>' +
+  '<circle cx="17.6" cy="6.4" r="1.1" fill="currentColor" stroke="none"/></svg>';
+
+
 // O desenho mora em assets/story.js — a tela Arte vai poder usar o mesmo
 // motor sem virar cópia, que é o defeito que mais voltou neste projeto.
 let _storyV = null, _storyFoto = 1;
@@ -2499,6 +2519,7 @@ async function abrirStory(id) {
   _storyFoto = 1;                      // a 2ª foto: a de 45°, padrão dele
 
   document.getElementById('story-nome').textContent = nomeVeiculo(v);
+  document.getElementById('story-ico').innerHTML = ICO_IG;
   const cam = CNR_STORY.cambioDe(v.versao || v.modelo);
   document.getElementById('story-cambio').checked = false;
   document.getElementById('story-cambio-qual').textContent = cam ? '(' + cam + ')' : '(não identifiquei)';
@@ -2706,7 +2727,8 @@ carregarVendasMap().then(async () => {
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;padding:1rem">
   <div style="background:var(--surface-raise);border:1px solid var(--line);border-radius:16px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.15rem;border-bottom:1px solid var(--line)">
-      <span style="font-size:.85rem;font-weight:600">📸 Story — <span id="story-nome"></span></span>
+      <span style="font-size:.85rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem">
+        <span id="story-ico"></span> Story — <span id="story-nome"></span></span>
       <button onclick="fecharStory()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-faint);line-height:1">✕</button>
     </div>
 
