@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
+<script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <script src="/assets/sidebar.js" defer></script>
@@ -853,13 +854,9 @@ function atualizarBlocoFat(tipo) {
 
 // ── Máscaras de campo ──────────────────────────────────────────────────
 
-function telMask(el) {
-  const d = el.value.replace(/\D/g,'').slice(0,11);
-  if (d.length > 10) el.value = '(' + d.slice(0,2) + ')' + d.slice(2,7) + '-' + d.slice(7);
-  else if (d.length > 6) el.value = '(' + d.slice(0,2) + ')' + d.slice(2,6) + '-' + d.slice(6);
-  else if (d.length > 2) el.value = '(' + d.slice(0,2) + ')' + d.slice(2);
-  else el.value = d;
-}
+// Delega para assets/mascaras.js — fonte única desde 10/set. O nome fica
+// porque outros pontos desta tela já chamam telMask.
+function telMask(el) { cnrTelMask(el); }
 
 // CEP: 88000-000. O campo já buscava o endereço ao digitar, mas não
 // formatava — a máscara só era aplicada quando o valor vinha da API.

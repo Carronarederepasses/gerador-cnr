@@ -18,6 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
+<script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <script src="/assets/sidebar.js" defer></script>
@@ -519,15 +520,10 @@ function buildHist() {
 // oninput dos campos, para quem digita à mão. Espelham compradores.html.
 
 // Telefone: (48)99999-9999 — aceita fixo (10) e celular (11 dígitos)
-function telMaskV(el) {
-  const d = el.value.replace(/\D/g,'').slice(0,11);
-  // 11 dígitos → celular (48)99988-7766 · 10 → fixo (48) 3333-4444
-  const corte = d.length > 10 ? 7 : 6;
-  if (d.length > 6)      el.value = `(${d.slice(0,2)})${d.slice(2,corte)}-${d.slice(corte)}`;
-  else if (d.length > 2) el.value = `(${d.slice(0,2)})${d.slice(2)}`;
-  else if (d.length > 0) el.value = `(${d}`;
-  else                   el.value = '';
-}
+// Delega para assets/mascaras.js — fonte única desde 10/set. Esta cópia já
+// tinha divergido da de compradores.html: com 1 ou 2 dígitos, uma mostrava
+// "48" e a outra "(48".
+function telMaskV(el) { cnrTelMask(el); }
 
 // CPF (11 díg) ou CNPJ (14 díg) no mesmo campo — decide pelo tamanho
 function docMaskV(el) {

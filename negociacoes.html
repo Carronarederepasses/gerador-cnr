@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
+<script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <script src="/assets/sidebar.js" defer></script>
@@ -198,7 +199,7 @@
       </div>
       <div class="field">
         <label>Telefone (opcional)</label>
-        <input type="text" id="m-telefone" placeholder="ex: 48 99999-9999">
+        <input type="text" id="m-telefone" inputmode="tel" placeholder="(48)99999-9999" oninput="cnrTelMask(this)">
       </div>
     </div>
     <div class="g2">
@@ -277,7 +278,7 @@
         </div>
         <div class="g2">
           <div class="field"><label>RG (opcional)</label><input type="text" id="c-vend-rg"></div>
-          <div class="field"><label>Telefone</label><input type="text" id="c-vend-tel"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="c-vend-tel" inputmode="tel" placeholder="(48)99999-9999" oninput="cnrTelMask(this)"></div>
         </div>
         <div class="g2">
           <div class="field"><label>E-mail (opcional)</label><input type="text" id="c-vend-email"></div>
@@ -296,7 +297,7 @@
         </div>
         <div class="g2">
           <div class="field"><label>RG (opcional)</label><input type="text" id="c-comp-rg"></div>
-          <div class="field"><label>Telefone</label><input type="text" id="c-comp-tel"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="c-comp-tel" inputmode="tel" placeholder="(48)99999-9999" oninput="cnrTelMask(this)"></div>
         </div>
         <div class="g2">
           <div class="field"><label>E-mail (opcional)</label><input type="text" id="c-comp-email"></div>
@@ -377,7 +378,7 @@
         <div class="field"><label>Endereço</label><input type="text" id="c-int-end" placeholder="Rua, número, bairro"></div>
         <div class="g2">
           <div class="field"><label>Cidade/UF</label><input type="text" id="c-int-cidade" placeholder="ex: Garopaba/SC"></div>
-          <div class="field"><label>Telefone</label><input type="text" id="c-int-tel"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="c-int-tel" inputmode="tel" placeholder="(48)99999-9999" oninput="cnrTelMask(this)"></div>
         </div>
         <div class="field"><label>E-mail</label><input type="text" id="c-int-email"></div>
       </div>
