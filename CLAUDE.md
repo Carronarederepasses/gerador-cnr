@@ -4823,3 +4823,55 @@ previstas para o Corolla.
 | FIPE fora do ar | devolve a cópia guardada (até 7 dias) em vez de erro |
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — KM colada e data nas revisões
+
+Dois pedidos dele, pequenos, mas com um achado no meio.
+
+**1. `78.000 km` → `78.000km`**, nos dois montadores de texto e também na linha
+de revisões — senão o anúncio sairia com um junto e o outro separado.
+
+**2. Data das revisões (mês/ano).** Campo novo ao lado do de km: km sozinho não
+diz se a revisão é recente. A linha cobre os três casos:
+
+| preenchido | sai no anúncio |
+|---|---|
+| km + data | `🛠️ Revisões até 40.000km (03/2025)` |
+| só km | `🛠️ Revisões até 40.000km` |
+| só data | `🛠️ Revisões até 03/2025` |
+
+A máscara `MM/AAAA` foi para o `assets/mascaras.js`, junto das outras — **não
+uma cópia nova**. Corrige o mês enquanto se digita: `3` vira `03`, `19` vira
+`12`. É campo de texto e não `input type="month"` porque `month` não funciona
+no Safari do iPhone, e ele definiu em 03/set que o app tem de servir os dois
+sistemas.
+
+Entra no `CAMPOS_SIMPLES`, então sobrevive ao recarregar. **Não vai para o
+banco:** revisões nunca foi campo de veículo, só texto de anúncio — conferido
+antes, no whitelist do `api/catalogo.js`.
+
+### O achado: 14 linhas mortas em `gerar()`
+
+A função declarava `mNome`, `km`, `cor`, `valor`, `fipeDigit` e mais nove — e
+**nada usava**. Sobra da unificação de 02/set, quando `gerar()` deixou de
+montar o texto e passou a chamar `montarTextoAnuncio()`.
+
+Era armadilha pronta: quem fosse "arrumar a linha do km" mexeria ali e não
+veria efeito nenhum. Quase caí nela — foi o primeiro `+ ' km'` que o grep me
+mostrou. Removidas.
+
+### Uma nota sobre a ferramenta, não sobre o código
+
+Três capturas de tela seguidas voltaram **pretas**, enquanto a medição do DOM
+dizia que o campo estava visível (`top:188`, sem ancestral oculto). Contradição
+entre o que eu media e o que eu via.
+
+Não aceitei nenhum dos dois: aumentei a janela para 1900px de altura, o campo
+coube sem rolagem, e a captura saiu perfeita. **Era defeito do print com a
+página rolada**, não da tela.
+
+Vale como regra: quando o print e a medição discordam, o desempate é mudar as
+condições até um dos dois se explicar — não escolher o que confirma o que eu
+já achava.
+
+*Registrado em 10 de setembro de 2026.*
