@@ -4797,3 +4797,29 @@ diferentes, trabalho de verdade.
 **O cache não depende disso.** Ele já resolve o consumo sozinho.
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — o token vale na v1, confirmado no painel
+
+Fecha a dúvida deixada em aberto na entrada anterior. Primeira busca por placa
+depois de a variável entrar no ar, e o painel do `fipe.api.br` mostrou:
+
+```
+REQUISIÇÕES 41   ·   TAXA DE SUCESSO 100%   ·   ERROS 0
+```
+
+**A v1 aceita o token.** Era indício — a própria v1 respondendo 429 e mandando
+pegar token num site que documenta a v2 — e virou fato medido.
+
+As 41 também confirmam a conta do consumo que motivou o cache: uma busca custa
+~1 chamada de modelos + 1 de anos por modelo de nome parecido. Bate com as ~44
+previstas para o Corolla.
+
+**Estado agora:**
+
+| | |
+|---|---|
+| cota | 1.000/dia, nossa — não mais 500 dividida com o IP da Vercel |
+| consumo | primeira busca de um modelo paga; as seguintes, quase nada |
+| FIPE fora do ar | devolve a cópia guardada (até 7 dias) em vez de erro |
+
+*Registrado em 10 de setembro de 2026.*

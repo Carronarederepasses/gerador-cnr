@@ -60,18 +60,19 @@ function guardar(path, valor) {
 //   sem token   500 requisições/dia
 //   token grátis 1.000/dia
 //
-// ⚠️ PONTO NÃO CONFIRMADO: o token é emitido em fipe.api.br, cuja documentação
-// descreve a API **v2** (`fipe.parallelum.com.br/api/v2`). Nós usamos a **v1**
-// (`parallelum.com.br/fipe/api/v1/carros`), e a documentação não diz se a v1
-// aceita o token. O indício a favor é que foi a própria v1 que respondeu 429
-// mandando pegar token lá — seria estranho apontar para um token que ela
-// ignora. Mas é indício, não prova.
+// A v1 ACEITA o token — conferido, não suposto. O token é emitido em
+// fipe.api.br, cuja documentação descreve a **v2**, e não dizia nada sobre a
+// v1 (`parallelum.com.br/fipe/api/v1/carros`), que é a que usamos. Ficou
+// marcado aqui como dúvida até 10/set, quando o painel "Uso da API" registrou
+// **41 requisições, 100% de sucesso, 0 erros** logo depois da primeira busca
+// por placa com a variável no ar.
 //
-// Cabeçalho desconhecido é ignorado, então mandar não quebra nada. Como
-// confirmar: o painel "Uso da API" em fipe.api.br. Se as requisições
-// aparecerem lá, a v1 aceita. Se ficar zerado com o Gerador em uso, não
-// aceita — e aí o caminho é migrar para a v2, que tem rotas e formato de
-// resposta diferentes.
+// As 41 também confirmam a conta do consumo: uma busca custa ~1 chamada de
+// modelos + 1 de anos por modelo de nome parecido. É esse número que o cache
+// acima existe para não pagar de novo.
+//
+// Se um dia a v1 sair do ar, o caminho é a v2 — rotas e formato de resposta
+// diferentes, trabalho de verdade.
 function cabecalhos() {
   const token = process.env.FIPE_TOKEN;
   return token ? { Authorization: `Bearer ${token}` } : {};
