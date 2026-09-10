@@ -785,8 +785,23 @@ async function carregar() {
 }
 
 // ── Ações ────────────────────────────────────────────────────────
+// Uma aba só para ver anúncio, reaproveitada a cada clique.
+//
+// Antes era `_blank` + `noopener`: cada ↗ OLX abria mais uma aba e nenhuma
+// fechava. Numa varredura de 40 anúncios a barra do navegador enche, e foi
+// o que o Yuri relatou em 10/set.
+//
+// O que muda o comportamento é o NOME (`cnr-olx`): o navegador procura uma
+// aba com esse nome e, achando, navega ela em vez de criar outra.
+//
+// O `noopener` teve de sair: com ele o nome é ignorado por definição e uma
+// aba nova nasce sempre — era ele o motivo do acúmulo. O preço é a página
+// aberta passar a enxergar `window.opener`. Aceitável aqui: o destino é o
+// anúncio que o próprio Yuri escolheu, e a chave de acesso do Gerador vive
+// no localStorage, não na URL, então um redirecionamento não vazaria nada.
 function abrirOLX(url) {
-  window.open(url, '_blank', 'noopener');
+  const aba = window.open(url, 'cnr-olx');
+  if (aba) aba.focus();   // já estava aberta? traz para a frente em vez de duplicar
 }
 
 async function avancar(id, novoStatus) {
@@ -954,7 +969,11 @@ function abrirCaixaAbordagem(id) {
 }
 
 function _abortarFallback(listing_id) {
-  window.open(`https://chat.olx.com.br/?list-id=${listing_id}`, '_blank', 'noopener');
+  // Nome próprio, separado do `cnr-olx`: o chat e o anúncio são coisas
+  // diferentes e ele pode querer os dois abertos ao mesmo tempo. Mas cada um
+  // reaproveita a SUA aba, em vez de somar uma nova por clique.
+  const aba = window.open(`https://chat.olx.com.br/?list-id=${listing_id}`, 'cnr-olx-chat');
+  if (aba) aba.focus();
   navigator.clipboard.writeText(MSG_ABORDAGEM).catch(() => {});
   mostrarToast('⚠️ Extensão não detectada.\nChat aberto — mensagem copiada. Cole, revise e envie.\nDepois clique ✅ ENVIEI aqui.');
 }
