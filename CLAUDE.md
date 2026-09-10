@@ -4934,3 +4934,88 @@ feito, porque exigiria recarregar a extensão para um problema não confirmado.
 **Como distinguir:** aba do Ficha nunca vem para a frente; a do ↗ OLX vem.
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — story do carro, e os números que não eram culpa da fonte
+
+Ideia dele: *"criar um botão no gerador, e todos os carros captados virarem
+posts de stories"*, com legenda padronizada e padrão diferente do WhatsApp.
+
+### Entrevistado antes de construir
+
+Seis perguntas com sugestão em cada uma. Ele derrubou a minha na que mais
+importava:
+
+| | |
+|---|---|
+| Preço no story | **Sim.** Eu sugeri não, pelo risco de expor margem. Ele: *"detesto ver stories de coisas à venda sem preço… a galera desanima, mais fácil eu filtrar depois"*. Argumento melhor que o meu |
+| Quais carros | disponíveis do catálogo; **parceiro não entra** |
+| Um botão por card | não um gerador em lote |
+| Câmbio | opção marcável **na hora** — ideia dele: *"tem carro que é tácito, tem carro que tem as duas opções"* |
+
+### Fatos que levantei em vez de perguntar
+
+**A foto de 45° é sempre a segunda.** Ele pediu "a de 45°, frente pro lado
+esquerdo". Em vez de perguntar qual índice, baixei e **olhei** os cinco carros
+disponíveis: nos cinco a foto 1 é frontal reta e a 2 é a de 45° com
+tampa-placa, em retrato. Padrão dele, consistente. O botão acerta sozinho e
+ainda deixa trocar.
+
+**O preço é `veiculo.valor` (Repasse), nunca `valor_compra`.** Conferi qual era
+qual antes de escrever. Story é público; trocar os dois entregaria a margem.
+Há teste que falha se `valor_compra` aparecer no arquivo.
+
+**O bucket do Supabase devolve `access-control-allow-origin: *`** — sem isso o
+canvas ficaria contaminado e o download falharia.
+
+**Dois dos cinco disponíveis estão sem preço.** O botão bloqueia e diz onde
+preencher, em vez de gerar um story capenga.
+
+### Defeitos meus, achados testando
+
+- Chamei `toast()`, que **não existe** nesta tela.
+- A mensagem de erro mandava clicar em "Captado por"/"+ Custo" — aqueles
+  editam `valor_compra`, o campo **errado**.
+- **Corrida:** cada desenho leva ~1s e um antigo terminava depois do novo,
+  sobrescrevendo o rótulo. Abrir o modal logo após trocar de foto mostrava
+  "10 de 10" com erro herdado. Resolvido com token de vez.
+- No celular o botão Baixar ficava **abaixo da dobra** — justamente onde ele
+  posta.
+
+### Os números: diagnóstico contra pedido
+
+Ele: *"tem número que fica ruim de ler. Usar Calibri ou Times New Roman"*.
+
+**Não era a fonte.** A Playfair desenha algarismos no estilo antigo por
+padrão — o 1 e o 2 na altura da minúscula, o 5 e o 9 descendo. Em
+"Fox Xtreme 1.6 Flex 8V 5P 2020" isso vira ruído.
+
+Montei as quatro lado a lado com os títulos reais dele e mandei. Ele: *"se for
+esse erro, então não precisa mudar de fonte"*.
+
+Por que não trocar, e disse isso a ele: **Calibri é da Microsoft** — não existe
+em celular nem Mac, e quem não tiver vê outra coisa sem aviso; pesa agora que
+a mãe usa outra máquina, e muito mais quando o Gerador for vendido. **Times New
+Roman** existe em todo lugar mas apaga a cara editorial do projeto.
+
+| onde | conserto |
+|---|---|
+| 18 telas | `lining-nums` no `:root` do `tokens.css` — a propriedade é herdada, uma linha resolve todas |
+| `site.html` | mesma regra em `.serif`; é a única que não carrega tokens.css, e os números dela são "+200", "48h", "100%" |
+| story (canvas) | **não dá:** canvas 2D não tem `font-variant-numeric`. Conferido — só existe `fontVariantCaps`. Os trechos numéricos passam a ser desenhados em **DM Sans**, a 0,86 do corpo para casar com a altura das maiúsculas |
+
+Pior caso: **"Polo Highline 200 TSI" saía parecendo "zoo"**.
+
+> A forma vale mais que o conserto: ele pediu troca de fonte, eu fui ver por
+> quê, e o pedido dele deixou de fazer sentido para os dois. Mostrar as quatro
+> lado a lado custou uma página de rascunho e evitou trocar a identidade do
+> sistema por causa de um ajuste desligado.
+
+### Ícone
+
+Ele quis o do Instagram no lugar do 📱 e ofereceu mandar a imagem, como nas
+placas. Não precisou: **não existe emoji de marca no Unicode**, e o glifo é
+simples. Desenhado como SVG — escala sem borrar e herda a cor do botão pelo
+`currentColor`. Anotado no código que a Meta tem regras de uso do logo, para
+quando o Gerador virar produto.
+
+*Registrado em 10 de setembro de 2026.*
