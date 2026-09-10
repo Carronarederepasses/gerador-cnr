@@ -4688,3 +4688,50 @@ grátis em `fipe.api.br` que sobe o limite — **pendência antiga, de 03/set,
 ainda aberta.**
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — a FIPE tem limite diário, e agora tem número
+
+Descoberto testando a correção da placa: a Parallelum passou a responder
+
+```
+HTTP 429   retry-after: 85111
+{"error":"limite de taxa excedido. Por favor, visite https://fipe.api.br
+          para obter um token"}
+```
+
+`retry-after` de 85.111 s é **quase 24 h** — cota diária, não pausa curta.
+
+**Por que isso é grande aqui:** o Gerador não faz "uma consulta" à FIPE. Para
+montar a lista de versões de UM modelo ele pede os anos de cada modelo cujo
+nome começa igual — **43 chamadas só para o Corolla**, mais 1 para a lista de
+modelos. Uma busca por placa ≈ 45 chamadas.
+
+Conferido em `fipe.api.br` (não de memória): o plano gratuito dá **1.000
+consultas/dia**, sem cartão, e o token vai no cabeçalho
+`Authorization: Bearer <chave>`.
+
+**1.000 ÷ 45 ≈ 22 buscas por dia.** Para o uso do Yuri sozinho, sobra. O
+problema é outro: **hoje não mandamos token nenhum**, então valemos pela cota
+anônima do IP — e as funções rodam em **IPs compartilhados da Vercel**, junto
+com outros clientes. A cota pode ser gasta por gente que não tem nada a ver
+conosco, e o Gerador dá "Erro ao buscar modelos" sem culpa própria.
+
+Quem estourou hoje foi **esta máquina**, testando. A produção seguiu
+funcionando — o Yuri lançou o Corolla normalmente.
+
+**Duas coisas a fazer, nenhuma feita:**
+
+1. Token grátis em `fipe.api.br`, colado na Vercel como variável de ambiente.
+   `api/fipe.js` manda o cabeçalho quando ela existir e segue sem ela quando
+   não — mesmo desenho do guard da `VENDAS_KEY`.
+2. **Reduzir as 45 chamadas.** É o consumo real e é evitável: os anos de cada
+   modelo mudam uma vez por mês. Guardar em memória por algumas horas já
+   derrubaria quase tudo — o `fipe-search.js` **já faz isso** desde 02/set
+   (cache TTL 6 h), e o `fipe.js` não. Duas peças, mesma API, uma com cache e
+   a outra sem.
+
+Fica pendente também o efeito colateral no teste: as duas simulações contra a
+FIPE real ficam inconclusivas por ~24 h. A verificação no navegador não depende
+delas e passou.
+
+*Registrado em 10 de setembro de 2026.*
