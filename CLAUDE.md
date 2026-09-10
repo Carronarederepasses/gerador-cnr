@@ -4875,3 +4875,62 @@ condições até um dos dois se explicar — não escolher o que confirma o que 
 já achava.
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — uma aba só para a OLX
+
+Yuri: *"toda vez que eu clicar, abre uma nova aba... daqui a pouco não tem
+mais espaço"*. Numa varredura de 40 anúncios, 40 abas.
+
+**Ele atribuiu ao 👁 Ficha; era o ↗ OLX.** Os dois ficam lado a lado no card e
+se comportam de forma oposta:
+
+| | |
+|---|---|
+| **👁 Ficha** | abre em segundo plano, lê e **fecha sozinha** (`chrome.tabs.remove` no `finally` de `lerFichaNaAba`) |
+| **↗ OLX** | `window.open(url, '_blank', 'noopener')` — aba nova por clique, nenhuma fechada |
+
+Conferido no histórico da extensão antes de responder: o fechamento entrou **na
+mesma versão** em que o Ficha nasceu (`9e6c5f6`), então "extensão velha" não
+explicava nada. Ele depois confirmou que o Ficha abre, roda e fecha — o
+comportamento correto.
+
+### O que mudou
+
+Alvo **nomeado** (`cnr-olx`): o navegador procura uma aba com esse nome e navega
+ela em vez de criar outra. O chat do fallback do ABORDAR ganhou nome próprio
+(`cnr-olx-chat`) — são coisas diferentes e ele pode querer as duas abertas.
+
+**O `noopener` teve de sair, e era ele o motivo do acúmulo:** com `noopener` o
+nome é ignorado por definição e um contexto novo nasce sempre. O preço é a
+página aberta enxergar `window.opener`. Aceitável: o destino é o anúncio que ele
+mesmo escolheu, e a chave do Gerador vive no `localStorage`, não na URL.
+
+### Verificação: o que eu não pude testar, e quem testou
+
+O painel de navegador desta sessão **bloqueia `window.open`** — descobri
+tentando, não supondo. Então o reaproveitamento não pôde ser exercitado aqui.
+Fiz o commit dizendo isso e pedi ao Yuri o teste de 10 segundos (clicar ↗ OLX
+em dois cards diferentes e contar as abas).
+
+**Confirmado por ele:** uma aba só, trocando de anúncio.
+
+> Vale a forma: em vez de afirmar "resolvido", nomeei o que faltava e dei um
+> teste curto e objetivo. Custou uma pergunta e fechou a dúvida.
+
+### Não escondido de propósito
+
+O piscar da aba do Ficha dá para esconder. Não foi feito: contraria a decisão
+dele de 02/set de não usar camuflagem alguma na extensão, para o comportamento
+continuar previsível e explicável. Uma aba abrindo e fechando é o navegador
+dele fazendo o que qualquer pessoa faz ao abrir um anúncio.
+
+### Em aberto (improvável, mas anotado)
+
+Se um dia sobrar aba do **Ficha**, a causa seria o Chrome desligar o service
+worker no meio da leitura — aí o `finally` não roda. É intermitente e não deixa
+rastro. Rede de segurança possível (~10 linhas): a extensão anota o `tabId` em
+`chrome.storage.session` e fecha o que tiver ficado no clique seguinte. Não
+feito, porque exigiria recarregar a extensão para um problema não confirmado.
+**Como distinguir:** aba do Ficha nunca vem para a frente; a do ↗ OLX vem.
+
+*Registrado em 10 de setembro de 2026.*
