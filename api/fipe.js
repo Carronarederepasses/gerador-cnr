@@ -1,24 +1,10 @@
 // Vercel API Route — proxy Parallelum FIPE + anos/versões (sem CORS, sem chave)
 const { exigirChave } = require('./_auth');
 
-const FIPE_BASE = 'https://parallelum.com.br/fipe/api/v1/carros';
-
-async function fipeGet(endpoint, retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(`${FIPE_BASE}${endpoint}`);
-      if (res.ok) return res.json();
-      if ((res.status === 429 || res.status >= 500) && i < retries - 1) {
-        await new Promise(r => setTimeout(r, 600 * (i + 1)));
-        continue;
-      }
-      throw new Error(`Parallelum HTTP ${res.status}`);
-    } catch (e) {
-      if (i === retries - 1) throw e;
-      await new Promise(r => setTimeout(r, 600 * (i + 1)));
-    }
-  }
-}
+// O acesso à FIPE (cache + token) mora em _fipe.js desde 10/set. Este arquivo
+// tinha a sua própria cópia do fipeGet, SEM cache, enquanto o fipe-search.js
+// tinha uma COM cache — e era esta a que gastava, com 43 chamadas por modelo.
+const { fipeGet } = require('./_fipe');
 
 async function mapLimit(arr, limit, fn) {
   const ret = [];

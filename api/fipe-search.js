@@ -1,42 +1,10 @@
 // Vercel API Route — busca FIPE completa server-side a partir de texto livre
 const { exigirChave } = require('./_auth');
 
-const FIPE_BASE = 'https://parallelum.com.br/fipe/api/v1/carros';
-
-// Cache em memória do processo. A tabela FIPE muda uma vez por mês, e a lista
-// de marcas e modelos quase nunca — mas a busca refaz as mesmas dezenas de
-// chamadas a cada consulta. Numa instância morna, a segunda consulta do Yuri
-// deixa de pagar a varredura inteira.
-//
-// É por instância e some quando a Vercel recicla a função: serve para deixar
-// o uso seguido mais rápido, não para garantir nada. TTL curto o bastante
-// para nunca segurar uma tabela nova por muito tempo.
-const CACHE = new Map();
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6h
-
-async function fipeGet(path, retries = 3) {
-  const emCache = CACHE.get(path);
-  if (emCache && emCache.expira > Date.now()) return emCache.valor;
-
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(`${FIPE_BASE}${path}`);
-      if (res.ok) {
-        const dados = await res.json();
-        CACHE.set(path, { valor: dados, expira: Date.now() + CACHE_TTL });
-        return dados;
-      }
-      if (res.status >= 500 && i < retries - 1) {
-        await new Promise(r => setTimeout(r, 600 * (i + 1)));
-        continue;
-      }
-      throw new Error(`HTTP ${res.status}`);
-    } catch (e) {
-      if (i === retries - 1) throw e;
-      await new Promise(r => setTimeout(r, 600 * (i + 1)));
-    }
-  }
-}
+// O cache nasceu aqui em 02/set e ficou só aqui — o fipe.js, que é quem mais
+// consome, seguiu sem. Desde 10/set os dois usam a mesma peça, em _fipe.js,
+// que também manda o FIPE_TOKEN e devolve cópia guardada quando a FIPE recusa.
+const { fipeGet } = require('./_fipe');
 
 // Palavras que indicam variante específica — penaliza se estão no modelo mas NÃO no texto do usuário
 const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','hybrid','phev'];
