@@ -79,6 +79,29 @@
     };
   }
 
+  // ── Mini-placa ────────────────────────────────────────────────
+  // Devolve o HTML da etiqueta. O CSS mora em assets/placa.css — a página
+  // precisa carregar os dois.
+  //
+  // Limpa TUDO que não é letra ou número antes de classificar: uma placa
+  // gravada como "LMX-1J26" falhava no teste por causa do hífen e aparecia
+  // como placa antiga, cinza, quando é Mercosul. Foi bug real em 02/set.
+  function placaHTML(placa, extra) {
+    const esc = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const p = String(placa == null ? '' : placa).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const classes = ['placa-tag', extra || ''].filter(Boolean);
+    if (!p) {
+      classes.push('vazia');
+      return `<span class="${classes.join(' ')}"><span class="ptopo">BRASIL</span><span class="pcorpo">— — —</span></span>`;
+    }
+    const mercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(p);
+    classes.push(mercosul ? 'mercosul' : 'antiga');
+    return `<span class="${classes.join(' ')}">` +
+      `<span class="ptopo">${mercosul ? '🇧🇷 BRASIL' : 'BRASIL'}</span>` +
+      `<span class="pcorpo">${esc(p)}</span></span>`;
+  }
+
   raiz.CNR_MASCARA = {
     tel: tel,
     doc: doc,
@@ -86,7 +109,10 @@
     telInput: aplicar(tel),
     docInput: aplicar(doc),
     cepInput: aplicar(cep),
+    placaHTML: placaHTML,
   };
+
+  raiz.cnrPlaca = placaHTML;
 
   // Atalhos globais para usar direto no `oninput` do HTML, que é como as
   // telas deste projeto sempre ligaram máscara.

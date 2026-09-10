@@ -18,8 +18,10 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
+<script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
+<link rel="stylesheet" href="/assets/placa.css">
 <script src="/assets/sidebar.js" defer></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -66,7 +68,12 @@
   .dias-warn{color:#e8a000}
   .dias-crit{color:#e55}
   .placa-linha{font-size:.8rem;color:var(--text-mid);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;cursor:pointer;display:flex;align-items:center;gap:.3rem}
-  .placa-linha b{letter-spacing:.06em}
+  /* Só o cadeado. A frase "uso interno" foi tentada aqui em 10/set e não
+     coube: com a etiqueta da placa ocupando a linha, ela quebrava em duas e
+     empurrava o 🔍 Buscar para baixo, deixando os cards com alturas
+     diferentes. O cadeado diz a mesma coisa e cabe sempre — o texto está no
+     title, para quem passar o mouse. */
+  .placa-linha .placa-uso{font-size:.8rem;opacity:.55;cursor:help}
   .placa-linha .edit{margin-left:auto;opacity:.5;font-size:.79rem}
   .placa-linha:hover{border-color:var(--accent)}.placa-linha:hover .edit{opacity:1}
   .renavam-linha{font-size:.68rem;color:var(--text-mid);letter-spacing:.04em;margin-top:.25rem;padding:0 .1rem}
@@ -306,7 +313,6 @@
   .card .precos .v{font-size:1.35rem}
   .fotos img{height:90px;width:115px}
   .fotos .add{height:90px}
-  .placa-linha{font-size:.74rem;opacity:.78}
   .renavam-linha{font-size:.63rem;opacity:.6}
   .sr-chip{font-size:.7rem;padding:.18rem .45rem}
   .match-nome{font-size:.92rem;font-weight:700}
@@ -645,7 +651,8 @@ function card(v) {
     <div class="placa-linha" role="button" tabindex="0" title="Clique para editar (uso interno)" aria-label="Editar placa"
          onclick="editarPlaca('${v.id}')"
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editarPlaca('${v.id}')}">
-      🔒 Placa: <b>${v.placa ? esc(v.placa) : '—'}</b>
+      ${cnrPlaca(v.placa, 'grande')}
+      <span class="placa-uso" title="Placa é uso interno — não sai no anúncio">🔒</span>
       ${v.placa ? `<button class="placa-busca-btn" onclick="event.stopPropagation();buscarPlaca('${v.id}')">🔍 Buscar</button>` : ''}
       <span class="edit">✏️</span>
     </div>

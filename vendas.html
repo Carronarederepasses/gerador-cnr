@@ -21,6 +21,7 @@
 <script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
+<link rel="stylesheet" href="/assets/placa.css">
 <script src="/assets/sidebar.js" defer></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -62,16 +63,7 @@
   .card .valores .v .num{font-weight:700;font-size:1rem}
   .card .datas{font-size:.8rem;color:var(--text-mid);display:flex;gap:1.2rem;flex-wrap:wrap}
 
-  /* ── Mini-placa ─────────────────────────────────────────────── */
-  .placa-tag{display:inline-flex;flex-direction:column;border-radius:4px;overflow:hidden;vertical-align:middle;margin-left:.55rem;border:1.5px solid rgba(0,0,0,.22);box-shadow:0 1px 3px rgba(0,0,0,.12);line-height:1;transform:translateY(-2px);white-space:nowrap;text-decoration:none}
-  .placa-tag .ptopo{font-family:'DM Sans',sans-serif;font-size:.38rem;font-weight:700;letter-spacing:.13em;text-align:center;padding:.13rem .5rem;text-transform:uppercase}
-  .placa-tag .pcorpo{font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:900;letter-spacing:.07em;padding:.13rem .5rem;text-transform:uppercase;text-align:center}
-  /* Mercosul: faixa azul + fundo branco */
-  .placa-tag.mercosul .ptopo{background:#1a4fad;color:#fff}
-  .placa-tag.mercosul .pcorpo{background:#fff;color:#111}
-  /* Antiga: faixa cinza + corpo cinza claro */
-  .placa-tag.antiga .ptopo{background:#7a7a7a;color:#f0f0f0}
-  .placa-tag.antiga .pcorpo{background:#c8c8c8;color:#1a1a1a}
+  /* Mini-placa: o desenho mora em assets/placa.css desde 10/set. */
   /* ── Emblema de marca ───────────────────────────────────────── */
   .brand-logo{width:30px;height:30px;object-fit:contain;margin-right:.5rem;vertical-align:middle;transform:translateY(-1px);display:inline-block}
   .badge{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:.25rem .6rem;border-radius:20px;white-space:nowrap}
@@ -975,16 +967,11 @@ function brandLogo(marca) {
   return `<img class="brand-logo" src="${CDN_LOGO}${slug}.png" alt="${esc(marca)}" onerror="this.style.display='none'">`;
 }
 
+// Delega para assets/mascaras.js — fonte única desde 10/set.
+// Aqui a venda SEM placa não mostra nada (o cabeçalho é o nome do carro);
+// no catálogo a etiqueta vazia aparece, porque lá ela é o botão de cadastrar.
 function renderPlaca(placa) {
-  if (!placa) return '';
-  // Remove TUDO que não for letra ou número antes de classificar.
-  // Antes só tirava espaço: uma placa gravada como "LMX-1J26" falhava no
-  // regex por causa do hífen e era exibida como placa antiga (cinza).
-  const p = placa.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
-  const isMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(p);
-  const tipo = isMercosul ? 'mercosul' : 'antiga';
-  const topo = isMercosul ? '🇧🇷 BRASIL' : 'BRASIL';
-  return `<span class="placa-tag ${tipo}"><span class="ptopo">${topo}</span><span class="pcorpo">${esc(p)}</span></span>`;
+  return placa ? cnrPlaca(placa, 'inline') : '';
 }
 
 function nomeCarro(v) {

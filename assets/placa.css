@@ -1,0 +1,47 @@
+/* ─────────────────────────────────────────────────────────────────
+   CNR — Mini-placa
+   Fonte única desde 10/set/2026. Nasceu em vendas.html; o Yuri pediu a
+   mesma coisa no catálogo, e duas cópias do mesmo desenho é exatamente o
+   que já divergiu três vezes neste projeto (montador de anúncio, máscara
+   de telefone, declarações do catálogo).
+
+   As cores são fixas de propósito, e não tokens do tema: a placa Mercosul
+   é azul e branca no mundo real, e a antiga é cinza. Se seguissem o tema
+   deixariam de parecer uma placa, que é a única razão de existirem.
+   ───────────────────────────────────────────────────────────────── */
+
+.placa-tag{
+  display:inline-flex;flex-direction:column;border-radius:4px;overflow:hidden;
+  vertical-align:middle;border:1.5px solid rgba(0,0,0,.22);
+  box-shadow:0 1px 3px rgba(0,0,0,.12);line-height:1;white-space:nowrap;
+  text-decoration:none;
+}
+.placa-tag .ptopo{
+  font-family:'DM Sans',sans-serif;font-size:.38rem;font-weight:700;
+  letter-spacing:.13em;text-align:center;padding:.13rem .5rem;text-transform:uppercase;
+}
+.placa-tag .pcorpo{
+  font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:900;
+  letter-spacing:.07em;padding:.13rem .5rem;text-transform:uppercase;text-align:center;
+}
+
+/* Mercosul: faixa azul + fundo branco */
+.placa-tag.mercosul .ptopo{background:#1a4fad;color:#fff}
+.placa-tag.mercosul .pcorpo{background:#fff;color:#111}
+
+/* Antiga: faixa cinza + corpo cinza claro */
+.placa-tag.antiga  .ptopo{background:#7a7a7a;color:#f0f0f0}
+.placa-tag.antiga  .pcorpo{background:#c8c8c8;color:#1a1a1a}
+
+/* Sem placa cadastrada. Continua com forma de placa para o card não mudar
+   de altura quando a placa chegar, e para o lugar ficar reconhecível. */
+.placa-tag.vazia .ptopo{background:#3a3a3a;color:#9a9a9a}
+.placa-tag.vazia .pcorpo{background:#222;color:#7c7c7c;font-weight:700}
+
+/* Em vendas ela fica ao lado do nome do carro, na mesma linha do <h3>. */
+.placa-tag.inline{margin-left:.55rem;transform:translateY(-2px)}
+
+/* No catálogo ela é maior: lá a placa é dado de trabalho, não enfeite —
+   é por ela que ele confere o carro. */
+.placa-tag.grande .ptopo{font-size:.42rem;padding:.15rem .6rem}
+.placa-tag.grande .pcorpo{font-size:.95rem;padding:.2rem .6rem;letter-spacing:.1em}
