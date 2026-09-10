@@ -4345,3 +4345,83 @@ Ver também: o recorte grátis no navegador foi testado e descartado em 04/set,
 e o modo IA redesenha o carro (risco em anúncio de repasse).
 
 *Registrado em 9 de setembro de 2026.*
+
+### 9 de setembro, noite — agenda de avaliações, em produção
+
+Pedido dele no meio do uso. Não existia **um único campo de data futura** no
+sistema: tudo era `created_at`, `updated_at`, `ultimo_contato` — todos
+olhando para trás.
+
+### Onde ficou, e por quê
+
+**Bloco no Painel, não tela nova.** Tela que ele precisa lembrar de abrir é
+tela que ele esquece; o Painel ele abre de qualquer jeito. Fica **acima dos
+KPIs** porque avaliação marcada para hoje é a coisa mais acionável da tela, e
+some quando não há nada.
+
+**Linha solta, não campo no anúncio.** A tentação era pôr a data no card —
+onde ele já está. Mas ele disse em 07/set que *"carros captados nem sempre vêm
+da OLX, vêm por indicação, vêm de lojas parceiras"*: presa ao anúncio, a
+agenda serviria **um terço** dos casos. O vínculo com anúncio/veículo existe e
+é opcional.
+
+`"hoje"` e `"amanhã"` aparecem no lugar da data, em destaque — poupa a conta
+de cabeça, que é o que ele faria olhando só o número.
+
+### O alarme não é nosso, e isso é a resposta certa
+
+Ele pediu alarme e deu o cenário: *"posso tá na rua e não ver notebook"*.
+Alarme nosso só toca com o Gerador aberto — justamente o cenário que não
+serve. Mesmo limite que o fez descartar a notificação de resposta em 04/set.
+
+O botão 📅 gera um **`.ics`** e o telefone o adiciona ao calendário. Dali o
+alarme é do aparelho: toca offline, com o app fechado, em qualquer sistema.
+
+**Foi `.ics` e não link do Google porque ele respondeu a pergunta que eu tinha
+deixado aberta no código:** *"calendário do telefone, não sei onde é do
+Google"*. `.ics` é o formato que todos entendem. **Perguntar custou uma linha;
+supor teria construído para o calendário errado.**
+
+Gerado no navegador e não no servidor: a API exige o cabeçalho da chave, e
+link clicado não manda cabeçalho — cairia em 401.
+
+### Confirmado por ele, no aparelho dele
+
+> *"apareceu opções para abrir o arquivo, aí cliquei em agenda, e foi"*
+
+E conferido no banco: a avaliação de teste está lá, com `operador` carimbado
+pelo servidor. De fora, com a chave publishable, a tabela devolve `[]` —
+**RLS ligada desde o nascimento**, que é a lição de 08/set aplicada em vez de
+repetida.
+
+### "Não teria que ser automático?" — e por que não
+
+Nenhuma página da web escreve no calendário do celular. Não existe permissão
+para isso, nem no Android nem no iPhone: se existisse, qualquer site encheria
+a agenda de propaganda. Todo caminho passa pela confirmação dele.
+
+O que reduz de 4 para 3 toques, de graça: marcar a Agenda como app **padrão**
+para `.ics` no próprio celular.
+
+O que tornaria automático de verdade, e **descartado por ora**:
+
+| | |
+|---|---|
+| App nativo na Play Store | US$ 25 uma vez + reescrever como nativo |
+| Ligar a conta Google ao Gerador | autoriza uma vez e grava sozinho — mas só serve calendário Google, e teria de ser refeito por assinante quando vender |
+
+Ele marca duas ou três avaliações por semana. Três toques não pagam nenhum dos
+dois. **Se virar rotina diária, a conta muda** — aí revisitar.
+
+### Detalhes que valem lembrar
+
+- Endpoint é modo `?agenda=1` em `fetch-anuncio.js`: o teto de 12 funções da
+  Vercel está cheio, e página HTML não conta mas função conta.
+- Lista fechada de campos no POST/PATCH: `operador` é carimbado pelo servidor,
+  nunca pelo corpo. Concluir usa `feito` booleano — a hora é do servidor.
+- Sem FK para `anuncios`/`veiculos`, como na `historico`: compromisso não pode
+  sumir porque alguém apagou o anúncio.
+- No celular os 4 botões espremiam o título em três linhas. **Só a captura de
+  tela pegou** — de novo. Ações desceram para uma linha própria.
+
+*Registrado em 9 de setembro de 2026, noite.*
