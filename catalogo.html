@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
 <script src="/assets/mascaras.js"></script>
+<script src="/assets/story.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <link rel="stylesheet" href="/assets/placa.css">
@@ -74,6 +75,14 @@
      diferentes. O cadeado diz a mesma coisa e cabe sempre — o texto está no
      title, para quem passar o mouse. */
   .placa-linha .placa-uso{font-size:.8rem;opacity:.55;cursor:help}
+  /* Opções do story. Precisa desfazer o `label{}` global desta página, que é
+     rótulo de formulário: bloco, maiúsculas e espaçado. Aqui o texto anda ao
+     lado da caixinha e se lê como frase. */
+  .story-op{display:flex;align-items:center;gap:.55rem;font-size:.86rem;cursor:pointer;
+            text-transform:none;letter-spacing:normal;color:var(--text);margin:0;font-weight:400}
+  .story-op input{margin:0;cursor:pointer;width:16px;height:16px;flex:0 0 auto}
+  .story-op input:disabled{cursor:not-allowed;opacity:.4}
+
   .placa-linha .edit{margin-left:auto;opacity:.5;font-size:.79rem}
   .placa-linha:hover{border-color:var(--accent)}.placa-linha:hover .edit{opacity:1}
   .renavam-linha{font-size:.68rem;color:var(--text-mid);letter-spacing:.04em;margin-top:.25rem;padding:0 .1rem}
@@ -686,6 +695,7 @@ function card(v) {
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
+      <button onclick="abrirStory('${v.id}')">📱 Story</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
       <button class="venda" onclick="registrarVenda('${v.id}')">💰 Registrar Venda</button>
@@ -2472,6 +2482,92 @@ async function gerarPDFAval(){
   doc.save(nomeArq);
 }
 
+// ── Story do carro (📱) ──────────────────────────────────────────
+// O desenho mora em assets/story.js — a tela Arte vai poder usar o mesmo
+// motor sem virar cópia, que é o defeito que mais voltou neste projeto.
+let _storyV = null, _storyFoto = 1;
+// Cada desenho leva ~1s (carrega fonte e foto). Clicando ◀ ▶ rápido, um
+// desenho ANTIGO termina depois do novo e sobrescreve o rótulo e o canvas —
+// medido em 10/set: abrir o modal logo após trocar de foto mostrava "10 de
+// 10" com erro, herdado da chamada anterior. Só a última vale.
+let _storyVez = 0;
+
+async function abrirStory(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  _storyV = v;
+  _storyFoto = 1;                      // a 2ª foto: a de 45°, padrão dele
+
+  document.getElementById('story-nome').textContent = nomeVeiculo(v);
+  const cam = CNR_STORY.cambioDe(v.versao || v.modelo);
+  document.getElementById('story-cambio').checked = false;
+  document.getElementById('story-cambio-qual').textContent = cam ? '(' + cam + ')' : '(não identifiquei)';
+  document.getElementById('story-cambio').disabled = !cam;
+  document.getElementById('story-ano').checked = true;
+  document.getElementById('story-modal').style.display = 'flex';
+  await redesenharStory();
+}
+
+function fecharStory() {
+  document.getElementById('story-modal').style.display = 'none';
+  _storyV = null;
+}
+
+async function redesenharStory() {
+  if (!_storyV) return;
+  const vez    = ++_storyVez;
+  const erroEl = document.getElementById('story-erro');
+  const btn    = document.getElementById('story-baixar');
+  erroEl.style.display = 'none';
+  try {
+    const r = await CNR_STORY.desenhar(
+      document.getElementById('story-canvas'), _storyV,
+      { fotoIndex: _storyFoto,
+        mostrarCambio: document.getElementById('story-cambio').checked,
+        mostrarAno:    document.getElementById('story-ano').checked });
+    if (vez !== _storyVez) return;          // chegou atrasado: quem manda é o desenho novo
+    _storyFoto = r.fotoIndex;
+    document.getElementById('story-foto-qual').textContent = `${r.fotoIndex + 1} de ${r.totalFotos}`;
+    btn.disabled = false; btn.style.opacity = '';
+  } catch (e) {
+    if (vez !== _storyVez) return;
+    // Dizer O QUE FAZER, não só que falhou. Dois dos cinco carros disponíveis
+    // estavam sem valor de repasse quando isto foi feito.
+    //
+    // O caminho é o ✏️ do card, que abre a edição com "Valor repasse (R$)".
+    // NÃO é "Captado por" nem "+ Custo": aqueles editam `valor_compra`, o que
+    // ele PAGOU — campo diferente, e o errado para um story.
+    const comoResolver = /valor de repasse/.test(e.message)
+      ? ' Clique no ✏️ do card e preencha "Valor repasse".'
+      : '';
+    erroEl.textContent = '⚠️ ' + e.message + '.' + comoResolver;
+    erroEl.style.display = 'block';
+    btn.disabled = true; btn.style.opacity = '.45';
+  }
+}
+
+function trocarFotoStory(passo) {
+  const n = Array.isArray(_storyV?.fotos) ? _storyV.fotos.length : 0;
+  if (!n) return;
+  _storyFoto = (_storyFoto + passo + n) % n;
+  redesenharStory();
+}
+
+function baixarStory() {
+  const c = document.getElementById('story-canvas');
+  const a = document.createElement('a');
+  a.download = CNR_STORY.nomeArquivo(_storyV);
+  a.href = c.toDataURL('image/png');
+  a.click();
+  // Esta tela não tem toast — as ações dela são silenciosas. Em vez de
+  // inventar um mecanismo novo só para aqui, o próprio botão confirma, que é
+  // o que anuncios.html já faz.
+  const btn = document.getElementById('story-baixar');
+  const antes = btn.textContent;
+  btn.textContent = '✓ Baixado — publique pelo app';
+  setTimeout(() => { btn.textContent = antes; }, 2600);
+}
+
 function mostrarPreviewPDF() {
   const id = $('av-veiculo-id').value;
   const v = CACHE[id]; if (!v) return;
@@ -2597,6 +2693,57 @@ carregarVendasMap().then(async () => {
     <div style="padding:1rem 1.25rem;border-top:0.5px solid var(--line);display:flex;gap:.75rem">
       <button id="pdf-preview-dl" style="flex:1;background:var(--text,#111);color:var(--surface,#fff);border:none;border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer">⬇ Baixar PDF</button>
       <button onclick="document.getElementById('pdf-preview-modal').style.display='none'" style="flex:1;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Story do carro (1080×1920) — pedido do Yuri em 10/set.
+     É prévia com opções, e não download direto, porque ele levantou o caso
+     real: em muito carro o câmbio é tácito e há modelo com as duas versões.
+     Quem decide é ele, na hora. De quebra resolve trocar a foto quando ela
+     fugir do padrão. -->
+<div id="story-modal" onclick="if(event.target===this)fecharStory()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--surface-raise);border:1px solid var(--line);border-radius:16px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.15rem;border-bottom:1px solid var(--line)">
+      <span style="font-size:.85rem;font-weight:600">📱 Story — <span id="story-nome"></span></span>
+      <button onclick="fecharStory()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-faint);line-height:1">✕</button>
+    </div>
+
+    <div id="story-corpo" style="display:flex;gap:1.1rem;padding:1.1rem;overflow-y:auto;flex-wrap:wrap">
+      <div style="flex:0 0 auto;margin:0 auto">
+        <canvas id="story-canvas" style="height:48vh;max-height:560px;width:auto;border-radius:10px;border:1px solid var(--line);background:#0a0a0a;display:block"></canvas>
+      </div>
+      <div style="flex:1 1 240px;min-width:220px;display:flex;flex-direction:column;gap:.85rem">
+        <label class="story-op">
+          <input type="checkbox" id="story-cambio" onchange="redesenharStory()">
+          Mostrar o câmbio <span id="story-cambio-qual" style="color:var(--text-faint)"></span>
+        </label>
+        <label class="story-op">
+          <input type="checkbox" id="story-ano" checked onchange="redesenharStory()">
+          Mostrar o ano
+        </label>
+        <div>
+          <div style="font-size:.78rem;color:var(--text-mid);margin-bottom:.35rem">Foto <span id="story-foto-qual"></span></div>
+          <div style="display:flex;gap:.4rem">
+            <button onclick="trocarFotoStory(-1)" style="flex:1;padding:.45rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer">◀</button>
+            <button onclick="trocarFotoStory(1)" style="flex:1;padding:.45rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer">▶</button>
+          </div>
+          <div style="font-size:.72rem;color:var(--text-faint);margin-top:.35rem">A 2ª costuma ser a de 45°.</div>
+        </div>
+        <div id="story-erro" style="display:none;font-size:.82rem;color:var(--severity-crit);line-height:1.45"></div>
+      </div>
+    </div>
+
+    <!-- Barra de ação fixa, fora da área que rola. No celular — que é onde ele
+         posta — o botão ficava abaixo da dobra e exigia rolar dentro do modal
+         para achar. Medido a 375px em 10/set. -->
+    <div style="padding:.85rem 1.15rem;border-top:1px solid var(--line);display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+      <button id="story-baixar" onclick="baixarStory()"
+              style="flex:1;min-width:180px;background:var(--accent);color:var(--surface);border:none;border-radius:8px;padding:.8rem;font-weight:600;font-size:.9rem;cursor:pointer">⬇ Baixar story</button>
+      <div style="flex:1;min-width:180px;font-size:.72rem;color:var(--text-faint);line-height:1.4">
+        Baixa a imagem. Publicar é no app do Instagram — nenhuma página da web posta por você.
+      </div>
     </div>
   </div>
 </div>
