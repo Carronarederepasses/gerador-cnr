@@ -91,6 +91,109 @@ async function handleIdeias(req, res) {
   return res.status(405).json({ error: 'Método não suportado.' });
 }
 
+// ── Modo Agenda: avaliações marcadas ─────────────────────────────
+// GET    → lista        ?desde=ISO (padrão: de ontem em diante)
+// POST   → marca uma    { quando, titulo, local, observacao, anuncio_id, veiculo_id }
+// PATCH  → edita        ?id=UUID  (mesmos campos, + feito para concluir)
+// DELETE → apaga        ?id=UUID
+//
+// Modo em vez de arquivo novo: o plano Hobby da Vercel tem teto de 12
+// funções e ele já está cheio. Página HTML nova não conta; função conta.
+async function handleAgenda(req, res) {
+  // Lista fechada: o corpo vem do navegador e não pode escolher que coluna
+  // escrever. `operador`, `created_at` e `id` ficam de fora de propósito —
+  // quem carimba o operador é o servidor, pela chave do aparelho.
+  const CAMPOS = ['quando', 'titulo', 'local', 'observacao', 'anuncio_id', 'veiculo_id'];
+
+  function montar(body) {
+    const p = {};
+    for (const c of CAMPOS) {
+      if (body[c] === undefined) continue;
+      const v = body[c];
+      // String vazia vira null: o Postgres distingue os dois, e "sem local"
+      // deve ficar nulo, não uma string de zero caracteres.
+      p[c] = (typeof v === 'string' && v.trim() === '') ? null : v;
+    }
+    if (typeof p.titulo === 'string') p.titulo = p.titulo.trim().slice(0, 200);
+    if (typeof p.local === 'string' && p.local) p.local = p.local.trim().slice(0, 200);
+    if (typeof p.observacao === 'string' && p.observacao) p.observacao = p.observacao.trim().slice(0, 2000);
+    return p;
+  }
+
+  if (req.method === 'GET') {
+    // Padrão: de ontem em diante. Ontem e não hoje porque um compromisso das
+    // 9h continua interessando às 18h — some do Painel só no dia seguinte.
+    const desde = req.query.desde || new Date(Date.now() - 36 * 3600 * 1000).toISOString();
+    const r = await sb(
+      `agenda?select=*&quando=gte.${encodeURIComponent(desde)}&order=quando.asc&limit=300`
+    );
+    if (!r.ok) return res.status(502).json({ error: `Supabase HTTP ${r.status}` });
+    return res.status(200).json(await r.json());
+  }
+
+  if (req.method === 'POST') {
+    const body = req.body || {};
+    const payload = montar(body);
+    if (!payload.quando)  return res.status(400).json({ error: 'Escolha a data e a hora.' });
+    if (!payload.titulo)  return res.status(400).json({ error: 'Diga o que é a avaliação.' });
+    if (Number.isNaN(Date.parse(payload.quando))) {
+      return res.status(400).json({ error: 'Data inválida.' });
+    }
+    const quem = operadorDe(req);
+    if (quem) payload.operador = quem;
+
+    const r = await sb('agenda', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const corpo = await r.text().catch(() => '');
+      return res.status(502).json({ error: `Falha ao gravar: ${corpo.slice(0, 200)}` });
+    }
+    const linhas = await r.json();
+    return res.status(201).json(Array.isArray(linhas) ? linhas[0] : linhas);
+  }
+
+  const id = req.query.id;
+  if (!id) return res.status(400).json({ error: 'id obrigatório.' });
+
+  if (req.method === 'PATCH') {
+    const body = req.body || {};
+    const payload = montar(body);
+
+    // Concluir e reabrir pelo mesmo caminho: `feito` booleano em vez de o
+    // navegador mandar um carimbo de hora. A hora é do servidor.
+    if (body.feito !== undefined) payload.feito_em = body.feito ? new Date().toISOString() : null;
+
+    if (payload.quando && Number.isNaN(Date.parse(payload.quando))) {
+      return res.status(400).json({ error: 'Data inválida.' });
+    }
+    if (Object.keys(payload).length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+    }
+    payload.updated_at = new Date().toISOString();
+
+    const r = await sb(`agenda?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) return res.status(502).json({ error: await r.text() });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (req.method === 'DELETE') {
+    const r = await sb(`agenda?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE', headers: { Prefer: 'return=minimal' },
+    });
+    if (!r.ok) return res.status(502).json({ error: await r.text() });
+    return res.status(200).json({ ok: true });
+  }
+
+  return res.status(405).json({ error: 'Método não suportado.' });
+}
+
 // ── Modo Buscas: configuração das URLs do Radar ──────────────────
 // GET  → lista as buscas (a extensão puxa daqui a cada verificação)
 // POST → grava o conjunto inteiro enviado pela tela do Radar
@@ -590,6 +693,9 @@ module.exports = async (req, res) => {
 
   // Modo Ideias: caderno do Yuri
   if ('ideias' in req.query) return handleIdeias(req, res);
+
+  // Modo Agenda: avaliações marcadas (09/set)
+  if ('agenda' in req.query) return handleAgenda(req, res);
 
   // Modo Mensagens (Reforma 43)
   if ('mensagens' in req.query) return handleMensagens(req, res);

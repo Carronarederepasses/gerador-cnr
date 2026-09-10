@@ -90,6 +90,60 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .secao-titulo-link{float:right;font-size:.72rem;font-weight:400;color:var(--accent);text-decoration:none}
 .secao-titulo-link:hover{text-decoration:underline}
 
+/* ── Agenda de avaliações ──────────────────────────────────────
+   Alvos de toque com 40px de altura: a tela mais usada no celular, e
+   marcar avaliação acontece na rua, muitas vezes de pé. */
+.ag-add{margin-left:auto;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;
+  letter-spacing:.04em;background:none;border:1px solid var(--line);color:var(--text-mid);
+  border-radius:8px;padding:.35rem .7rem;cursor:pointer;white-space:nowrap}
+.ag-add:hover{border-color:var(--accent);color:var(--text)}
+.ag-add.solto{margin:0;padding:.6rem 1.1rem;font-size:.76rem}
+
+.ag-item{display:flex;align-items:flex-start;gap:.8rem;padding:.7rem 0;border-bottom:1px solid var(--line)}
+.ag-item:last-child{border-bottom:none}
+/* Compromisso já cumprido continua na lista até o dia passar, mas recuado —
+   some do caminho sem sumir da vista. */
+.ag-item.feito{opacity:.45}
+.ag-item.feito .ag-tit{text-decoration:line-through}
+
+.ag-quando{flex-shrink:0;min-width:5.2rem;font-variant-numeric:tabular-nums}
+.ag-dia{font-size:.78rem;font-weight:700;color:var(--text)}
+.ag-hora{font-size:.72rem;color:var(--text-mid)}
+/* Hoje e amanhã em destaque: é o que muda o que ele faz agora. */
+.ag-quando.perto .ag-dia{color:var(--accent)}
+
+.ag-corpo{flex:1;min-width:0}
+.ag-tit{font-size:.86rem;font-weight:600;color:var(--text);word-break:break-word}
+.ag-meta{font-size:.74rem;color:var(--text-mid);margin-top:.15rem}
+.ag-acoes{display:flex;gap:.3rem;flex-shrink:0}
+.ag-acao{background:none;border:1px solid var(--line);color:var(--text-mid);border-radius:8px;
+  min-width:2.2rem;height:2.2rem;font-size:.85rem;cursor:pointer;line-height:1}
+.ag-acao:hover{border-color:var(--accent);color:var(--text)}
+
+.ag-form{display:flex;flex-direction:column;gap:.6rem}
+.ag-form label{display:flex;flex-direction:column;gap:.25rem;font-size:.7rem;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--text-mid);font-weight:700}
+.ag-form input,.ag-form textarea{font-family:'DM Sans',sans-serif;font-size:.88rem;
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:.6rem .7rem;color:var(--text);width:100%;box-sizing:border-box}
+.ag-form textarea{resize:vertical}
+.ag-form-acoes{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.2rem}
+.ag-btn{font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;
+  padding:.55rem 1.1rem;border-radius:9px;cursor:pointer}
+.ag-btn.cancel{background:none;border:1px solid var(--line);color:var(--text)}
+.ag-btn.confirm{background:var(--text);border:1px solid var(--text);color:var(--surface)}
+.ag-erro{font-size:.78rem;color:var(--severity-warn,#f59e0b);display:none}
+.ag-erro.on{display:block}
+
+/* No celular os quatro botões comiam a largura e o título quebrava em três
+   linhas — o texto é o que ele lê, os botões são o que ele toca depois.
+   Ações descem para uma linha própria, alinhadas à direita. */
+@media (max-width:520px){
+  .ag-item{flex-wrap:wrap}
+  .ag-corpo{flex-basis:calc(100% - 6rem)}
+  .ag-acoes{flex-basis:100%;justify-content:flex-end;margin-top:.45rem}
+}
+
 /* Relatório mensal */
 .relatorio{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem}
 .rel-card{background:var(--surface-raise);border:1px solid var(--line);border-radius:10px;padding:.75rem .9rem}
@@ -232,6 +286,39 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Novo veículo
     </a>
+  </div>
+
+  <!-- Agenda de avaliações — acima dos KPIs de propósito: se tem avaliação
+       hoje, é a coisa mais importante da tela. Fica escondida quando não há
+       nada marcado, para não ocupar espaço à toa. -->
+  <div class="secao" id="secao-agenda" style="display:none">
+    <div class="secao-titulo">
+      📅 Próximas avaliações
+      <button class="ag-add" onclick="agAbrirForm()">+ marcar</button>
+    </div>
+    <div id="agenda-lista"></div>
+  </div>
+
+  <!-- Formulário de marcar/editar. Fora da seção acima porque precisa
+       aparecer mesmo quando não há nenhuma avaliação marcada. -->
+  <div class="secao" id="secao-agenda-form" style="display:none">
+    <div class="secao-titulo" id="ag-form-tit">Marcar avaliação</div>
+    <div class="ag-form">
+      <label>Quando<input type="datetime-local" id="ag-quando"></label>
+      <label>O que é<input type="text" id="ag-titulo" placeholder="ex: ver o Corolla do Zé Carlos" maxlength="200"></label>
+      <label>Onde<input type="text" id="ag-local" placeholder="ex: Imbituba" maxlength="200"></label>
+      <label>Observação<textarea id="ag-obs" rows="2" placeholder="opcional" maxlength="2000"></textarea></label>
+      <div class="ag-form-acoes">
+        <button class="ag-btn cancel" onclick="agFecharForm()">Cancelar</button>
+        <button class="ag-btn confirm" id="ag-salvar" onclick="agSalvar()">Salvar</button>
+      </div>
+      <div class="ag-erro" id="ag-erro"></div>
+    </div>
+  </div>
+
+  <!-- Atalho para marcar quando ainda não há nada na agenda -->
+  <div style="text-align:center;margin-bottom:1.4rem" id="ag-atalho-vazio">
+    <button class="ag-add solto" onclick="agAbrirForm()">📅 Marcar uma avaliação</button>
   </div>
 
   <!-- KPIs -->
@@ -948,7 +1035,230 @@ async function carregarKCR() {
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// AGENDA DE AVALIAÇÕES  (09/set/2026)
+//
+// O Gerador guarda a LISTA. O alarme fica no calendário do celular — ele
+// toca com o Gerador fechado, na rua, sem internet, e funciona nos dois
+// sistemas. Alarme nosso só tocaria com a tela aberta, que é justamente o
+// cenário que não serve. Mesmo limite que fez ele descartar a notificação
+// de resposta em 04/set.
+// ══════════════════════════════════════════════════════════════
+
+let AGENDA = [];
+let agEditando = null;
+
+const agEsc = (v) => String(v == null ? '' : v)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+// "hoje" / "amanhã" / "qua, 17/09" — nomear o dia próximo poupa a conta de
+// cabeça, que é o que ele faria olhando só a data.
+function agRotuloDia(d) {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const alvo = new Date(d); alvo.setHours(0, 0, 0, 0);
+  const dias = Math.round((alvo - hoje) / 86400000);
+  if (dias === 0)  return { txt: 'hoje',   perto: true };
+  if (dias === 1)  return { txt: 'amanhã', perto: true };
+  if (dias === -1) return { txt: 'ontem',  perto: false };
+  const semana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][alvo.getDay()];
+  const dm = alvo.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  return { txt: `${semana}, ${dm}`, perto: dias > 1 && dias <= 2 };
+}
+
+const agHora = (d) =>
+  new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+async function agCarregar() {
+  const sec  = document.getElementById('secao-agenda');
+  const cont = document.getElementById('agenda-lista');
+  try {
+    const r = await fetch('/api/fetch-anuncio?agenda=1', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    AGENDA = await r.json();
+  } catch (e) {
+    // Falha de rede não some com a seção nem inventa "nada marcado" — dizer
+    // "sem avaliações" quando não deu para conferir é o falso sucesso que já
+    // custou caro aqui.
+    if (AGENDA.length === 0) { sec.style.display = 'none'; return; }
+    cont.innerHTML = '<div class="vazio">Não consegui atualizar a agenda agora.</div>';
+    return;
+  }
+  agRender();
+}
+
+function agRender() {
+  const sec     = document.getElementById('secao-agenda');
+  const cont    = document.getElementById('agenda-lista');
+  const atalho  = document.getElementById('ag-atalho-vazio');
+  const abrindo = document.getElementById('secao-agenda-form').style.display !== 'none';
+
+  if (!AGENDA.length) {
+    sec.style.display = 'none';
+    atalho.style.display = abrindo ? 'none' : '';
+    return;
+  }
+  sec.style.display = '';
+  atalho.style.display = 'none';
+
+  cont.innerHTML = AGENDA.map((a) => {
+    const d = new Date(a.quando);
+    const { txt, perto } = agRotuloDia(d);
+    const meta = [a.local, a.observacao, a.operador ? '👤 ' + a.operador : '']
+      .filter(Boolean).map(agEsc).join(' · ');
+    return `
+      <div class="ag-item${a.feito_em ? ' feito' : ''}">
+        <div class="ag-quando${perto && !a.feito_em ? ' perto' : ''}">
+          <div class="ag-dia">${agEsc(txt)}</div>
+          <div class="ag-hora">${agHora(d)}</div>
+        </div>
+        <div class="ag-corpo">
+          <div class="ag-tit">${agEsc(a.titulo)}</div>
+          ${meta ? `<div class="ag-meta">${meta}</div>` : ''}
+        </div>
+        <div class="ag-acoes">
+          <button class="ag-acao" onclick="agParaCelular('${a.id}')" title="Mandar para o calendário do celular">📅</button>
+          <button class="ag-acao" onclick="agAbrirForm('${a.id}')" title="Editar">✏️</button>
+          <button class="ag-acao" onclick="agFeito('${a.id}', ${a.feito_em ? 'false' : 'true'})" title="${a.feito_em ? 'Reabrir' : 'Marcar como feita'}">${a.feito_em ? '↺' : '✓'}</button>
+          <button class="ag-acao" onclick="agApagar('${a.id}')" title="Apagar">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Formulário ────────────────────────────────────────────────
+function agAbrirForm(id) {
+  agEditando = id || null;
+  const a = id ? AGENDA.find((x) => x.id === id) : null;
+  document.getElementById('ag-form-tit').textContent = a ? 'Editar avaliação' : 'Marcar avaliação';
+  // datetime-local espera hora LOCAL sem fuso; o banco guarda UTC. Sem este
+  // ajuste o campo abriria com o horário deslocado.
+  document.getElementById('ag-quando').value = a ? agParaInput(a.quando) : agParaInput(agProximaHoraCheia());
+  document.getElementById('ag-titulo').value = a ? (a.titulo || '') : '';
+  document.getElementById('ag-local').value  = a ? (a.local || '') : '';
+  document.getElementById('ag-obs').value    = a ? (a.observacao || '') : '';
+  agErro('');
+  document.getElementById('secao-agenda-form').style.display = '';
+  document.getElementById('ag-atalho-vazio').style.display = 'none';
+  document.getElementById('ag-titulo').focus();
+}
+
+function agFecharForm() {
+  agEditando = null;
+  document.getElementById('secao-agenda-form').style.display = 'none';
+  agRender();
+}
+
+function agErro(msg) {
+  const el = document.getElementById('ag-erro');
+  el.textContent = msg;
+  el.className = 'ag-erro' + (msg ? ' on' : '');
+}
+
+function agParaInput(iso) {
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// Abre o formulário já na próxima hora cheia: quase sempre é o que ele quer
+// ajustar, em vez de digitar a data inteira.
+function agProximaHoraCheia() {
+  const d = new Date();
+  d.setMinutes(0, 0, 0);
+  d.setHours(d.getHours() + 1);
+  return d;
+}
+
+async function agSalvar() {
+  const btn    = document.getElementById('ag-salvar');
+  const quando = document.getElementById('ag-quando').value;
+  const titulo = document.getElementById('ag-titulo').value.trim();
+
+  if (!quando) { agErro('Escolha a data e a hora.'); return; }
+  if (!titulo) { agErro('Diga o que é a avaliação.'); return; }
+
+  const corpo = {
+    quando: new Date(quando).toISOString(),
+    titulo,
+    local:      document.getElementById('ag-local').value.trim(),
+    observacao: document.getElementById('ag-obs').value.trim(),
+  };
+
+  btn.disabled = true;
+  const rotulo = btn.textContent;
+  btn.textContent = 'Salvando…';
+  try {
+    const url = agEditando
+      ? `/api/fetch-anuncio?agenda=1&id=${encodeURIComponent(agEditando)}`
+      : '/api/fetch-anuncio?agenda=1';
+    const r = await fetch(url, {
+      method: agEditando ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'HTTP ' + r.status);
+    agFecharForm();
+    await agCarregar();
+  } catch (e) {
+    agErro('Não consegui salvar: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = rotulo;
+  }
+}
+
+async function agFeito(id, feito) {
+  try {
+    const r = await fetch(`/api/fetch-anuncio?agenda=1&id=${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feito }),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    await agCarregar();
+  } catch (e) { alert('Não consegui atualizar: ' + e.message); }
+}
+
+async function agApagar(id) {
+  const a = AGENDA.find((x) => x.id === id);
+  if (!confirm(`Apagar "${a ? a.titulo : 'esta avaliação'}" da agenda?`)) return;
+  try {
+    const r = await fetch(`/api/fetch-anuncio?agenda=1&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    await agCarregar();
+  } catch (e) { alert('Não consegui apagar: ' + e.message); }
+}
+
+// ── Mandar para o calendário do celular ───────────────────────
+// Google Agenda por link, e não arquivo .ics baixado: link abre direto nos
+// dois sistemas, sem download — e download dentro de app instalado (PWA) já
+// pregou peça aqui, foi o que quebrou o anexo de documentos em 02/set.
+//
+// A aposta é que o calendário dele é o do Google: a conta da CNR é Gmail.
+// Se não for, o caminho é gerar um .ics — some ~15 linhas, e aí funciona
+// com qualquer calendário. NÃO construído porque não foi confirmado.
+function agUTC(d) {
+  return new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+function agParaCelular(id) {
+  const a = AGENDA.find((x) => x.id === id);
+  if (!a) return;
+  const ini = new Date(a.quando);
+  const fim = new Date(ini.getTime() + 60 * 60 * 1000); // 1h é chute razoável
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text:   a.titulo || 'Avaliação',
+    dates:  `${agUTC(ini)}/${agUTC(fim)}`,
+    details: [a.observacao, 'Marcado pelo Gerador CNR'].filter(Boolean).join('\n'),
+    location: a.local || '',
+  });
+  window.open('https://calendar.google.com/calendar/render?' + p.toString(), '_blank', 'noopener');
+}
+
 carregarKCR();
+agCarregar();
 carregarCatalogo();
 carregarVendas();
 carregarCompradores();
