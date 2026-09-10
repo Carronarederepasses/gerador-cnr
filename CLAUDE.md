@@ -4565,3 +4565,126 @@ devolve o **ícone**. O teste injetou `'✓'` no lugar da cor.
 > forma que se repete.
 
 *Registrado em 10 de setembro de 2026.*
+
+### 10 de setembro — busca por placa: a versão certa, e a FIPE deixa de ser sorteio
+
+Relato dele: *"joguei a placa do corolla e cliquei pra consultar, puxou o
+modelo certo, mas a Fipe errada e preencheu o modelo errado na ficha"*.
+
+Primeiro fui olhar o que ficou gravado: `Corolla XEi 2.0 Flex 16V Aut.`,
+R$ 125.829 — **exato** para XEi 2.0 2023 na FIPE. Ou seja, o banco estava certo
+porque **ele arrumou à mão**. O erro morreu na tela e não deixou rastro. Foi
+preciso reproduzir.
+
+### Defeito 1 — o passo do ano ignorava o combustível
+
+```js
+opcAnos.find(o => o.text.startsWith('2023'))   // pega a PRIMEIRA
+```
+
+A lista de anos tem **uma entrada por combustível**. O Corolla 2023 tem
+`2023 — Híbrido` e `2023 — Flex`, nessa ordem. Escolhido o Híbrido, a lista de
+versões passava a ter só híbridos — **o XEi 2.0 Flex do carro nem estava lá
+para ser escolhido.** O passo seguinte então "casava" com o menos ruim.
+
+| | |
+|---|---|
+| saía | Corolla Altis 1.8 Híbrido — R$ 137.850 |
+| certo | Corolla XEi 2.0 Flex 16V Aut. — R$ 125.829 |
+
+**R$ 12 mil de diferença**, num campo que orienta a proposta.
+
+E não era só o Corolla. Medido contra a FIPE real:
+
+| carro | escolhia | devia escolher |
+|---|---|---|
+| Hilux 2020 | CD GR-S 4x4 **4.0 V6** (gasolina) | CD SRV 4x4 **2.8 TDI Diesel** |
+| Renegade 2019 | Longitude **1.8 4x2 Flex** | Longitude **2.0 4x4 TB Diesel** |
+| Compass 2021 | Limited 2.0 **4x2 Flex** | Limited 2.0 **4x4 Diesel** |
+
+Sempre o mesmo padrão: **qualquer carro com dois combustíveis no mesmo ano.**
+
+Agora ano e versão são escolhidos **juntos** — as versões de todos os
+combustíveis daquele ano concorrem, e vence a de melhor pontuação. Trocar de
+ano para testar é barato: `cascataAno()` é síncrona, só redesenha a lista com
+dados já baixados.
+
+### Defeito 2 — a FIPE era decidida no cronômetro
+
+```js
+// Re-força FIPE da API após cascata terminar de calcular
+setTimeout(..., 2500)
+```
+
+O comentário diz "após a cascata terminar". **Não era após nada.** Medido: a
+cascata leva de ~2 s a mais de 4 s — só para montar a lista do Corolla o
+servidor faz **43 consultas** à FIPE (são 43 modelos cujo nome começa com
+"Corolla"). Quem escrevia por último no campo dependia da internet do momento.
+
+> O mesmo carro, na mesma tela, dava resultado diferente conforme a rede. Isso
+> não é bug intermitente — é sorteio.
+
+Agora é regra: **numa consulta por placa o valor da APiBrasil manda**, porque
+veio do chassi daquele carro e não de um palpite sobre texto. E a escrita
+**espera a versão terminar** em vez de chutar um tempo. Divergência acima de
+20% vira aviso, mostrando os dois — mesmo critério de 03/set.
+
+### Três coisas que mentiam, corrigidas junto
+
+1. **`|| opcVersoes[0]`** — sem casar nada, pegava a primeira versão da lista e
+   seguia calado. É como palpite vira "dado". Agora deixa em branco e diz o
+   motivo.
+2. **`aguardarOpcoes` devolvia `[]`** tanto para "a lista veio vazia" quanto
+   para "desisti de esperar". Medido: montar os anos do Corolla leva **~4,0 s**
+   e o teto era **4000 ms** — encostado. Quando estourava, a tela dizia *"a
+   FIPE não tem 2023 para este modelo"*, **que é falso**. Agora devolve
+   `{opcoes, desistiu}` e o teto é 12 s.
+3. **`normalizar` partia `2.0` em `2` e `0`** — aí 1.0, 1.6 e 16V viravam os
+   mesmos pedacinhos e a nota deixava de ordenar. É a mesma correção feita no
+   `fipe-search` em 07/set, que aqui ninguém tinha aplicado. A pontuação também
+   passou a contar palavras **distintas**.
+
+### Conferido na tela, não só no editor
+
+`captacao.html` no navegador, FIPE de verdade, resposta da placa simulada:
+
+| caso | resultado |
+|---|---|
+| Corolla XEi 2023 | `2023 — Flex` · XEi 2.0 Flex · R$ 125.829 · sem aviso |
+| valor da placa 40% menor | mantém o da placa e avisa quanto vale a versão |
+| modelo sem relação | versão em branco + motivo |
+| ano que a FIPE não tem | versão em branco + motivo |
+
+Mais `scratchpad/checa-cascata.js` (15 checagens) e as simulações contra a FIPE
+real.
+
+### Meus tropeços nesta rodada
+
+- **O verificador mentiu três vezes.** Acusou um `|| opcVersoes[0]` que só
+  existia num comentário meu explicando que ele tinha sido removido; acusou um
+  `,2500)` que era o timer da mensagem "✓ salvo"; e a versão "esperta", que
+  removia comentários antes de olhar, engoliu código — `*/` aparece dentro de
+  expressões regulares. Consertado olhando **dentro de cada função** em vez de
+  varrer o arquivo. *Alvo estreito erra menos que alvo largo com filtro
+  esperto.*
+- **Quase acusei o produto por erro do teste**: os ✓ ✗ ! saíram brancos porque
+  minha âncora pegou a linha do **ícone**, não a da **cor** — as duas têm a
+  mesma forma e ficam coladas.
+- **Escape do shell, quinta vez.** Um `node -e` gerando texto comeu as barras
+  das expressões regulares, e depois uma edição por script escreveu `arrarr(` e
+  deixou um `try` sem `catch`. A regra está escrita desde 04/set e eu não
+  segui: **texto longo vai por arquivo, com a ferramenta de escrever.**
+- **Levantei 7 arquivos afetados quando era 1** (no assunto dos tokens), por
+  contar ocorrências em vez de olhar o que cada página carrega.
+
+### Anotado: a Parallelum limita por IP
+
+Testando, bati no limite e as simulações passaram a receber objeto de erro no
+lugar de array — estouravam com `map is not a function`, que **parece defeito
+do produto e não é**. Agora dizem "INCONCLUSIVO — limite por IP".
+
+Vale além do teste: é a mesma API que o Gerador usa em produção. Existe token
+grátis em `fipe.api.br` que sobe o limite — **pendência antiga, de 03/set,
+ainda aberta.**
+
+*Registrado em 10 de setembro de 2026.*
