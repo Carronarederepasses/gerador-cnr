@@ -226,10 +226,17 @@
     <h3>Ignorar anúncio</h3>
     <p>O anúncio permanece no histórico como Ignorado. Você pode desfazer depois.</p>
     <div class="motivos">
+      <!-- "Carro ruim" e "Ruim de comércio" são coisas diferentes, e a
+           distinção é do Yuri (09/set): o primeiro é o ESTADO do carro
+           (batido, mecânica); o segundo é um carro que pode estar ótimo e
+           mesmo assim ninguém compra — modelo, cor ou versão sem procura.
+           O segundo é conhecimento de mercado dele, e é o que se perdia.
+           Ficam lado a lado de propósito, para o par ser lido junto. -->
       <button class="chip-motivo" data-m="preco">Preço alto</button>
+      <button class="chip-motivo" data-m="ruim">Carro ruim</button>
+      <button class="chip-motivo" data-m="ruim_comercio">Ruim de comércio</button>
       <button class="chip-motivo" data-m="longe">Longe</button>
       <button class="chip-motivo" data-m="loja">Loja / PJ</button>
-      <button class="chip-motivo" data-m="ruim">Carro ruim</button>
       <button class="chip-motivo" data-m="ja_abordado">Já abordei</button>
       <button class="chip-motivo" data-m="">Sem motivo</button>
     </div>
@@ -373,6 +380,19 @@ const STATUS_CLASS = {
   morto:     'bs-morto',
 };
 
+// Motivos de ignorar: o banco guarda o código do chip, a tela mostra o nome.
+// Precisa bater com os `data-m` dos botões do modal — se um chip novo entrar
+// lá sem entrar aqui, o painel volta a mostrar o código cru (não quebra, só
+// fica feio).
+const MOTIVO_LABEL = {
+  preco:         'Preço alto',
+  ruim:          'Carro ruim',
+  ruim_comercio: 'Ruim de comércio',
+  longe:         'Longe',
+  loja:          'Loja / PJ',
+  ja_abordado:   'Já abordei',
+};
+
 // ── Métricas ─────────────────────────────────────────────────────
 function atualizarMetricas() {
   const total    = TODOS.length;
@@ -472,10 +492,17 @@ function atualizarDesempenho() {
     </table>`;
 
   // Por que as negociações morrem — só aparece quando há motivo registrado.
+  //
+  // O banco guarda o código do chip (`preco`, `ruim_comercio`…) e o painel
+  // mostrava esse código cru. Um relatório que diz "ruim_comercio" obriga a
+  // traduzir de cabeça, e é justo a tela que existe para ser lida de relance.
+  // Código desconhecido cai nele mesmo, em vez de sumir: motivo antigo ou
+  // escrito à mão continua aparecendo.
   const motivos = new Map();
   for (const a of TODOS) {
     if (a.status !== 'morto') continue;
-    const m = (a.motivo_morte || '').trim() || 'sem motivo anotado';
+    const cru = (a.motivo_morte || '').trim();
+    const m = cru ? (MOTIVO_LABEL[cru] || cru) : 'sem motivo anotado';
     motivos.set(m, (motivos.get(m) || 0) + 1);
   }
   if (motivos.size) {
@@ -971,12 +998,18 @@ document.querySelectorAll('.chip-motivo').forEach((c) => {
 
 document.getElementById('modal-confirmar').addEventListener('click', async () => {
   if (!ignorarId) return;
-  const id = ignorarId;
+  // O motivo tem de ser copiado ANTES do fecharIgnorar(), que zera as duas
+  // variáveis. Sem isto, `ignorarMotivo` já vinha vazio nas linhas abaixo e
+  // TODO motivo escolhido era descartado em silêncio — o painel dizia "sem
+  // motivo anotado" para os 8 anúncios ignorados, e não era esquecimento do
+  // Yuri. O `id` já tinha essa cópia; o motivo ficou para trás.
+  const id     = ignorarId;
+  const motivo = ignorarMotivo || null;
   fecharIgnorar();
   try {
-    await patchAnuncio(id, { status: 'morto', motivo_morte: ignorarMotivo || null });
+    await patchAnuncio(id, { status: 'morto', motivo_morte: motivo });
     const a = TODOS.find((x) => x.id === id);
-    if (a) { a.status = 'morto'; a.motivo_morte = ignorarMotivo || null; }
+    if (a) { a.status = 'morto'; a.motivo_morte = motivo; }
     atualizarContadores();
     atualizarMetricas();
     atualizarDesempenho();
