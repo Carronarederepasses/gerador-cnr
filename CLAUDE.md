@@ -5088,3 +5088,121 @@ vira coisa que se ignora.** Falha de rede não acende nem apaga — dizer "sem
 compromisso" sem ter conferido é o falso sucesso que já custou caro aqui.
 
 *Registrado em 11 de setembro de 2026.*
+
+### 11 de setembro, tarde — os sócios, e a pergunta que mudou a resposta
+
+O Yuri lembrou que fazia tempo que os sócios (ChatGPT, Grok, Gemini,
+Perplexity) não eram atualizados. O `CONTEXTO.md` estava em **03/set**, oito
+dias defasado.
+
+### O documento estava errado, não só velho
+
+| afirmava | era |
+|---|---|
+| `index` é "o gerador de anúncio com IA" | redirecionamento desde 08/set |
+| FIPE sem token, como pendência | resolvido em 10/set |
+| "mensagens novas em conversas não abertas" como pendência | **a caixa de entrada foi construída em 02/set** — já estava errado quando o documento foi escrito |
+
+Faltava também a decisão de 05/set de **virar produto**, que é a que mais
+muda o peso das pendências.
+
+Achados ao conferir banco contra código: **`vistorias` e `listas_envio` não
+são referenciadas por nenhum arquivo**, e o cabeçalho do `theme-toggle.js`
+dizia que o tema seguia o sistema — falso desde 03/set.
+
+### A primeira rodada rendeu pouco, e o motivo é a pergunta
+
+Colado o documento, vieram **uma análise e três confirmações**. Só a
+Perplexity trouxe conteúdo: fila de prioridades (que batia com a minha) e
+LGPD, que era lacuna real.
+
+Ela repetiu, porém, a sugestão de **criptografar campos no Supabase** —
+recusada em 02/set pelo mesmo motivo que continua valendo: a API
+descriptografaria para responder, então não protege de quem chega pela API, e
+custa busca e ordenação. Entrou na §6 para não voltar uma terceira vez.
+
+**LGPD virou número em vez de adjetivo.** Ela chamou de "moderado"; medido:
+14 clientes com CPF/CNPJ, 3 com dado bancário, e o que poderia acumular sem
+razão — vendedor que não fechou — **não está acumulando** (nenhum anúncio
+passa de 60 dias). Nada urgente.
+
+### A segunda pergunta foi outra coisa
+
+Sugeri trocar *"o que acham?"* por **"o que aqui está errado, ou vai me morder
+em três meses?"**. A diferença foi grande: as três respostas vieram com
+análise de verdade.
+
+**Três afirmações eram concretas. Conferi as três no código.**
+
+| alegação | veredito |
+|---|---|
+| A âncora quebra quando a mãe entrar (Gemini) | **certo, mas menor**: a âncora é usada em 6 lugares e **cinco cortam em `slice(0,20)`**, que para antes do nome. Só `extrairApos()` usa a frase inteira |
+| A FIPE estoura em 22 consultas/dia (Gemini) | **exagerado**: a conta 1000÷45 ignora o cache descrito no mesmo parágrafo. São ~22 *famílias de modelo distintas*; o segundo Corolla do dia custa ~0 |
+| O radar da mãe ressuscita anúncios já enviados (Gemini) | **errado**: o upsert não inclui `status` nem `first_seen_at`, e está comentado no próprio `fetch-anuncio.js` |
+
+> Vale como método: "quebra tudo" e "quebra uma função" levam a decisões
+> diferentes. Aceitar a primeira teria gerado trabalho que a decisão do Yuri
+> tornou desnecessário meia hora depois.
+
+**Duas críticas do Grok ao documento eram justas e foram aceitas:**
+
+- *"Tudo dentro do Gerador, sem entrar na OLX"* estava escrito como estado. É
+  **direção** — o motor continua sendo a sessão da OLX daquela máquina.
+- *"RLS ligada sem policy"* estava como fato neutro. Virou **armadilha
+  explícita**: no dia em que alguém puser a chave pública no front, toda
+  consulta volta **vazia sem erro**.
+
+### A decisão do Yuri, e o que ela destravou
+
+> *"Minha mãe usará a minha conta, e a única coisa que ela usará do Gerador
+> será a parte da abordagem."*
+
+**Consequência 1 — a âncora fica inerte.** Mesma conta, mesmo nome; a mensagem
+é coerente com o que o vendedor vê. Zero código.
+
+**Consequência 2, que eu não tinha visto:** se ela só aborda, **o radar na
+máquina dela não serve para nada** — os anúncios chegam pela tabela
+compartilhada. E o radar era criado sem opção de desligar.
+
+Dois radares custariam: dobrar as páginas abertas na OLX, refazer a mesma
+varredura, e pôr **duas sessões da mesma conta** abrindo abas em horários
+próximos.
+
+Interruptor por computador em `chrome.storage.local.radar_ligado`, consultado
+**no alarme** — não dentro da varredura, para nem começar o trabalho.
+
+**O padrão é LIGADO, e isso é a parte que importa:** `radar_ligado !== false`.
+Se o padrão fosse desligado e a máquina do Yuri perdesse a configuração, os
+anúncios parariam de chegar **em silêncio**. Storage quebrado também devolve
+ligado. Conferido nos cinco estados com a função recortada do `sw.js` real.
+
+**A pegada declarada na OLX caiu de ~192 para ~96 páginas/dia** — e caiu por
+decisão de desenho, não por estimativa nova. Esse número é o que sustenta a
+conversa com a OLX.
+
+### Limpeza
+
+`gerador-antigo.html` **removido** (3.173 linhas). A condição estava escrita
+desde 08/set e foi cumprida. Nenhum `href` apontava para ele; continua no git.
+Tirar do disco e não só parar de linkar tem motivo: arquivo morto ao lado do
+vivo convida a ser editado por engano — quase aconteceu com os `.bak` em
+04/set.
+
+`supabase/migration-tabelas-orfas.sql` preparado, **não executado**. O `DROP`
+de `listas_envio` (vazia, sobra da lista de transmissão) está liberado; o de
+`vistorias` ficou **comentado**: tem 1 registro real de 28/06, um Peugeot 2008
+Crossway com o checklist preenchido. Tudo indica teste — sem fotos, sem
+inspetor, sem vínculo, e o carro não existe no catálogo nem nas vendas — mas
+apagar registro real passa pelo dono.
+
+### O que sobra, e o gatilho não é o calendário
+
+Os três convergiram: o sistema está começando a ultrapassar a arquitetura para
+a qual nasceu. Multi-tenancy, Web Store, teto da Vercel — **o gatilho de todos
+é o mesmo, e não é uma data: é o primeiro parceiro instalar.**
+
+Fora do código, e mais urgente que qualquer um deles: **2FA no Gmail**. É a
+conta que recupera Vercel, Supabase, OLX e Instagram, e hoje tem a mesma senha
+de tudo. Cinco minutos, sem trocar senha nenhuma.
+
+*Registrado em 11 de setembro de 2026.*
