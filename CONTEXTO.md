@@ -20,6 +20,11 @@ de decisão humana, onde o gargalo sempre foi a repetição, não o julgamento.
 conversa, venda — **de dentro do Gerador**, sem precisar entrar na OLX.
 Ele escreve cada mensagem e conduz cada negociação pessoalmente. Nada de robô.
 
+⚠️ **Isso é direção, não estado.** O Gerador é o cockpit; o motor continua
+sendo a sessão da OLX no navegador daquela máquina. Sem Chrome logado e com a
+extensão carregada, não há radar, não há ficha e não há espelho de conversa.
+O que foi eliminado é ele *navegar* na OLX, não a dependência dela.
+
 **Decisão estratégica de 05/set:** o Gerador **vai virar produto**, vendido a
 outros repassadores, com consulta veicular embutida. Isso ainda não mudou o
 código, mas muda o peso de algumas pendências — ver §8.
@@ -177,6 +182,8 @@ Estas não são preferências. Quebram o sistema se ignoradas.
 | **FIPE: 500 requisições/dia sem token, 1.000 com** | Uma busca por placa custa **~45 requisições** (o servidor pede os anos de cada modelo de nome parecido — 43 só para "Corolla"). Desde 10/set há token (`FIPE_TOKEN`) e cache de 6h em `api/_fipe.js`, com cópia de socorro de 7 dias quando a FIPE recusa. |
 | **Canvas 2D não tem `font-variant-numeric`** | A Playfair desenha algarismos de estilo antigo. Nas telas resolve-se com `lining-nums` no `:root`; **no canvas não existe a propriedade** — por isso o `story.js` desenha os trechos numéricos em DM Sans. |
 | **Nenhuma página da web publica no Instagram nem escreve no calendário do celular** | Não existe permissão para isso em Android nem iPhone. Por isso agenda sai como `.ics` e story sai como imagem para baixar. |
+| **RLS ligada SEM policy nenhuma** | É correto *enquanto* o único caminho for o `service_role`, que ignora RLS. Mas é armadilha: no dia em que alguém puser a chave `anon`/`publishable` no front-end, **toda consulta volta vazia sem erro** — tela em branco sem mensagem, que é o pior modo de falha deste projeto. Pôr a anon key no front exige escrever policies ANTES, não depois. |
+| **A âncora da mensagem de abordagem** | `olx-chat-monitor.js` usa `'Olá! Tudo bem? Meu nome é Yuri'` para separar o que o operador escreveu do que o vendedor escreveu. Cinco dos seis usos cortam em `slice(0, 20)` = `'Olá! Tudo bem? Meu n'`, que **para antes do nome** e sobrevive a uma troca. O sexto, `extrairApos()`, usa a string inteira — esse quebra. Relevante porque a segunda operadora entra no fim de setembro: ver §8. |
 
 ---
 
@@ -318,7 +325,7 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | Logs de diagnóstico na extensão | Ainda lá (15 pontos no `sw.js`). Mantidos de propósito enquanto a captação é observada — foram eles que acharam os bugs de 01–02/set. Sair quando estabilizar. |
 | `detected_at` é hora da captura, não da mensagem | Mensagens antigas carregadas por rolagem ordenam no fim. Resolver exige guardar a posição na conversa (mudança de schema). |
 | Tabelas órfãs: `vistorias`, `listas_envio` | Nenhum código as referencia. `listas_envio` é sobra da "lista de transmissão" construída e removida em 03/set. Conferir e apagar. |
-| Segunda operadora | Fim de setembro. A extensão vem por `git clone`; as buscas vêm do Gerador automaticamente. Falta só liberar o aparelho em `/entrar.html`. |
+| **Segunda operadora — a decisão que falta** | Fim de setembro. A parte técnica é curta: `git clone` da extensão, liberar o aparelho em `/entrar.html`, e as buscas vêm do Gerador sozinhas. **O que não está decidido é a conta da OLX: a dela ou a dele?** Compartilhada é mais simples e mantém o espelho de conversa funcionando para os dois, mas é compartilhamento de credencial (costuma ser vedado em termos de uso) e um bloqueio atinge os dois de uma vez. Conta própria isola o risco, mas responder pelo card só funciona na máquina de quem tem a conversa. Isso também decide a mensagem: se ela se apresentar pelo nome dela, `extrairApos()` precisa passar a usar o prefixo sem nome. **Nada disso é código até a decisão ser tomada.** |
 | Inventário de senhas | A senha do e-mail da empresa é a mesma de tudo, e o e-mail é a conta de recuperação de Vercel, Supabase, OLX e Instagram. Ele decidiu levantar onde usa antes de trocar. Verificação em duas etapas no Gmail é o passo de maior valor e não exige trocar senha. |
 | **LGPD / retenção** | Medido em 11/set: **14 clientes com CPF/CNPJ**, 3 com banco ou Pix, 6 vendas com CPF do comprador. Dado de quem fechou negócio — precisa ficar, por contrato e nota. O que poderia acumular sem razão (nome de vendedor e conteúdo de conversa de quem **não** fechou) **não está acumulando**: nenhum anúncio passa de 60 dias e a mensagem mais antiga tem 12. Nada urgente hoje. Vira pauta real quando houver assinantes, porque aí passa a ser dado de cliente dos outros. |
 
