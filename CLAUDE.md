@@ -5206,3 +5206,57 @@ conta que recupera Vercel, Supabase, OLX e Instagram, e hoje tem a mesma senha
 de tudo. Cinco minutos, sem trocar senha nenhuma.
 
 *Registrado em 11 de setembro de 2026.*
+
+### 11 de setembro, fim — a mensagem sai da extensão
+
+Último item da rodada dos sócios. A regra que os três endossaram — *"a
+extensão é extrator e injetor cego; inteligência nenhuma mora nela"* — tinha
+uma violação que eu não tinha enxergado: **o texto da abordagem vivia em dois
+lugares**, `anuncios.html` e `content/olx-chat.js`.
+
+Trocar o texto exigia editar os dois **e recarregar a extensão em cada
+máquina** — passo manual que falha em silêncio, porque a máquina não
+recarregada segue mandando o texto velho e ninguém fica sabendo.
+
+### A clarificação do Yuri mudou o tamanho do problema
+
+> *"Essa msg é só minha. Estamos correndo em duas linhas paralelas, uma pra
+> mim e uma pra vender o gerador. A linha de venda é para ter as mesmas
+> funções, mas padronizadas conforme o cliente."*
+
+Eu ia tratar como "tirar uma cópia duplicada". Com isso, é outra coisa: **cada
+cliente tem a própria mensagem**, e texto dentro da extensão significa **um
+pacote por cliente**. Era uma porta se fechando.
+
+### O desenho
+
+| | |
+|---|---|
+| `api/_abordagem.js` (novo) | a fonte. Prefixo `_` não é roteado — **o teto de 12 funções não se mexeu** |
+| `api/utils.js?type=abordagem` | expõe, sem função nova |
+| `anuncios.html` e `olx-chat.js` | perguntam; a constante local virou **bote salva-vidas** |
+
+A extensão atualiza em três momentos: nos dois arranques, no botão
+Sincronizar, e **a cada ABORDAR** — este sem `await`, em paralelo com a
+abertura da aba, porque o content script só lê ~600 ms depois.
+
+**Falha de rede não esvazia nada**, e isso é deliberado: mensagem de ontem é
+melhor que campo vazio no meio de uma abordagem. É a mesma regra do
+`carregarBuscas()`.
+
+**A âncora passou a ser derivada do texto**, não redigitada. Duas declarações
+da mesma coisa é como elas divergem — e essa frase é justamente a que o
+espelho de conversa usa para separar o que o operador escreveu.
+
+**Quando houver tenant**, `_abordagem.js` deixa de devolver constante e passa
+a ler a mensagem daquele cliente. **A extensão não muda.**
+
+Confirmado por ele no aparelho: *"Caixa preenchida"*.
+
+### Fio solto de ontem, fechado
+
+As duas simulações da FIPE que ficaram inconclusivas em 10/set — a Parallelum
+tinha bloqueado esta máquina por ~24 h — rodaram hoje e passaram. Corolla,
+Hilux, Renegade e Compass escolhendo a versão certa.
+
+*Registrado em 11 de setembro de 2026.*
