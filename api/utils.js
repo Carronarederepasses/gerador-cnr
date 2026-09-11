@@ -1,8 +1,9 @@
 // Utilitários gratuitos: CEP (BrasilAPI), preços ML (Mercado Livre), ping
-// Supabase, e "quem é este aparelho".
-// Rota por ?type=cep | ?type=mercado | ?type=ping | ?type=quem
+// Supabase, "quem é este aparelho" e a mensagem de abordagem.
+// Rota por ?type=cep | ?type=mercado | ?type=ping | ?type=quem | ?type=abordagem
 
 const { exigirChave, operadorDe, portaoLigado } = require('./_auth');
+const { MSG_ABORDAGEM, ANCORA } = require('./_abordagem');
 
 const ML_CATEGORIA = 'MLB1744'; // Carros e Caminhonetes
 const PRECO_MINIMO = 8000;
@@ -87,9 +88,20 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Mensagem de abordagem. O servidor é a fonte; o Gerador e a extensão
+    // perguntam. Antes o texto vivia nos dois, e mudá-lo exigia recarregar a
+    // extensão em cada máquina — passo manual que falha em silêncio, porque a
+    // máquina não recarregada segue mandando o texto velho.
+    //
+    // Na linha de venda cada cliente tem a própria mensagem: com o texto
+    // dentro da extensão, seria um pacote por cliente.
+    if (type === 'abordagem') {
+      return res.status(200).json({ texto: MSG_ABORDAGEM, ancora: ANCORA });
+    }
+
     if (type === 'cep')     return await handleCep(req.query.cep, res);
     if (type === 'mercado') return await handleMercado(req.query.q, res);
-    return res.status(400).json({ error: 'type deve ser cep, mercado, ping ou quem' });
+    return res.status(400).json({ error: 'type deve ser cep, mercado, ping, quem ou abordagem' });
   } catch (err) {
     console.error('utils error:', err.message);
     return res.status(500).json({ error: err.message });

@@ -278,9 +278,16 @@
 // do chat e separá-la do que o vendedor escreveu. Mudar aqui sem mudar lá
 // quebra o espelho das conversas.
 //
-// Existe uma cópia deste texto em content/olx-chat.js na extensão, para o
-// caminho em que a mensagem é preenchida direto na página da OLX.
-const MSG_ABORDAGEM =
+// ⚠️ ISTO É BOTE SALVA-VIDAS, NÃO A FONTE.
+// Desde 11/set a fonte é o servidor (`api/_abordagem.js`, exposto em
+// `utils?type=abordagem`), e esta página pergunta ao carregar. O texto abaixo
+// só aparece se o Gerador não responder — e nesse caso é melhor uma mensagem
+// um pouco velha do que uma caixa vazia no meio de uma abordagem.
+//
+// O motivo de a fonte ter mudado de lado: o texto vivia aqui E na extensão, e
+// trocá-lo exigia recarregar a extensão em cada máquina — passo manual que
+// falha em silêncio. E na linha de venda cada cliente tem a própria mensagem.
+let MSG_ABORDAGEM =
   'Olá! Tudo bem? Meu nome é Yuri, sou de Garopaba e vi seu anúncio. ' +
   'Trabalho com carros aqui na região e tenho um Instagram chamado Carro na Rede ' +
   '(@carronarederepasses), onde conectamos vendedores a possíveis compradores. ' +
@@ -752,6 +759,18 @@ function observarThumbs() {
 }
 
 // ── Carregar da API ───────────────────────────────────────────────
+// Busca a mensagem de abordagem no servidor, que é a fonte desde 11/set.
+// Falha de rede NÃO apaga nada: a constante local continua valendo. Dizer
+// "sem mensagem" quando não deu para conferir seria o falso sucesso de sempre.
+async function carregarMsgAbordagem() {
+  try {
+    const r = await fetch('/api/utils?type=abordagem', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d && typeof d.texto === 'string' && d.texto.trim()) MSG_ABORDAGEM = d.texto;
+  } catch (e) { /* segue com o bote salva-vidas */ }
+}
+
 async function carregar() {
   const grid = document.getElementById('grid');
   grid.innerHTML = `<div class="loading" style="grid-column:1/-1"><div class="spinner"></div><br>Carregando anúncios…</div>`;
@@ -1472,7 +1491,9 @@ document.getElementById('filtro-bar').addEventListener('click', (e) => {
 });
 
 // ── Init ─────────────────────────────────────────────────────────
-carregar();
+// Antes de carregar a lista: se o servidor responder, a mensagem vem de lá.
+// Não trava a tela — `carregar()` roda logo em seguida de qualquer jeito.
+carregarMsgAbordagem().finally(carregar);
 </script>
 </body>
 </html>
