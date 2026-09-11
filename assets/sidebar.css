@@ -35,6 +35,42 @@
   margin-top: .25rem;
 }
 
+/* ── Lembrete de avaliação ─────────────────────────────────────────
+   Fica entre a marca e o menu, onde o olho já passa ao trocar de tela.
+   Discreto de propósito: é lembrança, não alarme — o alarme é do celular,
+   pelo .ics (decidido em 09/set). Aparece só quando há algo para hoje. */
+#cnr-lembrete {
+  display: block;
+  margin: .15rem .6rem .35rem;
+  padding: .5rem .6rem;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface-raise);
+  text-decoration: none;
+  line-height: 1.3;
+}
+#cnr-lembrete:hover { border-color: var(--accent); }
+.cnr-lb-hora {
+  display: block;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--severity-warn);
+}
+.cnr-lb-txt {
+  display: block;
+  font-size: .76rem;
+  color: var(--text);
+  margin-top: .12rem;
+  /* Título longo não pode empurrar a largura da barra nem virar três linhas. */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Já passou da hora: aí sim pede os olhos. */
+#cnr-lembrete.atrasado { border-color: var(--severity-crit); }
+#cnr-lembrete.atrasado .cnr-lb-hora { color: var(--severity-crit); }
+
 .cnr-sb-nav {
   flex: 1;
   padding: .5rem 0;

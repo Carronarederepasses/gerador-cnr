@@ -138,6 +138,68 @@
     document.getElementById('cnr-md-cancelar').addEventListener('click', editarMeusDados);
   }
 
+  // ── Lembrete de avaliação marcada ───────────────────────────────────
+  //
+  // Pedido do Yuri em 11/set: "tem como colocarmos lembrete quando tiver algo
+  // agendado?". A agenda já aparece no Painel, mas só lá — e ele passa o dia
+  // em Parceiros, Anúncios e Catálogo. Aqui a lembrança o encontra onde ele
+  // estiver.
+  //
+  // NÃO é alarme, e a diferença importa: em 09/set ficou decidido que o
+  // alarme é do celular, pelo .ics, porque alarme nosso só tocaria com o
+  // Gerador aberto — justamente o cenário que não serve ("posso tá na rua").
+  // Isto é o contrário: ele JÁ está com o Gerador aberto, e a tela lembra.
+  //
+  // Só acende para HOJE e para o que já passou. Avaliação de quinta não é
+  // lembrete na segunda — é ruído, e ruído diário se aprende a ignorar.
+  function horaCurta(d) {
+    return new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function montarLembrete(lista) {
+    var agora = new Date();
+    var fimDoDia = new Date(); fimDoDia.setHours(23, 59, 59, 999);
+
+    var doDia = lista.filter(function (a) {
+      if (a.feito_em) return false;
+      var q = new Date(a.quando);
+      return q <= fimDoDia;                  // hoje ou atrasada
+    }).sort(function (a, b) { return new Date(a.quando) - new Date(b.quando); });
+
+    if (!doDia.length) return null;
+
+    var p = doDia[0];
+    var q = new Date(p.quando);
+    var atrasada = q < agora;
+    var quando = atrasada ? 'passou das ' + horaCurta(q) : horaCurta(q);
+    var resto = doDia.length > 1 ? ' (+' + (doDia.length - 1) + ')' : '';
+    return { atrasada: atrasada, quando: quando, titulo: p.titulo || 'avaliação', resto: resto };
+  }
+
+  function pintarLembrete(info) {
+    var el = document.getElementById('cnr-lembrete');
+    if (!el) return;
+    if (!info) { el.style.display = 'none'; return; }
+    el.className = info.atrasada ? 'atrasado' : '';
+    el.innerHTML = '<span class="cnr-lb-hora">' + (info.atrasada ? '⏰ ' : '📅 ') + info.quando + '</span>'
+                 + '<span class="cnr-lb-txt">' + esc(info.titulo) + info.resto + '</span>';
+    el.style.display = '';
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function carregarLembrete() {
+    // Falha de rede NÃO acende nem apaga nada: dizer "sem compromisso" quando
+    // não deu para conferir é o falso sucesso que já custou caro aqui.
+    fetch('/api/fetch-anuncio?agenda=1', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (lista) { if (Array.isArray(lista)) pintarLembrete(montarLembrete(lista)); })
+      .catch(function () { /* silêncio: a faixa continua como está */ });
+  }
+
   function buildHTML() {
     var links = PAGES.map(function (p) {
       if (p.grupo) return '<div class="cnr-sb-grupo">' + p.grupo + '</div>';
@@ -149,6 +211,7 @@
       + '<div class="cnr-sb-logo-name">Carro na Rede</div>'
       + '<div class="cnr-sb-logo-sub">Repasses</div>'
       + '</div>'
+      + '<a href="/home.html" id="cnr-lembrete" style="display:none"></a>'
       + '<nav class="cnr-sb-nav">' + links + '</nav>'
       + '<div class="cnr-sb-footer">'
       + '<button class="cnr-sb-dados" id="cnr-sb-dados-btn">📋&nbsp; Meus dados</button>'
@@ -232,6 +295,14 @@
     aside.querySelectorAll('.cnr-sb-link').forEach(function (a) {
       a.addEventListener('click', fechar);
     });
+    document.getElementById('cnr-lembrete').addEventListener('click', fechar);
+
+    // Lembrete de avaliação. Depois da barra montada, e sem travar a página:
+    // se a API demorar, a tela já está usável e a faixa aparece quando puder.
+    carregarLembrete();
+    // Uma releitura a cada 10 min cobre o dia inteiro com a aba aberta, que é
+    // como ele trabalha, sem pesar: é um pedido pequeno.
+    setInterval(carregarLembrete, 10 * 60 * 1000);
   }
 
   if (document.readyState === 'loading') {
