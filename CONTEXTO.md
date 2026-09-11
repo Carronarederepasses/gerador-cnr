@@ -236,6 +236,13 @@ daquele carro, não de um palpite sobre texto. Até 10/set isso era decidido por
 um `setTimeout` de 2,5s contra a cascata — ou seja, no cronômetro, e o mesmo
 carro dava resultado diferente conforme a rede.
 
+**Não criptografar campos no Supabase.** Sugerido e recusado duas vezes
+(02/set e 11/set, as duas pela Perplexity). A API precisaria descriptografar
+para responder, então não protege de quem chega pela API — que é o único
+caminho — e **custa busca e ordenação** nesses campos no banco. Custo real,
+ganho nenhum. O Supabase já criptografa em disco, o que cobre outra ameaça:
+alguém levar o hardware, não alguém usando a aplicação.
+
 **Colar URL da OLX, nunca montar filtro do zero.** Os parâmetros da OLX mudam
 sem aviso. A tela decompõe uma URL que já funciona e **preserva intacto o que
 não reconhece**.
@@ -314,6 +321,7 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | `gerador-antigo.html` | Porta de emergência sem link. Remover quando as telas novas tiverem rodado alguns carros — já rodaram vários desde 08/set. |
 | Segunda operadora | Fim de setembro. A extensão vem por `git clone`; as buscas vêm do Gerador automaticamente. Falta só liberar o aparelho em `/entrar.html`. |
 | Inventário de senhas | A senha do e-mail da empresa é a mesma de tudo, e o e-mail é a conta de recuperação de Vercel, Supabase, OLX e Instagram. Ele decidiu levantar onde usa antes de trocar. Verificação em duas etapas no Gmail é o passo de maior valor e não exige trocar senha. |
+| **LGPD / retenção** | Medido em 11/set: **14 clientes com CPF/CNPJ**, 3 com banco ou Pix, 6 vendas com CPF do comprador. Dado de quem fechou negócio — precisa ficar, por contrato e nota. O que poderia acumular sem razão (nome de vendedor e conteúdo de conversa de quem **não** fechou) **não está acumulando**: nenhum anúncio passa de 60 dias e a mensagem mais antiga tem 12. Nada urgente hoje. Vira pauta real quando houver assinantes, porque aí passa a ser dado de cliente dos outros. |
 
 **Resolvidas desde a versão anterior deste documento:**
 `GET` público da API (03/set) · token da FIPE e cache (10/set) · mensagens
