@@ -1,5 +1,17 @@
-// Tema segue automaticamente a preferência do sistema via tokens.css
-// (@media prefers-color-scheme). Não há alternador manual.
+// TEMA ÚNICO, fundo preto. Não há alternador e o app NÃO segue o sistema —
+// decisão do Yuri em 03/set, e `tokens.css` não tem `prefers-color-scheme`.
+//
+// (Este cabeçalho dizia o contrário até 11/set: "segue automaticamente a
+// preferência do sistema". Era verdade antes de 03/set e ficou para trás.
+// Comentário desatualizado é pior que comentário nenhum — descreve um sistema
+// que não existe mais e manda o próximo procurar no lugar errado.)
+//
+// O arquivo continua existindo por duas razões, ambas pequenas:
+//  1. apaga `data-theme` e `cnr_theme` que tenham sobrado de antes;
+//  2. expõe `cnrToggleTheme`/`cnrThemeIcon` como no-op, para telas antigas
+//     que ainda os chamem não quebrarem.
+// O congelamento de transição abaixo virou defensivo: sem troca de tema, não
+// há o que congelar. Fica porque é barato e porque documenta o defeito.
 (function () {
   // Remove qualquer override manual salvo anteriormente
   try { localStorage.removeItem('cnr_theme'); } catch (e) {}
