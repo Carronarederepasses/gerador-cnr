@@ -5019,3 +5019,73 @@ simples. Desenhado como SVG — escala sem borrar e herda a cor do botão pelo
 quando o Gerador virar produto.
 
 *Registrado em 10 de setembro de 2026.*
+
+## Checkpoint — 11 de setembro de 2026
+
+### LOCALIZAÇÃO no texto do anúncio
+
+Era o **único rótulo fora do padrão**: `VALOR`, `FIPE` e `GASTOS` já saíam em
+caixa alta e negrito. Agora `📍 *LOCALIZAÇÃO:* Garopaba`, nas duas telas.
+
+Só a palavra — a cidade fica em texto normal, senão a linha compete com o
+preço, que é o que tem de saltar no WhatsApp.
+
+Conferido onde importa: os asteriscos sobrevivem ao `encodeURIComponent` do
+`wa.me`, que é o que de fato chega ao aplicativo.
+
+### Painel reorganizado — e a ideia foi ficando melhor a cada volta
+
+Ele começou querendo **dois botões** no topo (Captação e Parceiros) e já
+desconfiou sozinho: *"na vdd acho que vai ficar poluído um pouco"*. Depois
+propôs **um botão que abre um seletor**. Aí viu a seção que já existia e
+disse: *"podemos alterar a ordem, colocá-los pra cima"*.
+
+A terceira é a certa, e por um motivo que as duas primeiras não tinham:
+**não acrescenta clique nenhum e não duplica nada.**
+
+O achado que mudou a conversa: o Painel **já tinha** Parceiros e Captação em
+"Acesso rápido" — só que como **11ª seção da página**, depois do relatório
+mensal. Para chegar lá pelo Painel, ele rolava a tela inteira.
+
+Agora: saudação → agenda → Acesso rápido → KPIs.
+
+**O botão "Novo veículo" saiu.** Ele perguntou o que eu achava melhor. Com os
+atalhos no topo, o botão virou cópia literal do card "Captação" 200px abaixo.
+Pior: apontava para a tela que ele usa **menos** — *"tenho mais carros de
+parceiros do que captação própria"* — com o destaque mais forte da página.
+Repontar para Parceiros não resolveria: "Novo veículo" seria mentira ali,
+porque carro de parceiro não vira estoque dele.
+
+O CSS `.btn-novo` saiu junto. **Regra órfã é a mesma armadilha das 14
+declarações mortas do `gerar()`**, achadas ontem.
+
+Achado no caminho: dois atalhos com **nomes antigos**. "Compradores" virou
+Clientes na Reforma 27 e "Editor de Foto" virou Arte em 03/set — mas só na
+barra lateral. O Painel chamava as mesmas telas por outro nome.
+
+### Lembrete de avaliação — na barra lateral, não no Painel
+
+Pedido dele: *"tem como colocarmos lembrete qdo tiver algo agendado?"*.
+
+A agenda já aparecia no Painel — **mas só lá**, e ele passa o dia em
+Parceiros, Anúncios e Catálogo. Na barra lateral, que é compartilhada, a
+lembrança o encontra onde ele estiver.
+
+**Não é alarme, e a distinção é a mesma de 09/set:** alarme nosso só tocaria
+com o Gerador aberto, justamente o cenário que não serve (*"posso tá na rua"*)
+— por isso o alarme é do celular, pelo `.ics`. Isto é o contrário: ele já está
+com o Gerador aberto, e a tela lembra.
+
+| estado | o que aparece |
+|---|---|
+| hoje | `📅 15:25 — Ver o Corolla do Zé Carlos` |
+| já passou | vermelho, `⏰ passou das 10:25` |
+| várias no dia | a primeira, com `(+N)` |
+| só daqui a 4 dias | **nada** |
+| nenhuma | **nada** |
+
+Os dois últimos são desenho, não esquecimento: **lembrete que aparece todo dia
+vira coisa que se ignora.** Falha de rede não acende nem apaga — dizer "sem
+compromisso" sem ter conferido é o falso sucesso que já custou caro aqui.
+
+*Registrado em 11 de setembro de 2026.*
