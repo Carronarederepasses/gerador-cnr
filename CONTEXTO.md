@@ -79,7 +79,9 @@ nenhum. Instalar em máquina nova é `git clone` + carregar sem compactação.
 - `content/olx-chat-monitor.js` — espelha as conversas do chat
 - `content/olx-chat.js` — preenche a mensagem de abordagem (nunca envia)
 - `content/cnr-bridge.js` — ponte `postMessage` entre Gerador e extensão
-- `options/` — configuração local (URL do Gerador; buscas só espelhadas)
+- `options/` — configuração local: URL do Gerador, chave, e **se este
+  computador roda o radar** (11/set). As buscas são só espelhadas — quem
+  manda nelas é a tela /radar.html.
 
 ### Supabase
 Em uso: `veiculos`, `anuncios`, `buscas`, `vendas`, `compradores`,
@@ -295,9 +297,11 @@ comercial. Em resumo:
 - **Já corrigido:** a requisição que partia do servidor com identificação
   forjada.
 
-**Pegada:** 1 conta, 4 buscas, 1 verificação por hora, no máximo ~192
-carregamentos de página por dia com as duas máquinas ligadas o dia todo — e
-esse é o teto, não a média. O botão 👁 acrescenta **uma** página por clique
+**Pegada:** 1 conta, 4 buscas, 1 verificação por hora, no máximo **~96**
+carregamentos de página por dia — e esse é o teto, não a média. Eram ~192 na
+projeção de duas máquinas varrendo; desde 11/set **o radar é ligável por
+computador** e só a máquina do Yuri varre. A da mãe lê a mesma fila pelo
+Gerador e aborda, sem repetir a varredura. O botão 👁 acrescenta **uma** página por clique
 dele, nunca na varredura.
 
 **Ponto de timing:** a janela para conversar com a OLX não fecha por tempo —
@@ -325,7 +329,7 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | Logs de diagnóstico na extensão | Ainda lá (15 pontos no `sw.js`). Mantidos de propósito enquanto a captação é observada — foram eles que acharam os bugs de 01–02/set. Sair quando estabilizar. |
 | `detected_at` é hora da captura, não da mensagem | Mensagens antigas carregadas por rolagem ordenam no fim. Resolver exige guardar a posição na conversa (mudança de schema). |
 | Tabelas órfãs: `vistorias`, `listas_envio` | Nenhum código as referencia. `listas_envio` é sobra da "lista de transmissão" construída e removida em 03/set. Conferir e apagar. |
-| **Segunda operadora — a decisão que falta** | Fim de setembro. A parte técnica é curta: `git clone` da extensão, liberar o aparelho em `/entrar.html`, e as buscas vêm do Gerador sozinhas. **O que não está decidido é a conta da OLX: a dela ou a dele?** Compartilhada é mais simples e mantém o espelho de conversa funcionando para os dois, mas é compartilhamento de credencial (costuma ser vedado em termos de uso) e um bloqueio atinge os dois de uma vez. Conta própria isola o risco, mas responder pelo card só funciona na máquina de quem tem a conversa. Isso também decide a mensagem: se ela se apresentar pelo nome dela, `extrairApos()` precisa passar a usar o prefixo sem nome. **Nada disso é código até a decisão ser tomada.** |
+| **Segunda operadora — DECIDIDO em 11/set** | Fim de setembro. Ela usa a **conta da OLX do Yuri** e, do Gerador, **só a abordagem** — Radar/Anúncios e o espelho de conversa. Catálogo, vendas, clientes e negociações continuam só com ele. Duas consequências: (a) a mensagem segue com "Meu nome é Yuri", que é coerente com a conta que o vendedor vê, então **a âncora não precisa mudar** e o acoplamento descrito em §5 fica inerte; (b) o radar dela é desligado nas opções da extensão — só uma máquina varre. Falta: `git clone`, liberar o aparelho em `/entrar.html` com a chave dela (`CNR_KEY_2`, já configurada) e desmarcar "Este computador roda o radar". |
 | Inventário de senhas | A senha do e-mail da empresa é a mesma de tudo, e o e-mail é a conta de recuperação de Vercel, Supabase, OLX e Instagram. Ele decidiu levantar onde usa antes de trocar. Verificação em duas etapas no Gmail é o passo de maior valor e não exige trocar senha. |
 | **LGPD / retenção** | Medido em 11/set: **14 clientes com CPF/CNPJ**, 3 com banco ou Pix, 6 vendas com CPF do comprador. Dado de quem fechou negócio — precisa ficar, por contrato e nota. O que poderia acumular sem razão (nome de vendedor e conteúdo de conversa de quem **não** fechou) **não está acumulando**: nenhum anúncio passa de 60 dias e a mensagem mais antiga tem 12. Nada urgente hoje. Vira pauta real quando houver assinantes, porque aí passa a ser dado de cliente dos outros. |
 
