@@ -757,7 +757,10 @@ function montarTextoAnuncio() {
   const det = [!badSel(anoNome)?anoNome:'', combustivel, km, cor?cor.toLowerCase():''].filter(Boolean);
   if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
   if (l1) linhas.push(l1);
-  if (regiao) linhas.push(`\n📍 Localização: ${regiao}`);
+  // Rótulo em caixa alta e negrito, como *VALOR:*, *FIPE:* e *GASTOS:*.
+  // Só a palavra — a cidade fica em texto normal, senão a linha inteira
+  // compete com o preço, que é o que tem de saltar no WhatsApp.
+  if (regiao) linhas.push(`\n📍 *LOCALIZAÇÃO:* ${regiao}`);
   const itensOn = onIds.filter(id => id !== 'blindado');
   const extras = linhasExtras();
   if (itensOn.length || onIds.includes('blindado') || extras.length) {
