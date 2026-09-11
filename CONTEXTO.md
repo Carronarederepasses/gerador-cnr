@@ -33,7 +33,7 @@ HTML estático + funções serverless na **Vercel**, banco **Supabase**
 (Postgres). Sem framework de front-end: cada página é um `.html` com
 `<script>` inline. Sem build step.
 
-**Páginas (20).** Captação: `radar` (config das buscas), `anuncios` (mesa de
+**Páginas (19).** Captação: `radar` (config das buscas), `anuncios` (mesa de
 captação), `conversas`, `parceiros`, `captacao`. Venda: `catalogo`,
 `compradores`, `negociacoes`, `vendas`. Apoio: `home` (painel), `consultas`,
 `busca`, `foto` (Arte), `ideias`, `artes`, `entrar`, `instalar`, `site`.
@@ -42,9 +42,9 @@ Duas merecem nota:
 - **`index.html` é só um redirecionamento** para `/home.html` desde 08/set.
   Era o Gerador inteiro — uma tela com duas abas — e virou `parceiros.html` +
   `captacao.html`. Continua existindo porque o favorito do Yuri aponta para lá.
-- **`gerador-antigo.html`** é o Gerador de antes do desmembramento, inteiro e
-  **sem link em lugar nenhum**. Porta de emergência; sai quando as duas telas
-  novas tiverem rodado alguns carros. Não usar como referência: está congelado.
+- **`gerador-antigo.html` foi removido em 11/set.** Era o Gerador de antes do
+  desmembramento, guardado como porta de emergência. As telas novas rodaram
+  vários carros desde 08/set. Continua recuperável pelo git.
 
 **Código compartilhado em `assets/`** — fonte única, e cada um deles nasceu de
 uma cópia que divergiu em silêncio:
@@ -318,7 +318,6 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | Logs de diagnóstico na extensão | Ainda lá (15 pontos no `sw.js`). Mantidos de propósito enquanto a captação é observada — foram eles que acharam os bugs de 01–02/set. Sair quando estabilizar. |
 | `detected_at` é hora da captura, não da mensagem | Mensagens antigas carregadas por rolagem ordenam no fim. Resolver exige guardar a posição na conversa (mudança de schema). |
 | Tabelas órfãs: `vistorias`, `listas_envio` | Nenhum código as referencia. `listas_envio` é sobra da "lista de transmissão" construída e removida em 03/set. Conferir e apagar. |
-| `gerador-antigo.html` | Porta de emergência sem link. Remover quando as telas novas tiverem rodado alguns carros — já rodaram vários desde 08/set. |
 | Segunda operadora | Fim de setembro. A extensão vem por `git clone`; as buscas vêm do Gerador automaticamente. Falta só liberar o aparelho em `/entrar.html`. |
 | Inventário de senhas | A senha do e-mail da empresa é a mesma de tudo, e o e-mail é a conta de recuperação de Vercel, Supabase, OLX e Instagram. Ele decidiu levantar onde usa antes de trocar. Verificação em duas etapas no Gmail é o passo de maior valor e não exige trocar senha. |
 | **LGPD / retenção** | Medido em 11/set: **14 clientes com CPF/CNPJ**, 3 com banco ou Pix, 6 vendas com CPF do comprador. Dado de quem fechou negócio — precisa ficar, por contrato e nota. O que poderia acumular sem razão (nome de vendedor e conteúdo de conversa de quem **não** fechou) **não está acumulando**: nenhum anúncio passa de 60 dias e a mensagem mais antiga tem 12. Nada urgente hoje. Vira pauta real quando houver assinantes, porque aí passa a ser dado de cliente dos outros. |
