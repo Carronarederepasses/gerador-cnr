@@ -1,0 +1,290 @@
+{
+  "_sobre": "Conteudo da tabela vistorias, exportado em 11/set/2026 antes de ela ser apagada. Tabela orfa: nenhum codigo a referenciava, e a avaliacao do sistema passou a morar em veiculos.avaliacao. Este registro e de avaliacao REAL feita pelo Yuri em 28/06 — o cliente desistiu de vender, entao o carro nunca entrou no catalogo. Guardado porque apagar tabela e irreversivel e o trabalho foi feito.",
+  "linhas": [
+    {
+      "id": "d7d5f5f2-28d4-4ef0-8d9e-23187c970b05",
+      "created_at": "2026-06-28T14:02:26.153174+00:00",
+      "updated_at": "2026-06-28T14:02:26.153174+00:00",
+      "venda_id": null,
+      "veiculo_id": null,
+      "marca": "Peugeot",
+      "modelo": "2008 Crossway",
+      "placa": null,
+      "ano_fabricacao": 2019,
+      "ano_modelo": null,
+      "cor": "Branco",
+      "inspetor": null,
+      "data_vistoria": "2026-06-28",
+      "latitude": null,
+      "longitude": null,
+      "nota_geral": "media",
+      "resultado": {
+        "pneus": {
+          "pneu_tras_dir": {
+            "status": "ORIGINAL"
+          },
+          "pneu_tras_esq": {
+            "status": "ORIGINAL"
+          },
+          "roda_tras_dir": {
+            "status": "ORIGINAL"
+          },
+          "roda_tras_esq": {
+            "status": "ORIGINAL"
+          },
+          "pneu_diant_dir": {
+            "status": "ORIGINAL"
+          },
+          "pneu_diant_esq": {
+            "status": "ORIGINAL"
+          },
+          "roda_diant_dir": {
+            "status": "ORIGINAL"
+          },
+          "roda_diant_esq": {
+            "status": "ORIGINAL"
+          }
+        },
+        "placas": {
+          "traseira": {
+            "status": "ORIGINAL"
+          },
+          "dianteira": {
+            "status": "ORIGINAL"
+          }
+        },
+        "vidros": {
+          "aux_dir": {
+            "status": "ORIGINAL"
+          },
+          "aux_esq": {
+            "status": "ORIGINAL"
+          },
+          "tras_dir": {
+            "status": "ORIGINAL"
+          },
+          "tras_esq": {
+            "status": "TROCADO"
+          },
+          "traseiro": {
+            "status": "TROCADO"
+          },
+          "diant_dir": {
+            "status": "ORIGINAL"
+          },
+          "diant_esq": {
+            "status": "ORIGINAL"
+          },
+          "parabrisa": {
+            "status": "ORIGINAL"
+          }
+        },
+        "pintura": {
+          "capo": {
+            "status": "ORIGINAL"
+          },
+          "teto": {
+            "status": "ORIGINAL"
+          },
+          "porta_malas": {
+            "status": "REPINTURA"
+          },
+          "porta_tras_dir": {
+            "status": "ORIGINAL"
+          },
+          "porta_tras_esq": {
+            "status": "ORIGINAL"
+          },
+          "parachoque_tras": {
+            "status": "ORIGINAL"
+          },
+          "porta_diant_dir": {
+            "status": "ORIGINAL"
+          },
+          "porta_diant_esq": {
+            "status": "ORIGINAL"
+          },
+          "lateral_tras_dir": {
+            "status": "REPINTURA"
+          },
+          "lateral_tras_esq": {
+            "status": "REPINTURA"
+          },
+          "parachoque_diant": {
+            "status": "ORIGINAL"
+          },
+          "paralama_diant_dir": {
+            "status": "REPINTURA"
+          },
+          "paralama_diant_esq": {
+            "status": "REPINTURA"
+          }
+        },
+        "estrutura": {
+          "assoalho": {
+            "status": "ORIGINAL"
+          },
+          "painel_tras": {
+            "status": "ORIGINAL"
+          },
+          "caixa_ar_dir": {
+            "status": "ORIGINAL"
+          },
+          "caixa_ar_esq": {
+            "status": "ORIGINAL"
+          },
+          "caixa_estepe": {
+            "status": "ORIGINAL"
+          },
+          "painel_diant": {
+            "status": "ORIGINAL"
+          },
+          "long_tras_dir": {
+            "status": "ORIGINAL"
+          },
+          "long_tras_esq": {
+            "status": "ORIGINAL"
+          },
+          "long_diant_dir": {
+            "status": "ORIGINAL"
+          },
+          "long_diant_esq": {
+            "status": "ORIGINAL"
+          },
+          "coluna_tras_dir": {
+            "status": "ORIGINAL"
+          },
+          "coluna_tras_esq": {
+            "status": "ORIGINAL"
+          },
+          "coluna_diant_dir": {
+            "status": "ORIGINAL"
+          },
+          "coluna_diant_esq": {
+            "status": "ORIGINAL"
+          },
+          "coluna_central_dir": {
+            "status": "ORIGINAL"
+          },
+          "coluna_central_esq": {
+            "status": "ORIGINAL"
+          },
+          "caixa_roda_tras_dir": {
+            "status": "ORIGINAL"
+          },
+          "caixa_roda_tras_esq": {
+            "status": "ORIGINAL"
+          }
+        },
+        "manutencao": {
+          "bateria": {
+            "status": "OK"
+          },
+          "oleo_motor": {
+            "status": "OK"
+          },
+          "discos_freio": {
+            "status": "OK"
+          },
+          "itens_suspensao": {
+            "status": "OK"
+          },
+          "pastilhas_freio": {
+            "status": "OK"
+          },
+          "vazamentos_motor": {
+            "status": "OK"
+          },
+          "vazamentos_cambio": {
+            "status": "OK"
+          },
+          "historico_revisoes": {
+            "status": "OK"
+          },
+          "fluido_arrefecimento": {
+            "status": "OK"
+          }
+        },
+        "luzes_painel": {
+          "abs": {
+            "status": "APAGADA"
+          },
+          "dpf": {
+            "status": "APAGADA"
+          },
+          "epc": {
+            "status": "APAGADA"
+          },
+          "esp": {
+            "status": "APAGADA"
+          },
+          "glow": {
+            "status": "APAGADA"
+          },
+          "tpms": {
+            "status": "APAGADA"
+          },
+          "airbag": {
+            "status": "APAGADA"
+          },
+          "farois": {
+            "status": "APAGADA"
+          },
+          "freios": {
+            "status": "APAGADA"
+          },
+          "outras": {
+            "status": "APAGADA"
+          },
+          "direcao": {
+            "status": "APAGADA"
+          },
+          "injecao": {
+            "status": "APAGADA"
+          },
+          "nivel_oleo": {
+            "status": "APAGADA"
+          },
+          "combustivel": {
+            "status": "APAGADA"
+          },
+          "transmissao": {
+            "status": "APAGADA"
+          },
+          "porta_aberta": {
+            "status": "APAGADA"
+          },
+          "pressao_oleo": {
+            "status": "APAGADA"
+          },
+          "abs_freio_mao": {
+            "status": "APAGADA"
+          },
+          "arrefecimento": {
+            "status": "APAGADA"
+          },
+          "bateria_carga": {
+            "status": "APAGADA"
+          }
+        },
+        "identificacao": {
+          "numero_motor": {
+            "status": "ORIGINAL"
+          },
+          "numero_chassi": {
+            "status": "ORIGINAL"
+          },
+          "etiqueta_motor": {
+            "status": "ORIGINAL"
+          },
+          "etiqueta_coluna": {
+            "status": "ORIGINAL"
+          }
+        }
+      },
+      "fotos": [],
+      "status": "finalizada",
+      "observacoes": null
+    }
+  ]
+}

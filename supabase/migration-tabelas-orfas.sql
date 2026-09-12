@@ -23,21 +23,26 @@ DROP TABLE IF EXISTS public.listas_envio;
 
 
 -- ── 2. vistorias ──────────────────────────────────────────────────
--- ATENÇÃO: esta tem 1 linha de verdade, de 28/06/2026 — Peugeot 2008
--- Crossway 2019, branco, nota "media", status "finalizada", com as 8 seções
--- do checklist preenchidas.
+-- LIBERADO PELO YURI em 11/set. E a minha leitura estava ERRADA.
 --
--- Indícios de que é registro de teste, e não de um carro real:
---   • sem fotos, sem inspetor e sem observações;
---   • `venda_id` e `veiculo_id` nulos — não está ligada a nada;
---   • esse Peugeot não existe no catálogo nem nas vendas;
---   • a avaliação do sistema hoje mora em `veiculos.avaliacao` (JSONB), não
---     aqui — esta tabela é de uma tentativa anterior, de junho.
+-- Eu tinha concluído que era registro de teste, pelos indícios: sem fotos,
+-- sem inspetor, `venda_id` e `veiculo_id` nulos, e o carro sem rastro no
+-- catálogo ou nas vendas. Ele corrigiu:
 --
--- Mesmo assim: **descomentar só depois de o Yuri confirmar** que aquela
--- vistoria de junho não significa nada. Uma linha custa zero para ficar.
+--     "fiz avaliação, mas cliente desistiu da venda"
+--
+-- Ou seja, era trabalho de verdade — o carro nunca entrou no catálogo porque
+-- o negócio não aconteceu, não porque a vistoria era fictícia. Bom lembrete
+-- de por que o DROP ficou comentado esperando a palavra dele em vez de eu
+-- decidir pelos indícios.
+--
+-- O conteúdo foi exportado antes, em `supabase/vistorias-backup-2026-06-28.json`,
+-- e vai para o git. Apagar tabela é irreversível; o trabalho, não.
+--
+-- A tabela sai porque nenhum código a referencia e a avaliação do sistema
+-- passou a morar em `veiculos.avaliacao` (JSONB).
 
--- DROP TABLE IF EXISTS public.vistorias;
+DROP TABLE IF EXISTS public.vistorias;
 
 
 -- ── Conferência depois de rodar ───────────────────────────────────
