@@ -5260,3 +5260,69 @@ tinha bloqueado esta máquina por ~24 h — rodaram hoje e passaram. Corolla,
 Hilux, Renegade e Compass escolhendo a versão certa.
 
 *Registrado em 11 de setembro de 2026.*
+
+---
+
+## Checkpoint — 12 de setembro de 2026
+
+Dia de decisão, não de código. Começou fechando documentação (tabelas órfãs
+apagadas, 2FA confirmado) e virou o desenho do produto.
+
+### O que o Yuri decidiu
+
+Partiu de um gargalo concreto: *"não consigo disparar para todos
+instantaneamente, então fico no WhatsApp mesmo"*. O grupo tem 188 membros e
+metade não abre — grupo manda tudo para todos, então quem compra popular
+recebe SUV e silencia.
+
+| | |
+|---|---|
+| API oficial da Meta | **descartada** — ~R$ 35 mil/mês na conta dele |
+| O Gerador vira app | cada lojista com a loja na mão; a rede vem junto |
+| Alcance | **nacional** — eu puxei para regional e ele rejeitou, com razão |
+| Lista | privada, entrada por solicitação, saída livre |
+| Filtro | livre, padrão recebe tudo. **Notificação filtrável, feed sempre completo** |
+| Estoque | opcional — quem só quer receber, só recebe |
+| Fila de interesse | **transcreve o mercado**: quem chama primeiro tem preferência, sinal trava |
+| Integrador | feature eventual, **nunca posicionamento** |
+| Vitrine | referência Auto Avaliar, opt-in por carro, depois da lista |
+| Onde construir | ramo separado + banco separado — **não** cópia do código |
+
+Tudo em `PROJETO-APP.md`, com marcação [YURI] / [CLAUDE] / [ABERTO] no
+documento inteiro, para não se perder depois quem decidiu o quê.
+
+### Dois achados que mudam a ordem
+
+**Não dá para dar uma chave ao lojista parceiro.** Hoje quem entra vê tudo:
+114 vendas com lucro, clientes com CPF e dados bancários, valor de compra de
+cada carro. O piloto tem de ser instância separada com banco vazio.
+
+**Metade do banco não existe em script.** Os SQL do repositório criam 7
+tabelas; o sistema usa 12. `compradores`, `negociacoes`, `eventos`,
+`historico` e `observacoes` só existem dentro do projeto vivo do Supabase.
+Trava o piloto, mas é pior que isso: é a situação da extensão em 03/set —
+perdido o projeto, o desenho some. `supabase/dump-estrutura.sql` preparado,
+só lê, aguardando ele rodar.
+
+### Conferido em fonte, não de memória
+
+Auto Avaliar: oferta institucional (concessionária, locadora, frotista), ~30
+mil lojistas compradores, exige CNPJ. **Ninguém ali capta de pessoa física** —
+segunda confirmação, por outro ângulo, da pesquisa de 05/set: o mercado
+inteiro começa com o carro já dentro da loja. A captação de PF é a oferta que
+eles não têm.
+
+### Onde parou
+
+Nada pela metade, nada quebrado, produção intocada. O próximo passo é ele
+rodar os quatro blocos de `dump-estrutura.sql` e mandar o resultado — dois
+minutos, e destrava tanto o piloto quanto o buraco de backup.
+
+Fila depois disso: projeto novo no Supabase + Vercel para o lojista de
+Garopaba (~10 min juntos), conta separada na APiBrasil com saldo pequeno como
+teto de gasto, e a fase 0 (dono em cada linha do banco).
+
+**CNPJ** segue travando consulta veicular camada 2, contrato, e qualquer
+cobrança. *"Preciso ver isso com calma"* — decisão dele, sem cobrança.
+
+*Registrado em 12 de setembro de 2026.*
