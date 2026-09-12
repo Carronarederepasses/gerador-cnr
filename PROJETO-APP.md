@@ -83,7 +83,7 @@ dentro dos 188.
 Filtro obrigatório no cadastro é decidir pelo outro, na hora em que ele menos
 sabe o que quer. Quem quiser ver tudo, vê tudo.
 
-**[CLAUDE, não aprovado]** Separar duas coisas que hoje andam juntas:
+**[YURI, decidido 12/set]** Separar duas coisas que hoje andam juntas:
 
 | | |
 |---|---|
@@ -328,6 +328,68 @@ tentação de fundir é grande porque muitas vezes é a mesma pessoa.
 
 Fundir vaza o que um escreveu sobre o outro. Recomendação: manter separados,
 com vínculo opcional — "este contato é o cliente Fulano do meu CRM".
+
+---
+
+## 8.4 Onde isso é construído — cópia, não **[decidido 12/set]**
+
+**[YURI]** *"Ao invés de construir em cima do nosso gerador, construir em cima
+de uma cópia. Assim posso ir mexendo no gerador sem afetar as
+funcionalidades."*
+
+O objetivo está certo e é inegociável: **a operação dele não pode parar nem
+correr risco enquanto isso é construído.** Mas "cópia" junta duas coisas que
+precisam de respostas opostas.
+
+| | resposta |
+|---|---|
+| **Dados separados** | **sim, sempre.** Banco novo, vazio. Nada do que for feito toca catálogo, vendas ou clientes de verdade |
+| **Código copiado** | **não.** Mesma base, ramo separado (*branch*) |
+
+**Por que o código não pode ser cópia:** é o erro que mais custou caro neste
+projeto, e ele já aconteceu seis vezes — os dois montadores de anúncio
+(AVALIAÇÃO e GASTOS sumiram do WhatsApp por meses), a máscara de telefone, as
+declarações do catálogo, o desenho da placa, o acesso à FIPE, a mensagem de
+abordagem. **Em todas, duas cópias divergiram em silêncio e ninguém percebeu
+até dar problema na frente do cliente.** Copiar o sistema inteiro é a maior
+versão possível desse erro: correção feita de um lado não chega no outro, e a
+juntada depois de meses é pior que o trabalho original.
+
+Ramo separado dá exatamente o que ele quer — produção intocada, ele mexendo à
+vontade no que usa — sem criar a segunda cópia. E quando estiver pronto, a
+juntada é normal, porque o histórico é um só.
+
+```
+main                          → gerador-cnr.vercel.app    (dele, banco real)
+ramo do projeto               → endereço de teste         (banco vazio)
+```
+
+Os dois endereços rodam o mesmo repositório apontando para bancos diferentes,
+por variável de ambiente. Nenhuma linha de código sabe qual é qual.
+
+---
+
+## 8.5 Piloto com lojista — e por que ele não pode receber uma chave
+
+**[YURI, 12/set]** Um parceiro lojista de Garopaba topa testar.
+
+**Não dá para simplesmente liberar o aparelho dele.** Hoje o sistema é de um
+dono só: quem entra vê **tudo** — as 114 vendas com valor de compra e lucro,
+os clientes com CPF, telefone e dados bancários, o catálogo inteiro com quanto
+foi pago em cada carro. Entregar isso a outro lojista é entregar a margem da
+operação e, pior, dado pessoal de terceiro que não é do Yuri para distribuir.
+
+**O piloto é uma instância separada**, com banco próprio e vazio, onde ele é o
+único dono. Mesmo código, mesmo repositório, endereço e banco diferentes.
+
+E isso rende um teste que vale por si: **é a primeira vez que o sistema atende
+alguém que não é o Yuri**, e vai revelar sozinho todo lugar onde ele está
+escrito no código. A mensagem de abordagem já saiu de lá em 11/set (mora em
+`api/_abordagem.js`, no servidor) — foi exatamente o que tornou isto possível
+sem refazer nada.
+
+**[ABERTO]** O que mais está preso ao Yuri: marca d'água, nome no topo,
+Instagram, textos do WhatsApp, região padrão.
 
 ---
 
