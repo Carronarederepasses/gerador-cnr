@@ -88,7 +88,10 @@ Em uso: `veiculos`, `anuncios`, `buscas`, `vendas`, `compradores`,
 `negociacoes`, `eventos`, `olx_mensagens`, `ideias`, `historico`,
 `observacoes`, **`agenda`**.
 
-Órfãs (nenhum código referencia): `vistorias`, `listas_envio` — ver §8.
+São **12, e só essas**. `vistorias` e `listas_envio` foram apagadas em 11/set,
+depois de conferido que nenhum código as referenciava. O único registro real
+que havia — uma vistoria de 28/06, de um carro cujo dono desistiu de vender —
+está guardado em `supabase/vistorias-backup-2026-06-28.json`.
 
 Acesso **exclusivamente** pelas funções serverless, com `SERVICE_ROLE_KEY`.
 Nenhuma página fala com o Supabase direto. RLS ligada em **todas** as tabelas,
@@ -328,9 +331,8 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | `host_permissions: ["https://*.vercel.app/*"]` | Amplo demais para passar na revisão da Chrome Web Store. |
 | Logs de diagnóstico na extensão | Ainda lá (15 pontos no `sw.js`). Mantidos de propósito enquanto a captação é observada — foram eles que acharam os bugs de 01–02/set. Sair quando estabilizar. |
 | `detected_at` é hora da captura, não da mensagem | Mensagens antigas carregadas por rolagem ordenam no fim. Resolver exige guardar a posição na conversa (mudança de schema). |
-| Tabelas órfãs: `vistorias`, `listas_envio` | Nenhum código as referencia. `listas_envio` é sobra da "lista de transmissão" construída e removida em 03/set. Conferir e apagar. |
 | **Segunda operadora — DECIDIDO em 11/set** | Fim de setembro. Ela usa a **conta da OLX do Yuri** e, do Gerador, **só a abordagem** — Radar/Anúncios e o espelho de conversa. Catálogo, vendas, clientes e negociações continuam só com ele. Duas consequências: (a) a mensagem segue com "Meu nome é Yuri", que é coerente com a conta que o vendedor vê, então **a âncora não precisa mudar** e o acoplamento descrito em §5 fica inerte; (b) o radar dela é desligado nas opções da extensão — só uma máquina varre. Falta: `git clone`, liberar o aparelho em `/entrar.html` com a chave dela (`CNR_KEY_2`, já configurada) e desmarcar "Este computador roda o radar". |
-| Inventário de senhas | A senha do e-mail da empresa é a mesma de tudo, e o e-mail é a conta de recuperação de Vercel, Supabase, OLX e Instagram. Ele decidiu levantar onde usa antes de trocar. Verificação em duas etapas no Gmail é o passo de maior valor e não exige trocar senha. |
+| Senhas e acesso ao e-mail | A senha do e-mail da empresa é a mesma de tudo, e esse e-mail é a conta de recuperação de Vercel, Supabase, OLX e Instagram. **A verificação em duas etapas está ligada desde 05/set** — telefone **e** app Authenticator, conferido nos próprios avisos do Google. Falta: (a) os **códigos de backup**, porque hoje os dois fatores moram no mesmo aparelho e perder o celular tranca a conta que recupera todas as outras; (b) o levantamento de onde a senha é usada, antes de trocá-la. Decisão dele: deixar para depois. |
 | **LGPD / retenção** | Medido em 11/set: **14 clientes com CPF/CNPJ**, 3 com banco ou Pix, 6 vendas com CPF do comprador. Dado de quem fechou negócio — precisa ficar, por contrato e nota. O que poderia acumular sem razão (nome de vendedor e conteúdo de conversa de quem **não** fechou) **não está acumulando**: nenhum anúncio passa de 60 dias e a mensagem mais antiga tem 12. Nada urgente hoje. Vira pauta real quando houver assinantes, porque aí passa a ser dado de cliente dos outros. |
 
 **Resolvidas desde a versão anterior deste documento:**
