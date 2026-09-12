@@ -1,7 +1,7 @@
 # Gerador CNR — contexto do projeto
 
 Documento de handoff. Serve para colocar alguém (ou outra IA) a par do estado
-do sistema sem precisar ler o código. Atualizado em **11 de setembro de 2026**.
+do sistema sem precisar ler o código. Atualizado em **12 de setembro de 2026**.
 
 ---
 
@@ -175,7 +175,7 @@ Estas não são preferências. Quebram o sistema se ignoradas.
 
 | Restrição | Consequência |
 |---|---|
-| **Vercel Hobby: 12 funções serverless, já no teto** | Arquivo novo em `api/` quebra o deploy inteiro. Endpoint novo entra como modo `?param=1` de um arquivo existente. **Arquivo com prefixo `_` não é roteado e não conta** — é assim que `_auth.js` e `_fipe.js` existem. Páginas HTML não contam. `api/ping.js` está no `.vercelignore` para segurar exatamente 12. |
+| **Vercel Hobby: 12 funções serverless, já no teto** | Arquivo novo em `api/` quebra o deploy inteiro. Endpoint novo entra como modo `?param=1` de um arquivo existente. **Arquivo com prefixo `_` não é roteado e não conta** — é assim que `_auth.js`, `_fipe.js` e `_abordagem.js` existem. Páginas HTML não contam. `api/ping.js` está no `.vercelignore` para segurar exatamente 12. |
 | **Service Worker MV3 morre após `sendResponse`** | `fetch` disparado sem `await` é cancelado no meio. Sempre `await` + `try/catch` antes do `return`. |
 | **Content script vira órfão ao recarregar a extensão** | Toda aba já aberta precisa de F5. Sintoma típico: "a extensão não responde" logo após um reload. |
 | **Verificação do radar é serial, 23s de teto por busca** | ~10 buscas é o limite prático antes do navegador cortar o ciclo. |
@@ -284,6 +284,17 @@ na barra lateral é outra coisa: ele já está com o Gerador aberto.
 texto dele, não sugestão aceita. A primeira frase — `Olá! Tudo bem? Meu nome é
 Yuri` — **não pode mudar** sem mudar junto a âncora em `olx-chat-monitor.js`,
 que a usa para separar o que ele escreveu do que o vendedor escreveu.
+
+**Desde 11/set o texto mora no servidor**, em `_abordagem.js`, e sai por
+`utils?type=abordagem`. O Gerador e a extensão **perguntam**; a constante que
+cada um ainda tem é bote salva-vidas, usado só quando a rede falha — mensagem
+de ontem é melhor que campo vazio no meio de uma abordagem. A âncora é
+**derivada** do texto, não redigitada, porque duas declarações da mesma frase
+é exatamente como elas divergem. Trocar a mensagem deixou de exigir editar dois
+arquivos e recarregar a extensão em cada máquina. Isso importa além da
+arrumação: o Yuri corre em **duas linhas paralelas** — a operação dele e o
+Gerador como produto, onde cada cliente tem a própria mensagem. Texto dentro
+da extensão significaria um pacote por cliente.
 
 ---
 
