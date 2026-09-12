@@ -5326,3 +5326,23 @@ teto de gasto, e a fase 0 (dono em cada linha do banco).
 cobrança. *"Preciso ver isso com calma"* — decisão dele, sem cobrança.
 
 *Registrado em 12 de setembro de 2026.*
+
+### Adendo 12/set — plugins avaliados
+
+Yuri perguntou por cinco plugins de terceiros e pelo catálogo oficial.
+Conferido em fonte, um por um.
+
+- **OmniRoute: NÃO instalar.** CVE-2026-88062, nota 9,5 — execução remota de
+  comando sem autenticação em algumas configurações, versões ≤ 3.8.49, sem
+  correção quando conferido.
+- Cartographer, claude-mem, Headroom: dispensados. O primeiro reescreve o
+  CLAUDE.md sozinho; o segundo duplica a memória que já existe e grava tudo
+  por padrão (aqui passam chave, CPF e dado bancário); o terceiro comprime
+  justamente o detalhe que, neste projeto, é onde os erros se escondem.
+- Catálogo oficial (39 plugins): **só o `claude-security` vale.** Varredura
+  de segurança com verificação independente, trabalha em cópia de rascunho e
+  não altera arquivo.
+
+**Fila:** instalar o `claude-security` (escopo Local) e rodar a varredura
+**antes de liberar o lojista parceiro**. Não antes — ele achou complicado
+instalar agora, e só vale nessa hora. Fazer junto, clique a clique.
