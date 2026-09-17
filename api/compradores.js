@@ -23,7 +23,38 @@ const CAMPOS_NEG = [
   'veiculo_id','veiculo_nome','comprador_nome','comprador_id','contato_telefone',
   'valor_proposto','status','ultimo_contato','historico','observacoes',
   'motivo_descarte','motivo_match',
+  // Sinal (17/set): o carro travado espera aqui, na negociação — venda que
+  // não fechou não é venda. Viaja para `vendas` na conversão.
+  'valor_sinal','sinal_em',
 ];
+
+// Rede de segurança para a janela entre o deploy (automático no push) e a
+// migration (rodada à mão no Supabase). Nesse intervalo o código manda as
+// colunas novas e o banco ainda não as tem: o PostgREST devolve 400 e a
+// negociação NÃO salva. Foi o que aconteceu em 08/set com `operador`.
+// Pode sair depois que a migration tiver rodado.
+const COLUNAS_NOVAS_NEG = ['valor_sinal', 'sinal_em'];
+
+async function gravarNeg(path, opts) {
+  const r = await sb(path, opts);
+  if (r.ok) return r;
+
+  // `clone()` para não consumir o corpo: quem chama continua fazendo
+  // `r.json()` e tratando o erro como sempre tratou. Só o caso da coluna
+  // ausente é desviado — qualquer outra falha segue o caminho de sempre.
+  let txt = '';
+  try { txt = await r.clone().text(); } catch { return r; }
+
+  const faltaColuna = COLUNAS_NOVAS_NEG.some(c => txt.includes(c)) &&
+                      /column|schema cache|PGRST204|42703/i.test(txt);
+  if (!faltaColuna) return r;
+
+  console.warn('compradores: colunas de sinal ainda não existem no banco — regravando sem elas.');
+  let semNovas;
+  try { semNovas = JSON.parse(opts.body); } catch { return r; }
+  COLUNAS_NOVAS_NEG.forEach(c => delete semNovas[c]);
+  return sb(path, { ...opts, body: JSON.stringify(semNovas) });
+}
 
 const CAMPOS_COMPRADOR = [
   'nome','proprietario','telefone','tipo','papel','cidade','marcas','preco_min','preco_max','observacoes','ativo',
@@ -234,7 +265,7 @@ module.exports = async (req, res) => {
         if (!payload.veiculo_nome && !payload.comprador_nome)
           return res.status(400).json({ error: 'veiculo_nome ou comprador_nome obrigatório' });
         payload.historico = payload.historico || [];
-        const r = await sb('negociacoes', {
+        const r = await gravarNeg('negociacoes', {
           method: 'POST', body: JSON.stringify(payload), prefer: 'return=representation',
         });
         const data = await r.json();
@@ -271,7 +302,7 @@ module.exports = async (req, res) => {
           const rSt = await sb(`negociacoes?id=eq.${encodeURIComponent(q.id)}&select=status,motivo_descarte,ultimo_contato,valor_proposto`);
           if (rSt.ok) snapAntes = (await rSt.json())[0] || null;
         }
-        const r = await sb(`negociacoes?id=eq.${q.id}`, {
+        const r = await gravarNeg(`negociacoes?id=eq.${q.id}`, {
           method: 'PATCH', body: JSON.stringify(payload), prefer: 'return=representation',
         });
         const data = await r.json();

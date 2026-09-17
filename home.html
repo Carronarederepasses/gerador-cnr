@@ -392,10 +392,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <!-- Sinal recebido, venda ainda não fechada. Nasce escondido: só aparece
          quando existe algo travado, senão vira mais um "—" na tela. -->
     <div class="kpi amarelo" id="kpi-andamento-card" hidden
-         onclick="window.location='/vendas.html?status=negociando'" style="cursor:pointer">
-      <div class="lbl">Vendas em andamento</div>
+         onclick="window.location='/negociacoes.html'" style="cursor:pointer">
+      <div class="lbl">Carros travados</div>
       <div class="val" id="kpi-andamento">—</div>
-      <div class="sub" id="kpi-andamento-sub">aguardando fechar</div>
+      <div class="sub" id="kpi-andamento-sub">sinal recebido</div>
     </div>
     <div class="kpi azul" onclick="window.location='/compradores.html'" style="cursor:pointer">
       <div class="lbl">Compradores ativos</div>
@@ -532,10 +532,10 @@ let _vendasMes = [];
 // `concluido`, então este filtro não tira um centavo do histórico.
 const PENDENTES  = ['negociando', 'cancelado'];
 const concluida  = v => !PENDENTES.includes(String(v.status || ''));
-const emAndamento = v => String(v.status || '') === 'negociando';
 
-// O carro travado não some da vista só porque saiu do faturamento: sem este
-// cartão, tirar a venda das somas seria escondê-la.
+// O carro travado não some da vista: o sinal entrou, o negócio não fechou, e
+// ele precisa saber há quanto tempo está parado esperando cautelar, loja ou a
+// venda da fonte. A lista vem das NEGOCIAÇÕES.
 function renderEmAndamento(lista) {
   const card = document.getElementById('kpi-andamento-card');
   if (!card) return;
@@ -545,7 +545,7 @@ function renderEmAndamento(lista) {
   card.hidden = false;
   document.getElementById('kpi-andamento').textContent = lista.length;
   document.getElementById('kpi-andamento-sub').textContent =
-    sinal > 0 ? moeda(sinal) + ' de sinal' : 'aguardando fechar';
+    sinal > 0 ? moeda(sinal) + ' de sinal' : 'sinal recebido';
 }
 
 const _hoje = new Date();
@@ -666,9 +666,7 @@ async function carregarCatalogo() {
 
 async function carregarVendas() {
   try {
-    const _vendasTodas = (await buscar('/api/vendas')).filter(v => v.canal_origem !== 'historico');
-    const vendas = _vendasTodas.filter(concluida);
-    renderEmAndamento(_vendasTodas.filter(emAndamento));
+    const vendas = (await buscar('/api/vendas')).filter(v => v.canal_origem !== 'historico').filter(concluida);
 
     const agora = new Date();
     const mes = agora.getMonth();
@@ -852,6 +850,14 @@ async function carregarNegociacoes() {
     const ativas = todas.filter(n =>
       n.status !== 'descartado' && !(n.status === 'comprado' && jaVirouVenda(n))
     );
+
+    // Carro travado por sinal (17/set). Mora na NEGOCIAÇÃO, não na venda —
+    // venda que não fechou não é venda. Conta qualquer negociação ativa com
+    // sinal recebido, não só as marcadas Reservado: o sinal às vezes entra
+    // antes de ele mexer no status, e o painel não pode esconder por isso.
+    renderEmAndamento(ativas.filter(n =>
+      n.valor_sinal != null && n.valor_sinal !== '' && n.status !== 'comprado'
+    ));
 
     document.getElementById('kpi-neg').textContent = ativas.length;
     document.getElementById('kpi-neg-sub').textContent = ativas.length === 1 ? 'em andamento' : 'em andamento';

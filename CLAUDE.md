@@ -146,7 +146,17 @@ O campo `avaliacao` em `veiculos` é um JSONB com chaves distintas por origem. N
 - `iniciarNovaCaptacao()` limpa apenas localStorage + variáveis JS — não apaga o banco
 
 ### Status válidos em negociacoes
-`primeiro-contato` | `respondeu` | `negociando` | `aguardando` | `comprado` | `descartado`
+`primeiro-contato` | `respondeu` | `negociando` | `aguardando` | **`reservado`** | `comprado` | `descartado`
+
+> `reservado` estava faltando nesta lista e **existe na tela desde antes** —
+> filtro, opção no modal e cor própria. A omissão me levou a construir a
+> "venda em andamento" no lugar errado em 16/set. **É o status do carro
+> travado por sinal**, e o fluxo pretendido (§9.1) sempre foi
+> `negociando → reservado → comprado`.
+>
+> O sinal mora em `negociacoes.valor_sinal` / `sinal_em` (17/set) e viaja para
+> `vendas` na conversão. **Venda que não fechou não é venda** — a tabela
+> `vendas` alimenta relatório, KPIs, CSV e o espelho no Google Sheets.
 
 ### Motivos estruturados (reason codes)
 **Descarte:** `PRECO_ALTO` | `NAO_E_O_PERFIL` | `SEM_MERCADO` | `DOCUMENTO` | `VENDEU_POR_FORA` | `OUTRO`

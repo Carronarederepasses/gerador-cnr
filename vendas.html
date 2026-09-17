@@ -757,7 +757,10 @@ async function iniciarApp(){
   // Vindo do catálogo ou negociações via "Registrar Venda" → abre modal pré-preenchido
   const p = new URLSearchParams(location.search);
   const campos = ['marca','modelo','versao','ano','placa','cor','km','renavam','valor_venda','valor_fipe',
-                   'valor_compra','vendedor_nome','vendedor_telefone','motivo_match'];
+                   'valor_compra','vendedor_nome','vendedor_telefone','motivo_match',
+                   // Sinal: registrado na negociação quando o carro travou, chega
+                   // preenchido na conversão. Aqui ele só é conferido/corrigido.
+                   'valor_sinal','sinal_em'];
   const temDados = campos.some(c => p.has(c)) || p.has('comprador_nome') || p.has('comprador_telefone');
   if (temDados) {
     const veiculo = {};

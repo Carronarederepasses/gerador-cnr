@@ -56,6 +56,9 @@
   .neg-dias{font-size:.62rem;color:var(--mid);white-space:nowrap}
   .neg-obs{font-size:.78rem;color:var(--mid);margin-top:.4rem;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .neg-motivo{font-size:.65rem;margin-top:.3rem;color:#ef4444;font-weight:600}
+  /* Sinal recebido: roxo, o mesmo do status Reservado, para os dois se
+     lerem como a mesma coisa sem precisar de legenda. */
+  .neg-sinal{font-size:.7rem;margin-top:.35rem;color:#8b5cf6;font-weight:600;letter-spacing:.02em}
   .neg-match-motivo{font-size:.65rem;margin-top:.2rem;color:var(--severity-ok);font-weight:500}
 
   .empty-state{text-align:center;padding:4rem 2rem;color:var(--mid)}
@@ -225,6 +228,21 @@
       <div class="field">
         <label>Último contato</label>
         <input type="date" id="m-data" style="color-scheme:dark">
+      </div>
+    </div>
+    <!-- Sinal (17/set). Mora aqui, e não na venda: venda que não fechou não é
+         venda, e a negociação já é o lugar do carro travado esperando
+         desenrolar — cautelar, carro entrando em loja, ou a venda da fonte
+         fechar antes do repasse. Não exige status Reservado: às vezes o sinal
+         entra antes de ele mexer no status, e o sistema não pode brigar. -->
+    <div class="g2">
+      <div class="field">
+        <label>Sinal recebido (R$)</label>
+        <input type="text" inputmode="decimal" id="m-sinal" placeholder="ex: 2.000">
+      </div>
+      <div class="field">
+        <label>Data do sinal</label>
+        <input type="date" id="m-sinal-data" style="color-scheme:dark">
       </div>
     </div>
     <div class="field">
@@ -567,6 +585,24 @@ function diasDaNegociacao(n) {
   return diasDesde(n.ultimo_contato || n.created_at);
 }
 
+// Sinal recebido (17/set). Aparece em qualquer status, não só no Reservado:
+// às vezes o sinal entra antes de ele mexer no status, e esconder o dado
+// porque o status "ainda não está certo" seria o sistema brigando com ele.
+//
+// O "há quantos dias" é o número que importa de verdade: carro travado é
+// carro parado esperando cautelar, loja, ou a venda da fonte fechar. É o que
+// diz quando cobrar alguém.
+function linhaSinal(n) {
+  if (n.valor_sinal == null || n.valor_sinal === '') return '';
+  const valor = 'R$ ' + Number(n.valor_sinal).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  const dias = diasDesde(n.sinal_em);
+  const quando = dias === null ? ''
+    : dias === 0 ? ' · travado hoje'
+    : dias === 1 ? ' · travado há 1 dia'
+    : ` · travado há ${dias} dias`;
+  return `<div class="neg-sinal">🔒 Sinal ${valor}${quando}</div>`;
+}
+
 function fmtDias(n) {
   if (n === 0) return 'hoje';
   if (n === 1) return '1 dia atrás';
@@ -643,6 +679,7 @@ function renderLista() {
         <div class="neg-status-pill" style="color:${cfg.cor};background:${cfg.bg};cursor:pointer" onclick="event.stopPropagation();abrirStatusMenu(event,'${n.id}')">${cfg.label} ▾</div>
         <div class="neg-dias">${dias === null ? '' : fmtDias(dias)}</div>
       </div>
+      ${linhaSinal(n)}
       ${n.observacoes ? `<div class="neg-obs">${n.observacoes}</div>` : ''}
       ${n.status === 'descartado' && n.motivo_descarte ? `<div class="neg-motivo">✗ ${MOTIVOS_DESCARTE.find(m=>m.code===n.motivo_descarte)?.label || n.motivo_descarte}</div>` : ''}
       ${n.motivo_match ? `<div class="neg-match-motivo">✓ ${n.motivo_match.split(',').map(c => MOTIVOS_MATCH.find(m=>m.code===c.trim())?.label || c.trim()).join(' · ')}</div>` : ''}
@@ -669,6 +706,8 @@ function abrirNova() {
   document.getElementById('m-valor').value = '';
   document.getElementById('m-status').value = 'primeiro-contato';
   document.getElementById('m-data').value = hoje();
+  document.getElementById('m-sinal').value = '';
+  document.getElementById('m-sinal-data').value = '';
   document.getElementById('m-obs').value = '';
   document.getElementById('hist-wrap').style.display = 'none';
   document.getElementById('btn-excluir').style.display = 'none';
@@ -693,6 +732,10 @@ function abrirEditar(id) {
     : '';
   document.getElementById('m-status').value = n.status || 'aguardando';
   document.getElementById('m-data').value = n.ultimo_contato || hoje();
+  document.getElementById('m-sinal').value = n.valor_sinal != null
+    ? Number(n.valor_sinal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
+  document.getElementById('m-sinal-data').value = n.sinal_em || '';
   document.getElementById('m-obs').value = n.observacoes || '';
   document.getElementById('btn-excluir').style.display = '';
   document.getElementById('match-sec').style.display = 'none';
@@ -734,6 +777,8 @@ async function salvar() {
   const veiculo_id       = document.getElementById('m-veiculo-id').value || null;
   const valor_raw        = document.getElementById('m-valor').value;
   const valor_proposto   = parseBRv(valor_raw);
+  const valor_sinal      = parseBRv(document.getElementById('m-sinal').value);
+  const sinal_em         = document.getElementById('m-sinal-data').value || null;
 
   const btn = document.querySelector('#modal .btn-primary');
   const orig = btn.textContent; btn.textContent = 'Salvando…'; btn.disabled = true;
@@ -745,7 +790,7 @@ async function salvar() {
       if (n && (n.status !== status || n.observacoes !== observacoes)) {
         historico.push({ data: n.ultimo_contato || hoje(), status: n.status, obs: n.observacoes || '' });
       }
-      const patchBody = { veiculo_nome, veiculo_id, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico };
+      const patchBody = { veiculo_nome, veiculo_id, comprador_nome, contato_telefone, comprador_id, valor_proposto, valor_sinal, sinal_em, status, ultimo_contato, observacoes, historico };
       if (status === 'descartado' && _motivoSelecionado) patchBody.motivo_descarte = _motivoSelecionado;
       await fetch('/api/compradores?neg=1&id=' + editId, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -755,7 +800,7 @@ async function salvar() {
       const motivo_match = _motivosMatchSelecionados.size ? [..._motivosMatchSelecionados].join(',') : null;
       await fetch('/api/compradores?neg=1', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ veiculo_nome, veiculo_id, comprador_nome, contato_telefone, comprador_id, valor_proposto, status, ultimo_contato, observacoes, historico: [], motivo_match }),
+        body: JSON.stringify({ veiculo_nome, veiculo_id, comprador_nome, contato_telefone, comprador_id, valor_proposto, valor_sinal, sinal_em, status, ultimo_contato, observacoes, historico: [], motivo_match }),
       });
     }
     _motivoSelecionado = null;
@@ -859,6 +904,10 @@ async function irParaVenda(id) {
   if (n.comprador_nome)    p.set('comprador_nome',     n.comprador_nome);
   if (n.contato_telefone)  p.set('comprador_telefone', n.contato_telefone);
   if (n.valor_proposto)    p.set('valor_venda',         n.valor_proposto);
+  // O sinal viaja junto: foi registrado aqui quando o carro travou, e a venda
+  // é o registro final. Sem isto ele teria de redigitar o que já informou.
+  if (n.valor_sinal != null) p.set('valor_sinal',        n.valor_sinal);
+  if (n.sinal_em)            p.set('sinal_em',           n.sinal_em);
   if (n.comprador_id)      p.set('comprador_id',         n.comprador_id);
   if (n.veiculo_id)        p.set('veiculo_id',           n.veiculo_id);
   if (n.motivo_match)      p.set('motivo_match',         n.motivo_match);
