@@ -4,7 +4,7 @@ const { exigirChave } = require('./_auth');
 // O acesso à FIPE (cache + token) mora em _fipe.js desde 10/set. Este arquivo
 // tinha a sua própria cópia do fipeGet, SEM cache, enquanto o fipe-search.js
 // tinha uma COM cache — e era esta a que gastava, com 43 chamadas por modelo.
-const { fipeGet } = require('./_fipe');
+const { fipeGet, baseModelo } = require('./_fipe');
 
 async function mapLimit(arr, limit, fn) {
   const ret = [];
@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
     try {
       const d = await fipeGet(`/marcas/${marca}/modelos`);
       const mods = (d.modelos || []).filter(m =>
-        m.nome.toLowerCase().split(/[\s\-\/.]+/)[0] === base
+        baseModelo(m.nome).toLowerCase() === base
       );
       if (!mods.length) return res.status(200).json({ base, anos: [], versoes: [] });
 

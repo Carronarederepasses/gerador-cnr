@@ -1132,7 +1132,7 @@ async function vMarca(){
   fipeSt('Buscando modelos...');
   try {
     const data = await fipeGet(`/marcas/${cod}/modelos`);
-    const bases=[...new Set((data.modelos||[]).map(m=>m.nome.split(/[\s\-\/.]+/)[0]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    const bases=[...new Set((data.modelos||[]).map(m=>cnrBaseModelo(m.nome)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
     const sM=$('m-sel-modelo'); sM.innerHTML='<option value="">Selecione o modelo</option>';
     bases.forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;sM.appendChild(o);});
     sM.disabled=false; fipeSt(`${bases.length} modelos`);

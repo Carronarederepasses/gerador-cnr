@@ -257,7 +257,7 @@ async function cascataMarca(cfg) {
   try {
     const data = await fipeGet(`/marcas/${marca}/modelos`);
     const modelos = data.modelos || [];
-    const bases = [...new Set(modelos.map(m => m.nome.split(/[\s\-\/.]+/)[0]).filter(Boolean))]
+    const bases = [...new Set(modelos.map(m => cnrBaseModelo(m.nome)).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, 'pt-BR'));
     const sM = document.getElementById(cfg.modelo);
     sM.innerHTML = '<option value="">Selecione o modelo</option>';

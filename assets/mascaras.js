@@ -116,7 +116,32 @@
       `<span class="pcorpo">${esc(p)}</span></span>`;
   }
 
+  // ── Base do modelo (a "família" do carro) ───────────────────────
+  // A cascata da FIPE agrupa as versões pela primeira palavra do nome:
+  // "Polo Highline 1.0 TSI" → "Polo". A regra antiga cortava também no
+  // hífen, e aí:
+  //
+  //   T-Cross 1.0 TSI  →  "T"        (foi o que o Yuri viu na tela)
+  //   CR-V · HR-V      →  "CR", "HR"
+  //   F-100 · F-1000 · F-150 · F-250  →  todos em "F", 68 modelos num balde
+  //
+  // Hífen ENTRE letras faz parte do nome. Hífen solto (" - ") já é
+  // separado pelo espaço; o que sobrar nas pontas é aparado.
+  //
+  // ⚠️ Esta regra tem um gêmeo no servidor, em `api/_fipe.js`. As duas
+  // PRECISAM concordar: a tela monta a lista e a API filtra por ela — se
+  // divergirem, o carro some da cascata sem erro nenhum.
+  // `scratchpad/checa-base-modelo.js` falha se elas discordarem.
+  function baseModelo(nome) {
+    return String(nome == null ? '' : nome)
+      .split(/[\s\/.]+/)[0]
+      .replace(/^-+|-+$/g, '');
+  }
+
+  raiz.cnrBaseModelo = baseModelo;
+
   raiz.CNR_MASCARA = {
+    baseModelo: baseModelo,
     tel: tel,
     doc: doc,
     cep: cep,

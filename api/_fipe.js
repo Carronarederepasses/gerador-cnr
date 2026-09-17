@@ -141,4 +141,19 @@ function fipeCacheInfo() {
   return { entradas: CACHE.size, frescas, comToken: !!process.env.FIPE_TOKEN };
 }
 
-module.exports = { FIPE_BASE, fipeGet, fipeCacheInfo };
+// ── Base do modelo (a "família" do carro) ─────────────────────────
+// Gêmeo de `baseModelo` em `assets/mascaras.js`. As duas PRECISAM concordar:
+// a tela monta a lista de modelos com uma e a API filtra com a outra — se
+// divergirem, o carro some da cascata sem erro nenhum.
+// `scratchpad/checa-base-modelo.js` falha se discordarem.
+//
+// Não corta no hífen entre letras: "T-Cross" é o nome, não "T". Antes,
+// F-100/F-1000/F-150/F-250 caíam todos numa base "F".
+function baseModelo(nome) {
+  return String(nome == null ? '' : nome)
+    .split(/[\s\/.]+/)[0]
+    .replace(/^-+|-+$/g, '');
+}
+
+module.exports = {
+  baseModelo, FIPE_BASE, fipeGet, fipeCacheInfo };

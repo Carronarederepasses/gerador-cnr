@@ -4,7 +4,7 @@ const { exigirChave } = require('./_auth');
 // O cache nasceu aqui em 02/set e ficou só aqui — o fipe.js, que é quem mais
 // consome, seguiu sem. Desde 10/set os dois usam a mesma peça, em _fipe.js,
 // que também manda o FIPE_TOKEN e devolve cópia guardada quando a FIPE recusa.
-const { fipeGet } = require('./_fipe');
+const { fipeGet, baseModelo } = require('./_fipe');
 
 // Palavras que indicam variante específica — penaliza se estão no modelo mas NÃO no texto do usuário
 const PALAVRAS_VARIANTE = ['awc','awd','4x4','4wd','sport','black','rush','outdoor','outd','tarmac','mtsp','hybrid','phev'];
@@ -233,10 +233,13 @@ module.exports = async (req, res) => {
     // vai até 2021). Trava na mesma marca + mesmo modelo-base para não pular para
     // outro carro (ex: Commander) só porque ele tem o ano.
     const top = candidatos[0];
-    const ancora = top.modelo.nome.toLowerCase().split(/[\s\-\/]+/)[0];
+    // Mesma regra de família usada na cascata (`_fipe.baseModelo`): cortar no
+    // hífen fazia "F-250" e "F-1000" virarem a mesma âncora "f", e a trava
+    // deixava de travar — pulava para outra caminhonete com o ano certo.
+    const ancora = baseModelo(top.modelo.nome).toLowerCase();
     const topCands = candidatos.filter(c =>
       c.marca.codigo === top.marca.codigo &&
-      c.modelo.nome.toLowerCase().split(/[\s\-\/]+/)[0] === ancora
+      baseModelo(c.modelo.nome).toLowerCase() === ancora
     // Janela de 30, não de 12.
     //
     // Medido em 07/set: para "HB20S 1.0 Manual" 2021, os primeiros modelos que
