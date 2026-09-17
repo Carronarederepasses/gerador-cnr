@@ -5346,3 +5346,109 @@ Conferido em fonte, um por um.
 **Fila:** instalar o `claude-security` (escopo Local) e rodar a varredura
 **antes de liberar o lojista parceiro**. Não antes — ele achou complicado
 instalar agora, e só vale nessa hora. Fazer junto, clique a clique.
+
+---
+
+## Checkpoint — 16 de setembro de 2026
+
+Duas entregas, e as duas nasceram de relato dele no uso, não de plano.
+
+### 1. Venda em andamento — o estado que o sistema não sabia nomear
+
+Ideia anotada por ele na tela de ideias. A definição é dele e é o que dá o
+desenho:
+
+> *"Começa quando recebo sinal, o carro está travado, esperando desenrolar da
+> negociação (cautelar, às vezes carro entrando em loja, aí tem que esperar
+> finalizar a venda da fonte, pra depois desenrolar o repasse)."*
+
+**Não é estado curto.** Pode durar semanas, e nesse meio tempo o carro está
+comprometido: nem disponível, nem vendido. É o mesmo buraco que fez um veículo
+ser **apagado** em 08/set, por não existir status que servisse.
+
+**Metade já existia e ninguém usava.** `vendas.status` tem `negociando ·
+fechada · pago · retirado · concluido · cancelado` desde sempre. Faltava o
+sinal (quanto e quando) e faltava o painel respeitar o status.
+
+**A armadilha era o painel**, e é o que quase estragou a entrega: ele somava
+**todas** as vendas do mês sem olhar status, em **três pontos diferentes**.
+Registrar a venda na chegada do sinal inflaria o faturamento na hora, e uma
+cancelada contaria para sempre.
+
+> **Conferi no banco antes de mexer: as 114 vendas estão todas como
+> `concluido`.** Por isso o filtro não tira um centavo do histórico. Mudar
+> aquela soma sem olhar os dados teria apagado o relatório dele.
+
+Decisões dele: sinal vira campo; só conta no faturamento depois de concretizada.
+
+O cartão **"Vendas em andamento"** nasce escondido e só aparece quando há carro
+travado — tirar a venda das somas sem mostrá-la em lugar nenhum seria escondê-la.
+
+**Defeito achado no caminho:** o cartão levaria para `vendas.html?status=…`,
+mas `iniciarApp()` fazia o primeiro carregamento **ignorando o filtro**. O link
+prometia filtrar e abriria a lista inteira — o padrão "a tela diz uma coisa e o
+sistema faz outra", que é o que mais custou caro aqui. Corrigido junto.
+
+**Rede de segurança** para a janela entre o deploy (automático) e a migration
+(na mão): se as colunas ainda não existem, a venda regrava sem elas em vez de
+voltar 400 no meio do negócio. Mesmo caso de 08/set com `operador`. Erro de
+verdade continua estourando — o recuo cobre coluna ausente, não qualquer falha.
+
+Migration rodada por ele e conferida por mim no banco: as duas colunas
+existem, 114 vendas intactas, 0 em andamento (cartão escondido, como deve).
+
+### 2. FIPE: "T-Cross" aparecia como "T"
+
+Relato dele. A causa: quatro lugares cortavam a base do modelo no hífen.
+
+**Reproduzido contra a FIPE real antes de tocar no código, e o estrago era
+maior que o relato:**
+
+| marca | virava | é |
+|---|---|---|
+| VW | `T` | T-Cross (7 versões) |
+| Honda | `CR` `HR` `WR` `ZR` | CR-V, HR-V, WR-V, ZR-V |
+| Nissan | `GT` `X` `King` `D` | GT-R, X-TRAIL, King-Cab, D-21 |
+| **Ford** | `F` | F-100, F-1000, F-150, F-250 |
+
+O da Ford é o pior: **68 caminhonetes num balde só**. E enfraquecia a trava de
+família do `fipe-search` — a âncora `f` não separava F-250 de F-1000, então a
+busca podia pular para outra picape que tivesse o ano pedido. Esse ninguém
+tinha visto ainda; apareceria como "FIPE errada" mais adiante.
+
+**Por que virou função compartilhada e não quatro consertos:** a tela **monta**
+a lista e a API **filtra** por ela. Divergindo, o carro some da cascata **sem
+erro nenhum**. Cópia divergente em silêncio já custou caro quatro vezes aqui.
+
+Como `require()` não atravessa navegador e servidor sem build, ficaram **dois
+gêmeos declarados** — `assets/mascaras.js` e `api/_fipe.js` — cada um fonte
+única do seu lado, com o acoplamento escrito nos dois comentários.
+`scratchpad/checa-base-modelo.js` roda **os dois lado a lado** e falha se
+discordarem: conferido em **1.163 nomes reais**, zero divergência.
+
+### Sobre o celular, que ficou sem resposta
+
+Ele perguntou por que, com o notebook desligado, não conseguiu abordar pelo
+celular e caiu no app da OLX.
+
+**Não está quebrado.** O ABORDAR depende da extensão, que é de Chrome de
+computador; sem resposta em 600 ms o código cai no plano B — abre o chat e
+copia a mensagem. No celular, link da OLX é capturado pelo aplicativo.
+**O defeito real é que nada disso foi dito na tela.**
+
+Pesquisado em fonte: extensão em celular só por caminhos que não se pode pedir
+a um cliente (Firefox Nightly com coleção personalizada, Edge Canary com `.crx`
+na mão; no iPhone, empacotada em app na App Store). Kiwi morreu em 2025.
+
+**O reenquadramento que importa para o produto:** só quatro funções precisam da
+extensão (radar, ficha 👁, abordar, espelho de conversa). Todo o resto —
+catálogo, vendas, clientes, agenda, consulta, gerar anúncio — **já roda no
+celular hoje**, porque é site. E o lojista que vai comprar o Gerador usa
+justamente esse resto. O diferencial "funciona na rua" não depende de resolver
+a extensão.
+
+**Pendente, e é fato que só ele pode levantar:** ao cair no app da OLX, ele
+abre **na conversa daquele carro** ou na **tela inicial**? Decide se o caminho
+do celular é salvável. Ele vai testar em 17/set.
+
+*Registrado em 16 de setembro de 2026.*

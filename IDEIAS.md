@@ -29,3 +29,4 @@ o que ainda não foi feito.
 - **Saber que alguém respondeu sem abrir a OLX** → feito em 02/set/2026,
   leitura da caixa de entrada
 - **Busca na lista de vendas** → feito em 02/set/2026
+- **Venda em andamento de parceiros** (sinal recebido, aguardando fechar) → feito em 16/set/2026: campos de sinal em `vendas.html`, cartao no painel, `supabase/migration-venda-sinal.sql`
