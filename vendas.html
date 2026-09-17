@@ -334,6 +334,11 @@
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
+        <!-- Venda em andamento: o sinal é o que trava o carro enquanto a
+             negociação não fecha (cautelar, carro entrando em loja, espera da
+             venda da fonte). Fica ao lado do status porque andam juntos. -->
+        <div><label>Sinal recebido (R$)</label><input id="m-valor_sinal" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 2.000,00" /></div>
+        <div><label>Data do sinal</label><input id="m-sinal_em" type="date" /></div>
         <div><label>Documentação</label>
           <select id="m-doc_status">
             <option value="pendente">Pendente</option>
@@ -731,8 +736,19 @@ document.addEventListener('click', e => {
 });
 
 async function iniciarApp(){
+  // Vindo do painel ("Vendas em andamento"), a lista já abre filtrada.
+  // O primeiro carregamento ignorava o seletor de status — então um link com
+  // ?status= prometeria um filtro que nunca acontecia.
+  const filtroURL = new URLSearchParams(location.search).get('status');
+  const selStatus = $('f-status');
+  if (filtroURL && selStatus && [...selStatus.options].some(o => o.value === filtroURL)) {
+    selStatus.value = filtroURL;
+  }
+  const qs = selStatus && selStatus.value
+    ? '?status=' + encodeURIComponent(selStatus.value) : '';
+
   let r;
-  try { r = await fetch('/api/vendas', { headers: headers() }); } catch(e) { return; }
+  try { r = await fetch('/api/vendas' + qs, { headers: headers() }); } catch(e) { return; }
   if (!r.ok) return;
   VENDAS = await r.json();
   buildHist();
@@ -1023,7 +1039,7 @@ const CAMPOS_FORM = ['marca','modelo','versao','ano','placa','cor','km','renavam
   'destino','comprador_nome','comprador_cpf','comprador_telefone',
   'valor_venda','valor_fipe','valor_compra','taxa_intermediacao','forma_pagamento','canal_origem',
   'comprador_id','veiculo_id',
-  'data_venda','data_retirada','status','doc_status','observacoes'];
+  'data_venda','data_retirada','valor_sinal','sinal_em','status','doc_status','observacoes'];
 
 function abrirModal(v) {
   v = v || {};
@@ -1233,7 +1249,7 @@ $('m-salvar').onclick = async () => {
   CAMPOS_FORM.forEach(c => {
     const el = $('m-' + c); if (!el) return;
     let val = el.value;
-    if (['km','valor_venda','valor_fipe','taxa_intermediacao','valor_compra'].includes(c)) val = parseBRv(val);
+    if (['km','valor_venda','valor_fipe','taxa_intermediacao','valor_compra','valor_sinal'].includes(c)) val = parseBRv(val);
     body[c] = val;
   });
   // Reforma 33: se o comprador não foi selecionado do dropdown (comprador_id vazio)

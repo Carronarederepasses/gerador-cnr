@@ -41,6 +41,9 @@ const CAMPOS = [
   'valor_venda', 'valor_fipe', 'taxa_intermediacao', 'forma_pagamento',
   'valor_compra', 'canal_origem', 'comprador_id', 'motivo_match',
   'data_venda', 'data_retirada',
+  // Venda em andamento (16/set): sinal recebido trava o carro enquanto a
+  // negociação não fecha. `status='negociando'` tira do faturamento.
+  'valor_sinal', 'sinal_em',
   'status', 'doc_status', 'observacoes', 'anexos',
 ];
 
@@ -60,6 +63,29 @@ function limpar(body) {
   const out = {};
   for (const k of CAMPOS) if (body[k] !== undefined) out[k] = body[k] === '' ? null : body[k];
   return out;
+}
+
+// ── Rede de segurança: a janela entre o deploy e a migration ─────
+// O deploy é automático no push; a migration roda à mão no SQL Editor. Nesse
+// intervalo o código manda `valor_sinal`/`sinal_em` e o banco ainda não tem as
+// colunas: o PostgREST devolve 400 e a venda NÃO salva — no meio do negócio,
+// sem explicação na tela. Foi exatamente isso em 08/set com `operador`.
+// Pode ser removido depois que a migration tiver rodado.
+const COLUNAS_NOVAS = ['valor_sinal', 'sinal_em'];
+
+async function gravar(path, opts, payload) {
+  const r = await sb(path, { ...opts, body: JSON.stringify(payload) });
+  if (r.ok) return r;
+
+  const txt = await r.text();
+  const faltaColuna = COLUNAS_NOVAS.some(c => txt.includes(c)) &&
+                      /column|schema cache|PGRST204|42703/i.test(txt);
+  if (!faltaColuna) throw new Error(txt);
+
+  console.warn('vendas: colunas de sinal ainda não existem no banco — regravando sem elas.');
+  const semNovas = { ...payload };
+  COLUNAS_NOVAS.forEach(c => delete semNovas[c]);
+  return sb(path, { ...opts, body: JSON.stringify(semNovas) });
 }
 
 // ── Caixa Preta — registro histórico (fire-and-forget) ───────────
@@ -244,10 +270,9 @@ module.exports = async (req, res) => {
       if (!payload.comprador_nome && !payload.vendedor_nome && !payload.marca) {
         return res.status(400).json({ error: 'Informe ao menos o comprador, o vendedor ou o veículo.' });
       }
-      const r = await sb(TABLE, {
+      const r = await gravar(TABLE, {
         method: 'POST', headers: { Prefer: 'return=representation' },
-        body: JSON.stringify(payload),
-      });
+      }, payload);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       const venda = data[0] || data;
@@ -331,10 +356,9 @@ module.exports = async (req, res) => {
       const rAntes = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}&select=*`);
       const dadosAntes = rAntes.ok ? ((await rAntes.json())[0] || null) : null;
 
-      const r = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
+      const r = await gravar(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
         method: 'PATCH', headers: { Prefer: 'return=representation' },
-        body: JSON.stringify(payload),
-      });
+      }, payload);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       const vendaDepois = data[0] || data;

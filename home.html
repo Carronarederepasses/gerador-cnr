@@ -389,6 +389,14 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div class="val" id="kpi-taxa">—</div>
       <div class="sub">comissão acumulada</div>
     </div>
+    <!-- Sinal recebido, venda ainda não fechada. Nasce escondido: só aparece
+         quando existe algo travado, senão vira mais um "—" na tela. -->
+    <div class="kpi amarelo" id="kpi-andamento-card" hidden
+         onclick="window.location='/vendas.html?status=negociando'" style="cursor:pointer">
+      <div class="lbl">Vendas em andamento</div>
+      <div class="val" id="kpi-andamento">—</div>
+      <div class="sub" id="kpi-andamento-sub">aguardando fechar</div>
+    </div>
     <div class="kpi azul" onclick="window.location='/compradores.html'" style="cursor:pointer">
       <div class="lbl">Compradores ativos</div>
       <div class="val" id="kpi-comp">—</div>
@@ -509,6 +517,37 @@ const moeda = n => n != null ? Number(n).toLocaleString('pt-BR',{style:'currency
 const dataBR = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '';
 
 let _vendasMes = [];
+
+// ── Venda em andamento (16/set) ──────────────────────────────────
+// Sinal recebido, carro travado, negócio ainda não fechado: cautelar, carro
+// entrando em loja, ou esperando a venda da FONTE concluir para só então
+// desenrolar o repasse. Pode durar semanas.
+//
+// Decisão do Yuri: não entra em faturamento nenhum até concluir. Por isso a
+// regra mora AQUI, num lugar só — o painel soma vendas em três pontos
+// diferentes (KPI do mês, relatório, histórico de 12 meses), e corrigir dois
+// e esquecer o terceiro faria a tela mentir de novo.
+//
+// Conferido antes de ligar: as 114 vendas existentes estão TODAS como
+// `concluido`, então este filtro não tira um centavo do histórico.
+const PENDENTES  = ['negociando', 'cancelado'];
+const concluida  = v => !PENDENTES.includes(String(v.status || ''));
+const emAndamento = v => String(v.status || '') === 'negociando';
+
+// O carro travado não some da vista só porque saiu do faturamento: sem este
+// cartão, tirar a venda das somas seria escondê-la.
+function renderEmAndamento(lista) {
+  const card = document.getElementById('kpi-andamento-card');
+  if (!card) return;
+  if (!lista.length) { card.hidden = true; return; }
+
+  const sinal = lista.reduce((s, v) => s + (Number(v.valor_sinal) || 0), 0);
+  card.hidden = false;
+  document.getElementById('kpi-andamento').textContent = lista.length;
+  document.getElementById('kpi-andamento-sub').textContent =
+    sinal > 0 ? moeda(sinal) + ' de sinal' : 'aguardando fechar';
+}
+
 const _hoje = new Date();
 let _relMes = _hoje.getMonth();
 let _relAno = _hoje.getFullYear();
@@ -627,7 +666,9 @@ async function carregarCatalogo() {
 
 async function carregarVendas() {
   try {
-    const vendas = (await buscar('/api/vendas')).filter(v => v.canal_origem !== 'historico');
+    const _vendasTodas = (await buscar('/api/vendas')).filter(v => v.canal_origem !== 'historico');
+    const vendas = _vendasTodas.filter(concluida);
+    renderEmAndamento(_vendasTodas.filter(emAndamento));
 
     const agora = new Date();
     const mes = agora.getMonth();
@@ -715,7 +756,7 @@ async function carregarRelatorio() {
 
   try {
     const [catalogo, _vendasRaw] = await Promise.all([buscar('/api/catalogo'), buscar('/api/vendas')]);
-    const vendas = _vendasRaw.filter(v => v.canal_origem !== 'historico');
+    const vendas = _vendasRaw.filter(v => v.canal_origem !== 'historico').filter(concluida);
 
     const captados = catalogo.filter(v => {
       const d = new Date(v.created_at || '');
@@ -875,7 +916,7 @@ async function toggleHist12() {
   el.innerHTML = '<div class="loading">carregando...</div>';
   try {
     const [catalogo, _vendasRaw2] = await Promise.all([buscar('/api/catalogo'), buscar('/api/vendas')]);
-    const vendas = _vendasRaw2.filter(v => v.canal_origem !== 'historico');
+    const vendas = _vendasRaw2.filter(v => v.canal_origem !== 'historico').filter(concluida);
     const NOMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     const agora = new Date();
     const linhas = [];
