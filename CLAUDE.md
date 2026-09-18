@@ -5462,3 +5462,90 @@ abre **na conversa daquele carro** ou na **tela inicial**? Decide se o caminho
 do celular é salvável. Ele vai testar em 17/set.
 
 *Registrado em 16 de setembro de 2026.*
+
+---
+
+## Checkpoint — 17 e 18 de setembro de 2026
+
+### O sinal mudou de lugar — correção dele, e estava escrita
+
+Ele usou a "venda em andamento" de 16/set e voltou com o desenho certo:
+
+> *"Ao invés de lançarmos a venda em andamento como uma nova venda, entendi o
+> lance da negociação. Acho que pode acrescentar o campo sinal no campo de
+> negociação e não na nova venda."*
+
+**Estava certo, e a decisão já existia no §9.1 desde 15/ago:**
+`negociando → reservado (quando houver sinal) → comprado`. Eu não conferi antes
+de construir.
+
+**Venda que não fechou não é venda.** A tabela `vendas` alimenta relatório,
+KPIs, CSV e o espelho no Google Sheets; os três filtros que pus no painel em
+16/set eram sintoma de ter posto no lugar errado.
+
+> O que me enganou: `vendas.status` tinha o valor `negociando` sem ninguém
+> usar, e tratei isso como prova de desenho. **Valor de enum sem uso é sobra,
+> não decisão.** E o `reservado` já existia na tela e faltava na lista de
+> status do §5 — foi essa omissão que me desviou. Corrigida.
+
+Agora: `negociacoes.valor_sinal` / `sinal_em`, card com
+`🔒 Sinal R$ X · travado há N dias`, e o sinal viaja para `vendas` na
+conversão (as colunas de 16/set viraram destino, não entrada). O cartão do
+painel virou **"Carros travados"** e conta negociações. O filtro do faturamento
+ficou — venda `negociando`/`cancelado` não soma, independente de onde o sinal
+mora.
+
+### Comprovante do sinal
+
+Pedido dele. *"Quem colocar sinal primeiro trava"* — o comprovante é a prova da
+trava, e enquanto o carro fica reservado ele não tinha onde morar.
+
+- **Upload num lugar só:** `assets/anexos.js`, usado por vendas e negociação.
+  Copiar seria repetir os montadores de anúncio.
+- **Anexo com dono:** o servidor aceita `vendaId` ou `negociacaoId` e traduz
+  para a tabela — o navegador nunca escolhe tabela. Id validado como UUID
+  (vai na URL do PostgREST e no caminho do storage). Registrar e apagar só
+  **dentro da pasta do próprio dono**.
+- **`anexos` fora do `CAMPOS_NEG`:** só o endpoint de anexos escreve ali.
+- **Na conversão, cópia física** para a pasta da venda: se os dois apontassem
+  para o mesmo arquivo, apagar de um lado apagaria do outro. Com `await` antes
+  da resposta, e sem nunca derrubar a venda; falha é contada, não escondida.
+
+Conferido antes de ligar as travas: os 190 anexos existentes estão na pasta
+da própria venda, os 114 ids são UUID, e nenhum dos 17 tipos em uso muda.
+
+**Testado por ele no celular, e conferido no banco:** comprovante PDF do BYD
+Seal (sinal R$ 5.000, 15/set) na pasta `neg-<id>/`; e um anexo numa venda,
+enviado e removido, deixando o banco de volta em 190 sem sobra — prova de que
+o upload das vendas segue funcionando pelo código novo.
+
+### O defeito que apareceu no caminho: metade dos documentos escondida
+
+Conferindo se o comprovante ia **aparecer** na venda — *"campo novo não está
+pronto quando salva, está pronto quando aparece"* (04/set) — achei que
+`vendas.html` só desenhava **5 tipos** de anexo. O banco tem **17**.
+
+```
+92 dos 190 anexos (48%) invisíveis · 60 das 114 vendas afetadas
+33 CRLV · 21 comprovantes · 13 laudos · seguro · multas · contratos · procuração
+```
+
+**Nenhum arquivo perdido** — estavam no storage e no banco. Vieram com outros
+nomes de tipo, provavelmente da importação das pastas antigas. Agora os 5
+grupos principais seguem com "+ anexar" e qualquer outro tipo aparece com nome
+legível (`ROTULO_EXTRA`), ou com o próprio nome se não houver rótulo — melhor
+feio que sumido. Conferido rodando o trecho real do card sobre os dados reais:
+**190 de 190 visíveis**.
+
+> É o padrão mais caro deste projeto aparecendo de novo, desta vez sem
+> ninguém ter errado nada recente: **o dado estava certo e a tela não
+> mostrava.** Só apareceu porque eu fui conferir a saída do recurso novo, e
+> não só a entrada.
+
+### Pendente
+
+- **Teste do celular no ABORDAR** (desde 16/set): ao cair no app da OLX, abre
+  **na conversa do carro** ou na **tela inicial**? Decide se o caminho do
+  celular é salvável. Ainda sem resposta.
+
+*Registrado em 18 de setembro de 2026.*
