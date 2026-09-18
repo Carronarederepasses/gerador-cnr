@@ -122,20 +122,119 @@ function filtros(q) {
 }
 
 // ── Anexos (bucket privado) ──────────────────────────────────────
-async function getAnexos(vendaId) {
-  const r = await sb(`vendas?id=eq.${vendaId}&select=anexos`);
+//
+// Dono do anexo: VENDA ou NEGOCIAÇÃO (18/set — comprovante do sinal).
+//
+// A tabela vem desta tradução e de mais nenhum lugar. O corpo da requisição
+// diz `vendaId` ou `negociacaoId`, nunca o nome da tabela: deixar o
+// navegador escolher tabela seria deixar ele escrever em qualquer uma.
+//
+// O id é validado como UUID porque vai direto na URL do PostgREST
+// (`?id=eq.<id>`) e no caminho do arquivo no storage. Sem isso, um id
+// forjado com `&` ou `/` mudaria a consulta ou a pasta.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// O tipo vira PASTA no storage (`<dono>/<tipo>/<arquivo>`). Só letras,
+// números, _ e -. Conferido em 18/set contra os 190 anexos existentes: os 17
+// tipos em uso já cabem, então isto não muda nenhum caminho antigo.
+function tipoSeguro(tipo) {
+  const t = String(tipo || 'outro').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  return t || 'outro';
+}
+
+function donoDoAnexo(corpo) {
+  const c = corpo || {};
+  if (c.negociacaoId) {
+    if (!UUID.test(c.negociacaoId)) return { erro: 'negociacaoId inválido.' };
+    // Prefixo `neg-` só para ser legível no bucket: batendo o olho na pasta
+    // se sabe que o arquivo nasceu numa negociação.
+    return { tabela: 'negociacoes', id: c.negociacaoId, pasta: `neg-${c.negociacaoId}`, rotulo: 'Negociação' };
+  }
+  if (c.vendaId) {
+    if (!UUID.test(c.vendaId)) return { erro: 'vendaId inválido.' };
+    return { tabela: 'vendas', id: c.vendaId, pasta: c.vendaId, rotulo: 'Venda' };
+  }
+  return { erro: 'vendaId ou negociacaoId obrigatório.' };
+}
+
+async function getAnexos(dono) {
+  const r = await sb(`${dono.tabela}?id=eq.${dono.id}&select=anexos`);
   if (!r.ok) throw new Error(await r.text());
   const rows = await r.json();
-  if (!rows.length) throw new Error('Venda não encontrada.');
+  if (!rows.length) throw new Error(`${dono.rotulo} não encontrada.`);
   return Array.isArray(rows[0].anexos) ? rows[0].anexos : [];
 }
-async function setAnexos(vendaId, anexos) {
-  const r = await sb(`vendas?id=eq.${vendaId}`, {
+async function setAnexos(dono, anexos) {
+  const r = await sb(`${dono.tabela}?id=eq.${dono.id}`, {
     method: 'PATCH', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ anexos }),
   });
   if (!r.ok) throw new Error(await r.text());
   return anexos;
+}
+
+// Cópia física do arquivo no storage. Usada na conversão negociação → venda:
+// se os dois apontassem para o MESMO arquivo, apagar de um lado apagaria do
+// outro. Com cópia, cada registro é dono do seu.
+async function copiarNoStorage(de, para) {
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/copy`, {
+    method: 'POST',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bucketId: BUCKET, sourceKey: de, destinationKey: para }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+// Leva os anexos da negociação para a venda recém-criada. Nunca lança: a
+// venda já existe quando isto roda, e um comprovante que falhou não pode
+// desfazer um negócio fechado. Devolve { copiados, falhas } para a tela
+// poder DIZER o que aconteceu, em vez de fingir que deu certo.
+async function copiarAnexosDaNegociacao(negociacaoId, venda) {
+  const resultado = { copiados: 0, falhas: 0 };
+  if (!UUID.test(String(negociacaoId || '')) || !venda || !venda.id) return resultado;
+
+  let daNegociacao = [];
+  try {
+    const r = await sb(`negociacoes?id=eq.${negociacaoId}&select=anexos`);
+    // 400 aqui é a coluna ainda não existir (janela entre deploy e migration):
+    // simplesmente não há o que copiar.
+    if (!r.ok) { console.warn('anexos: negociação sem coluna de anexos ainda —', r.status); return resultado; }
+    const rows = await r.json();
+    daNegociacao = Array.isArray(rows[0] && rows[0].anexos) ? rows[0].anexos : [];
+  } catch (e) {
+    console.error('anexos: não li a negociação', negociacaoId, e.message);
+    return resultado;
+  }
+  if (!daNegociacao.length) return resultado;
+
+  const novos = [];
+  for (const a of daNegociacao) {
+    const arquivo = String(a.path || '').split('/').pop();
+    if (!arquivo) { resultado.falhas++; continue; }
+    const destino = `${venda.id}/${tipoSeguro(a.tipo)}/${arquivo}`;
+    try {
+      await copiarNoStorage(a.path, destino);
+      novos.push({ ...a, path: destino, veioDaNegociacao: negociacaoId });
+      resultado.copiados++;
+    } catch (e) {
+      console.error('anexos: falhou ao copiar', a.path, '→', destino, e.message);
+      resultado.falhas++;
+    }
+  }
+
+  if (novos.length) {
+    try {
+      const atuais = Array.isArray(venda.anexos) ? venda.anexos : [];
+      await setAnexos({ tabela: 'vendas', id: venda.id }, atuais.concat(novos));
+      venda.anexos = atuais.concat(novos);
+    } catch (e) {
+      // Arquivo copiado mas não registrado: fica no storage sem referência.
+      // Raro, e é o caso em que o log precisa existir.
+      console.error('anexos: copiei mas não registrei na venda', venda.id, e.message);
+      resultado.falhas += resultado.copiados; resultado.copiados = 0;
+    }
+  }
+  return resultado;
 }
 
 async function anexoHandler(req, res, q) {
@@ -156,10 +255,11 @@ async function anexoHandler(req, res, q) {
   if (req.method === 'POST') {
     // prepare-upload: gera URL assinada para upload direto (sem passar pelo Vercel)
     if (q.action === 'prepare-upload') {
-      const { vendaId, tipo = 'outro', mimeType = 'application/octet-stream', nome } = req.body || {};
-      if (!vendaId) return res.status(400).json({ error: 'vendaId obrigatório.' });
+      const { tipo = 'outro', mimeType = 'application/octet-stream', nome } = req.body || {};
+      const dono = donoDoAnexo(req.body);
+      if (dono.erro) return res.status(400).json({ error: dono.erro });
       const ext = EXT[mimeType] || (nome && nome.includes('.') ? nome.split('.').pop().toLowerCase() : 'bin');
-      const objPath = `${vendaId}/${tipo}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const objPath = `${dono.pasta}/${tipoSeguro(tipo)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const r = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${BUCKET}/${objPath}`, {
         method: 'POST',
         headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
@@ -173,38 +273,51 @@ async function anexoHandler(req, res, q) {
     }
     // confirm-upload: registra o arquivo no campo anexos após upload direto
     if (q.action === 'confirm-upload') {
-      const { vendaId, tipo = 'outro', path, mimeType = 'application/octet-stream', nome } = req.body || {};
-      if (!vendaId || !path) return res.status(400).json({ error: 'vendaId e path obrigatórios.' });
-      const anexos = await getAnexos(vendaId);
-      anexos.push({ tipo, path, nome: nome || path.split('/').pop(), mimeType, uploadedAt: new Date().toISOString() });
-      await setAnexos(vendaId, anexos);
+      const { tipo = 'outro', path, mimeType = 'application/octet-stream', nome } = req.body || {};
+      const dono = donoDoAnexo(req.body);
+      if (dono.erro) return res.status(400).json({ error: dono.erro });
+      if (!path) return res.status(400).json({ error: 'path obrigatório.' });
+      // O caminho vem do navegador. Ele só pode registrar arquivo DENTRO da
+      // pasta do próprio dono — senão uma negociação poderia "adotar" o
+      // comprovante de outra venda só informando o caminho dele.
+      if (!path.startsWith(dono.pasta + '/')) return res.status(400).json({ error: 'caminho fora da pasta do registro.' });
+      const anexos = await getAnexos(dono);
+      anexos.push({ tipo: tipoSeguro(tipo), path, nome: nome || path.split('/').pop(), mimeType, uploadedAt: new Date().toISOString() });
+      await setAnexos(dono, anexos);
       return res.status(200).json({ anexos });
     }
     // upload via base64 (arquivos pequenos, mantido por compatibilidade)
-    const { vendaId, tipo = 'outro', fileBase64, mimeType = 'application/octet-stream', nome } = req.body || {};
-    if (!vendaId || !fileBase64) return res.status(400).json({ error: 'vendaId e fileBase64 obrigatórios.' });
+    const { tipo = 'outro', fileBase64, mimeType = 'application/octet-stream', nome } = req.body || {};
+    const dono = donoDoAnexo(req.body);
+    if (dono.erro) return res.status(400).json({ error: dono.erro });
+    if (!fileBase64) return res.status(400).json({ error: 'fileBase64 obrigatório.' });
     const ext = EXT[mimeType] || (nome && nome.includes('.') ? nome.split('.').pop().toLowerCase() : 'bin');
-    const objPath = `${vendaId}/${tipo}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const objPath = `${dono.pasta}/${tipoSeguro(tipo)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
       method: 'POST',
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': mimeType, 'x-upsert': 'true' },
       body: Buffer.from(fileBase64, 'base64'),
     });
     if (!up.ok) throw new Error(await up.text());
-    const anexos = await getAnexos(vendaId);
-    anexos.push({ tipo, path: objPath, nome: nome || objPath.split('/').pop(), mimeType, uploadedAt: new Date().toISOString() });
-    await setAnexos(vendaId, anexos);
+    const anexos = await getAnexos(dono);
+    anexos.push({ tipo: tipoSeguro(tipo), path: objPath, nome: nome || objPath.split('/').pop(), mimeType, uploadedAt: new Date().toISOString() });
+    await setAnexos(dono, anexos);
     return res.status(201).json({ anexos });
   }
   // DELETE → remove
   if (req.method === 'DELETE') {
-    const { vendaId, path } = req.body || {};
-    if (!vendaId || !path) return res.status(400).json({ error: 'vendaId e path obrigatórios.' });
+    const { path } = req.body || {};
+    const dono = donoDoAnexo(req.body);
+    if (dono.erro) return res.status(400).json({ error: dono.erro });
+    if (!path) return res.status(400).json({ error: 'path obrigatório.' });
+    // Só apaga do storage o que é do próprio dono. Sem esta trava, uma
+    // negociação poderia apagar o arquivo de uma venda informando o caminho.
+    if (!path.startsWith(dono.pasta + '/')) return res.status(400).json({ error: 'caminho fora da pasta do registro.' });
     await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
       method: 'DELETE', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
     });
-    const anexos = (await getAnexos(vendaId)).filter(a => a.path !== path);
-    await setAnexos(vendaId, anexos);
+    const anexos = (await getAnexos(dono)).filter(a => a.path !== path);
+    await setAnexos(dono, anexos);
     return res.status(200).json({ anexos });
   }
   return res.status(405).json({ error: 'Método não permitido.' });
@@ -321,6 +434,17 @@ module.exports = async (req, res) => {
         } catch (e) {
           console.error('[historico] NEGOCIACAO_CONVERTIDA falhou:', e.message);
         }
+
+        // O comprovante do sinal acompanha a venda (decisão do Yuri, 18/set).
+        //
+        // Cópia FÍSICA, não referência: se venda e negociação apontassem para o
+        // mesmo arquivo, remover de um lado apagaria do outro.
+        //
+        // `await` antes do `return` de propósito: a Vercel encerra o worker ao
+        // enviar a resposta e cancela o que estiver pendente (lição da Reforma
+        // 35, Etapa 6). E falha aqui NUNCA derruba a venda — o negócio fechou;
+        // um comprovante que não copiou se anexa à mão depois.
+        venda.anexos_copiados = await copiarAnexosDaNegociacao(negociacao_id, venda);
       }
 
       // Auto-atualiza veículos para "vendido" após venda registrada.

@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
 <script src="/assets/mascaras.js"></script>
+<script src="/assets/anexos.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <link rel="stylesheet" href="/assets/placa.css">
@@ -404,6 +405,23 @@ const TIPOS = [
   ['cautelar', 'Cautelar'],
   ['outro', 'Consulta Veicular'],
 ];
+
+// Tipos que existem no banco mas não são grupos principais (sem "+ anexar").
+//
+// Até 18/set a tela só desenhava os 5 de TIPOS, e anexo de qualquer outro
+// tipo simplesmente NÃO APARECIA. Medido nesse dia: 92 dos 190 anexos (48%),
+// em 60 das 114 vendas — 33 CRLV, 21 comprovantes, 13 laudos. Os arquivos
+// estavam salvos; só a tela não mostrava. Vieram com outros nomes de tipo,
+// provavelmente da importação das pastas antigas.
+//
+// Tipo sem rótulo aqui aparece com o próprio nome — melhor feio que sumido.
+const ROTULO_EXTRA = {
+  comprovante_sinal: 'Comprovante do sinal',
+  crlv: 'CRLV', comprovante: 'Comprovantes', laudo: 'Laudo',
+  seguro: 'Seguro', multa: 'Multas', contrato: 'Contrato',
+  foto_placa: 'Foto da placa', certificado: 'Certificado', guia: 'Guias',
+  consulta: 'Consulta', boleto: 'Boleto', procuracao: 'Procuração',
+};
 
 const DOC_ROTULO = { pendente: 'Pendente', entregue: 'Entregue', procuracao: 'Entregue (procuração)' };
 
@@ -999,13 +1017,22 @@ function nomeCarro(v) {
 
 function cardHTML(v) {
   const anexos = Array.isArray(v.anexos) ? v.anexos : [];
-  const gruposAnexo = TIPOS.map(([tipo, rotulo]) => {
-    const lista = anexos.filter(a => a.tipo === tipo);
-    const chips = lista.map(a =>
-      `<span class="chip" title="${esc(a.nome)}" onclick="abrirAnexo('${v.id}','${esc(a.path)}')">📎 <span class="nome">${esc(a.nome)}</span> <span class="x" onclick="event.stopPropagation();removerAnexo('${v.id}','${esc(a.path)}')">✕</span></span>`
-    ).join('');
-    return `<div class="grupo"><div class="gtit">${rotulo}</div><div class="anexo-chips">${chips}<span class="add-anexo" onclick="addAnexo('${v.id}','${tipo}')">+ anexar</span></div></div>`;
-  }).join('');
+  const chipsDe = tipo => anexos.filter(a => a.tipo === tipo).map(a =>
+    `<span class="chip" title="${esc(a.nome)}" onclick="abrirAnexo('${v.id}','${esc(a.path)}')">📎 <span class="nome">${esc(a.nome)}</span> <span class="x" onclick="event.stopPropagation();removerAnexo('${v.id}','${esc(a.path)}')">✕</span></span>`
+  ).join('');
+
+  const principais = TIPOS.map(([tipo, rotulo]) =>
+    `<div class="grupo"><div class="gtit">${rotulo}</div><div class="anexo-chips">${chipsDe(tipo)}<span class="add-anexo" onclick="addAnexo('${v.id}','${tipo}')">+ anexar</span></div></div>`
+  ).join('');
+
+  // Todo tipo que não é principal aparece também — ver ROTULO_EXTRA.
+  const conhecidos = new Set(TIPOS.map(([t]) => t));
+  const extras = [...new Set(anexos.map(a => a.tipo).filter(t => t && !conhecidos.has(t)))];
+  const gruposExtra = extras.map(tipo =>
+    `<div class="grupo"><div class="gtit">${esc(ROTULO_EXTRA[tipo] || tipo)}</div><div class="anexo-chips">${chipsDe(tipo)}</div></div>`
+  ).join('');
+
+  const gruposAnexo = principais + gruposExtra;
 
   return `<div class="card" id="venda-${v.id}">
     <div class="topo">
@@ -1347,23 +1374,9 @@ $('file-input').addEventListener('change', async (e) => {
       // num card mais abaixo e não via nada acontecer. Toast fica sempre
       // visível no rodapé.
       toast('Enviando ' + f.name + '…', 'ok', 60000);
-      const mimeType = f.type || 'application/octet-stream';
-      // 1. obter URL assinada para upload direto (sem limite de tamanho no Vercel)
-      const prep = await fetch('/api/vendas?anexo=1&action=prepare-upload', {
-        method: 'POST', headers: headers(),
-        body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, mimeType, nome: f.name }),
-      });
-      if (!prep.ok) throw new Error((await prep.json()).error || 'erro ao preparar');
-      const { path, uploadUrl } = await prep.json();
-      // 2. upload direto ao Supabase Storage (bypass do Vercel)
-      const up = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: f });
-      if (!up.ok) throw new Error('Falha no upload direto ao storage');
-      // 3. registrar no banco
-      const conf = await fetch('/api/vendas?anexo=1&action=confirm-upload', {
-        method: 'POST', headers: headers(),
-        body: JSON.stringify({ vendaId: alvo.vendaId, tipo: alvo.tipo, path, mimeType, nome: f.name }),
-      });
-      if (!conf.ok) throw new Error((await conf.json()).error || 'erro ao confirmar');
+      // Preparar → subir direto ao storage → registrar. Mora em
+      // assets/anexos.js desde 18/set, compartilhado com a negociação.
+      await cnrAnexo.enviar({ vendaId: alvo.vendaId }, alvo.tipo, f);
       console.log('[ANEXO] enviado com sucesso:', f.name);
     }
     toast(`✓ ${files.length} arquivo(s) anexado(s).`, 'ok', 4000);
@@ -1373,8 +1386,7 @@ $('file-input').addEventListener('change', async (e) => {
     // aviso no topo da página que sumia em 5s — quem anexa está num card
     // mais abaixo e nunca via.
     console.error('[ANEXO ERRO]', err);
-    const semChave = /acesso negado|não liberado|nao liberado/i.test(err.message || '');
-    if (semChave) {
+    if (cnrAnexo.semChave(err)) {
       alert('Este aparelho ainda não foi liberado.\n\n' +
             'Abra /entrar.html uma vez neste aparelho — depois disso ele não ' +
             'pergunta mais nada.');
@@ -1386,19 +1398,14 @@ $('file-input').addEventListener('change', async (e) => {
 });
 
 async function abrirAnexo(vendaId, path) {
-  try {
-    const r = await fetch('/api/vendas?anexo=1&vendaId=' + vendaId + '&path=' + encodeURIComponent(path), { headers: headers() });
-    if (!r.ok) throw new Error((await r.json()).error || 'erro');
-    const { url } = await r.json();
-    window.open(url, '_blank');
-  } catch (e) { mostrarErro('Falha ao abrir: ' + e.message); }
+  try { await cnrAnexo.abrir(path); }
+  catch (e) { mostrarErro('Falha ao abrir: ' + e.message); }
 }
 
 async function removerAnexo(vendaId, path) {
   if (!confirm('Remover este anexo?')) return;
   try {
-    const r = await fetch('/api/vendas?anexo=1', { method: 'DELETE', headers: headers(), body: JSON.stringify({ vendaId, path }) });
-    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    await cnrAnexo.remover({ vendaId }, path);
     carregar();
   } catch (e) { mostrarErro('Falha ao remover: ' + e.message); }
 }

@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
 <script src="/assets/mascaras.js"></script>
+<script src="/assets/anexos.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <script src="/assets/sidebar.js" defer></script>
@@ -59,6 +60,15 @@
   /* Sinal recebido: roxo, o mesmo do status Reservado, para os dois se
      lerem como a mesma coisa sem precisar de legenda. */
   .neg-sinal{font-size:.7rem;margin-top:.35rem;color:#8b5cf6;font-weight:600;letter-spacing:.02em}
+  /* Comprovante do sinal no modal */
+  .comp-lista{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.45rem}
+  .comp-lista:empty{display:none}
+  .comp-item{display:flex;align-items:center;gap:.5rem;font-size:.78rem;min-width:0}
+  .comp-item a{color:#8b5cf6;cursor:pointer;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+  .comp-item .x{cursor:pointer;opacity:.6;flex-shrink:0;padding:0 .3rem}
+  .comp-btn{background:none;border:1px solid #8b5cf6;color:#8b5cf6;font-family:'DM Sans',sans-serif;font-size:.72rem;padding:.4rem .8rem;cursor:pointer;border-radius:6px}
+  .comp-status{font-size:.72rem;margin-top:.35rem;min-height:1em;line-height:1.4}
+  .comp-status.erro{color:#ef4444}
   .neg-match-motivo{font-size:.65rem;margin-top:.2rem;color:var(--severity-ok);font-weight:500}
 
   .empty-state{text-align:center;padding:4rem 2rem;color:var(--mid)}
@@ -245,6 +255,16 @@
         <input type="date" id="m-sinal-data" style="color-scheme:dark">
       </div>
     </div>
+    <!-- Comprovante do sinal (18/set). "Quem colocar sinal primeiro trava" —
+         regra do mercado, nas palavras dele. O comprovante é a prova da
+         trava, e enquanto o carro fica reservado ele não tinha onde morar.
+         Acompanha a venda na conversão (cópia física, cada um com o seu). -->
+    <div class="field">
+      <label>Comprovante do sinal</label>
+      <div id="comp-lista" class="comp-lista"></div>
+      <button type="button" class="comp-btn" onclick="anexarComprovante()">📎 Anexar comprovante</button>
+      <div id="comp-status" class="comp-status"></div>
+    </div>
     <div class="field">
       <label>Observação</label>
       <textarea id="m-obs" rows="3" placeholder="ex: Pediu R$ 92.000, ofereci R$ 88.000. Disse que ia pensar." style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea>
@@ -408,6 +428,15 @@
     </div>
   </div>
 </div>
+
+<!-- Seletor do comprovante. NÃO usar display:none: vários navegadores de
+     celular não abrem o seletor de arquivo com o input escondido assim — foi
+     o que fez o "+ anexar" das vendas não funcionar no celular em 02/set.
+     Esconder visualmente e manter no fluxo é a técnica que já funciona lá.
+     Aceita imagem (print do app do banco, o mais comum) e PDF (comprovante
+     baixado). -->
+<input type="file" id="comp-input" accept="image/*,application/pdf"
+       style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;border:0;padding:0;left:-9999px" />
 
 <script>
 let dados = [];
@@ -600,7 +629,93 @@ function linhaSinal(n) {
     : dias === 0 ? ' · travado hoje'
     : dias === 1 ? ' · travado há 1 dia'
     : ` · travado há ${dias} dias`;
-  return `<div class="neg-sinal">🔒 Sinal ${valor}${quando}</div>`;
+  const temComprovante = (Array.isArray(n.anexos) ? n.anexos : []).some(a => a.tipo === TIPO_COMPROVANTE);
+  return `<div class="neg-sinal">🔒 Sinal ${valor}${quando}${temComprovante ? ' · 📎 comprovante' : ''}</div>`;
+}
+
+// ── Comprovante do sinal (18/set) ──────────────────────────────────
+// A rede (preparar → subir → registrar) mora em assets/anexos.js, a mesma
+// usada pelas vendas. Aqui fica só o que é desta tela: modal e mensagens.
+const TIPO_COMPROVANTE = 'comprovante_sinal';
+
+// O nome do arquivo vem do celular e pode ter aspas, < ou &. Vai para
+// dentro de HTML e de atributo onclick — sem escapar, quebraria a tela.
+const escHtml = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+function compStatus(txt, erro) {
+  const el = document.getElementById('comp-status');
+  if (!el) return;
+  el.textContent = txt || '';
+  el.className = 'comp-status' + (erro ? ' erro' : '');
+}
+
+function renderComprovantes(n) {
+  const el = document.getElementById('comp-lista');
+  if (!el) return;
+  const lista = (n && Array.isArray(n.anexos) ? n.anexos : []).filter(a => a.tipo === TIPO_COMPROVANTE);
+  el.innerHTML = lista.map(a =>
+    `<div class="comp-item">
+       <a onclick="abrirComprovante('${escHtml(a.path)}')" title="${escHtml(a.nome)}">📎 ${escHtml(a.nome)}</a>
+       <span class="x" onclick="removerComprovante('${escHtml(a.path)}')" title="Remover">✕</span>
+     </div>`).join('');
+}
+
+function anexarComprovante() {
+  // Negociação nova ainda não tem id no banco, e o arquivo precisa de uma
+  // pasta com dono. Dizer isso é melhor que o botão "não fazer nada".
+  if (!editId) {
+    compStatus('Salve a negociação primeiro — depois é só abrir de novo e anexar.', true);
+    return;
+  }
+  const inp = document.getElementById('comp-input');
+  inp.value = '';
+  // Confirma que o toque chegou. No celular, sem isto, "não aconteceu nada"
+  // pode ser toque não registrado OU seletor que não abriu (lição de 02/set).
+  compStatus('Escolha o arquivo…');
+  try { inp.click(); }
+  catch (e) { compStatus('Não consegui abrir o seletor de arquivos: ' + e.message, true); }
+}
+
+document.getElementById('comp-input').addEventListener('change', async (e) => {
+  const arquivo = e.target.files && e.target.files[0];
+  // O id é capturado ANTES do envio: se ele fechar o modal e abrir outra
+  // negociação no meio do upload, o arquivo não pode cair na errada.
+  const id = editId;
+  if (!arquivo || !id) return;
+
+  compStatus('Enviando ' + arquivo.name + '…');
+  try {
+    const anexos = await cnrAnexo.enviar({ negociacaoId: id }, TIPO_COMPROVANTE, arquivo);
+    const n = dados.find(x => x.id === id);
+    if (n) n.anexos = anexos;
+    if (editId === id) { renderComprovantes(n); compStatus('✓ Comprovante guardado.'); }
+    renderLista();
+  } catch (err) {
+    console.error('[COMPROVANTE]', err);
+    if (editId !== id) return;
+    compStatus(cnrAnexo.semChave(err)
+      ? 'Este aparelho ainda não foi liberado — abra /entrar.html uma vez.'
+      : 'Falha ao enviar: ' + err.message, true);
+  }
+});
+
+async function abrirComprovante(path) {
+  try { await cnrAnexo.abrir(path); }
+  catch (e) { compStatus('Não consegui abrir: ' + e.message, true); }
+}
+
+async function removerComprovante(path) {
+  const id = editId;
+  if (!id || !confirm('Remover este comprovante?')) return;
+  try {
+    const anexos = await cnrAnexo.remover({ negociacaoId: id }, path);
+    const n = dados.find(x => x.id === id);
+    if (n) n.anexos = anexos;
+    if (editId === id) { renderComprovantes(n); compStatus('Comprovante removido.'); }
+    renderLista();
+  } catch (e) { compStatus('Não consegui remover: ' + e.message, true); }
 }
 
 function fmtDias(n) {
@@ -708,6 +823,8 @@ function abrirNova() {
   document.getElementById('m-data').value = hoje();
   document.getElementById('m-sinal').value = '';
   document.getElementById('m-sinal-data').value = '';
+  renderComprovantes(null);
+  compStatus('');
   document.getElementById('m-obs').value = '';
   document.getElementById('hist-wrap').style.display = 'none';
   document.getElementById('btn-excluir').style.display = 'none';
@@ -736,6 +853,8 @@ function abrirEditar(id) {
     ? Number(n.valor_sinal).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '';
   document.getElementById('m-sinal-data').value = n.sinal_em || '';
+  renderComprovantes(n);
+  compStatus('');
   document.getElementById('m-obs').value = n.observacoes || '';
   document.getElementById('btn-excluir').style.display = '';
   document.getElementById('match-sec').style.display = 'none';
