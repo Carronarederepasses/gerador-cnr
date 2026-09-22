@@ -307,6 +307,9 @@
   .ed-label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);margin-bottom:.3rem;font-weight:500}
   .h3-edit{cursor:pointer;text-decoration-style:dotted;text-underline-offset:3px}
   .h3-edit:hover{text-decoration:underline}
+  /* Alvo de toque de 32px no mínimo: é o botão que ele usa pelo celular. */
+  .btn-editar{background:none;border:1px solid var(--line);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.72rem;padding:.35rem .6rem;min-height:32px;border-radius:6px;cursor:pointer;white-space:nowrap}
+  .btn-editar:hover{border-color:var(--text-mid)}
 
   /* Modal consulta placa */
   .placa-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:70;padding:1.5rem 1rem}
@@ -655,9 +658,18 @@ function card(v) {
   <div class="card" id="vcard-${v.id}">
     <div class="topo">
       <h3 class="h3-edit" title="Clique para editar" onclick="abrirEdicao('${v.id}')">${esc(nomeVeiculo(v))}</h3>
-      <div style="display:flex;gap:.3rem;align-items:center">
-        ${v.status !== 'vendido' && (v.avaliacao && v.avaliacao.nota) ? `<span class="nota-badge ${v.avaliacao.nota}" title="Nota da avaliação">${NOTA_AV[v.avaliacao.nota]}</span>` : ''}
-        ${v.status !== 'vendido' ? `<span class="badge ${v.status}">${v.status}</span>` : ''}
+      <div style="display:flex;flex-direction:column;gap:.35rem;align-items:flex-end;flex-shrink:0">
+        <div style="display:flex;gap:.3rem;align-items:center">
+          ${v.status !== 'vendido' && (v.avaliacao && v.avaliacao.nota) ? `<span class="nota-badge ${v.avaliacao.nota}" title="Nota da avaliação">${NOTA_AV[v.avaliacao.nota]}</span>` : ''}
+          ${v.status !== 'vendido' ? `<span class="badge ${v.status}">${v.status}</span>` : ''}
+        </div>
+        <!-- Até 22/set a ficha só abria tocando no NOME do carro, e a única
+             dica era um sublinhado que aparece com o mouse por cima — no
+             celular, nada. O único lápis visível no card era o da PLACA, que
+             abre outra coisa. Ele não achava onde corrigir o valor para postar
+             um story. Botão visível, do tamanho de um dedo, EMBAIXO do selo
+             para não espremer o nome do carro. -->
+        <button class="btn-editar" onclick="abrirEdicao('${v.id}')" title="Editar ficha: valor, km, cor…">✏️ Editar</button>
       </div>
     </div>
     ${v.status === 'vendido' ? '<div class="selo-vendido-wrap"><img src="/assets/selo-vendido.svg" class="selo-vendido" alt="Vendido"></div>' : ''}
@@ -2555,11 +2567,14 @@ async function redesenharStory() {
     // Dizer O QUE FAZER, não só que falhou. Dois dos cinco carros disponíveis
     // estavam sem valor de repasse quando isto foi feito.
     //
-    // O caminho é o ✏️ do card, que abre a edição com "Valor repasse (R$)".
+    // O caminho é o botão ✏️ Editar do card, que abre a edição com "Valor
+    // repasse (R$)". ATENÇÃO: de 10/set a 22/set esta mensagem mandava clicar
+    // num ✏️ que NÃO EXISTIA — a ficha só abria tocando no nome do carro.
+    // O botão foi criado em 22/set; esta frase só é verdade a partir daí.
     // NÃO é "Captado por" nem "+ Custo": aqueles editam `valor_compra`, o que
     // ele PAGOU — campo diferente, e o errado para um story.
     const comoResolver = /valor de repasse/.test(e.message)
-      ? ' Clique no ✏️ do card e preencha "Valor repasse".'
+      ? ' Toque em "✏️ Editar" no card e preencha "Valor repasse".'
       : '';
     erroEl.textContent = '⚠️ ' + e.message + '.' + comoResolver;
     erroEl.style.display = 'block';
