@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Catálogo de Oportunidades — Carro na Rede Repasses</title>
 <!-- PWA — instalável como app -->
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="manifest" href="/api/utils?type=manifesto">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,6 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
+<script src="/assets/marca.js"></script>
 <script src="/assets/mascaras.js"></script>
 <script src="/assets/story.js"></script>
 <script src="/assets/theme-toggle.js"></script>
@@ -379,7 +380,7 @@
 <div class="wrap">
   <header>
     <h1>Catálogo de Oportunidades</h1>
-    <div class="sub">Carro na Rede Repasses — banco interno de veículos</div>
+    <div class="sub"><span data-marca>Carro na Rede Repasses</span> — banco interno de veículos</div>
   </header>
 
   <div class="filtros">
@@ -1858,8 +1859,9 @@ function gerarTextoAnuncio(v) {
   linhas.push('');
   if (v.valor) linhas.push(`*VALOR: ${fmtR(v.valor)}*`);
   if (v.fipe)  linhas.push(`*FIPE: ${fmtR(v.fipe)}*`);
-  linhas.push('');
-  linhas.push('https://instagram.com/carronarederepasses');
+  // Instagram do site (assets/marca.js): no piloto é o do lojista, não o da
+  // Carro na Rede. Site sem Instagram configurado termina no preço.
+  if (window.cnrMarca.linkInstagram) { linhas.push(''); linhas.push(window.cnrMarca.linkInstagram); }
   return linhas.join('\n');
 }
 
@@ -2263,7 +2265,7 @@ async function gerarPDFAval(){
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(160, 180, 210);
-  doc.text('CARRO NA REDE REPASSES  •  @carronarederepasses', M, 26);
+  doc.text([window.cnrMarca.completo.toUpperCase(), window.cnrMarca.arroba].filter(Boolean).join('  •  '), M, 26);
   doc.text('Data: ' + new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}), M, 34);
 
   const nota = $('av-nota').value;
@@ -2491,7 +2493,7 @@ async function gerarPDFAval(){
     doc.rect(0, 286, W, 11, 'F');
     doc.setFontSize(7.5);
     doc.setTextColor(120);
-    doc.text('Carro na Rede Repasses  •  @carronarederepasses  •  ' + new Date().toLocaleDateString('pt-BR'), M, 292);
+    doc.text([window.cnrMarca.completo, window.cnrMarca.arroba, new Date().toLocaleDateString('pt-BR')].filter(Boolean).join('  •  '), M, 292);
     doc.text(i + '/' + total, W - M, 292, { align: 'right' });
   }
 

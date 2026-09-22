@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Negociações — Carro na Rede Repasses</title>
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="manifest" href="/api/utils?type=manifesto">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
 <script src="/assets/auth.js"></script>
+<script src="/assets/marca.js"></script>
 <script src="/assets/mascaras.js"></script>
 <script src="/assets/anexos.js"></script>
 <script src="/assets/theme-toggle.js"></script>
@@ -1156,7 +1157,7 @@ function abrirContrato(id) {
   cSet('c-int-end', p.endereco);
   cSet('c-int-cidade', p.cidade);
   cSet('c-int-tel', p.telefone);
-  cSet('c-int-email', p.email || 'carronarederepasses@gmail.com');
+  cSet('c-int-email', p.email || window.cnrMarca.email);
   cSet('c-cidade-data', p.cidade);
 
   document.getElementById('overlay-c').classList.add('show');
@@ -1211,6 +1212,12 @@ function imprimirContrato() {
 
 function contratoHTML(d) {
   const f = (v, def) => v || def || '_______________';
+  // Nome da intermediadora = marca do site (assets/marca.js). No piloto o
+  // contrato é do lojista; sair com "CARRO NA REDE" seria contrato em nome
+  // de quem não é parte do negócio.
+  const limpa = t => String(t || '').replace(/[<>&"]/g, '').toUpperCase();
+  const NOME  = limpa(window.cnrMarca.completo);
+  const CURTO = limpa(window.cnrMarca.nome);
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1247,14 +1254,14 @@ hr{border:none;border-top:1.5px solid #333;margin:1.2rem 0}
 
 <hr>
 <div class="sec">INTERMEDIADORA</div>
-<div class="fl"><span class="fb">Nome Fantasia:</span> CARRO NA REDE REPASSES</div>
+<div class="fl"><span class="fb">Nome Fantasia:</span> ${NOME}</div>
 <div class="fl"><span class="fb">Responsável:</span> ${f(d.int_responsavel)}</div>
 <div class="fl"><span class="fb">CPF:</span> ${f(d.int_cpf)}</div>
 <div class="fl"><span class="fb">Endereço:</span> ${f(d.int_endereco)}</div>
 <div class="fl"><span class="fb">Cidade/UF:</span> ${f(d.int_cidade)}</div>
 <div class="fl"><span class="fb">Telefone:</span> ${f(d.int_telefone)}</div>
 <div class="fl"><span class="fb">E-mail:</span> ${f(d.int_email)}</div>
-<p style="margin-top:.5rem;font-style:italic;font-size:10pt">Doravante denominada simplesmente "CARRO NA REDE".</p>
+<p style="margin-top:.5rem;font-style:italic;font-size:10pt">Doravante denominada simplesmente "${CURTO}".</p>
 
 <hr>
 <div class="sec">COMPRADOR</div>
@@ -1300,22 +1307,22 @@ ${d.perc_comissao ? `<div class="fl"><span class="fb">Percentual:</span> ${d.per
 
 <hr>
 <div class="clt">CLÁUSULA 1 - OBJETO</div>
-<div class="clb"><p>O presente contrato tem por objeto a intermediação da negociação de compra e venda do veículo descrito neste instrumento, realizada pela CARRO NA REDE REPASSES.</p><p>A CARRO NA REDE atua exclusivamente como intermediadora da negociação, não figurando como compradora ou vendedora do veículo e não adquirindo sua propriedade.</p></div><br>
+<div class="clb"><p>O presente contrato tem por objeto a intermediação da negociação de compra e venda do veículo descrito neste instrumento, realizada pela ${NOME}.</p><p>A ${CURTO} atua exclusivamente como intermediadora da negociação, não figurando como compradora ou vendedora do veículo e não adquirindo sua propriedade.</p></div><br>
 
 <div class="clt">CLÁUSULA 2 - RESPONSABILIDADES DA INTERMEDIADORA</div>
-<div class="clb"><p>A CARRO NA REDE compromete-se a:</p><p class="pad">I - aproximar comprador e vendedor;</p><p class="pad">II - facilitar a negociação entre as partes;</p><p class="pad">III - prestar suporte documental quando contratado;</p><p class="pad">IV - acompanhar a negociação até sua conclusão.</p><p>Parágrafo único. A CARRO NA REDE não responde pela qualidade, funcionamento, conservação, garantia, defeitos mecânicos, elétricos, estruturais ou vícios ocultos do veículo negociado.</p></div><br>
+<div class="clb"><p>A ${CURTO} compromete-se a:</p><p class="pad">I - aproximar comprador e vendedor;</p><p class="pad">II - facilitar a negociação entre as partes;</p><p class="pad">III - prestar suporte documental quando contratado;</p><p class="pad">IV - acompanhar a negociação até sua conclusão.</p><p>Parágrafo único. A ${CURTO} não responde pela qualidade, funcionamento, conservação, garantia, defeitos mecânicos, elétricos, estruturais ou vícios ocultos do veículo negociado.</p></div><br>
 
 <div class="clt">CLÁUSULA 3 - DECLARAÇÕES DO VENDEDOR</div>
 <div class="clb"><p>O vendedor declara que: I - é legítimo proprietário do veículo ou possui autorização para negociá-lo; II - todas as informações prestadas são verdadeiras; III - informou corretamente eventuais débitos, multas, gravames, alienações, restrições administrativas ou judiciais; IV - fornecerá toda a documentação necessária para transferência do veículo.</p><p>O vendedor responderá civil e criminalmente pelas informações prestadas.</p></div><br>
 
 <div class="clt">CLÁUSULA 4 - DECLARAÇÕES DO COMPRADOR</div>
-<div class="clb"><p>O comprador declara que: I - teve oportunidade de vistoriar o veículo; II - realizou todas as perguntas e verificações que considerou necessárias; III - está ciente de que a CARRO NA REDE atua apenas como intermediadora; IV - reconhece que a compra é realizada diretamente com o vendedor.</p></div><br>
+<div class="clb"><p>O comprador declara que: I - teve oportunidade de vistoriar o veículo; II - realizou todas as perguntas e verificações que considerou necessárias; III - está ciente de que a ${CURTO} atua apenas como intermediadora; IV - reconhece que a compra é realizada diretamente com o vendedor.</p></div><br>
 
 <div class="clt">CLÁUSULA 5 - PAGAMENTO</div>
-<div class="clb"><p>O pagamento do veículo será realizado diretamente entre comprador e vendedor. A CARRO NA REDE não recebe o valor da venda do veículo, salvo ajuste específico firmado entre as partes.</p></div><br>
+<div class="clb"><p>O pagamento do veículo será realizado diretamente entre comprador e vendedor. A ${CURTO} não recebe o valor da venda do veículo, salvo ajuste específico firmado entre as partes.</p></div><br>
 
 <div class="clt">CLÁUSULA 6 - COMISSÃO</div>
-<div class="clb"><p>Pela intermediação realizada, será devida à CARRO NA REDE a comissão ajustada entre as partes. A comissão poderá ser paga pelo comprador, vendedor ou ambos, conforme negociação realizada. Caso comprador e vendedor concluam o negócio em razão da aproximação realizada pela CARRO NA REDE, permanecerá devido o pagamento da comissão ajustada, ainda que a venda seja formalizada diretamente entre as partes.</p></div><br>
+<div class="clb"><p>Pela intermediação realizada, será devida à ${CURTO} a comissão ajustada entre as partes. A comissão poderá ser paga pelo comprador, vendedor ou ambos, conforme negociação realizada. Caso comprador e vendedor concluam o negócio em razão da aproximação realizada pela ${CURTO}, permanecerá devido o pagamento da comissão ajustada, ainda que a venda seja formalizada diretamente entre as partes.</p></div><br>
 
 <div class="clt">CLÁUSULA 7 - TRANSFERÊNCIA</div>
 <div class="clb"><p>O vendedor entregará toda a documentação necessária para transferência do veículo. O comprador compromete-se a efetuar a transferência dentro do prazo legal. Multas, tributos e encargos anteriores à entrega permanecerão sob responsabilidade do vendedor. Multas, tributos e encargos posteriores à entrega serão de responsabilidade do comprador.</p></div><br>
@@ -1324,7 +1331,7 @@ ${d.perc_comissao ? `<div class="fl"><span class="fb">Percentual:</span> ${d.per
 <div class="clb"><p>O comprador declara que teve oportunidade de verificar o estado geral do veículo, incluindo lataria, pintura, mecânica, elétrica, estrutura, pneus, acabamento, acessórios e funcionamento geral.</p></div><br>
 
 <div class="clt">CLÁUSULA 9 - LIMITAÇÃO DE RESPONSABILIDADE</div>
-<div class="clb"><p>A CARRO NA REDE não responde por defeitos mecânicos, vícios ocultos, desgaste natural, problemas estruturais, informações incorretas prestadas pelo vendedor ou garantias do veículo. Sua responsabilidade limita-se exclusivamente à prestação do serviço de intermediação.</p></div><br>
+<div class="clb"><p>A ${CURTO} não responde por defeitos mecânicos, vícios ocultos, desgaste natural, problemas estruturais, informações incorretas prestadas pelo vendedor ou garantias do veículo. Sua responsabilidade limita-se exclusivamente à prestação do serviço de intermediação.</p></div><br>
 
 <div class="clt">CLÁUSULA 10 - PROTEÇÃO DE DADOS</div>
 <div class="clb"><p>As partes autorizam o tratamento de seus dados pessoais exclusivamente para execução da presente negociação, observando a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</p></div><br>
@@ -1343,7 +1350,7 @@ ${d.perc_comissao ? `<div class="fl"><span class="fb">Percentual:</span> ${d.per
 <hr>
 
 <div class="sig-grid">
-  <div class="sig"><div class="sig-line">CARRO NA REDE REPASSES</div><div class="sig-sub">${f(d.int_responsavel)}</div><div class="sig-sub">CPF: ${f(d.int_cpf)}</div></div>
+  <div class="sig"><div class="sig-line">${NOME}</div><div class="sig-sub">${f(d.int_responsavel)}</div><div class="sig-sub">CPF: ${f(d.int_cpf)}</div></div>
   <div class="sig"><div class="sig-line">VENDEDOR</div><div class="sig-sub">${f(d.vend_nome)}</div><div class="sig-sub">CPF/CNPJ: ${f(d.vend_doc)}</div></div>
 </div>
 <div class="sig-grid" style="margin-top:2rem">

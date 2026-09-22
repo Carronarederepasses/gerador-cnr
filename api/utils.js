@@ -1,9 +1,10 @@
 // Utilitários gratuitos: CEP (BrasilAPI), preços ML (Mercado Livre), ping
-// Supabase, "quem é este aparelho" e a mensagem de abordagem.
-// Rota por ?type=cep | ?type=mercado | ?type=ping | ?type=quem | ?type=abordagem
+// Supabase, "quem é este aparelho", a mensagem de abordagem e a marca do site.
+// Rota por ?type=cep | ?type=mercado | ?type=ping | ?type=quem | ?type=abordagem | ?type=marca
 
 const { exigirChave, operadorDe, portaoLigado } = require('./_auth');
 const { MSG_ABORDAGEM, ANCORA } = require('./_abordagem');
+const { marca, manifesto } = require('./_marca');
 
 const ML_CATEGORIA = 'MLB1744'; // Carros e Caminhonetes
 const PRECO_MINIMO = 8000;
@@ -68,6 +69,19 @@ module.exports = async (req, res) => {
     // não expõe nada e não gasta nada.
     if (type === 'ping')    return await handlePing(res);
 
+    // A marca também fica aberta: é o que já está escrito na tela de quem
+    // abre o site, e a tela de liberação precisa dela ANTES de o aparelho
+    // ter chave. Não lê banco e não gasta nada.
+    if (type === 'marca') {
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      return res.status(200).json(marca());
+    }
+    if (type === 'manifesto') {
+      res.setHeader('Content-Type', 'application/manifest+json');
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      return res.status(200).send(JSON.stringify(manifesto()));
+    }
+
     // CEP e Mercado Livre são gratuitos, mas proxy aberto é proxy de todo
     // mundo — e o tráfego sai com o nome do projeto dele.
     if (exigirChave(req, res)) return;
@@ -101,7 +115,7 @@ module.exports = async (req, res) => {
 
     if (type === 'cep')     return await handleCep(req.query.cep, res);
     if (type === 'mercado') return await handleMercado(req.query.q, res);
-    return res.status(400).json({ error: 'type deve ser cep, mercado, ping, quem ou abordagem' });
+    return res.status(400).json({ error: 'type deve ser cep, mercado, ping, quem, abordagem ou marca' });
   } catch (err) {
     console.error('utils error:', err.message);
     return res.status(500).json({ error: err.message });

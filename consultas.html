@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="robots" content="noindex,nofollow">
   <title>Consultas — Carro na Rede Repasses</title>
-  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="manifest" href="/api/utils?type=manifesto">
   <meta name="theme-color" content="#0a0a0a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,6 +17,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/tokens.css">
   <script src="/assets/auth.js"></script>
+  <script src="/assets/marca.js"></script>
 <script src="/assets/theme-toggle.js"></script>
   <link rel="stylesheet" href="/assets/sidebar.css">
   <script src="/assets/sidebar.js" defer></script>
@@ -105,7 +106,7 @@
 
 
 <header>
-  <div class="marca">Carro na Rede Repasses</div>
+  <div class="marca" data-marca>Carro na Rede Repasses</div>
   <h1>Consultas</h1>
   <div class="sub">Uso interno · dados do veículo, restrições e recall</div>
 </header>
@@ -358,7 +359,7 @@ function aguardarRelatorio(protocolo, tentativa){
           document.getElementById('rel-pronto').innerHTML =
             '<div style="background:color-mix(in srgb, var(--severity-ok) 12%, var(--surface));border:1px solid color-mix(in srgb, var(--severity-ok) 40%, transparent);border-radius:10px;padding:14px;font-size:.82rem;color:var(--severity-ok);line-height:1.6">' +
             '✅ <strong>Relatório gerado!</strong><br>' +
-            'Verifique seu email (<strong>carronarederepasses@gmail.com</strong>) — o PDF foi enviado pelo Consultar Placa.<br><br>' +
+            'Verifique seu email (<strong>' + String(window.cnrMarca.email || 'o e-mail da conta').replace(/[<>&"]/g, '') + '</strong>) — o PDF foi enviado pelo Consultar Placa.<br><br>' +
             '<a href="https://www.consultarplaca.com.br/minha-conta" target="_blank" style="color:var(--severity-ok)">Ou acesse Minha Conta no Consultar Placa →</a>' +
             '</div>';
           document.getElementById('rel-pronto').style.display = 'block';

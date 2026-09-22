@@ -228,7 +228,8 @@
 
     // Embaixo fica vazio de propósito: é onde o Instagram põe a barra de
     // responder, e texto ali some atrás dela.
-    texto(cx, '@carronarederepasses', meio, H - 96,
+    // Arroba do site (assets/marca.js) — no piloto, o do lojista.
+    if (window.cnrMarca && window.cnrMarca.arroba) texto(cx, window.cnrMarca.arroba, meio, H - 96,
       { font: '500 32px "DM Sans"', cor: '#6f6f6f', esp: 5, alinha: 'center' });
 
     return { fotoIndex: idx, nome, cambio: cambioDe(v.versao || v.modelo), totalFotos: fotos.length };

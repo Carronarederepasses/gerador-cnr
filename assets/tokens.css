@@ -147,6 +147,16 @@ body::before{
   z-index:-1;
   pointer-events:none;
 }
+/* Site com marca própria (assets/marca.js): a arte da Carro na Rede sai.
+   Com logo configurado entra o logo inteiro, sem o recorte e sem o invert —
+   os dois são específicos do logo.svg. Sem logo, fica sem marca d'água. */
+html.marca-propria body::before{
+  background:var(--marca-logo, none) no-repeat center / contain;
+  aspect-ratio:2 / 1;
+  width:min(30rem, 70vw);
+  filter:grayscale(1);
+  opacity:.10;
+}
 @media (max-width:767px){
   /* Sem barra lateral ocupando espaço, o centro volta a ser o da janela. */
   body::before{ left:50%; }

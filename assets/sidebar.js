@@ -229,17 +229,48 @@
       .catch(function () { /* silêncio: a faixa continua como está */ });
   }
 
+  // Marca do site (assets/marca.js). Sem ela — página antiga que não carrega
+  // o arquivo — fica a da Carro na Rede, como sempre foi.
+  function marca() {
+    return window.cnrMarca || { nome: 'Carro na Rede', subtitulo: 'Repasses', logo: '', esconde: function () { return false; } };
+  }
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function logoHTML() {
+    var m = marca();
+    return (m.logo ? '<img class="cnr-sb-logo-img" src="' + esc(m.logo) + '" alt="">' : '')
+      + '<div class="cnr-sb-logo-name">' + esc(m.nome) + '</div>'
+      + (m.subtitulo ? '<div class="cnr-sb-logo-sub">' + esc(m.subtitulo) + '</div>' : '');
+  }
+  function marcaTopoHTML() {
+    var m = marca();
+    return '<span class="cnr-mt-nome">' + esc(m.nome) + '</span>'
+      + (m.subtitulo ? '<span class="cnr-mt-sub">' + esc(m.subtitulo) + '</span>' : '');
+  }
+
+  // Tira do menu as telas que este site não usa, e o título de grupo que
+  // ficar sem item nenhum embaixo.
+  function paginasDoSite() {
+    var m = marca();
+    var lista = PAGES.filter(function (p) { return p.grupo || !m.esconde(p.href); });
+    return lista.filter(function (p, i) {
+      if (!p.grupo) return true;
+      var prox = lista[i + 1];
+      return prox && !prox.grupo;
+    });
+  }
+
   function buildHTML() {
-    var links = PAGES.map(function (p) {
+    var links = paginasDoSite().map(function (p) {
       if (p.grupo) return '<div class="cnr-sb-grupo">' + p.grupo + '</div>';
       var cls = 'cnr-sb-link' + (paginaAtiva(p.href) ? ' ativo' : '');
       return '<a class="' + cls + '" href="' + p.href + '"><span class="cnr-sb-emoji">' + p.emoji + '</span>' + p.label + '</a>';
     }).join('');
 
-    return '<div class="cnr-sb-logo">'
-      + '<div class="cnr-sb-logo-name">Carro na Rede</div>'
-      + '<div class="cnr-sb-logo-sub">Repasses</div>'
-      + '</div>'
+    return '<div class="cnr-sb-logo">' + logoHTML() + '</div>'
       + '<a href="/home.html" id="cnr-lembrete" style="display:none"></a>'
       + '<nav class="cnr-sb-nav">' + links + '</nav>'
       + '<div class="cnr-sb-footer">'
@@ -284,9 +315,22 @@
     var marca = document.createElement('div');
     marca.id = 'cnr-marca-topo';
     marca.setAttribute('aria-hidden', 'true'); // decorativo: o nome já está na gaveta
-    marca.innerHTML = '<span class="cnr-mt-nome">Carro na Rede</span>'
-                    + '<span class="cnr-mt-sub">Repasses</span>';
+    marca.innerHTML = marcaTopoHTML();
     document.body.prepend(marca);
+
+    // A marca guardada pode estar velha (primeira visita, ou mudou na
+    // Vercel). Quando assets/marca.js confirma outra, redesenha só o nome e o
+    // menu — o resto da barra tem eventos presos e fica como está.
+    document.addEventListener('cnr-marca', function () {
+      var logo = aside.querySelector('.cnr-sb-logo');
+      if (logo) logo.innerHTML = logoHTML();
+      marca.innerHTML = marcaTopoHTML();
+      var nav = aside.querySelector('.cnr-sb-nav');
+      var tmp = document.createElement('div');
+      tmp.innerHTML = buildHTML();
+      var novo = tmp.querySelector('.cnr-sb-nav');
+      if (nav && novo) nav.innerHTML = novo.innerHTML;
+    });
 
     // Hamburger
     var ham = document.createElement('button');
