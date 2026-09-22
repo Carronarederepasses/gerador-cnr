@@ -116,7 +116,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
     <div class="fsec-title">2. Escolher modo</div>
     <div class="mode-toggle">
       <button class="mode-btn active" id="btn-modo-fiel" onclick="setEditorMode('fiel')">🎯 Fiel (remove.bg)</button>
-      <button class="mode-btn" id="btn-modo-ia" onclick="setEditorMode('ia')">✨ IA (Gemini / ChatGPT)</button>
+      <button class="mode-btn" id="btn-modo-ia" onclick="setEditorMode('ia')">IA (Gemini / ChatGPT)</button>
     </div>
     <div class="field" id="ia-opts" style="display:none">
       <label>Modelo de IA</label>
@@ -208,7 +208,7 @@ function setEditorMode(m) {
   document.getElementById('fsec-ajustes').style.display = (m === 'fiel') ? '' : 'none';
   document.getElementById('ia-opts').style.display      = (m === 'ia')   ? '' : 'none';
   document.getElementById('btn-processar').textContent =
-    (m === 'fiel') ? '▶ Remover Fundo e Compor' : '✨ Gerar com IA';
+    (m === 'fiel') ? '▶ Remover Fundo e Compor' : 'Gerar com IA';
 }
 
 function setEditorSt(msg, tipo) {
@@ -350,7 +350,7 @@ async function processarFoto() {
     console.error(e);
   } finally {
     btn.disabled = false;
-    btn.textContent = (editorMode === 'fiel') ? '▶ Remover Fundo e Compor' : '✨ Gerar com IA';
+    btn.textContent = (editorMode === 'fiel') ? '▶ Remover Fundo e Compor' : 'Gerar com IA';
   }
 }
 

@@ -333,7 +333,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <a class="atalho" href="/catalogo.html">
         <div class="ico">📂</div>
         <div class="nome">Catálogo</div>
-        <div class="desc">Gerir veículos e status</div>
+        <div class="desc">Veículos em estoque e status de cada um</div>
       </a>
       <a class="atalho" href="/vendas.html">
         <div class="ico">📋</div>
@@ -353,7 +353,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <a class="atalho" href="/compradores.html">
         <div class="ico">👥</div>
         <div class="nome">Clientes</div>
-        <div class="desc">CRM — rede de compradores e Motor de Match</div>
+        <div class="desc">Compradores, contatos e histórico</div>
       </a>
       <a class="atalho" href="/foto.html">
         <div class="ico">🎨</div>
@@ -410,9 +410,12 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     </div>
   </div>
 
-  <!-- Capital de Conhecimento -->
+  <!-- Cadastro dos clientes (o código ainda chama de KCR / Capital de
+       Conhecimento). O título visível era "Capital de Conhecimento · Prontidão
+       para IA" — texto de apresentação, não de ferramenta: o bloco mostra o
+       que falta preencher no cadastro. -->
   <div class="secao">
-    <div class="secao-titulo">Capital de Conhecimento · Prontidão para IA</div>
+    <div class="secao-titulo">Cadastro dos clientes</div>
     <div id="kcr-panel" class="kcr-panel"><div class="loading">carregando...</div></div>
   </div>
 
@@ -997,10 +1000,10 @@ function _pct(num, den) { return den > 0 ? num / den * 100 : null; }
 function _kcrCor(p)  { return p === null ? 'neutro' : p >= 80 ? 'verde' : p >= 60 ? 'amarelo' : 'crit'; }
 function _kcrTxt(p)  { return p >= 80 ? 'Boa' : p >= 60 ? 'Atenção' : 'Ação necessária'; }
 function _kcrMarco(p) {
-  if (p >= 90) return { msg: 'O sistema aprende com a operação quase em tempo real.', cor: 'var(--severity-ok)' };
-  if (p >= 75) return { msg: 'O conhecimento acumulado vira vantagem competitiva.', cor: 'var(--severity-ok)' };
-  if (p >= 50) return { msg: 'O sistema começa a fazer recomendações consistentes.', cor: 'var(--severity-warn)' };
-  if (p >= 25) return { msg: 'O conhecimento começa a sair da cabeça do Yuri.', cor: 'var(--severity-warn)' };
+  if (p >= 90) return { msg: 'Cadastro quase completo — o Match trabalha com dado real.', cor: 'var(--severity-ok)' };
+  if (p >= 75) return { msg: 'Boa parte do cadastro preenchida.', cor: 'var(--severity-ok)' };
+  if (p >= 50) return { msg: 'Metade preenchida — o Match já ajuda, mas ainda erra.', cor: 'var(--severity-warn)' };
+  if (p >= 25) return { msg: 'Cadastro no começo — o Match tem pouco com que trabalhar.', cor: 'var(--severity-warn)' };
   return null;
 }
 
@@ -1037,13 +1040,13 @@ function _kcrCapsHTML(d) {
 
   const ativoHTML = desbloqueados.length ? `
     <div>
-      <div class="kcr-cap-title">Hoje o sistema consegue</div>
+      <div class="kcr-cap-title">Já dá para usar</div>
       ${desbloqueados.map(i => `<div class="kcr-cap-item verde">✓ ${i.capacidade}</div>`).join('')}
     </div>` : '';
 
   const proximosHTML = proximos.length ? `
     <div>
-      <div class="kcr-cap-title">Próximos desbloqueios</div>
+      <div class="kcr-cap-title">Falta preencher</div>
       ${proximos.slice(0, 4).map(i => {
         const p = i.pct(d);
         const pStr = p !== null ? `<span class="kcr-cap-pct">${Math.round(p)}%</span>` : '';

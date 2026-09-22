@@ -896,7 +896,7 @@ function renderMatchHtml(scored, v) {
 
   if (!top3.length) return {
     html: '<div class="match-vazio">Nenhum comprador com perfil próximo deste carro</div>' +
-      `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`,
+      `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">Central de Distribuição</button>`,
     top: null,
   };
 
@@ -952,7 +952,7 @@ function renderMatchHtml(scored, v) {
       <textarea class="match-msg-hidden" id="${msgId}">${msgTexto}</textarea>
     </div>`;
   }).join('');
-  return { html: rows + `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">🚀 Iniciar Distribuição</button>`, top: top3[0] || null };
+  return { html: rows + `<button class="match-dist-btn" onclick="abrirCentral('${v.id}')">Central de Distribuição</button>`, top: top3[0] || null };
 }
 
 function infoSection(emoji, lbl, txt) {
@@ -2809,7 +2809,7 @@ carregarVendasMap().then(async () => {
       </div>
       <div id="central-msg" class="central-mensagem"></div>
       <div class="central-acoes">
-        <a id="central-btn-wa" class="central-btn-wa" target="_blank">🚀 Abrir WhatsApp</a>
+        <a id="central-btn-wa" class="central-btn-wa" target="_blank">Abrir WhatsApp</a>
         <button class="central-btn-pular" onclick="avancarCentral()">⏭ Pular</button>
       </div>
     </div>
