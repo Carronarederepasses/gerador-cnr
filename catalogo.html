@@ -2524,6 +2524,68 @@ let _storyV = null, _storyFoto = 1;
 // 10" com erro, herdado da chamada anterior. Só a última vale.
 let _storyVez = 0;
 
+// A arte já convertida em arquivo, pronta para compartilhar (22/set).
+//
+// Por que pronta ANTES do toque: no iPhone o compartilhar só abre se for
+// chamado logo em seguida ao toque. Se o botão fosse primeiro converter o
+// canvas (leva um instante) e só depois compartilhar, o Safari recusa com
+// "NotAllowedError" — e o botão pareceria quebrado justamente no aparelho de
+// quem for comprar o Gerador. Então a conversão acontece ao terminar cada
+// desenho, e o toque só entrega o que já existe.
+let _storyArquivo = null;
+
+// O aparelho sabe mandar ARQUIVO para outro app, E é celular?
+//
+// As duas coisas são necessárias. O Chrome do Windows também compartilha
+// arquivo — mas para e-mail e Bluetooth, sem Instagram: o botão apareceria no
+// notebook e não serviria para nada. "Toque como entrada principal"
+// (`pointer: coarse`) é o que separa celular de computador; notebook com
+// tela de toque continua usando o mouse como principal.
+function podeCompartilharArquivo() {
+  try {
+    if (!navigator.canShare || !navigator.share) return false;
+    if (!window.matchMedia || !matchMedia('(pointer: coarse)').matches) return false;
+    const teste = new File([new Blob(['x'], { type: 'image/png' })], 't.png', { type: 'image/png' });
+    return navigator.canShare({ files: [teste] });
+  } catch (e) { return false; }
+}
+
+function prepararArquivoStory(vez) {
+  _storyArquivo = null;
+  const btn = document.getElementById('story-compartilhar');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.45'; }
+  const c = document.getElementById('story-canvas');
+  c.toBlob(blob => {
+    if (vez !== _storyVez || !blob || !_storyV) return;   // desenho novo já passou na frente
+    _storyArquivo = new File([blob], CNR_STORY.nomeArquivo(_storyV), { type: 'image/png' });
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }, 'image/png');
+}
+
+async function compartilharStory() {
+  const erroEl = document.getElementById('story-erro');
+  const btn = document.getElementById('story-compartilhar');
+  // Chamado já no toque, sem esperar nada antes — ver `_storyArquivo`.
+  if (!_storyArquivo) {
+    erroEl.textContent = 'A arte ainda está sendo preparada — tente de novo em um instante.';
+    erroEl.style.display = 'block';
+    return;
+  }
+  try {
+    await navigator.share({ files: [_storyArquivo] });
+    const antes = btn.textContent;
+    btn.textContent = '✓ Enviado';
+    setTimeout(() => { btn.textContent = antes; }, 2600);
+  } catch (e) {
+    // Fechar a lista sem escolher nada NÃO é erro: é ele mudando de ideia.
+    if (e.name === 'AbortError') return;
+    console.error('[STORY] compartilhar falhou:', e);
+    erroEl.textContent = '⚠️ O celular não deixou compartilhar (' + (e.message || e.name) +
+      '). Use "Baixar story" e publique pelo app do Instagram.';
+    erroEl.style.display = 'block';
+  }
+}
+
 async function abrirStory(id) {
   const v = CACHE[id];
   if (!v) return;
@@ -2556,6 +2618,19 @@ async function abrirStory(id) {
   } else {
     fipeQ.textContent = '';
   }
+  // Celular: Compartilhar vem primeiro e o Baixar vira reserva. Computador:
+  // só o Baixar, como sempre — o compartilhar do Windows não fala com o
+  // Instagram.
+  const podeComp = podeCompartilharArquivo();
+  _storyArquivo = null;
+  document.getElementById('story-compartilhar').hidden = !podeComp;
+  document.getElementById('story-baixar').style.background = podeComp ? 'transparent' : 'var(--accent)';
+  document.getElementById('story-baixar').style.color      = podeComp ? 'var(--text)'  : 'var(--surface)';
+  document.getElementById('story-baixar').style.border     = podeComp ? '1px solid var(--line)' : 'none';
+  document.getElementById('story-dica').textContent = podeComp
+    ? 'Compartilhar abre a lista do celular: toque em Instagram → Story. Publicar é sempre você que confirma no app.'
+    : 'Baixa a imagem. Publicar é no app do Instagram — nenhuma página da web posta por você.';
+
   document.getElementById('story-modal').style.display = 'flex';
   await redesenharStory();
 }
@@ -2563,6 +2638,7 @@ async function abrirStory(id) {
 function fecharStory() {
   document.getElementById('story-modal').style.display = 'none';
   _storyV = null;
+  _storyArquivo = null;   // não pode sobrar a arte de um carro para o próximo
 }
 
 async function redesenharStory() {
@@ -2582,8 +2658,14 @@ async function redesenharStory() {
     _storyFoto = r.fotoIndex;
     document.getElementById('story-foto-qual').textContent = `${r.fotoIndex + 1} de ${r.totalFotos}`;
     btn.disabled = false; btn.style.opacity = '';
+    prepararArquivoStory(vez);
   } catch (e) {
     if (vez !== _storyVez) return;
+    // Arte que falhou não pode ser compartilhada: um arquivo velho seria o
+    // carro anterior, ou o preço antigo, indo para um post público.
+    _storyArquivo = null;
+    const bc = document.getElementById('story-compartilhar');
+    if (bc) { bc.disabled = true; bc.style.opacity = '.45'; }
     // Dizer O QUE FAZER, não só que falhou. Dois dos cinco carros disponíveis
     // estavam sem valor de repasse quando isto foi feito.
     //
@@ -2800,9 +2882,16 @@ carregarVendasMap().then(async () => {
          posta — o botão ficava abaixo da dobra e exigia rolar dentro do modal
          para achar. Medido a 375px em 10/set. -->
     <div style="padding:.85rem 1.15rem;border-top:1px solid var(--line);display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+      <!-- Compartilhar (22/set). Só aparece onde o aparelho sabe mandar
+           arquivo para outro app — no celular. Abre a lista do próprio
+           telefone; ele toca em Instagram → Story. Pula baixar, abrir a
+           galeria e procurar a imagem. Não dá para cair DIRETO no story com
+           a arte posta: a Meta só libera isso para app de loja cadastrado. -->
+      <button id="story-compartilhar" onclick="compartilharStory()" hidden
+              style="flex:1;min-width:180px;background:var(--accent);color:var(--surface);border:none;border-radius:8px;padding:.8rem;font-weight:600;font-size:.9rem;cursor:pointer">📲 Compartilhar</button>
       <button id="story-baixar" onclick="baixarStory()"
               style="flex:1;min-width:180px;background:var(--accent);color:var(--surface);border:none;border-radius:8px;padding:.8rem;font-weight:600;font-size:.9rem;cursor:pointer">⬇ Baixar story</button>
-      <div style="flex:1;min-width:180px;font-size:.72rem;color:var(--text-faint);line-height:1.4">
+      <div id="story-dica" style="flex:1 1 100%;font-size:.72rem;color:var(--text-faint);line-height:1.4">
         Baixa a imagem. Publicar é no app do Instagram — nenhuma página da web posta por você.
       </div>
     </div>
