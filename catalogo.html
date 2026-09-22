@@ -2537,6 +2537,25 @@ async function abrirStory(id) {
   document.getElementById('story-cambio-qual').textContent = cam ? '(' + cam + ')' : '(não identifiquei)';
   document.getElementById('story-cambio').disabled = !cam;
   document.getElementById('story-ano').checked = true;
+
+  // FIPE: ligada por padrão SÓ quando o preço está abaixo dela. Acima, a
+  // comparação joga contra a venda num post público — então vem desligada e
+  // a tela diz o porquê, em vez de a opção sumir sem explicação.
+  const fipeEl  = document.getElementById('story-fipe');
+  const fipeQ   = document.getElementById('story-fipe-qual');
+  const fipe    = Number(v.fipe) || 0;
+  const valor   = Number(v.valor) || 0;
+  fipeEl.disabled = !fipe;
+  fipeEl.checked  = !!(fipe && valor && valor < fipe);
+  if (!fipe) {
+    fipeQ.textContent = '(sem FIPE neste carro)';
+  } else if (valor && valor < fipe) {
+    fipeQ.textContent = '(' + Math.round((fipe - valor) / fipe * 100) + '% abaixo)';
+  } else if (valor && valor > fipe) {
+    fipeQ.textContent = '(preço ACIMA da FIPE — desligada)';
+  } else {
+    fipeQ.textContent = '';
+  }
   document.getElementById('story-modal').style.display = 'flex';
   await redesenharStory();
 }
@@ -2557,7 +2576,8 @@ async function redesenharStory() {
       document.getElementById('story-canvas'), _storyV,
       { fotoIndex: _storyFoto,
         mostrarCambio: document.getElementById('story-cambio').checked,
-        mostrarAno:    document.getElementById('story-ano').checked });
+        mostrarAno:    document.getElementById('story-ano').checked,
+        mostrarFipe:   document.getElementById('story-fipe').checked });
     if (vez !== _storyVez) return;          // chegou atrasado: quem manda é o desenho novo
     _storyFoto = r.fotoIndex;
     document.getElementById('story-foto-qual').textContent = `${r.fotoIndex + 1} de ${r.totalFotos}`;
@@ -2759,6 +2779,10 @@ carregarVendasMap().then(async () => {
         <label class="story-op">
           <input type="checkbox" id="story-ano" checked onchange="redesenharStory()">
           Mostrar o ano
+        </label>
+        <label class="story-op">
+          <input type="checkbox" id="story-fipe" onchange="redesenharStory()">
+          Mostrar a FIPE <span id="story-fipe-qual" style="color:var(--text-faint)"></span>
         </label>
         <div>
           <div style="font-size:.78rem;color:var(--text-mid);margin-bottom:.35rem">Foto <span id="story-foto-qual"></span></div>

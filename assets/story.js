@@ -147,8 +147,8 @@
   /**
    * Desenha o story. Devolve o que foi usado, para a tela poder mostrar.
    * @param {HTMLCanvasElement} canvas
-   * @param {{marca,versao,modelo,ano,km,valor,fotos}} v  registro do veículo
-   * @param {{fotoIndex,mostrarAno,mostrarCambio}} [op]
+   * @param {{marca,versao,modelo,ano,km,valor,fipe,fotos}} v  registro do veículo
+   * @param {{fotoIndex,mostrarAno,mostrarCambio,mostrarFipe}} [op]
    */
   async function desenhar(canvas, v, op) {
     op = op || {};
@@ -180,7 +180,18 @@
     cx.restore();
 
     const meio = W / 2;
-    let y = AF - 30;
+
+    // FIPE (22/set, pedido dele). Opcional e decidido na tela: comparar com a
+    // tabela vende quando o preço está ABAIXO dela e atrapalha quando está
+    // acima — a tela liga por padrão só no primeiro caso.
+    //
+    // Quando aparece, o bloco inteiro SOBE o que a linha nova ocupa. O preço
+    // já termina perto da barra de responder do Instagram; empurrar texto
+    // para baixo dele o colocaria onde some. Assim a última linha termina
+    // exatamente onde o preço terminava antes — ponto já postado e visível.
+    const LINHA_FIPE = 74;
+    const comFipe = !!(op.mostrarFipe && v.fipe);
+    let y = AF - 30 - (comFipe ? LINHA_FIPE : 0);
 
     texto(cx, limparMarca(v.marca).toUpperCase(), meio, y,
       { font: '700 34px "DM Sans"', cor: '#9a9a9a', esp: 9, alinha: 'center' });
@@ -205,6 +216,15 @@
     y += 118;
     texto(cx, fmtR(v.valor), meio, y,
       { font: '900 112px "DM Sans"', cor: '#f5f5f5', alinha: 'center' });
+
+    // Menor e em cinza: o preço é a notícia, a FIPE é a prova. Pouco texto —
+    // "marca, modelo, versão, km e preço" foi o pedido de 10/set, e isto é
+    // uma linha, não um parágrafo.
+    if (comFipe) {
+      y += LINHA_FIPE;
+      texto(cx, 'FIPE  ' + fmtR(v.fipe), meio, y,
+        { font: '500 44px "DM Sans"', cor: '#9a9a9a', esp: 3, alinha: 'center' });
+    }
 
     // Embaixo fica vazio de propósito: é onde o Instagram põe a barra de
     // responder, e texto ali some atrás dela.
