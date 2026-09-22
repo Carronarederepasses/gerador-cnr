@@ -395,7 +395,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
          onclick="window.location='/negociacoes.html'" style="cursor:pointer">
       <div class="lbl">Carros travados</div>
       <div class="val" id="kpi-andamento">—</div>
-      <div class="sub" id="kpi-andamento-sub">sinal recebido</div>
+      <div class="sub" id="kpi-andamento-sub">reservados</div>
     </div>
     <div class="kpi azul" onclick="window.location='/compradores.html'" style="cursor:pointer">
       <div class="lbl">Compradores ativos</div>
@@ -545,7 +545,9 @@ function renderEmAndamento(lista) {
   card.hidden = false;
   document.getElementById('kpi-andamento').textContent = lista.length;
   document.getElementById('kpi-andamento-sub').textContent =
-    sinal > 0 ? moeda(sinal) + ' de sinal' : 'sinal recebido';
+    // Sem sinal nenhum não é "sinal recebido" — seria a tela afirmando algo
+    // que não aconteceu. Reservado por confiança é só reservado.
+    sinal > 0 ? moeda(sinal) + ' de sinal' : 'reservados';
 }
 
 const _hoje = new Date();
@@ -851,12 +853,20 @@ async function carregarNegociacoes() {
       n.status !== 'descartado' && !(n.status === 'comprado' && jaVirouVenda(n))
     );
 
-    // Carro travado por sinal (17/set). Mora na NEGOCIAÇÃO, não na venda —
-    // venda que não fechou não é venda. Conta qualquer negociação ativa com
-    // sinal recebido, não só as marcadas Reservado: o sinal às vezes entra
-    // antes de ele mexer no status, e o painel não pode esconder por isso.
+    // Carro travado (17/set, corrigido 22/set). Mora na NEGOCIAÇÃO, não na
+    // venda — venda que não fechou não é venda.
+    //
+    // Travado = Reservado OU com sinal. As duas coisas, e não só o sinal:
+    //   "sobre o sinal, isso é controle de cada um, às vezes trava o carro
+    //    sem sinal" — Yuri, 22/set.
+    // Travar é decisão do dono; o sinal é opcional. A primeira versão contava
+    // só quem tinha sinal, e um Reservado sem sinal sumia do cartão — o carro
+    // travado por confiança, que é justamente o caso comum entre conhecidos.
+    // E segue contando sinal fora do Reservado: às vezes o dinheiro entra
+    // antes de ele mexer no status.
+    const temSinal = n => n.valor_sinal != null && n.valor_sinal !== '';
     renderEmAndamento(ativas.filter(n =>
-      n.valor_sinal != null && n.valor_sinal !== '' && n.status !== 'comprado'
+      n.status !== 'comprado' && (n.status === 'reservado' || temSinal(n))
     ));
 
     document.getElementById('kpi-neg').textContent = ativas.length;

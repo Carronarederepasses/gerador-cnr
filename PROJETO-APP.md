@@ -170,11 +170,21 @@ Três decisões de implementação que derivam disso:
 
 1. **A hora é do servidor, nunca do aparelho.** Relógio de celular erra e
    pode ser mexido — e essa é a hora que decide quem ganhou o carro.
-2. **Sinal trava, e trava de verdade.** Marcado o sinal, o carro sai da roda
-   para os outros, com o motivo visível. Enquanto o sinal não for processado
-   dentro do app (§6.2), quem marca é o vendedor — o app registra a
-   declaração, não o dinheiro. **Isso precisa estar claro na tela**, senão
-   promete garantia que não existe.
+2. **Quem trava é o dono — com ou sem sinal. [YURI, corrigido 22/set]**
+   > *"Sobre o sinal, isso é controle de cada um, às vezes trava o carro sem
+   > sinal."*
+
+   Eu tinha escrito "sinal trava" como se o sinal fosse a condição da trava.
+   Não é: **travar é decisão do dono**, para quem ele quiser — por sinal, por
+   confiança, por ser cliente antigo. O sinal é **opcional**: se entrou,
+   registra valor e comprovante (já existe no Gerador desde 17-18/set). A
+   trava sai do ar para os outros, com o motivo visível. O app registra a
+   decisão do dono e, quando houver, a declaração do sinal — não o dinheiro.
+   **Isso precisa estar claro na tela**, senão promete garantia que não existe.
+
+   Efeito colateral no Gerador de hoje, corrigido no mesmo dia: o cartão
+   "Carros travados" do Painel contava só negociação com sinal, e um
+   Reservado sem sinal sumia dele.
 3. **Desistência devolve a vez.** O 2º da fila é avisado. É onde o app ganha
    dinheiro para o vendedor sem ele fazer nada.
 
@@ -235,14 +245,20 @@ Quatro caminhos, com o que cada um custa:
 | Taxa por venda **autodeclarada** | não | ninguém declara |
 | Taxa no **sinal processado no app** | sim | exige CNPJ, gateway e regra de pagamento |
 
-**[CLAUDE]** O quarto é o elegante, e por um motivo que não é financeiro: a
-regra do mercado que o Yuri descreveu — *sinal trava* — é exatamente o momento
-em que a plataforma tem direito de existir na transação. O sinal dentro do app
-resolve três coisas ao mesmo tempo: trava o carro de forma incontestável, dá
-segurança entre desconhecidos (§7) e cria o momento de cobrança.
+~~**[CLAUDE]** O quarto é o elegante: a regra do mercado — *sinal trava* — é
+exatamente o momento em que a plataforma tem direito de existir na transação.~~
 
-Não é para agora: mexer com dinheiro de terceiro tem peso regulatório próprio.
-Mas convém **não fechar a porta dele** ao desenhar a fila de interesse.
+**Revisto em 22/set.** Esse argumento se apoiava numa premissa errada: que o
+sinal é o que trava. O Yuri corrigiu — travar é decisão do dono e muitas vezes
+acontece **sem sinal nenhum**, na confiança. Então cobrar no sinal só alcança
+parte dos negócios, e justamente os entre desconhecidos; o negócio entre
+conhecidos fecha sem passar por ele.
+
+**[CLAUDE]** Com isso, a **assinatura da loja** volta a ser o caminho mais
+firme: não depende de o negócio passar por dentro do app. O sinal processado no
+app continua possível como **serviço opcional de garantia** entre
+desconhecidos (§7) — "pague o sinal pelo app e o carro fica travado com
+lastro" — mas deixa de ser a base da cobrança. Segue **[ABERTO]**.
 
 ---
 
