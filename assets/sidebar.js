@@ -44,21 +44,50 @@
   }
 
   // ── Meus dados bancários ────────────────────────────────────────────
-  var MD_DEFAULT = { nome: 'Yuri Pellegrinelli', banco: 'Itaú', agencia: '5799', conta: '03048-6', pix: '17996670304' };
+  // Começa VAZIO, e é de propósito (22/set).
+  //
+  // Até aqui o padrão eram os dados bancários do Yuri, gravados no código.
+  // Qualquer aparelho sem dados próprios salvos mostrava a conta DELE — e no
+  // site de outro lojista, o "📋 Copiar" mandaria ao comprador a conta do
+  // Yuri: o comprador pagaria o carro de um na conta do outro. E este arquivo
+  // é público (qualquer um lê /assets/sidebar.js, e ele está no GitHub).
+  //
+  // Cada um cadastra os próprios dados, uma vez por aparelho. No app em rede
+  // isso vira o "complete o teu cadastro", guardado no servidor pelo número
+  // do celular — aí vale em qualquer aparelho.
+  var MD_VAZIO = { nome: '', banco: '', agencia: '', conta: '', pix: '' };
 
   function getMeusDados() {
-    try { return JSON.parse(localStorage.getItem('cnr_meus_dados')) || MD_DEFAULT; } catch (e) { return MD_DEFAULT; }
+    try {
+      var d = JSON.parse(localStorage.getItem('cnr_meus_dados'));
+      return (d && typeof d === 'object') ? d : MD_VAZIO;
+    } catch (e) { return MD_VAZIO; }
+  }
+
+  function mdVazio(d) {
+    return !(d && (d.nome || d.banco || d.agencia || d.conta || d.pix));
   }
 
   function mdTexto(d) {
     return [d.nome, '', 'Banco: ' + d.banco, 'Ag: ' + d.agencia + ' / C/C: ' + d.conta, 'Pix: ' + d.pix].join('\n');
   }
 
+  // Sem dados: o Copiar some e o formulário já abre. Copiar uma ficha vazia
+  // ("Banco: / Ag: / Pix:") e mandar a alguém seria pior que não copiar nada.
+  function mostrarEstadoMeusDados(d) {
+    var vazio = mdVazio(d);
+    document.getElementById('cnr-md-preview').textContent = vazio
+      ? 'Ainda não tem dados neste aparelho.\nPreencha abaixo — é o que você manda para quem vai te pagar.'
+      : mdTexto(d);
+    document.getElementById('cnr-md-copiar').style.display = vazio ? 'none' : '';
+    return vazio;
+  }
+
   function abrirMeusDados() {
     var d = getMeusDados();
-    document.getElementById('cnr-md-preview').textContent = mdTexto(d);
     document.getElementById('cnr-md-form').style.display = 'none';
     document.getElementById('cnr-md-bg').style.display = 'flex';
+    if (mostrarEstadoMeusDados(d)) editarMeusDados();
   }
 
   function fecharMeusDados() {
@@ -95,8 +124,8 @@
       conta:   document.getElementById('cnr-mdf-conta').value.trim(),
       pix:     document.getElementById('cnr-mdf-pix').value.trim(),
     };
-    localStorage.setItem('cnr_meus_dados', JSON.stringify(d));
-    document.getElementById('cnr-md-preview').textContent = mdTexto(d);
+    try { localStorage.setItem('cnr_meus_dados', JSON.stringify(d)); } catch (e) {}
+    mostrarEstadoMeusDados(d);
     document.getElementById('cnr-md-form').style.display = 'none';
   }
 

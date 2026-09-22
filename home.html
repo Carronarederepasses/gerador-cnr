@@ -580,10 +580,25 @@ function exportarRelatorioCSV() {
   URL.revokeObjectURL(a.href);
 }
 
+// Cumprimenta pelo nome de QUEM ENTROU (22/set). Era "Yuri" fixo no código —
+// o site do lojista o chamaria de Yuri. O nome vem da chave de acesso
+// (CNR_OPERADOR na Vercel), pelo mesmo `?type=quem` que o entrar.html usa.
+//
+// Desenha primeiro sem nome e completa quando a resposta chegar: o
+// cumprimento nunca espera a rede, e falha de rede deixa só "Boa tarde 👋"
+// em vez de um nome chutado.
 function saudacao() {
   const h = new Date().getHours();
   const s = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
-  document.getElementById('saudacao-txt').textContent = s + ', Yuri 👋';
+  const el = document.getElementById('saudacao-txt');
+  el.textContent = s + ' 👋';
+  fetch('/api/utils?type=quem')
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      const nome = d && d.operador ? String(d.operador).split(/\s+/)[0] : '';
+      if (nome) el.textContent = s + ', ' + nome + ' 👋';
+    })
+    .catch(() => {});
 }
 
 function atualizarDataHora() {
