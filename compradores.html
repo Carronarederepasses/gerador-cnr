@@ -113,7 +113,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div class="kpi"><div class="kpi-val" id="k-lojas">—</div><div class="kpi-lbl">Lojistas</div></div>
     <div class="kpi"><div class="kpi-val" id="k-inv">—</div><div class="kpi-lbl">Investidores</div></div>
     <div class="kpi"><div class="kpi-val" id="k-pf">—</div><div class="kpi-lbl">Particulares</div></div>
-    <div class="kpi"><div class="kpi-val" id="k-taxa" style="font-size:1.1rem">—</div><div class="kpi-lbl">Taxa CNR acumulada</div></div>
+    <div class="kpi"><div class="kpi-val" id="k-taxa" style="font-size:1.1rem">—</div><div class="kpi-lbl">Taxa acumulada</div></div>
   </div>
 
   <div class="toolbar">
@@ -139,7 +139,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <select id="f-ordem" onchange="filtrar()">
       <option value="">Ordem A–Z</option>
       <option value="compras">Mais compras</option>
-      <option value="taxa">Maior taxa CNR</option>
+      <option value="taxa">Maior taxa</option>
     </select>
     <button class="btn-agenda" onclick="importarAgenda()" title="Importar contatos da agenda do celular">📒 Agenda</button>
     <button class="btn-add" onclick="abrirModal()">+ Novo cliente</button>
@@ -209,7 +209,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <!-- 🤝 Relação com a CNR — some para Particular (ver atualizarBlocoFat).
          "com a", não "com o": Carro na Rede é nome feminino. -->
     <div id="sec-relacao">
-      <div class="sec-hdr">🤝 Relação com a CNR</div>
+      <div class="sec-hdr">🤝 Relação com a <span data-marca="nome">Carro na Rede</span></div>
       <div class="field">
         <label>Papel no negócio</label>
         <select id="m-papel">
@@ -224,7 +224,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
          por que o campo sumiu evita a dúvida de "cadê o papel?" e deixa a
          regra visível onde ela vale. -->
     <div id="sec-relacao-pf" style="display:none">
-      <div class="sec-hdr">🤝 Relação com a CNR</div>
+      <div class="sec-hdr">🤝 Relação com a <span data-marca="nome">Carro na Rede</span></div>
       <div style="font-size:.82rem;color:var(--text-mid);line-height:1.5;
                   background:var(--surface);border-left:2px solid var(--line);
                   padding:.6rem .8rem;border-radius:0 8px 8px 0">
@@ -576,7 +576,7 @@ function renderLista(lista) {
     const wa = c.telefone ? c.telefone.replace(/\D/g,'') : '';
     const h = HIST_COMP[c.id] || HIST_COMP[c.nome] || null;
     const histTxt = h && h.count > 0
-      ? `${h.count} compra${h.count>1?'s':''} · R$ ${Number(h.taxa).toLocaleString('pt-BR',{maximumFractionDigits:0})} taxa CNR`
+      ? `${h.count} compra${h.count>1?'s':''} · R$ ${Number(h.taxa).toLocaleString('pt-BR',{maximumFractionDigits:0})} taxa`
       : '';
     return `<div class="card${c.ativo ? '' : ' inativo'}" onclick="abrirModal('${c.id}')">
       <div class="card-top">

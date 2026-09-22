@@ -789,7 +789,7 @@ function calcRazoes(c, marca, valor) {
   if (marca && marcas.includes(normMarca(marca))) razoes.push('Marca ' + marca);
 
   const qtd = compras.length;
-  if (qtd >= 1) razoes.push(`${qtd} compra${qtd > 1 ? 's' : ''} no CNR`);
+  if (qtd >= 1) razoes.push(`${qtd} compra${qtd > 1 ? 's' : ''} anterior${qtd > 1 ? 'es' : ''}`);
   if (marca && compras.some(p => p.marca && normMarca(p.marca) === normMarca(marca))) razoes.push('Já comprou ' + marca);
 
   if (qtd > 0) {

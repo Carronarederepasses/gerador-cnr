@@ -358,7 +358,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <a class="atalho" href="/foto.html">
         <div class="ico">🎨</div>
         <div class="nome">Arte</div>
-        <div class="desc">Remove fundo e compõe com o padrão CNR</div>
+        <div class="desc">Remove fundo e compõe com o estúdio padrão</div>
       </a>
       <a class="atalho" href="/busca.html">
         <div class="ico">🔎</div>
@@ -386,7 +386,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div class="sub" id="kpi-vend-sub">negócios fechados</div>
     </div>
     <div class="kpi roxo">
-      <div class="lbl">Taxa CNR (mês)</div>
+      <div class="lbl">Taxa (mês)</div>
       <div class="val" id="kpi-taxa">—</div>
       <div class="sub">comissão acumulada</div>
     </div>
@@ -567,7 +567,7 @@ function mudarMes(dir) {
 function exportarRelatorioCSV() {
   if (!_vendasMes.length) { alert('Nenhuma venda no mês para exportar.'); return; }
   const cols = ['data_venda','marca','modelo','versao','ano','placa','km','cor','valor_venda','valor_fipe','taxa_intermediacao','comprador_nome','comprador_telefone','vendedor_nome','status','observacoes'];
-  const header = ['Data','Marca','Modelo','Versão','Ano','Placa','KM','Cor','Valor Venda','FIPE','Taxa CNR','Comprador','Tel Comprador','Vendedor','Status','Obs'];
+  const header = ['Data','Marca','Modelo','Versão','Ano','Placa','KM','Cor','Valor Venda','FIPE','Taxa','Comprador','Tel Comprador','Vendedor','Status','Obs'];
   const esc = v => v == null ? '' : String(v).replace(/;/g,' ');
   const rows = _vendasMes.map(v => cols.map(c => esc(v[c])).join(';'));
   const csv = '﻿' + [header.join(';'), ...rows].join('\r\n');
@@ -818,7 +818,7 @@ async function carregarRelatorio() {
       </div>
       <div class="rel-card">
         <div class="rel-val roxo">${taxaTotal > 0 ? moeda(taxaTotal) : '—'}</div>
-        <div class="rel-lbl">Taxa CNR total</div>
+        <div class="rel-lbl">Taxa total</div>
       </div>
       <div class="rel-card">
         <div class="rel-val" style="font-size:1.1rem;color:var(--accent)">${volumeTotal > 0 ? moeda(volumeTotal) : '—'}</div>
@@ -974,7 +974,7 @@ async function toggleHist12() {
       <td class="num verde">${l.taxa > 0 ? 'R$ ' + Number(l.taxa).toLocaleString('pt-BR',{maximumFractionDigits:0}) : '—'}</td>
     </tr>`).join('');
     el.innerHTML = `<table class="hist-table">
-      <thead><tr><th>Mês</th><th class="num">Captados</th><th class="num">Vendidos</th><th class="num verde">Taxa CNR</th></tr></thead>
+      <thead><tr><th>Mês</th><th class="num">Captados</th><th class="num">Vendidos</th><th class="num verde">Taxa</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   } catch(_) {
@@ -997,7 +997,7 @@ function _pct(num, den) { return den > 0 ? num / den * 100 : null; }
 function _kcrCor(p)  { return p === null ? 'neutro' : p >= 80 ? 'verde' : p >= 60 ? 'amarelo' : 'crit'; }
 function _kcrTxt(p)  { return p >= 80 ? 'Boa' : p >= 60 ? 'Atenção' : 'Ação necessária'; }
 function _kcrMarco(p) {
-  if (p >= 90) return { msg: 'O CNR aprende com a operação quase em tempo real.', cor: 'var(--severity-ok)' };
+  if (p >= 90) return { msg: 'O sistema aprende com a operação quase em tempo real.', cor: 'var(--severity-ok)' };
   if (p >= 75) return { msg: 'O conhecimento acumulado vira vantagem competitiva.', cor: 'var(--severity-ok)' };
   if (p >= 50) return { msg: 'O sistema começa a fazer recomendações consistentes.', cor: 'var(--severity-warn)' };
   if (p >= 25) return { msg: 'O conhecimento começa a sair da cabeça do Yuri.', cor: 'var(--severity-warn)' };

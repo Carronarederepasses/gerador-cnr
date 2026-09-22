@@ -199,7 +199,7 @@
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">
         <div><label>Valor da venda (R$)</label><input id="r-valor" type="text" inputmode="numeric" placeholder="ex: 85.000"></div>
-        <div><label>Taxa CNR (R$)</label><input id="r-taxa" type="text" inputmode="numeric" placeholder="ex: 2.000"></div>
+        <div><label>Taxa (R$)</label><input id="r-taxa" type="text" inputmode="numeric" placeholder="ex: 2.000"></div>
       </div>
     </div>
     <div style="display:flex;gap:.5rem;margin-top:1.1rem;flex-wrap:wrap">
@@ -295,7 +295,7 @@
     <div class="form-sec">
       <div class="stit">Valores</div>
       <div class="grid3">
-        <div><label>Lucro / Taxa CNR (R$)</label><input id="m-taxa_intermediacao" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 1.500,00" /><div id="m-lucro-dica" style="font-size:.72rem;margin-top:.25rem;line-height:1.35"></div></div>
+        <div><label>Lucro / Taxa (R$)</label><input id="m-taxa_intermediacao" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 1.500,00" /><div id="m-lucro-dica" style="font-size:.72rem;margin-top:.25rem;line-height:1.35"></div></div>
         <div><label>Valor da venda (R$)</label><input id="m-valor_venda" type="text" inputmode="numeric" oninput="moedaMaskV(this);conferirLucro()" onblur="moedaBlurV(this);conferirLucro()" placeholder="ex: 85.000" /></div>
         <div><label>Valor repassado ao vendedor (R$)</label><input id="m-valor_compra" type="text" inputmode="numeric" oninput="moedaMaskV(this);conferirLucro()" onblur="moedaBlurV(this);conferirLucro()" placeholder="ex: 83.000" /></div>
         <div><label>FIPE (R$)</label><input id="m-valor_fipe" type="text" inputmode="numeric" oninput="moedaMaskV(this)" onblur="moedaBlurV(this)" placeholder="ex: 87.500" /></div>
@@ -1045,7 +1045,7 @@ function cardHTML(v) {
       <div class="bloco"><b>Destino (comprador)</b><span>${esc(v.destino) || esc(v.comprador_nome) || '—'}${v.destino && v.comprador_nome ? ' · '+esc(v.comprador_nome) : ''}${v.comprador_telefone ? ' · '+esc(v.comprador_telefone) : ''}</span></div>
     </div>
     <div class="valores">
-      <div class="v"><b>Lucro / Taxa CNR</b><span class="num" style="color:var(--severity-ok)">${moeda(v.taxa_intermediacao)}</span></div>
+      <div class="v"><b>Lucro / Taxa</b><span class="num" style="color:var(--severity-ok)">${moeda(v.taxa_intermediacao)}</span></div>
       ${v.valor_venda != null ? '<div class="v"><b>Venda</b><span class="num">'+moeda(v.valor_venda)+'</span></div>' : ''}
       ${v.valor_fipe != null ? '<div class="v"><b>FIPE</b><span class="num" style="color:var(--text-mid)">'+moeda(v.valor_fipe)+'</span></div>' : ''}
     </div>
