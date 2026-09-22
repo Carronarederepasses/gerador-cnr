@@ -67,7 +67,7 @@
       <label>🔒 Placa <span style="text-transform:none;letter-spacing:0;color:var(--mid);font-weight:400">— uso interno, NÃO aparece no anúncio</span></label>
       <div style="display:flex;gap:.5rem;align-items:center">
         <input type="text" id="placa" placeholder="ABC1D23" style="text-transform:uppercase;flex:1" maxlength="8" oninput="this.value=this.value.toUpperCase()">
-        <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius:9px;border:1px solid var(--text);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+        <button type="button" id="btn-buscar-placa" onclick="buscarPlacaGerador()" style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;padding:.55rem .9rem;border-radius: var(--r, 8px);border:1px solid var(--text);background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap">🔍 Buscar</button>
       </div>
       <div id="placa-st" style="font-size:.72rem;min-height:1rem;margin-top:.35rem;color:var(--mid)"></div>
     </div>
@@ -80,7 +80,7 @@
       <div style="display:flex;gap:.5rem;align-items:center">
         <input type="text" id="emplacado-em" placeholder="preenchido pela consulta de placa" style="flex:1">
         <button type="button" id="btn-usar-emplac" onclick="usarEmplacamentoComoLocal()" title="Copia para Localização — só quando o carro está na mesma cidade da placa"
-                style="display:none;font-family:'DM Sans',sans-serif;font-size:.7rem;padding:.5rem .7rem;border-radius:9px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer;white-space:nowrap">↓ usar como localização</button>
+                style="display:none;font-family:'DM Sans',sans-serif;font-size:.7rem;padding:.5rem .7rem;border-radius: var(--r, 8px);border:1px solid var(--line);background:none;color:var(--text);cursor:pointer;white-space:nowrap">↓ usar como localização</button>
       </div>
     </div>
 
@@ -295,7 +295,7 @@
       <div class="field"><label>Valor de compra (R$) <span style="color:var(--light)">↳ pago ao vendedor</span></label><input type="text" id="valor-compra" placeholder="85.000,00" oninput="calcMargem()"></div>
       <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end">
         <label>Margem estimada</label>
-        <div id="margem-display" style="padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;font-size:.84rem;color:var(--light);min-height:2.4rem;display:flex;align-items:center">—</div>
+        <div id="margem-display" style="padding:.55rem .75rem;border:1px solid var(--border);border-radius: var(--r, 8px);font-size:.84rem;color:var(--light);min-height:2.4rem;display:flex;align-items:center">—</div>
       </div>
     </div>
   </div>
@@ -308,7 +308,7 @@
   </div>
 
   <!-- PAINEL PÓS-SALVAMENTO -->
-  <div id="pos-save-panel" style="display:none;margin-top:.8rem;padding:.9rem 1rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;text-align:center">
+  <div id="pos-save-panel" style="display:none;margin-top:.8rem;padding:.9rem 1rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius: var(--r, 8px);text-align:center">
     <div style="font-size:.88rem;font-weight:600;color:#4caf50;margin-bottom:.7rem">✓ Veículo salvo no catálogo</div>
     <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
       <a id="link-ver-catalogo" href="#" target="_blank" class="btn-gen" style="font-size:.75rem;padding:.45rem .9rem;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem">🚗 Ver no catálogo</a>

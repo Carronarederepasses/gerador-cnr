@@ -118,6 +118,32 @@
  * Consequência honesta de estar atrás: onde houver cartão opaco por cima,
  * ela não aparece. Ela vive no respiro da tela, que é o lugar dela.
  */
+/* ── Escala ────────────────────────────────────────────────────────
+ * Medida nova neste projeto sai daqui, não do olho. Sem isto, cada tela
+ * inventava o seu número: medido em 22/set, o app tinha 23 raios de canto
+ * diferentes, 80 tamanhos de letra e 216 espaçamentos — 131 deles usados
+ * uma vez só. É o que dá a sensação de "quase alinhado" entre telas.
+ *
+ * Os cantos foram normalizados em 22/set. Letra e espaçamento continuam
+ * dispersos de propósito: mexer neles desloca layout, e o ganho não paga o
+ * risco em bloco. Corrigir quando a tela for tocada por outro motivo.
+ *
+ * Sempre com valor de reserva — var(--r, 8px) — porque entrar.html,
+ * instalar.html e artes.html não carregam este arquivo.
+ */
+:root{
+  --r-sm: 4px;    /* chip, badge, tag */
+  --r:    8px;    /* botão, campo, caixa pequena */
+  --r-md: 12px;   /* cartão */
+  --r-lg: 16px;   /* modal, painel */
+
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px;
+  --s-4: 16px; --s-5: 24px; --s-6: 32px;
+
+  --fs-xs: .7rem;  --fs-sm: .8rem;  --fs-md: .9rem;
+  --fs-lg: 1rem;   --fs-xl: 1.25rem;
+}
+
 html{
   background-color: var(--surface);
 }

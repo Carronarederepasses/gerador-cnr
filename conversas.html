@@ -37,7 +37,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
   min-height:0;min-width:0;background:var(--surface)}
 .coluna .busca{padding:.7rem;border-bottom:1px solid var(--line);flex:none}
 .coluna .busca input{width:100%;font-family:inherit;font-size:.85rem;color:var(--text);
-  background:var(--surface-raise);border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
+  background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r, 8px);padding:.5rem .7rem}
 .coluna .busca input:focus{outline:none;border-color:var(--accent)}
 .rolagem{overflow-y:auto;flex:1;min-height:0}
 
@@ -51,12 +51,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .conv .pe{display:flex;justify-content:space-between;gap:.5rem;margin-top:.25rem;
   font-size:.66rem;color:var(--text-faint)}
-.conv .bolha{background:var(--accent);color:var(--surface);border-radius:20px;
+.conv .bolha{background:var(--accent);color:var(--surface);border-radius: var(--r-lg, 16px);
   padding:.05rem .4rem;font-size:.62rem;font-weight:700}
 /* Conversa com mensagem que o Gerador ainda não espelhou */
 .conv.nova{background:var(--accent-soft)}
 .conv.nova .prev{color:var(--text);font-weight:500}
-.conv .ponto{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;
+.conv .ponto{display:inline-block;width:.5rem;height:.5rem;border-radius: 50%;
   background:var(--accent);margin-right:.4rem;vertical-align:middle;flex:none}
 .aviso-inbox{padding:.55rem .85rem;font-size:.72rem;line-height:1.45;
   border-bottom:1px solid var(--line);color:var(--text-mid);background:var(--surface-raise)}
@@ -69,7 +69,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .thread-topo .nome{font-size:.9rem;font-weight:700;flex:1;min-width:0;overflow-wrap:anywhere}
 .thread-topo a{font-size:.7rem;color:var(--accent);text-decoration:none;white-space:nowrap}
 .msgs{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem;min-height:0}
-.msg{max-width:min(78%,34rem);padding:.55rem .8rem;border-radius:12px;font-size:.87rem;line-height:1.45;
+.msg{max-width:min(78%,34rem);padding:.55rem .8rem;border-radius: var(--r-md, 12px);font-size:.87rem;line-height:1.45;
   white-space:pre-wrap;word-break:break-word}
 .msg.in{align-self:flex-start;background:var(--surface-raise);border:1px solid var(--line)}
 .msg.out{align-self:flex-end;background:var(--text);color:var(--surface)}
@@ -77,9 +77,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 
 .responder{flex:none;border-top:1px solid var(--line);padding:.7rem;display:flex;gap:.5rem;align-items:flex-end}
 .responder textarea{flex:1;min-height:2.6rem;max-height:8rem;resize:vertical;font-family:inherit;font-size:.87rem;
-  color:var(--text);background:var(--surface-raise);border:1px solid var(--line);border-radius:9px;padding:.55rem .7rem}
+  color:var(--text);background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r, 8px);padding:.55rem .7rem}
 .responder textarea:focus{outline:none;border-color:var(--accent)}
-.responder button{font-family:inherit;font-size:.8rem;font-weight:700;padding:.6rem 1rem;border-radius:9px;
+.responder button{font-family:inherit;font-size:.8rem;font-weight:700;padding:.6rem 1rem;border-radius: var(--r, 8px);
   border:none;background:var(--text);color:var(--surface);cursor:pointer;white-space:nowrap}
 .responder button:disabled{opacity:.5;cursor:default}
 .aviso{font-size:.72rem;padding:.5rem .7rem;border-top:1px solid var(--line);line-height:1.45}
@@ -96,7 +96,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
   .painel:not(.vendo-thread) .thread{display:none}
   .btn-voltar{display:inline-block !important}
 }
-.btn-voltar{display:none;background:none;border:1px solid var(--line);border-radius:7px;
+.btn-voltar{display:none;background:none;border:1px solid var(--line);border-radius: var(--r, 8px);
   color:var(--text-mid);font-family:inherit;font-size:.75rem;padding:.3rem .6rem;cursor:pointer}
 </style>
 </head>

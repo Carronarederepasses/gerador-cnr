@@ -17,14 +17,14 @@
 body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
   min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.2rem}
 .cartao{width:100%;max-width:29rem;background:var(--surface-raise);
-  border:1px solid var(--line);border-radius:18px;padding:1.8rem 1.6rem}
+  border:1px solid var(--line);border-radius: var(--r-lg, 16px);padding:1.8rem 1.6rem}
 h1{font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:900;line-height:1.2}
 .sub{color:var(--text-mid);font-size:.9rem;line-height:1.55;margin-top:.55rem}
 
 .estado{display:flex;gap:.7rem;align-items:flex-start;margin:1.3rem 0;
-  padding:.9rem 1rem;border-radius:12px;border:1px solid var(--line);
+  padding:.9rem 1rem;border-radius: var(--r-md, 12px);border:1px solid var(--line);
   font-size:.9rem;line-height:1.5}
-.estado .bolinha{width:.6rem;height:.6rem;border-radius:50%;flex:none;margin-top:.42rem}
+.estado .bolinha{width:.6rem;height:.6rem;border-radius: 50%;flex:none;margin-top:.42rem}
 .estado.ok{border-color:var(--severity-ok)}
 .estado.ok .bolinha{background:var(--severity-ok)}
 .estado.erro{border-color:var(--severity-crit)}
@@ -36,12 +36,12 @@ h1{font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:900;line-h
 label{display:block;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
   color:var(--text-faint);margin-bottom:.4rem}
 input{width:100%;font-family:inherit;font-size:1rem;padding:.75rem .85rem;
-  border:1px solid var(--line);border-radius:11px;background:var(--surface);
+  border:1px solid var(--line);border-radius: var(--r-md, 12px);background:var(--surface);
   color:var(--text)}
 input:focus{outline:none;border-color:var(--accent)}
 .linha{display:flex;gap:.6rem;margin-top:.8rem;flex-wrap:wrap}
 button{font-family:inherit;font-size:.92rem;font-weight:700;padding:.72rem 1.25rem;
-  border-radius:11px;border:none;background:var(--text);color:var(--surface);cursor:pointer}
+  border-radius: var(--r-md, 12px);border:none;background:var(--text);color:var(--surface);cursor:pointer}
 button.leve{background:none;border:1px solid var(--line);color:var(--text-mid);font-weight:500}
 button:disabled{opacity:.5;cursor:default}
 .nota{font-size:.78rem;color:var(--text-faint);line-height:1.5;margin-top:1.3rem;
@@ -175,7 +175,7 @@ $('btn-gerar').addEventListener('click', () => {
   saida.hidden = false;
   saida.textContent = v;
   saida.style.cssText = 'display:block;margin-top:.8rem;padding:.8rem .9rem;' +
-    'border:1px solid var(--line);border-radius:11px;background:var(--surface);' +
+    'border:1px solid var(--line);border-radius: var(--r-md, 12px);background:var(--surface);' +
     'font-family:ui-monospace,monospace;font-size:.95rem;word-break:break-all;' +
     'user-select:all;line-height:1.5';
   // Já deixa no campo: o passo seguinte é liberar este aparelho.

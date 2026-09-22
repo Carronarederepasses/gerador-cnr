@@ -94,7 +94,7 @@
       "font-family:'DM Sans',system-ui,sans-serif";
     box.innerHTML =
       '<div style="background:var(--surface-raise,#fff);color:var(--text,#111);' +
-        'border-radius:16px;padding:1.6rem;max-width:26rem;line-height:1.55">' +
+        'border-radius:var(--r-lg, 16px);padding:1.6rem;max-width:26rem;line-height:1.55">' +
         '<div style="font-size:1.15rem;font-weight:700;margin-bottom:.7rem">' +
           'Este aparelho ainda não foi liberado</div>' +
         '<p style="font-size:.92rem;margin:0 0 .9rem">' +
@@ -104,7 +104,7 @@
           'Abra o <strong>link de liberação</strong> uma vez neste aparelho. ' +
           'Depois disso ele não pergunta mais nada.</p>' +
         '<button id="cnr-auth-ok" style="font:inherit;font-size:.9rem;' +
-          'font-weight:700;padding:.65rem 1.2rem;border:none;border-radius:10px;' +
+          'font-weight:700;padding:.65rem 1.2rem;border:none;border-radius:var(--r-md, 12px);' +
           'background:var(--text,#111);color:var(--surface,#fff);cursor:pointer">' +
           'Entendi</button>' +
       '</div>';

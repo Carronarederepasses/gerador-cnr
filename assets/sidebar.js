@@ -130,19 +130,19 @@
   }
 
   function buildModal() {
-    var inp = 'width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:.82rem;box-sizing:border-box';
+    var inp = 'width:100%;margin-top:.2rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:var(--r, 8px);background:var(--surface);color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:.82rem;box-sizing:border-box';
     var lbl = 'font-size:.68rem;color:var(--text-mid)';
     var el = document.createElement('div');
     el.id = 'cnr-md-bg';
     el.setAttribute('style', 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:1rem');
     el.innerHTML =
-      '<div style="background:var(--surface-raise);border:1px solid var(--line);border-radius:16px;padding:1.4rem;width:100%;max-width:380px;display:flex;flex-direction:column;gap:.9rem">'
+      '<div style="background:var(--surface-raise);border:1px solid var(--line);border-radius:var(--r-lg, 16px);padding:1.4rem;width:100%;max-width:380px;display:flex;flex-direction:column;gap:.9rem">'
       + '<div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700">Meus dados bancários</div>'
-      + '<pre id="cnr-md-preview" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;line-height:1.6;white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.9rem;margin:0"></pre>'
+      + '<pre id="cnr-md-preview" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;line-height:1.6;white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md, 12px);padding:.9rem;margin:0"></pre>'
       + '<div style="display:flex;gap:.5rem">'
-      +   '<button id="cnr-md-copiar" style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:.85rem;font-weight:700;padding:.65rem;border-radius:10px;border:none;background:var(--text);color:var(--surface);cursor:pointer">📋 Copiar</button>'
-      +   '<button id="cnr-md-editar" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:10px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✏️ Editar</button>'
-      +   '<button id="cnr-md-fechar" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:10px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✕</button>'
+      +   '<button id="cnr-md-copiar" style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:.85rem;font-weight:700;padding:.65rem;border-radius:var(--r-md, 12px);border:none;background:var(--text);color:var(--surface);cursor:pointer">📋 Copiar</button>'
+      +   '<button id="cnr-md-editar" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:var(--r-md, 12px);border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✏️ Editar</button>'
+      +   '<button id="cnr-md-fechar" style="font-family:\'DM Sans\',sans-serif;font-size:.85rem;padding:.65rem .9rem;border-radius:var(--r-md, 12px);border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">✕</button>'
       + '</div>'
       + '<div id="cnr-md-form" style="display:none;flex-direction:column;gap:.6rem">'
       +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">'
@@ -153,8 +153,8 @@
       +   '</div>'
       +   '<div><label style="' + lbl + '">Chave Pix</label><input id="cnr-mdf-pix" type="text" style="' + inp + '"></div>'
       +   '<div style="display:flex;gap:.5rem;margin-top:.2rem">'
-      +     '<button id="cnr-md-salvar" style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:.82rem;font-weight:700;padding:.55rem;border-radius:8px;border:none;background:var(--text);color:var(--surface);cursor:pointer">Salvar</button>'
-      +     '<button id="cnr-md-cancelar" style="font-family:\'DM Sans\',sans-serif;font-size:.82rem;padding:.55rem .8rem;border-radius:8px;border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">Cancelar</button>'
+      +     '<button id="cnr-md-salvar" style="flex:1;font-family:\'DM Sans\',sans-serif;font-size:.82rem;font-weight:700;padding:.55rem;border-radius:var(--r, 8px);border:none;background:var(--text);color:var(--surface);cursor:pointer">Salvar</button>'
+      +     '<button id="cnr-md-cancelar" style="font-family:\'DM Sans\',sans-serif;font-size:.82rem;padding:.55rem .8rem;border-radius:var(--r, 8px);border:1px solid var(--line);background:none;color:var(--text);cursor:pointer">Cancelar</button>'
       +   '</div>'
       + '</div>'
       + '</div>';

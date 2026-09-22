@@ -54,7 +54,7 @@
   .neg-top{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
   .neg-veiculo{font-size:.92rem;font-weight:500;flex:1;min-width:140px}
   .neg-contato{font-size:.78rem;color:var(--mid)}
-  .neg-status-pill{font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:.22rem .6rem;border-radius:20px;white-space:nowrap}
+  .neg-status-pill{font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:.22rem .6rem;border-radius: var(--r-lg, 16px);white-space:nowrap}
   .neg-dias{font-size:.62rem;color:var(--mid);white-space:nowrap}
   .neg-obs{font-size:.78rem;color:var(--mid);margin-top:.4rem;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .neg-motivo{font-size:.65rem;margin-top:.3rem;color:#ef4444;font-weight:600}
@@ -67,7 +67,7 @@
   .comp-item{display:flex;align-items:center;gap:.5rem;font-size:.78rem;min-width:0}
   .comp-item a{color:#8b5cf6;cursor:pointer;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
   .comp-item .x{cursor:pointer;opacity:.6;flex-shrink:0;padding:0 .3rem}
-  .comp-btn{background:none;border:1px solid #8b5cf6;color:#8b5cf6;font-family:'DM Sans',sans-serif;font-size:.72rem;padding:.4rem .8rem;cursor:pointer;border-radius:6px}
+  .comp-btn{background:none;border:1px solid #8b5cf6;color:#8b5cf6;font-family:'DM Sans',sans-serif;font-size:.72rem;padding:.4rem .8rem;cursor:pointer;border-radius: var(--r, 8px)}
   .comp-status{font-size:.72rem;margin-top:.35rem;min-height:1em;line-height:1.4}
   .comp-status.erro{color:#ef4444}
   .neg-match-motivo{font-size:.65rem;margin-top:.2rem;color:var(--severity-ok);font-weight:500}
@@ -109,7 +109,7 @@
   .motivo-sec{margin-bottom:.8rem}
   .motivo-sec label{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mid);display:block;margin-bottom:.4rem}
   .motivo-grid{display:flex;flex-wrap:wrap;gap:.35rem}
-  .motivo-pill{font-size:.75rem;padding:.28rem .65rem;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:none;color:var(--light);font-family:'DM Sans',sans-serif;transition:all .15s}
+  .motivo-pill{font-size:.75rem;padding:.28rem .65rem;border:1px solid var(--border);border-radius: var(--r-lg, 16px);cursor:pointer;background:none;color:var(--light);font-family:'DM Sans',sans-serif;transition:all .15s}
   .motivo-pill:hover{border-color:rgba(245,243,238,.4)}
   .motivo-pill.on{background:var(--white);color:var(--black);border-color:var(--white)}
 
@@ -128,7 +128,7 @@
   .status-menu.show{display:block}
   .status-menu-item{padding:.55rem .9rem;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-family:'DM Sans',sans-serif;font-weight:300;color:var(--white)}
   .status-menu-item:hover{background:rgba(245,243,238,.08)}
-  .status-menu-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .status-menu-item .dot{width:8px;height:8px;border-radius: 50%;flex-shrink:0}
 
   /* CONTRATO - SEÇÕES DO MODAL */
   .c-sec{border:1px solid var(--border);margin-bottom:.45rem}

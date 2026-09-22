@@ -30,36 +30,36 @@ h1{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900}
 .escrever{margin:1.2rem 0 1.6rem}
 .escrever textarea{width:100%;min-height:5.5rem;resize:vertical;font-family:inherit;
   font-size:1rem;line-height:1.5;color:var(--text);background:var(--surface-raise);
-  border:1px solid var(--line);border-radius:11px;padding:.8rem .9rem}
+  border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.8rem .9rem}
 .escrever textarea:focus{outline:none;border-color:var(--accent)}
 .linha-botao{display:flex;gap:.6rem;align-items:center;margin-top:.6rem}
 .btn{font-family:inherit;font-size:.9rem;font-weight:700;padding:.7rem 1.3rem;
-  border-radius:10px;border:none;background:var(--text);color:var(--surface);cursor:pointer}
+  border-radius: var(--r-md, 12px);border:none;background:var(--text);color:var(--surface);cursor:pointer}
 .btn:disabled{opacity:.5;cursor:default}
 .dica{font-size:.75rem;color:var(--text-faint);line-height:1.4}
 
 .grupo-tit{font-size:.63rem;letter-spacing:.14em;text-transform:uppercase;
   color:var(--text-faint);margin:1.6rem 0 .6rem}
 
-.ideia{border:1px solid var(--line);border-radius:11px;background:var(--surface-raise);
+.ideia{border:1px solid var(--line);border-radius: var(--r-md, 12px);background:var(--surface-raise);
   padding:.85rem .95rem;margin-bottom:.6rem}
 .ideia .txt{font-size:.95rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}
 .ideia .pe{display:flex;justify-content:space-between;align-items:center;gap:.6rem;
   flex-wrap:wrap;margin-top:.6rem}
 .ideia .quando{font-size:.7rem;color:var(--text-faint)}
 .acoes{display:flex;gap:.4rem;flex-wrap:wrap}
-.acoes button{font-family:inherit;font-size:.72rem;padding:.32rem .7rem;border-radius:7px;
+.acoes button{font-family:inherit;font-size:.72rem;padding:.32rem .7rem;border-radius: var(--r, 8px);
   border:1px solid var(--line);background:none;color:var(--text-mid);cursor:pointer}
 .acoes button:hover{color:var(--text);border-color:var(--text)}
 .acoes button.perigo:hover{color:var(--severity-crit);border-color:var(--severity-crit)}
 .ideia.resolvida{opacity:.6}
 .ideia.resolvida .txt{text-decoration:line-through;text-decoration-thickness:1px}
 
-.vazio{border:1px dashed var(--line);border-radius:11px;padding:1.8rem 1.1rem;
+.vazio{border:1px dashed var(--line);border-radius: var(--r-md, 12px);padding:1.8rem 1.1rem;
   text-align:center;color:var(--text-mid);font-size:.88rem;line-height:1.6}
 
 #tarja{position:fixed;left:50%;bottom:1.3rem;transform:translateX(-50%);z-index:60;
-  background:var(--text);color:var(--surface);padding:.7rem 1.1rem;border-radius:9px;
+  background:var(--text);color:var(--surface);padding:.7rem 1.1rem;border-radius: var(--r, 8px);
   font-size:.86rem;max-width:min(92vw,30rem);text-align:center;white-space:pre-wrap;
   display:none;box-shadow:0 6px 24px rgba(0,0,0,.22)}
 #tarja.erro{background:var(--severity-crit);color:#fff}

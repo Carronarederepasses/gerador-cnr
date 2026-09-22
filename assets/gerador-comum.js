@@ -796,7 +796,7 @@ async function mostrarMatchPopup(marca, valor) {
 
     const popup = document.createElement('div');
     popup.id = 'cnr-match-popup';
-    popup.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9998;background:#1c1c1e;border:1px solid #2c2c2e;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.5);padding:1rem 1.1rem;max-width:290px;width:calc(100vw - 3rem);font-family:"DM Sans",sans-serif;color:#f0f0f0;animation:slideUp .25s ease';
+    popup.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9998;background:#1c1c1e;border:1px solid #2c2c2e;border-radius:var(--r-md, 12px);box-shadow:0 8px 32px rgba(0,0,0,.5);padding:1rem 1.1rem;max-width:290px;width:calc(100vw - 3rem);font-family:"DM Sans",sans-serif;color:#f0f0f0;animation:slideUp .25s ease';
     popup.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
         <span style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:#888">🔔 Compradores compatíveis</span>

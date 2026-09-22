@@ -53,7 +53,7 @@
   display: block;
   margin: .15rem .6rem .35rem;
   padding: .5rem .6rem;
-  border-radius: 9px;
+  border-radius: var(--r, 8px);
   border: 1px solid var(--line);
   background: var(--surface-raise);
   text-decoration: none;
@@ -151,7 +151,7 @@
   z-index: 300;
   background: var(--surface-raise);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--r-md, 12px);
   width: 2.5rem;
   height: 2.5rem;
   font-size: 1.15rem;
