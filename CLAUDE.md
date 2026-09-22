@@ -5549,3 +5549,42 @@ feio que sumido. Conferido rodando o trecho real do card sobre os dados reais:
   celular é salvável. Ainda sem resposta.
 
 *Registrado em 18 de setembro de 2026.*
+
+---
+
+## Checkpoint — 22 de setembro de 2026
+
+**Catálogo:** botão **✏️ Editar** visível no card. A ficha só abria tocando no
+nome do carro (dica só no hover — nada no celular), e o único lápis visível era
+o da **placa**. Pior: desde 10/set a mensagem do story mandava "clicar no ✏️ do
+card", um botão que **não existia**. Corrigido e conferido a 375px.
+
+**Story:** FIPE opcional na arte (liga sozinha só quando o preço está **abaixo**
+dela; acima, a comparação joga contra num post público). Quando aparece, o bloco
+sobe para a última linha não cair na barra de responder do Instagram. E
+**📲 Compartilhar** direto do celular (Instagram → Story): a arte vira arquivo
+ao terminar de desenhar, porque o iPhone recusa compartilhar se houver espera
+depois do toque. Só aparece com toque como entrada principal — o Chrome do
+Windows também compartilha, mas sem Instagram.
+
+**Projeto do app — o piloto destravou.**
+- `supabase/schema-completo.sql` + `gerar-schema.js`: a estrutura das 12
+  tabelas, gerada da descrição que o próprio banco publica (OpenAPI). Conexão
+  direta ao Postgres é impossível daqui (Supabase gratuito só por IPv6, sem
+  rota nesta máquina) — conferido **antes** de pedir para instalar programa.
+- Projeto **`cnr-piloto`** criado pelo Yuri (Americas, "automatic RLS" ligado).
+  Script aplicado e **provado**: 12/12 tabelas, **203/203 colunas idênticas**,
+  buckets certos, tudo vazio. É também o primeiro backup real da estrutura.
+- Endereço e chave do piloto no `.env` local (`PILOTO_SUPABASE_*`), digitados
+  por ele.
+
+**Anotado para depois:** o código manda a chave `sb_secret_` também no
+`Authorization: Bearer`. Funciona hoje por compatibilidade de transição; se o
+Supabase desligar isso, as consultas voltam **vazias sem erro** (RLS sem
+policy). Correção pequena: mandar só no `apikey`.
+
+**Próximo:** projeto na Vercel para o piloto (mesmo repositório, variáveis
+apontando para o `cnr-piloto`); depois conta separada na APiBrasil com saldo
+pequeno e a varredura do `claude-security` antes de liberar o lojista.
+
+*Registrado em 22 de setembro de 2026.*
