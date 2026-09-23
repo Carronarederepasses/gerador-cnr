@@ -15,6 +15,8 @@
 //   GET    /api/compradores?evento=1&veiculo_id=X  → eventos de um veículo (ordem cronológica)
 
 const { exigirChave } = require('./_auth');
+const { db } = require('./_db');
+const { contaDoPedido } = require('./_conta');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -35,7 +37,7 @@ const CAMPOS_NEG = [
 // Pode sair depois que a migration tiver rodado.
 const COLUNAS_NOVAS_NEG = ['valor_sinal', 'sinal_em'];
 
-async function gravarNeg(path, opts) {
+async function gravarNeg(sb, path, opts) {
   const r = await sb(path, opts);
   if (r.ok) return r;
 
@@ -65,18 +67,15 @@ const CAMPOS_COMPRADOR = [
 ];
 const CAMPOS_EVENTO    = ['tipo','veiculo_id','venda_id','comprador_id','usuario','dados','origem'];
 
-function sb(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...opts,
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: opts.prefer || 'return=representation',
-      ...(opts.headers || {}),
-    },
-  });
-}
+// O `sb` local saiu em 23/set: vem de `_db.js`, amarrado à conta do pedido,
+// criado dentro do handler e passado a quem precisa. Não fica reserva aqui —
+// um `sb` de módulo seria o caminho sem dono esperando a chamada que eu
+// esquecesse de converter, funcionando em silêncio com dado de todas as lojas.
+//
+// Diferença desta função que NÃO pode se perder: o `sb` daqui mandava
+// `Prefer: return=representation` por padrão, e o de `_db.js` não manda. Sem
+// preservar isso, o POST voltaria 204 sem corpo e quem faz `r.json()` logo
+// depois quebraria. O padrão é reposto em `sbDaConta()`, no handler.
 
 function limpar(body, campos) {
   const out = {};
@@ -183,6 +182,11 @@ module.exports = async (req, res) => {
   // sai daqui é dado de terceiro — telefone, CPF, banco e Pix.
   if (exigirChave(req, res)) return;
 
+  // De quem é este pedido (fase 0, 23/set), com o padrão antigo preservado:
+  // `return=representation` continua sendo o comportamento de fábrica daqui.
+  const _sbConta = db(contaDoPedido(req));
+  const sb = (path, opts = {}) => _sbConta(path, { prefer: 'return=representation', ...opts });
+
   const q = req.query;
 
   try {
@@ -265,7 +269,7 @@ module.exports = async (req, res) => {
         if (!payload.veiculo_nome && !payload.comprador_nome)
           return res.status(400).json({ error: 'veiculo_nome ou comprador_nome obrigatório' });
         payload.historico = payload.historico || [];
-        const r = await gravarNeg('negociacoes', {
+        const r = await gravarNeg(sb, 'negociacoes', {
           method: 'POST', body: JSON.stringify(payload), prefer: 'return=representation',
         });
         const data = await r.json();
@@ -302,7 +306,7 @@ module.exports = async (req, res) => {
           const rSt = await sb(`negociacoes?id=eq.${encodeURIComponent(q.id)}&select=status,motivo_descarte,ultimo_contato,valor_proposto`);
           if (rSt.ok) snapAntes = (await rSt.json())[0] || null;
         }
-        const r = await gravarNeg(`negociacoes?id=eq.${q.id}`, {
+        const r = await gravarNeg(sb, `negociacoes?id=eq.${q.id}`, {
           method: 'PATCH', body: JSON.stringify(payload), prefer: 'return=representation',
         });
         const data = await r.json();

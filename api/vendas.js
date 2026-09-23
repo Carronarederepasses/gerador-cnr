@@ -22,6 +22,8 @@
 //   DELETE /api/vendas?anexo=1    body { vendaId, path }
 
 const { exigirChave } = require('./_auth');
+const { db } = require('./_db');
+const { contaDoPedido } = require('./_conta');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -47,17 +49,11 @@ const CAMPOS = [
   'status', 'doc_status', 'observacoes', 'anexos',
 ];
 
-function sb(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...opts,
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      ...(opts.headers || {}),
-    },
-  });
-}
+// O `sb` local saiu daqui em 23/set — agora vem de `_db.js`, amarrado à conta
+// do pedido. Ele NÃO fica como reserva de propósito: um `sb` de módulo ainda
+// declarado seria o caminho sem dono esperando a primeira chamada que eu
+// esquecesse de converter, e ela funcionaria em silêncio, devolvendo dado de
+// todas as lojas. Sem ele, o esquecimento vira erro na hora.
 
 function limpar(body) {
   const out = {};
@@ -73,7 +69,7 @@ function limpar(body) {
 // Pode ser removido depois que a migration tiver rodado.
 const COLUNAS_NOVAS = ['valor_sinal', 'sinal_em'];
 
-async function gravar(path, opts, payload) {
+async function gravar(sb, path, opts, payload) {
   const r = await sb(path, { ...opts, body: JSON.stringify(payload) });
   if (r.ok) return r;
 
@@ -90,7 +86,7 @@ async function gravar(path, opts, payload) {
 
 // ── Caixa Preta — registro histórico (fire-and-forget) ───────────
 // Nunca bloqueia a operação principal. Falha silenciosa com log de erro.
-function registrarHistorico({ evento, entidade = 'venda', entidade_id, veiculo_id, venda_id, cliente_id, dados_antes, dados_depois }) {
+function registrarHistorico(sb, { evento, entidade = 'venda', entidade_id, veiculo_id, venda_id, cliente_id, dados_antes, dados_depois }) {
   sb('historico', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
@@ -157,14 +153,14 @@ function donoDoAnexo(corpo) {
   return { erro: 'vendaId ou negociacaoId obrigatório.' };
 }
 
-async function getAnexos(dono) {
+async function getAnexos(sb, dono) {
   const r = await sb(`${dono.tabela}?id=eq.${dono.id}&select=anexos`);
   if (!r.ok) throw new Error(await r.text());
   const rows = await r.json();
   if (!rows.length) throw new Error(`${dono.rotulo} não encontrada.`);
   return Array.isArray(rows[0].anexos) ? rows[0].anexos : [];
 }
-async function setAnexos(dono, anexos) {
+async function setAnexos(sb, dono, anexos) {
   const r = await sb(`${dono.tabela}?id=eq.${dono.id}`, {
     method: 'PATCH', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ anexos }),
@@ -189,7 +185,7 @@ async function copiarNoStorage(de, para) {
 // venda já existe quando isto roda, e um comprovante que falhou não pode
 // desfazer um negócio fechado. Devolve { copiados, falhas } para a tela
 // poder DIZER o que aconteceu, em vez de fingir que deu certo.
-async function copiarAnexosDaNegociacao(negociacaoId, venda) {
+async function copiarAnexosDaNegociacao(sb, negociacaoId, venda) {
   const resultado = { copiados: 0, falhas: 0 };
   if (!UUID.test(String(negociacaoId || '')) || !venda || !venda.id) return resultado;
 
@@ -225,7 +221,7 @@ async function copiarAnexosDaNegociacao(negociacaoId, venda) {
   if (novos.length) {
     try {
       const atuais = Array.isArray(venda.anexos) ? venda.anexos : [];
-      await setAnexos({ tabela: 'vendas', id: venda.id }, atuais.concat(novos));
+      await setAnexos(sb, { tabela: 'vendas', id: venda.id }, atuais.concat(novos));
       venda.anexos = atuais.concat(novos);
     } catch (e) {
       // Arquivo copiado mas não registrado: fica no storage sem referência.
@@ -237,7 +233,7 @@ async function copiarAnexosDaNegociacao(negociacaoId, venda) {
   return resultado;
 }
 
-async function anexoHandler(req, res, q) {
+async function anexoHandler(sb, req, res, q) {
   // GET → link temporário assinado
   if (req.method === 'GET') {
     const { path } = q;
@@ -281,9 +277,9 @@ async function anexoHandler(req, res, q) {
       // pasta do próprio dono — senão uma negociação poderia "adotar" o
       // comprovante de outra venda só informando o caminho dele.
       if (!path.startsWith(dono.pasta + '/')) return res.status(400).json({ error: 'caminho fora da pasta do registro.' });
-      const anexos = await getAnexos(dono);
+      const anexos = await getAnexos(sb, dono);
       anexos.push({ tipo: tipoSeguro(tipo), path, nome: nome || path.split('/').pop(), mimeType, uploadedAt: new Date().toISOString() });
-      await setAnexos(dono, anexos);
+      await setAnexos(sb, dono, anexos);
       return res.status(200).json({ anexos });
     }
     // upload via base64 (arquivos pequenos, mantido por compatibilidade)
@@ -299,9 +295,9 @@ async function anexoHandler(req, res, q) {
       body: Buffer.from(fileBase64, 'base64'),
     });
     if (!up.ok) throw new Error(await up.text());
-    const anexos = await getAnexos(dono);
+    const anexos = await getAnexos(sb, dono);
     anexos.push({ tipo: tipoSeguro(tipo), path: objPath, nome: nome || objPath.split('/').pop(), mimeType, uploadedAt: new Date().toISOString() });
-    await setAnexos(dono, anexos);
+    await setAnexos(sb, dono, anexos);
     return res.status(201).json({ anexos });
   }
   // DELETE → remove
@@ -316,8 +312,8 @@ async function anexoHandler(req, res, q) {
     await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
       method: 'DELETE', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
     });
-    const anexos = (await getAnexos(dono)).filter(a => a.path !== path);
-    await setAnexos(dono, anexos);
+    const anexos = (await getAnexos(sb, dono)).filter(a => a.path !== path);
+    await setAnexos(sb, dono, anexos);
     return res.status(200).json({ anexos });
   }
   return res.status(405).json({ error: 'Método não permitido.' });
@@ -334,6 +330,12 @@ module.exports = async (req, res) => {
   // devolvia placa, renavam, chassi, valor de compra e lucro a quem pedisse.
   if (exigirChave(req, res)) return;
 
+  // De quem é este pedido (fase 0, 23/set). `db()` recusa sem conta, e o
+  // `sb` é PASSADO a quem precisa em vez de ficar em variável do módulo: a
+  // Vercel pode atender dois pedidos ao mesmo tempo na mesma instância, e
+  // variável trocada por pedido faria um usar a conta do outro.
+  const sb = db(contaDoPedido(req));
+
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return res.status(500).json({ error: 'Supabase não configurado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).' });
   }
@@ -342,7 +344,7 @@ module.exports = async (req, res) => {
 
   try {
     // Rota de anexos
-    if (q.anexo !== undefined) return await anexoHandler(req, res, q);
+    if (q.anexo !== undefined) return await anexoHandler(sb, req, res, q);
 
     // Importação em lote (só POST)
     if (q.import === '1') {
@@ -383,7 +385,7 @@ module.exports = async (req, res) => {
       if (!payload.comprador_nome && !payload.vendedor_nome && !payload.marca) {
         return res.status(400).json({ error: 'Informe ao menos o comprador, o vendedor ou o veículo.' });
       }
-      const r = await gravar(TABLE, {
+      const r = await gravar(sb, TABLE, {
         method: 'POST', headers: { Prefer: 'return=representation' },
       }, payload);
       if (!r.ok) throw new Error(await r.text());
@@ -391,7 +393,7 @@ module.exports = async (req, res) => {
       const venda = data[0] || data;
 
       // Caixa Preta — VENDA_CRIADA (fire-and-forget, nunca bloqueia)
-      registrarHistorico({
+      registrarHistorico(sb, {
         evento:       'VENDA_CRIADA',
         entidade_id:  venda.id,
         veiculo_id:   venda.veiculo_id   || null,
@@ -444,7 +446,7 @@ module.exports = async (req, res) => {
         // enviar a resposta e cancela o que estiver pendente (lição da Reforma
         // 35, Etapa 6). E falha aqui NUNCA derruba a venda — o negócio fechou;
         // um comprovante que não copiou se anexa à mão depois.
-        venda.anexos_copiados = await copiarAnexosDaNegociacao(negociacao_id, venda);
+        venda.anexos_copiados = await copiarAnexosDaNegociacao(sb, negociacao_id, venda);
       }
 
       // Auto-atualiza veículos para "vendido" após venda registrada.
@@ -480,7 +482,7 @@ module.exports = async (req, res) => {
       const rAntes = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}&select=*`);
       const dadosAntes = rAntes.ok ? ((await rAntes.json())[0] || null) : null;
 
-      const r = await gravar(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
+      const r = await gravar(sb, `${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
         method: 'PATCH', headers: { Prefer: 'return=representation' },
       }, payload);
       if (!r.ok) throw new Error(await r.text());
@@ -488,7 +490,7 @@ module.exports = async (req, res) => {
       const vendaDepois = data[0] || data;
 
       // Caixa Preta — VENDA_EDITADA (fire-and-forget, nunca bloqueia)
-      registrarHistorico({
+      registrarHistorico(sb, {
         evento:       'VENDA_EDITADA',
         entidade_id:  q.id,
         veiculo_id:   dadosAntes?.veiculo_id   || vendaDepois?.veiculo_id   || null,
@@ -512,7 +514,7 @@ module.exports = async (req, res) => {
       if (!r.ok) throw new Error(await r.text());
 
       // Caixa Preta — VENDA_EXCLUIDA (fire-and-forget, nunca bloqueia)
-      registrarHistorico({
+      registrarHistorico(sb, {
         evento:       'VENDA_EXCLUIDA',
         entidade_id:  q.id,
         veiculo_id:   snapshot?.veiculo_id   || null,
