@@ -16,10 +16,15 @@
 -- toca é alarme que se aprende a ignorar. E lixo de teste no banco do
 -- cliente é lixo no banco do cliente.
 
+-- A ORDEM IMPORTA: quem aponta sai antes de quem é apontado.
+-- `lab_vendas` tem chave estrangeira para `lab_veiculos`; a primeira
+-- versão deste arquivo mandava apagar o veículo antes da venda e o banco
+-- recusou (2BP01), com razão. `CASCADE` resolveria e está fora de
+-- propósito: ele apagaria junto o que dependesse, sem dizer o quê.
 drop table if exists lab_conta_membros;
-drop table if exists lab_usuarios;
-drop table if exists lab_veiculos;
 drop table if exists lab_vendas;
+drop table if exists lab_veiculos;
+drop table if exists lab_usuarios;
 drop table if exists lab_contas;
 
 -- Depois de rodar, conferir daqui:  node supabase/confere-bancos.js
