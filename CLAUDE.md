@@ -5959,3 +5959,54 @@ comentários; o dia em que alguém (eu) criar um endpoint novo à mão é o dia
 em que o funil deixa de valer.
 
 *Registrado em 23 de setembro de 2026, noite.*
+
+### 23/set (noite II) — as duas guardas, e o que elas acharam no primeiro uso
+
+Os quatro sócios convergiram em construir o verificador do funil agora.
+Construído (`scripts/checa-funil.js`), mais o comparador dos dois bancos
+(`supabase/confere-bancos.js`). **Cada um achou defeito na primeira
+execução, e os dois defeitos eram meus.**
+
+**O script que dois deles sugeriram não pegaria nada.** Perplexity e
+Gemini mandaram procurar `createClient(`. Este projeto **não usa
+`createClient` em lugar nenhum** — fala com o PostgREST por `fetch`. O
+guarda passaria sempre, com cara de aprovado. E proibir `SUPABASE_URL`
+acusaria `catalogo`, `vendas` e `utils`, que usam para `/storage/v1` e
+para o ping — guarda que dá falso positivo é guarda que se desliga na
+primeira semana. **A regra certa é `/rest/v1`.**
+
+O aviso do ChatGPT foi o mais afiado, e era sobre o meu histórico: *"não
+faria um verificador baseado em grep genérico — os seus já acusaram
+código que só existia em comentário"*. Então o script **não remove
+comentário antes de olhar**: a remoção esperta engoliu código em 04/set e
+10/set. `/rest/v1` dentro de comentário também acusa — falso positivo,
+mas para o lado seguro. Tem `--teste` (5 casos) porque **guarda quebrado
+passa por guarda funcionando**, que é pior que não ter.
+
+| guarda | achou |
+|---|---|
+| `checa-funil.js` | `compradores.js` e `fetch-anuncio.js` **ainda declaravam** `SUPABASE_URL`/`SERVICE_KEY` sem usar — exatamente o que escrevi em 23/set ter removido. Removi o `sb()` e deixei as constantes: a semente à mão, convidando o próximo `fetch` a nascer por fora |
+| `confere-bancos.js` | **5 tabelas `lab_*` minhas no banco do lojista**, sobra do ensaio da fase 0. 12 linhas, todas inventadas. `supabase/limpa-lab-piloto.sql` escrito — apagar tabela em banco de cliente passa pelo dono |
+
+**Duas armadilhas anotadas no comparador**, para ele não virar falso
+sucesso: (a) a descrição que o PostgREST publica **não traz valor padrão
+complexo** — foi assim que o piloto nasceu sem os defaults de jsonb —
+então "0 divergências" quer dizer *as colunas batem*, não *os dois bancos
+se comportam igual*; (b) `process.exitCode` em vez de `process.exit()`,
+porque com a conexão aberta o encerramento à força estoura no libuv do
+Windows e devolve **127 no lugar de 1**.
+
+**Correções à conta deles, que eu não usaria sem conferir:** "remova a
+chave anon do projeto" (não confirmei que dá — e não é o que protege; o
+que separa loja de loja é o filtro no servidor) e "Supabase Pro, projetos
+ilimitados" (cada projeto além do crédito incluído tem custo de máquina
+próprio — conferir no preço antes de virar conta de orçamento).
+
+**Correção que aceito, e muda o que eu tinha escrito:** eu disse que o
+gatilho da virada multi-loja é *o segundo cliente pagante*. O ChatGPT
+apontou que isso faz a migração **com dinheiro e cliente real já dentro**.
+O certo é virar quando houver evidência de segunda loja — piloto usando
+de verdade mais alguém interessado — e **antes** de o segundo entrar no
+banco. Falta levar isso para a §8 do CONTEXTO (aguardando o Yuri).
+
+*Registrado em 23 de setembro de 2026, noite.*
