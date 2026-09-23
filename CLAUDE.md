@@ -54,6 +54,19 @@ O Gerador CNR deixou de ser apenas um gerador de anúncios. Hoje, ele evolui par
 
 ## 2. Identidade Visual
 
+> **Regra permanente — escala de medidas (22/set/2026).** Canto, espaçamento e
+> tamanho de letra saem da escala em `assets/tokens.css` (`--r*`, `--s-*`,
+> `--fs-*`), nunca de número inventado na hora. Sempre com reserva —
+> `var(--r-md, 12px)` — porque `entrar.html`, `instalar.html` e `artes.html`
+> não carregam o tokens.css. Sem essa regra o app chegou a **23 cantos, 80
+> tamanhos de letra e 216 espaçamentos** distintos, 131 deles usados uma vez
+> só — é o que dá a sensação de "quase alinhado" entre telas e é uma das
+> marcas de código gerado tela a tela.
+>
+> Os cantos foram normalizados em 22/set. **Letra e espaçamento continuam
+> dispersos** e se corrigem quando a tela for tocada por outro motivo: em
+> bloco, deslocam layout sem ganho que pague o risco.
+
 - **Cores:** Preto e branco (identidade editorial)
 - **Tipografia:** Playfair Display (serif) + DM Sans
 - **Tom:** Premium, direto, sem enrolação
@@ -5588,3 +5601,97 @@ apontando para o `cnr-piloto`); depois conta separada na APiBrasil com saldo
 pequeno e a varredura do `claude-security` antes de liberar o lojista.
 
 *Registrado em 22 de setembro de 2026.*
+
+### 22/set (tarde) — marca por site, para o piloto do Bruno (BHM Autos)
+
+Os dois sites (gerador-cnr e cnr-piloto) saem do mesmo repositório, e cada
+push publica nos dois. Então a marca não pode estar no código: virou variável
+de ambiente, lida em `api/_marca.js` e aplicada por `assets/marca.js`
+(carregado sem `defer`, logo depois do `auth.js`, em todas as telas).
+
+Variáveis: `MARCA_NOME`, `MARCA_SUBTITULO`, `MARCA_INSTAGRAM`, `MARCA_EMAIL`,
+`MARCA_LOGO` (URL), `MARCA_ICONE`, `MARCA_ESCONDER` (ex.:
+`radar,anuncios,conversas,foto`). **Sem nenhuma, tudo é Carro na Rede.**
+Nome próprio não herda Instagram nem e-mail da CNR — herdar seria o link
+errado indo para o cliente do lojista.
+
+O que sai com a marca do site: link do Instagram no fim do anúncio
+(captação, parceiros, catálogo), arroba do story, PDF da avaliação, contrato
+(nome fantasia e as 12 menções nas cláusulas), e-mail padrão do contrato,
+título, barra lateral, marca d'água, ícone e manifesto do app instalado
+(`utils?type=manifesto` — o arquivo estático sairia com o ícone da CNR).
+
+`utils?type=marca` e `?type=manifesto` ficam abertos como o ping: são o que
+já está escrito na tela, e a tela de liberação precisa deles antes da chave.
+
+Conferido: produção idêntica ao de antes (título, 14 itens de menu, anúncio,
+contrato, marca d'água). Commit `4557c99`.
+
+**Fica com a CNR mesmo no piloto** (telas escondidas por `MARCA_ESCONDER`):
+mensagem de abordagem (`_abordagem.js`, âncora da extensão), estúdio de foto
+(`bg-cnr.jpg` e o prompt do `ia-compor.js`), `artes.html` e `instalar.html`
+(sem link no app).
+
+**Pendente:** o logo da BHM (arquivo original com o Bruno) — sobe para o
+bucket público `veiculos` do projeto piloto, e o endereço vai em `MARCA_LOGO`.
+
+**Provado pelo Yuri (22/set, tarde):** `cnr-piloto.vercel.app` liberado no
+Chrome dele, marca BHM Autos aparecendo, **Catálogo e Vendas vazios** — o
+site do piloto usa o banco do piloto e não enxerga nada da Carro na Rede.
+Variáveis no cnr-piloto: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CNR_KEY,
+CNR_OPERADOR (=BHM), MARCA_NOME/INSTAGRAM/SUBTITULO/ESCONDER. Ainda sem IA
+(OpenRouter), consulta de placa (APiBrasil) e FIPE_TOKEN.
+
+**FIPE no piloto — decisão do Yuri (22/set): sem token.** O fipe.api.br só
+cria conta pelo GitHub, e a conta dele já está ligada ao dele. Sem token o
+piloto usa a cota anônima (500/dia, dividida com o IP da Vercel) e, se
+acabar, só o piloto sente — o site do Yuri tem token próprio. Se o Bruno
+bater em limite: usar o token do Yuri (divide 1.000/dia) ou GitHub novo.
+
+### 22/set (noite) — varredura antes de entregar o piloto
+
+O `claude-security` não pôde ser instalado (o catálogo de plugins não aparece
+nesta conta e a instalação pede janela de terminal que o app não tem). Feita
+varredura manual do que importava: **nenhum segredo** em arquivo servido ao
+navegador nem nas 697 versões do git (o que casou foi a palavra `sb_secret_`
+escrita neste checkpoint); `.env` fora do git; no piloto, sem chave, 401 em
+vendas, compradores, catálogo e buscas; abertos só ping e marca, que não
+devolvem dado.
+
+**Achado e corrigido:** `api/ping.js` estava versionado, duplicado e **sem
+`exigirChave`**. Não está no ar (404 nos dois sites, ninguém o chama — o cron
+usa `utils?type=ping`), mas era porta aberta esperando o dia de subir.
+Removido; a contagem voltou de 13 para 12 funções, o teto do Hobby.
+
+**Chave do piloto trocada por uma gerada na hora** (22/set). Motivo: não
+havia como provar que a anterior era diferente da `CNR_KEY` do Yuri — e se
+fosse igual, o lojista abriria o site dele. Confirmado na tela: a antiga
+passou a recusar, a nova liberou. **A do piloto está anotada como
+"PILOTO BHM" no bloco de notas do Yuri.**
+
+`OPENROUTER_API_KEY` do piloto: chave própria com teto de US$ 5
+(`piloto-bhm`), criada dentro da conta do Yuri — gasto do lojista não toca o
+saldo dele. A chave CRR do Yuri segue sem teto (US$ 4,95 gastos no total
+desde agosto); sugerido teto de US$ 20, decisão dele.
+
+**iPhone (o Bruno usa):** sem `MARCA_LOGO`, o ícone na tela inicial sai com o
+da Carro na Rede — pedir o logo antes de ele instalar, ou usar pelo Safari
+sem instalar. E o Safari apaga o que o site guarda depois de dias sem uso:
+ele pode precisar colar a chave de novo, então ela vai por escrito.
+
+**Logo da BHM aplicado (22/set, noite).** O JPG do Bruno foi para o bucket
+público `veiculos` do projeto piloto, em `marca/`, mais um quadrado 1024
+gerado a partir dele (canvas, fundo preto) para o ícone do iPhone —
+`MARCA_LOGO` e `MARCA_ICONE` no cnr-piloto. Confirmado no ar: marca,
+manifesto e ícone saindo BHM Autos; produção segue Carro na Rede.
+
+Duas armadilhas encontradas ao subir: o servidor de conferência
+(`scratchpad/serve2.js`) grava o corpo do POST **como base64**, então mandar
+o binário cru salva lixo com nome de PNG; e o CDN do Supabase **guardou o
+arquivo estragado** — `upload 200` e download de 185 bytes ao mesmo tempo.
+Resolvido subindo com nome novo (`bhm-icone-1024.png`) e apagando o quebrado.
+Vale para qualquer troca futura de imagem: **nome novo, ou a versão velha
+continua sendo servida.**
+
+Se o Bruno tiver o logo em PNG com fundo transparente, trocar melhora a barra
+lateral (hoje é JPG de fundo preto, com retângulo quase invisível no escuro).
