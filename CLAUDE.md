@@ -6009,4 +6009,23 @@ O certo é virar quando houver evidência de segunda loja — piloto usando
 de verdade mais alguém interessado — e **antes** de o segundo entrar no
 banco. Falta levar isso para a §8 do CONTEXTO (aguardando o Yuri).
 
+**Fechado na mesma noite:** o Yuri rodou a limpeza no `cnr-piloto` e o
+comparador ficou verde — **15 tabelas, 227 colunas, os dois bancos
+batem**. O banco do lojista não tem mais sobra de ensaio minha.
+
+**Erro meu no caminho, e é de ordem:** a primeira versão do
+`limpa-lab-piloto.sql` mandava apagar `lab_veiculos` antes de
+`lab_vendas`, que aponta para ela. O Postgres recusou (`2BP01`) e — o que
+salvou — **cancelou o bloco inteiro**, então nada foi apagado pela
+metade. Corrigido pela ordem, não por `CASCADE`: o `CASCADE` teria
+funcionado na primeira tentativa e apagado junto o que dependesse, sem
+dizer o quê. Num banco de cliente, o atalho que não conta o que fez é o
+atalho errado.
+
+Conferi o `project ref` da aba dele contra o `.env` **antes** de mandar
+clicar em Run — `qnegbsmtygwiakbukbmz` é o piloto,
+`doabpazbzkgujyeeosqp` é o da CNR. Dois `drop table` no projeto errado
+seriam irreversíveis, e o Supabase pergunta "tem certeza?" sem saber em
+qual banco você está.
+
 *Registrado em 23 de setembro de 2026, noite.*
