@@ -956,18 +956,25 @@ function abordar(id) {
     } else {
       // Extensão presente mas abordar() falhou (ex.: SW dormindo)
       mostrarToast('⚠️ Extensão respondeu mas ocorreu um erro.\nAbrindo chat diretamente — mensagem copiada para colar.');
-      _abortarFallback(a.listing_id);
+      _abortarFallback(a.listing_id, a.url);
     }
   };
 
   window.addEventListener('message', handler);
+  // No celular a mensagem é copiada AQUI, dentro do toque, e não 600ms
+  // depois: o iPhone recusa escrever na área de transferência quando o pedido
+  // vem fora do gesto. Mesma regra do compartilhar do story (10/set).
+  // No computador segue sendo copiada só no recuo, para não sobrescrever o que
+  // o operador tinha copiado nos casos em que a extensão resolve sozinha.
+  if (_noCelular()) navigator.clipboard?.writeText(MSG_ABORDAGEM).catch(() => {});
+
   window.postMessage({ cnr_type: 'CNR_ABORDAR', listing }, '*');
 
   // Fallback: extensão não instalada ou bridge não injetada → 600ms sem ACK
   setTimeout(() => {
     if (acked) return;
     window.removeEventListener('message', handler);
-    _abortarFallback(a.listing_id);
+    _abortarFallback(a.listing_id, a.url);
   }, 600);
 }
 
@@ -988,14 +995,37 @@ function abrirCaixaAbordagem(id) {
   sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-function _abortarFallback(listing_id) {
-  // Nome próprio, separado do `cnr-olx`: o chat e o anúncio são coisas
-  // diferentes e ele pode querer os dois abertos ao mesmo tempo. Mas cada um
-  // reaproveita a SUA aba, em vez de somar uma nova por clique.
-  const aba = window.open(`https://chat.olx.com.br/?list-id=${listing_id}`, 'cnr-olx-chat');
+// Toque como entrada principal = celular. Mesmo teste do compartilhar do
+// story; não olha o nome do navegador, que mente com facilidade.
+function _noCelular() {
+  return !!window.matchMedia?.('(pointer: coarse)')?.matches;
+}
+
+function _abortarFallback(listing_id, url) {
+  // No CELULAR o destino é a página do ANÚNCIO, não o chat.
+  //
+  // Medido com o Yuri em 23/set, no aparelho dele: chat.olx.com.br/?list-id=
+  // entregue ao aplicativo da OLX devolve "algo deu errado ao carregar suas
+  // mensagens". Pelo anúncio funciona — o app abre a ficha, o botão Chat de
+  // dentro dele abre a conversa certa, e ali a mensagem copiada cola. Os dois
+  // passos foram confirmados por ele no aparelho antes desta mudança.
+  //
+  // No COMPUTADOR segue indo direto ao chat: lá o link abre no navegador, sem
+  // aplicativo no meio, e passar pelo anúncio só daria um clique a mais.
+  const celular = _noCelular();
+  const destino = (celular && url) ? url : 'https://chat.olx.com.br/?list-id=' + listing_id;
+
+  // Nome próprio por destino: chat e anúncio são coisas diferentes e ele pode
+  // querer os dois abertos. Cada um reaproveita a SUA aba.
+  const aba = window.open(destino, celular ? 'cnr-olx' : 'cnr-olx-chat');
   if (aba) aba.focus();
-  navigator.clipboard.writeText(MSG_ABORDAGEM).catch(() => {});
-  mostrarToast('⚠️ Extensão não detectada.\nChat aberto — mensagem copiada. Cole, revise e envie.\nDepois clique ✅ ENVIEI aqui.');
+
+  if (celular) {
+    mostrarToast('📋 Mensagem copiada.\nNo app da OLX: toque em Chat, cole e envie.\nDepois volte aqui e clique ✅ ENVIEI.');
+  } else {
+    navigator.clipboard.writeText(MSG_ABORDAGEM).catch(() => {});
+    mostrarToast('⚠️ Extensão não detectada.\nChat aberto — mensagem copiada. Cole, revise e envie.\nDepois clique ✅ ENVIEI aqui.');
+  }
 }
 
 // ── Toast de feedback ─────────────────────────────────────────────
