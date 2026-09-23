@@ -5908,3 +5908,54 @@ Os dois do mesmo tipo: **não davam erro em lugar nenhum.**
 4. CNPJ — segue travando consulta veicular completa e cobrança
 
 *Fechado em 23 de setembro de 2026.*
+
+---
+
+### 23/set (noite) — a rodada dos sócios: o que era verdade e o que não era
+
+Quatro revisões (Gemini, Perplexity, Grok, ChatGPT) sobre o estado de hoje.
+Conferi cada alegação no código **antes** de agir — a lição de 11/set.
+
+**Confirmado e corrigido por mim:**
+
+1. **Documento de veículo em bucket público** (`708c8d0`). CRLV, laudo e
+   cautelar iam para o bucket `veiculos`, que é público de propósito (as
+   fotos do catálogo precisam ser lidas sem chave). Documento de carro
+   alheio, não. Bucket privado `veiculos-docs`, link assinado de 1h, 4
+   arquivos migrados com a ordem **copia → confere → atualiza o banco → só
+   então apaga**. As URLs públicas antigas respondem 400.
+   Armadilha reencontrada: o CDN do Supabase seguiu servindo 200 no arquivo
+   já apagado por alguns minutos — a mesma de 22/set com o ícone.
+2. **A §8 do CONTEXTO dizia que isolamento não existe** (`a20cdf4`). Texto
+   anterior à fase 0, contradizendo a §4 do mesmo documento. Era o achado
+   mais barato de corrigir e o de pior consequência: conselho errado vindo
+   dos sócios já aconteceu em 11/set.
+
+**Refutado, com o código na mão:**
+
+| alegação | veredito |
+|---|---|
+| A extensão faz polling na OLX | **errado** — o radar roda por alarme de 60min e o monitor só olha a aba que o Yuri abriu |
+| O front tem cliente Supabase | **errado** — zero menção a "supabase" em arquivo servido ao navegador; tudo passa por `/api` |
+| O `conta_id` pode vir do navegador | **errado** — o funil sobrescreve no POST e o `contaDoPedido` lê de variável de ambiente |
+
+**O que sobra, e é dele:**
+
+- **Radar desligado na máquina da mãe.** O padrão é LIGADO de propósito
+  (11/set: padrão desligado faria os anúncios pararem em silêncio). Na
+  máquina dela, desligar nas opções da extensão — senão são duas sessões da
+  mesma conta varrendo a OLX em dobro.
+- **Códigos de recuperação do 2FA fora do celular.** Com 2FA ligado e os
+  códigos só no aparelho, perder o aparelho é perder Gmail, Vercel,
+  Supabase, OLX e Instagram de uma vez.
+- **`conta_id` obrigatório** (tirar o DEFAULT). O gatilho não é o
+  calendário: é **antes do segundo cliente pagante**, quando duas lojas
+  passam a dividir o mesmo banco. Até lá é um site por loja, e o DEFAULT
+  acerta.
+
+**Anotado, não feito:** um verificador que recuse arquivo novo em `api/`
+montando URL de `/rest/v1` fora do `_db.js`. Hoje a regra existe só nos
+comentários; o dia em que alguém (eu) criar um endpoint novo à mão é o dia
+em que o funil deixa de valer.
+
+*Registrado em 23 de setembro de 2026, noite.*
