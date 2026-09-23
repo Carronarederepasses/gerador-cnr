@@ -21,6 +21,9 @@
 //   POST   /api/catalogo?foto=1   body { veiculoId, imageBase64, mimeType }
 //   DELETE /api/catalogo?foto=1   body { veiculoId, url }
 
+const { db } = require('./_db');
+const { contaDoPedido } = require('./_conta');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const { exigirChave } = require('./_auth');
@@ -40,17 +43,13 @@ const CAMPOS = [
   'valor_compra', 'gastos', 'gastos_valor', 'renavam', 'vendedor_nome', 'vendedor_telefone',
 ];
 
-function sb(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...opts,
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      ...(opts.headers || {}),
-    },
-  });
-}
+// O `sb` local saiu daqui em 23/set: agora vem de `_db.js`, já amarrado à
+// conta do pedido, e é PASSADO a quem precisa dele.
+//
+// Por que passar em vez de guardar numa variável do módulo: a Vercel pode
+// atender dois pedidos ao mesmo tempo na mesma instância. Variável trocada a
+// cada pedido faria um pedido usar a conta do outro — exatamente o vazamento
+// que o funil existe para impedir, criado por comodidade de escrita.
 
 function limpar(body) {
   const out = {};
@@ -60,7 +59,7 @@ function limpar(body) {
 
 // ── Caixa Preta — registro histórico (fire-and-forget) ───────────────
 // Nunca bloqueia a operação principal. Falha silenciosa com log de erro.
-function registrarHistorico({ evento, entidade_id, veiculo_id, dados_antes, dados_depois }) {
+function registrarHistorico(sb, { evento, entidade_id, veiculo_id, dados_antes, dados_depois }) {
   sb('historico', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
@@ -101,14 +100,14 @@ function filtros(q) {
 }
 
 // ── Fotos (bucket público) ───────────────────────────────────────
-async function getFotos(veiculoId) {
+async function getFotos(sb, veiculoId) {
   const r = await sb(`veiculos?id=eq.${veiculoId}&select=fotos`);
   if (!r.ok) throw new Error(await r.text());
   const rows = await r.json();
   if (!rows.length) throw new Error('Veículo não encontrado.');
   return Array.isArray(rows[0].fotos) ? rows[0].fotos : [];
 }
-async function setFotos(veiculoId, fotos) {
+async function setFotos(sb, veiculoId, fotos) {
   const r = await sb(`veiculos?id=eq.${veiculoId}`, {
     method: 'PATCH', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ fotos }),
@@ -124,7 +123,7 @@ function pathFromUrl(url) {
 
 // Upload de foto de avaria (não entra no array fotos do veículo — fica só na avaliação)
 // POST ?avaria=1  body { veiculoId, item, imageBase64, mimeType }  → { url }
-async function avariaHandler(req, res) {
+async function avariaHandler(sb, req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
   const { veiculoId, item = 'avaria', imageBase64, mimeType = 'image/jpeg' } = req.body || {};
   if (!veiculoId || !imageBase64) return res.status(400).json({ error: 'veiculoId e imageBase64 obrigatórios.' });
@@ -141,14 +140,14 @@ async function avariaHandler(req, res) {
 }
 
 // ── Documentos (CRLV, etc.) ──────────────────────────────────────
-async function getDocumentos(veiculoId) {
+async function getDocumentos(sb, veiculoId) {
   const r = await sb(`veiculos?id=eq.${veiculoId}&select=documentos`);
   if (!r.ok) throw new Error(await r.text());
   const rows = await r.json();
   if (!rows.length) throw new Error('Veículo não encontrado.');
   return Array.isArray(rows[0].documentos) ? rows[0].documentos : [];
 }
-async function setDocumentos(veiculoId, documentos) {
+async function setDocumentos(sb, veiculoId, documentos) {
   const r = await sb(`veiculos?id=eq.${veiculoId}`, {
     method: 'PATCH', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ documentos }),
@@ -156,7 +155,7 @@ async function setDocumentos(veiculoId, documentos) {
   if (!r.ok) throw new Error(await r.text());
   return documentos;
 }
-async function docHandler(req, res) {
+async function docHandler(sb, req, res) {
   if (req.method === 'POST') {
     const { veiculoId, fileBase64, mimeType = 'application/pdf' } = req.body || {};
     if (!veiculoId || !fileBase64) return res.status(400).json({ error: 'veiculoId e fileBase64 obrigatórios.' });
@@ -169,9 +168,9 @@ async function docHandler(req, res) {
     });
     if (!up.ok) throw new Error(await up.text());
     const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${objPath}`;
-    const documentos = await getDocumentos(veiculoId);
+    const documentos = await getDocumentos(sb, veiculoId);
     documentos.push(url);
-    await setDocumentos(veiculoId, documentos);
+    await setDocumentos(sb, veiculoId, documentos);
     return res.status(201).json({ documentos });
   }
   if (req.method === 'DELETE') {
@@ -183,14 +182,14 @@ async function docHandler(req, res) {
         method: 'DELETE', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
       });
     }
-    const documentos = (await getDocumentos(veiculoId)).filter(u => u !== url);
-    await setDocumentos(veiculoId, documentos);
+    const documentos = (await getDocumentos(sb, veiculoId)).filter(u => u !== url);
+    await setDocumentos(sb, veiculoId, documentos);
     return res.status(200).json({ documentos });
   }
   return res.status(405).json({ error: 'Método não permitido.' });
 }
 
-async function fotoHandler(req, res) {
+async function fotoHandler(sb, req, res) {
   if (req.method === 'POST') {
     const { veiculoId, imageBase64, mimeType = 'image/jpeg' } = req.body || {};
     if (!veiculoId || !imageBase64) return res.status(400).json({ error: 'veiculoId e imageBase64 obrigatórios.' });
@@ -203,9 +202,9 @@ async function fotoHandler(req, res) {
     });
     if (!up.ok) throw new Error(await up.text());
     const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${objPath}`;
-    const fotos = await getFotos(veiculoId);
+    const fotos = await getFotos(sb, veiculoId);
     fotos.push(url);
-    await setFotos(veiculoId, fotos);
+    await setFotos(sb, veiculoId, fotos);
     return res.status(201).json({ fotos });
   }
   if (req.method === 'DELETE') {
@@ -217,8 +216,8 @@ async function fotoHandler(req, res) {
         method: 'DELETE', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
       });
     }
-    const fotos = (await getFotos(veiculoId)).filter(u => u !== url);
-    await setFotos(veiculoId, fotos);
+    const fotos = (await getFotos(sb, veiculoId)).filter(u => u !== url);
+    await setFotos(sb, veiculoId, fotos);
     return res.status(200).json({ fotos });
   }
   return res.status(405).json({ error: 'Método não permitido.' });
@@ -238,15 +237,19 @@ module.exports = async (req, res) => {
   // Portão único (api/_auth.js)
   if (exigirChave(req, res)) return;
 
+  // De quem é este pedido. Daqui para baixo não existe caminho para o banco
+  // sem a conta junto: `db()` recusa sem ela.
+  const sb = db(contaDoPedido(req));
+
   const q = req.query || {};
 
   try {
     // Rota de documentos (CRLV)
-    if (q.doc !== undefined) return await docHandler(req, res);
+    if (q.doc !== undefined) return await docHandler(sb, req, res);
     // Rota de fotos do catálogo
-    if (q.foto !== undefined) return await fotoHandler(req, res);
+    if (q.foto !== undefined) return await fotoHandler(sb, req, res);
     // Rota de fotos de avaria (avaliação — não entra no array fotos)
-    if (q.avaria !== undefined) return await avariaHandler(req, res);
+    if (q.avaria !== undefined) return await avariaHandler(sb, req, res);
 
     // ── LISTAR / DETALHE ────────────────────────────────────────
     if (req.method === 'GET') {
@@ -273,7 +276,7 @@ module.exports = async (req, res) => {
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       const veiculo = data[0] || data;
-      registrarHistorico({
+      registrarHistorico(sb, {
         evento:       'VEICULO_CRIADO',
         entidade_id:  veiculo.id,
         veiculo_id:   veiculo.id,
@@ -311,7 +314,7 @@ module.exports = async (req, res) => {
       const veiculoDepois = data[0] || data;
       // Registra somente se status realmente mudou
       if (statusAnterior !== undefined && statusAnterior !== veiculoDepois.status) {
-        registrarHistorico({
+        registrarHistorico(sb, {
           evento:       'VEICULO_STATUS_ALTERADO',
           entidade_id:  q.id,
           veiculo_id:   q.id,
