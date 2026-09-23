@@ -1387,6 +1387,47 @@ async function carregar() {
   $('erro').style.display = 'none';
   $('contador').textContent = 'Carregando...';
   $('grid').innerHTML = '';
+  return await _carregarCatalogo();
+}
+
+// Quantos são, e em que pé cada um está — ideia do Yuri em 23/set: o total
+// sozinho não diz nada ("7 veículos" com 2 já vendidos parece estoque de 7).
+//
+// Conta sobre a lista JÁ FILTRADA, que é o que está na tela. Com filtro de
+// status ligado, a quebra seria a repetição do próprio filtro, então some.
+//
+// Status desconhecido não é engolido: aparece com o próprio nome. Um carro
+// que sumisse da conta por ter status antigo seria o defeito clássico daqui
+// — a tela dizendo um número que não corresponde ao que ela mostra.
+const ROTULO_STATUS = {
+  disponivel: ['disponível', 'disponíveis'],
+  reservado:  ['reservado', 'reservados'],
+  vendido:    ['vendido', 'vendidos'],
+};
+
+function textoContador(lista) {
+  const total = lista.length;
+  const cabeca = `${total} veículo${total > 1 ? 's' : ''}`;
+
+  const porStatus = {};
+  lista.forEach(v => { const s = v.status || 'sem status'; porStatus[s] = (porStatus[s] || 0) + 1; });
+
+  const tipos = Object.keys(porStatus);
+  if (tipos.length < 2) return `${cabeca} ${total > 1 ? 'encontrados' : 'encontrado'}`;
+
+  const ordem = ['disponivel', 'reservado', 'vendido'];
+  const partes = tipos
+    .sort((a, b) => (ordem.indexOf(a) + 1 || 99) - (ordem.indexOf(b) + 1 || 99))
+    .map(s => {
+      const n = porStatus[s];
+      const r = ROTULO_STATUS[s];
+      return `${n} ${r ? (n > 1 ? r[1] : r[0]) : s}`;
+    });
+
+  return `${cabeca} · ${partes.join(' · ')}`;
+}
+
+async function _carregarCatalogo() {
   try {
     const r = await fetch('/api/catalogo?' + montarQuery());
     if (!r.ok) throw new Error((await r.json()).error || 'Erro ao buscar');
@@ -1395,9 +1436,7 @@ async function carregar() {
     CACHE = {};
     lista.forEach(v => CACHE[v.id] = v);
     atualizarDropdownMarcas(listaRaw);
-    $('contador').textContent = lista.length
-      ? `${lista.length} veículo${lista.length > 1 ? 's' : ''} encontrado${lista.length > 1 ? 's' : ''}`
-      : '';
+    $('contador').textContent = lista.length ? textoContador(lista) : '';
     if (!lista.length) {
       $('grid').innerHTML = '<div class="vazio" style="grid-column:1/-1"><div class="ico">🗂️</div>Nenhum veículo com esses filtros.<br>Gere um anúncio e clique em <b>Salvar no catálogo</b>.</div>';
       return;
