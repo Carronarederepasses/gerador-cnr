@@ -990,7 +990,11 @@ saudacao();
 const KCR_IND = [
   { nome:'Compradores com marcas de interesse', cap:'Motor de Match',         capacidade:'Recomendar compradores por marca',              pct: d => _pct(d.compradores.com_marcas,         d.compradores.total),       link:'/compradores.html', acao:'Preencher marcas de interesse nos compradores' },
   { nome:'Compradores com faixa de preço',      cap:'Motor de Match',         capacidade:'Filtrar compradores por faixa de preço',        pct: d => _pct(d.compradores.com_preco,          d.compradores.total),       link:'/compradores.html', acao:'Preencher preço mínimo e máximo nos compradores' },
-  { nome:'Compradores com observações',         cap:'Conhecimento tácito',    capacidade:'Usar conhecimento tácito no match',             pct: d => _pct(d.compradores.com_obs,            d.compradores.total),       link:'/compradores.html', acao:'Adicionar "O que sabemos" nos compradores ativos' },
+  // 'Compradores com observações' saiu daqui em 23/set: o painel cobrava o
+  // preenchimento como se alimentasse o Match, e `calcScore` (api/compradores.js)
+  // lê só marcas (+30) e faixa de preço. Pedia trabalho que não mudava resultado.
+  // A API ainda devolve `com_obs` em ?saude=1 — se um dia o Match passar a ler
+  // observações, o indicador volta com uma linha.
   { nome:'Descartes com motivo registrado',     cap:'Aprender rejeições',     capacidade:'Aprender por que negócios não fecham',          pct: d => _pct(d.negociacoes.com_motivo_descarte,d.negociacoes.descartadas), link:'/negociacoes.html', acao:'Registrar motivo ao descartar negociações' },
   { nome:'Vendas com motivo de match',          cap:'Aprender recomendações', capacidade:'Entender o que gera boas recomendações',        pct: d => _pct(d.vendas.com_motivo_match,        d.vendas.total),            link:'/vendas.html',      acao:'Preencher "Por que esse comprador?" nas vendas' },
   { nome:'Vendas com valor de compra',          cap:'Calcular margem real',   capacidade:'Calcular margem real por operação',             pct: d => _pct(d.vendas.com_valor_compra,        d.vendas.total),            link:'/vendas.html',      acao:'Preencher valor de compra nas vendas registradas' },
