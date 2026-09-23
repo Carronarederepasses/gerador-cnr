@@ -5695,3 +5695,72 @@ continua sendo servida.**
 
 Se o Bruno tiver o logo em PNG com fundo transparente, trocar melhora a barra
 lateral (hoje é JPG de fundo preto, com retângulo quase invisível no escuro).
+
+---
+
+## Checkpoint — 23 de setembro de 2026
+
+### Abordar da rua deixou de ser impossível
+
+Pendência aberta em 16/set, fechada hoje com teste no aparelho dele.
+
+**O que se descobriu:** sem extensão (o celular nunca tem), o recuo do
+ABORDAR abria `chat.olx.com.br/?list-id=<id>`. Entregue ao aplicativo da
+OLX, ele responde *"algo deu errado ao carregar suas mensagens"*. Pelo
+**anúncio** funciona: o app abre a ficha, o botão Chat de dentro dele abre a
+conversa certa, e a mensagem copiada cola. Os dois passos foram confirmados
+por ele antes de eu mexer no código, e de novo em produção depois.
+
+- No celular (`pointer: coarse`) o destino passa a ser a URL do anúncio; no
+  computador segue indo direto ao chat, onde o link abre no navegador.
+- **A cópia da mensagem foi para dentro do toque**, não mais 600 ms depois:
+  o iPhone recusa escrever na área de transferência fora do gesto. No
+  Android do Yuri funcionava; no iPhone do Bruno falharia calado. Mesma
+  regra do compartilhar do story (10/set).
+- O aviso na tela diz o caminho inteiro — "mensagem copiada" sozinho não
+  conta o que fazer com ela.
+
+**O limite que permanece:** só a abordagem funciona da rua. Saber que
+alguém respondeu e responder pelo card continuam dependendo do Chrome do
+notebook com a sessão da OLX — é estrutural, não é defeito.
+
+### Painel: sai o indicador de observações
+
+O bloco cobrava preenchimento de observações como se alimentasse o Match.
+Conferido no código: `calcScore` lê **marcas (+30) e faixa de preço** —
+observações não entra na conta. Era trabalho pedido que não mudava
+resultado. Decisão do Yuri: tirar. A API segue devolvendo `com_obs`, então
+volta com uma linha no dia em que o Match ler o campo.
+
+Medido no banco hoje: **16 clientes no pool de ofertas** (2 fora como
+particular/fonte), **16 com marcas**, **9 com faixa de preço**, 0 com
+observações. Faltam faixa: Maranello, Originale, Referência, Voiture,
+Califórnia Motors, Jackson e Betinho.
+
+### Varredura "cara de IA" (pedido dele, 22/set à noite)
+
+Medido, não achado: **23 cantos distintos, 80 tamanhos de letra, 216
+espaçamentos** (131 usados uma vez só), 322 emojis e texto de apresentação
+dentro da ferramenta. Entregues os itens A e C:
+
+- **A** — foguete e brilho fora; "Capital de Conhecimento · Prontidão para
+  IA" virou "Cadastro dos clientes"; frases motivacionais viraram estado; e
+  saiu o "Yuri" escrito numa delas, que apareceria na tela do Bruno.
+- **C** — escala em `tokens.css` (`--r*`, `--s-*`, `--fs-*`) e 228 cantos
+  normalizados (11 deles escritos dentro de strings nos `.js`
+  compartilhados, que a primeira passada não olhou). Painel: 23 → 4 valores.
+  **Regra escrita no §2**: medida nova sai da escala.
+- **B** (emoji → ícone) — decisão dele: fica como está.
+- Dívida assumida: letra e espaçamento seguem dispersos; corrigir quando a
+  tela for tocada por outro motivo, nunca em bloco.
+
+### Erro meu, sexta vez a mesma forma
+
+Escrevi os textos do toast por script de terminal e `
+` virou quebra de
+linha de verdade dentro da string — a página parou de carregar inteira.
+Peguei porque fui conferir no navegador em vez de aceitar o "ok" do script.
+A regra está escrita desde 04/set: **texto longo vai por arquivo, com a
+ferramenta de escrever.** Continuo tropeçando nela.
+
+*Registrado em 23 de setembro de 2026.*
