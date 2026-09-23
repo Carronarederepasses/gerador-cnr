@@ -18,8 +18,9 @@ const { exigirChave } = require('./_auth');
 const { db } = require('./_db');
 const { contaDoPedido } = require('./_conta');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Endereço e chave do banco moram no funil (`_db.js`), não aqui. Constante
+// declarada neste arquivo seria o caminho sem dono esperando a pressa do
+// próximo endpoint — `scripts/checa-funil.js` recusa.
 
 const CAMPOS_NEG = [
   'veiculo_id','veiculo_nome','comprador_nome','comprador_id','contato_telefone',

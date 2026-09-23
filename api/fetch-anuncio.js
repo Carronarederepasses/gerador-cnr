@@ -18,9 +18,10 @@ const { db } = require('./_db');
 const { contaDoPedido } = require('./_conta');
 const { exigirChave, operadorDe } = require('./_auth');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const RADAR_KEY    = process.env.RADAR_KEY; // opcional — protege o POST (upsert da extensão)
+const RADAR_KEY = process.env.RADAR_KEY; // opcional — protege o POST (upsert da extensão)
+
+// Endereço e chave do banco moram no funil (`_db.js`), não aqui —
+// `scripts/checa-funil.js` recusa constante solta neste arquivo.
 
 // ── Cliente Supabase ─────────────────────────────────────────────
 // O `sb` local saiu em 23/set: vem de `_db.js`, amarrado à conta do pedido, e
