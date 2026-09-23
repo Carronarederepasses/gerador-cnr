@@ -14,6 +14,8 @@
 //   SUPABASE_SERVICE_ROLE_KEY
 //   RADAR_KEY  (opcional — se definida, exige x-cnr-key no POST)
 
+const { db } = require('./_db');
+const { contaDoPedido } = require('./_conta');
 const { exigirChave, operadorDe } = require('./_auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -21,24 +23,17 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RADAR_KEY    = process.env.RADAR_KEY; // opcional — protege o POST (upsert da extensão)
 
 // ── Cliente Supabase ─────────────────────────────────────────────
-function sb(path, opts = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...opts,
-    headers: {
-      apikey:        SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      ...(opts.headers || {}),
-    },
-  });
-}
+// O `sb` local saiu em 23/set: vem de `_db.js`, amarrado à conta do pedido, e
+// é passado a cada handler. Não fica reserva — um sb de módulo ainda
+// declarado seria o caminho sem dono esperando a chamada esquecida, e ela
+// devolveria dado de todas as lojas sem dar erro.
 
 // ── Modo Ideias: caderno do Yuri ─────────────────────────────────
 // GET    → lista (novas primeiro, mais recentes no topo)
 // POST   → anota uma ideia   { texto }
 // PATCH  → muda o status     ?id=N  { status }
 // DELETE → apaga             ?id=N
-async function handleIdeias(req, res) {
+async function handleIdeias(sb, req, res) {
   if (req.method === 'GET') {
     const r = await sb('ideias?select=*&order=status.asc,criada_em.desc&limit=500');
     if (!r.ok) return res.status(502).json({ error: `Supabase HTTP ${r.status}` });
@@ -99,7 +94,7 @@ async function handleIdeias(req, res) {
 //
 // Modo em vez de arquivo novo: o plano Hobby da Vercel tem teto de 12
 // funções e ele já está cheio. Página HTML nova não conta; função conta.
-async function handleAgenda(req, res) {
+async function handleAgenda(sb, req, res) {
   // Lista fechada: o corpo vem do navegador e não pode escolher que coluna
   // escrever. `operador`, `created_at` e `id` ficam de fora de propósito —
   // quem carimba o operador é o servidor, pela chave do aparelho.
@@ -197,7 +192,7 @@ async function handleAgenda(req, res) {
 // ── Modo Buscas: configuração das URLs do Radar ──────────────────
 // GET  → lista as buscas (a extensão puxa daqui a cada verificação)
 // POST → grava o conjunto inteiro enviado pela tela do Radar
-async function handleBuscas(req, res) {
+async function handleBuscas(sb, req, res) {
   if (req.method === 'GET') {
     const r = await sb('buscas?select=*&order=ordem.asc,id.asc');
     if (!r.ok) {
@@ -276,7 +271,7 @@ async function handleBuscas(req, res) {
 }
 
 // ── Modo Radar: CRUD de anúncios ─────────────────────────────────
-async function handleRadar(req, res) {
+async function handleRadar(sb, req, res) {
   const q = req.query;
 
   // GET — lista anúncios (filtro por status opcional)
@@ -353,7 +348,13 @@ async function handleRadar(req, res) {
     //
     // Era escrito à mão para dois grupos (com/sem thumbnail). Com o km
     // seriam quatro, e cinco campos dariam 32 — daí a versão genérica.
-    const colsBase   = 'origem,listing_id,url,titulo,preco,localizacao,search_name,last_seen_at';
+    // `conta_id` PRECISA estar aqui (fase 0, 23/set): o `columns=` do
+    // PostgREST é lista fechada — o que não está nela é descartado em
+    // silêncio, mesmo vindo no corpo. Sem esta palavra, o dono que o funil
+    // carimba seria jogado fora e a linha nasceria só com o padrão do banco,
+    // que é certo hoje (um site, uma loja) e errado no dia em que duas lojas
+    // dividirem o mesmo banco. Falha silenciosa esperando data marcada.
+    const colsBase   = 'origem,listing_id,url,titulo,preco,localizacao,search_name,last_seen_at,conta_id';
     const OPCIONAIS  = ['thumbnail', 'km'];
 
     const grupos = new Map();
@@ -487,7 +488,7 @@ async function handleRadar(req, res) {
 // ── Modo Mensagens: histórico de chat capturado pela extensão ────
 // GET  ?mensagens=1&listing_id=<id>  → lista mensagens do anúncio
 // POST ?mensagens=1                  → insere mensagem (dedup via msg_hash)
-async function handleMensagens(req, res) {
+async function handleMensagens(sb, req, res) {
   const q = req.query;
 
   // GET sem listing_id → resumo de TODAS as conversas, para a lista lateral.
@@ -685,20 +686,24 @@ module.exports = async (req, res) => {
   // estiver desligado, elas ainda protegem a escrita.
   if (exigirChave(req, res)) return;
 
+  // De quem é este pedido (fase 0, 23/set). Cada handler recebe o `sb` desta
+  // conta; `db()` recusa sem ela.
+  const sb = db(contaDoPedido(req));
+
   // Modo Radar
-  if ('radar' in req.query) return handleRadar(req, res);
+  if ('radar' in req.query) return handleRadar(sb, req, res);
 
   // Modo Buscas: configuração do Radar (Reforma 23)
-  if ('buscas' in req.query) return handleBuscas(req, res);
+  if ('buscas' in req.query) return handleBuscas(sb, req, res);
 
   // Modo Ideias: caderno do Yuri
-  if ('ideias' in req.query) return handleIdeias(req, res);
+  if ('ideias' in req.query) return handleIdeias(sb, req, res);
 
   // Modo Agenda: avaliações marcadas (09/set)
-  if ('agenda' in req.query) return handleAgenda(req, res);
+  if ('agenda' in req.query) return handleAgenda(sb, req, res);
 
   // Modo Mensagens (Reforma 43)
-  if ('mensagens' in req.query) return handleMensagens(req, res);
+  if ('mensagens' in req.query) return handleMensagens(sb, req, res);
 
   // Modo padrão: fetch URL para IA
   const url = (req.body && req.body.url) || req.query.url;
