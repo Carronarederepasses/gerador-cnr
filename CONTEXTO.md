@@ -214,6 +214,7 @@ Estas não são preferências. Quebram o sistema se ignoradas.
 | **Nenhuma página da web publica no Instagram nem escreve no calendário do celular** | Não existe permissão para isso em Android nem iPhone. Por isso agenda sai como `.ics` e story sai como imagem para baixar. |
 | **RLS NÃO isola uma loja da outra** | As funções entram com `service_role`, que passa por cima dela. A RLS fecha a porta de quem chega com a chave pública; a porta entre contas é o filtro por `conta_id` no servidor — por isso o funil. |
 | **RLS ligada SEM policy nenhuma** | É correto *enquanto* o único caminho for o `service_role`, que ignora RLS. Mas é armadilha: no dia em que alguém puser a chave `anon`/`publishable` no front-end, **toda consulta volta vazia sem erro** — tela em branco sem mensagem, que é o pior modo de falha deste projeto. Pôr a anon key no front exige escrever policies ANTES, não depois. |
+| **São DOIS buckets, e a diferença é regra** | `veiculos` é **público de propósito** — a foto do catálogo precisa ser lida sem chave, e é ela que vai no anúncio. `veiculos-docs` é **privado**: CRLV, laudo, cautelar e comprovante só saem por link assinado de 1h. Documento de carro alheio nunca volta para o bucket público (corrigido em 23/set). |
 | **Supabase grátis: 2 projetos ATIVOS por conta** | Confirmado em 23/set (o terceiro projeto do Yuri aparece "paused"). Não cabe um banco por cliente: o segundo cliente pagante já não entra. É o argumento que sustenta a fase 0. |
 | **Vercel Hobby é declarado para uso NÃO comercial** | Nas regras de uso justo deles. Não atrapalha hoje; vira questão no dia em que alguém pagar — aí é Pro (US$ 20/mês). |
 | **PostgREST `columns=` é lista FECHADA** | O que não está na lista é descartado **em silêncio**, mesmo vindo no corpo. Mordeu em 23/set: o upsert do Radar jogava fora o `conta_id`. |
@@ -380,7 +381,9 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | **LGPD / retenção** | Medido em 11/set: **14 clientes com CPF/CNPJ**, 3 com banco ou Pix, 6 vendas com CPF do comprador. Dado de quem fechou negócio — precisa ficar, por contrato e nota. O que poderia acumular sem razão (nome de vendedor e conteúdo de conversa de quem **não** fechou) **não está acumulando**: nenhum anúncio passa de 60 dias e a mensagem mais antiga tem 12. Nada urgente hoje. Vira pauta real quando houver assinantes, porque aí passa a ser dado de cliente dos outros. |
 
 **Resolvidas desde a versão anterior deste documento (12/set):**
-abordagem pelo celular, que era impossível (23/set) · dono em cada linha do
+documento de veículo fora do bucket público, em bucket privado com link
+assinado (23/set) · abordagem pelo celular, que era impossível (23/set) ·
+dono em cada linha do
 banco e o funil que recusa consulta sem dono (23/set) · o banco do piloto
 recusando cadastro que a produção aceita (23/set) · anexos de venda que
 existiam e não apareciam na tela — 92 de 190 (18/set) · sinal no lugar certo,
