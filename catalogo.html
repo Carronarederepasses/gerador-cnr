@@ -1732,13 +1732,58 @@ async function apagarSelecionadas(id) {
 // ── Pacote WhatsApp: texto + fotos ─────────────────────────────
 // A seleção de fotos é feita pelo link "Selecionar fotos". Este botão só envia.
 // ── Documentos (CRLV) ────────────────────────────────────────────
+// Documento do veículo mora em bucket PRIVADO desde 23/set (antes era o
+// mesmo balde público das fotos, e um CRLV abria de fora sem chave). Então a
+// tela não aponta para o arquivo: ela pede ao servidor um link de 1 hora no
+// momento do clique.
+//
+// Entrada que começa com http é do tempo antigo e continua abrindo direto —
+// os 4 arquivos que existiam foram migrados, mas o caminho de leitura fica,
+// porque quebrar a tela de quem tiver um resquício seria pior.
+function docEhCaminho(u) { return !/^https?:\/\//i.test(u); }
+
+async function linkDoDoc(caminho) {
+  const r = await fetch('/api/catalogo?doc=1&path=' + encodeURIComponent(caminho));
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'não consegui abrir o documento');
+  return (await r.json()).url;
+}
+
+// A aba é aberta ANTES de pedir o link, ainda dentro do clique: aberta depois
+// da espera, o navegador trata como janela não pedida e bloqueia.
+async function abrirDoc(caminho) {
+  const aba = window.open('', '_blank');
+  try {
+    const url = await linkDoDoc(caminho);
+    if (aba) aba.location = url; else window.location = url;
+  } catch (e) {
+    if (aba) aba.close();
+    alert('Não consegui abrir: ' + e.message);
+  }
+}
+
+async function copiarDocCaminho(caminho) {
+  try {
+    const url = await linkDoDoc(caminho);
+    await navigator.clipboard.writeText(url);
+    alert('Link copiado. Ele vale por 1 hora — depois disso, o documento não abre mais por ele.');
+  } catch (e) {
+    alert('Não consegui copiar: ' + e.message);
+  }
+}
+
 function renderDocItems(id, docs) {
   const items = docs.map((u, i) => {
     const isPdf = u.toLowerCase().endsWith('.pdf');
     const label = isPdf ? `CRLV ${docs.length > 1 ? i+1 : ''}`.trim() : `Doc ${i+1}`;
+    const abrir = docEhCaminho(u)
+      ? `<a href="#" onclick="abrirDoc('${esc(u)}');return false">${label}</a>`
+      : `<a href="${esc(u)}" target="_blank" rel="noopener">${label}</a>`;
+    const copiar = docEhCaminho(u)
+      ? `copiarDocCaminho('${esc(u)}')`
+      : `copiarDocLink('${esc(u)}')`;
     return `<span class="doc-item">
-      ${isPdf ? '📄' : '🖼️'} <a href="${esc(u)}" target="_blank" rel="noopener">${label}</a>
-      <button onclick="copiarDocLink('${esc(u)}')" title="Copiar link para compartilhar">🔗</button>
+      ${isPdf ? '📄' : '🖼️'} ${abrir}
+      <button onclick="${copiar}" title="Copiar link para compartilhar (vale 1 hora)">🔗</button>
       <button onclick="removerDoc('${esc(id)}','${esc(u)}')" title="Remover" style="color:#e55">✕</button>
     </span>`;
   }).join('');

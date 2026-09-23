@@ -155,30 +155,72 @@ async function setDocumentos(sb, veiculoId, documentos) {
   if (!r.ok) throw new Error(await r.text());
   return documentos;
 }
+// ── Documento do veículo: bucket PRIVADO, link assinado ──────────
+//
+// Até 23/set os documentos do veículo (CRLV e afins) iam para o bucket
+// `veiculos`, que é PÚBLICO — o mesmo das fotos do anúncio, e por isso ele é
+// público. Medido naquele dia: um PDF de CRLV abriu de fora, sem chave
+// nenhuma, HTTP 200. Nome do proprietário, placa e RENAVAM ao alcance de
+// quem tivesse o endereço.
+//
+// Agora vão para `veiculos-docs`, privado, e a tela pede um link assinado de
+// 1 hora quando alguém clica — mesmo desenho que os anexos de venda já
+// usavam desde sempre. Foto continua pública: ela é feita para o anúncio.
+//
+// O que fica guardado em `veiculos.documentos` passa a ser o CAMINHO do
+// arquivo, não uma URL. Entrada antiga (URL inteira, começando com http)
+// continua sendo aceita para apagar, e a tela sabe abrir as duas — mas os 4
+// arquivos que existiam foram migrados, então na prática não há mais nenhuma.
+const BUCKET_DOC = 'veiculos-docs';
+
+// O id vai no caminho do arquivo dentro do bucket. Sem validar, um id forjado
+// com `/` ou `..` escreveria em outra pasta — mesma regra já aplicada aos
+// anexos de venda em 18/set.
+const UUID_V = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function docHandler(sb, req, res) {
+  // Abrir: devolve link temporário. Não é o arquivo, é uma permissão de 1h.
+  if (req.method === 'GET') {
+    const path = req.query.path;
+    if (!path) return res.status(400).json({ error: 'path obrigatório.' });
+    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${BUCKET_DOC}/${path}`, {
+      method: 'POST',
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn: 3600 }),
+    });
+    if (!r.ok) return res.status(404).json({ error: 'Documento não encontrado.' });
+    const { signedURL } = await r.json();
+    return res.status(200).json({ url: `${SUPABASE_URL}/storage/v1${signedURL}` });
+  }
+
   if (req.method === 'POST') {
     const { veiculoId, fileBase64, mimeType = 'application/pdf' } = req.body || {};
     if (!veiculoId || !fileBase64) return res.status(400).json({ error: 'veiculoId e fileBase64 obrigatórios.' });
+    if (!UUID_V.test(String(veiculoId))) return res.status(400).json({ error: 'veiculoId inválido.' });
     const ext = EXT_DOC[mimeType] || 'pdf';
     const objPath = `${veiculoId}/docs/${Date.now()}.${ext}`;
-    const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
+    const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET_DOC}/${objPath}`, {
       method: 'POST',
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': mimeType, 'x-upsert': 'true' },
       body: Buffer.from(fileBase64, 'base64'),
     });
     if (!up.ok) throw new Error(await up.text());
-    const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${objPath}`;
     const documentos = await getDocumentos(sb, veiculoId);
-    documentos.push(url);
+    documentos.push(objPath);          // caminho, não URL
     await setDocumentos(sb, veiculoId, documentos);
     return res.status(201).json({ documentos });
   }
+
   if (req.method === 'DELETE') {
     const { veiculoId, url } = req.body || {};
     if (!veiculoId || !url) return res.status(400).json({ error: 'veiculoId e url obrigatórios.' });
-    const objPath = pathFromUrl(url);
+
+    // `url` aqui é o que está guardado: caminho novo ou URL antiga.
+    const antiga  = /^https?:\/\//i.test(url);
+    const objPath = antiga ? pathFromUrl(url) : url;
+    const balde   = antiga ? BUCKET : BUCKET_DOC;
     if (objPath) {
-      await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${objPath}`, {
+      await fetch(`${SUPABASE_URL}/storage/v1/object/${balde}/${objPath}`, {
         method: 'DELETE', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
       });
     }
