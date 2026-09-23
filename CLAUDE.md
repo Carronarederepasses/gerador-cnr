@@ -5839,3 +5839,72 @@ aí fica impossível nascer linha órfã. Só depois de o código rodar uns dias
 mandando o dono sozinho.
 
 *Registrado em 23 de setembro de 2026, tarde.*
+
+═══════════════════════════════════════════════════════════════════
+
+# CHECKPOINT DO DIA — 23 de setembro de 2026
+
+**9 commits**, todos em produção e conferidos na própria aplicação.
+
+## O que o dia entregou
+
+| Frente | O que era | O que é |
+|---|---|---|
+| Abordar da rua | impossível: o app da OLX dava erro | abre o anúncio, mensagem colada, envia |
+| Banco | nenhuma linha sabia de quem era | 489 linhas com dono, em 12 tabelas |
+| Caminho até o banco | filtro espalhado, fácil de esquecer | funil único que **recusa** pedido sem dono |
+| Banco do piloto | recusava cadastro que a produção aceita | igual à produção |
+| Catálogo | "7 veículos encontrados" | "7 veículos · 5 disponíveis · 2 vendidos" |
+| Telas | foguete, "Prontidão para IA", 23 cantos diferentes | linguagem de lojista, escala de medidas |
+
+## Os dois defeitos que ninguém tinha visto
+
+Os dois do mesmo tipo: **não davam erro em lugar nenhum.**
+
+1. **O banco do Bruno recusava o que o teu aceita** — cinco colunas sem
+   valor padrão, porque gerei aquele banco de uma descrição que não carrega
+   padrão complexo. Era ressalva anotada em 22/set; virou defeito medido.
+2. **O Radar descartaria o dono em silêncio** — o `columns=` do PostgREST é
+   lista fechada. Acertaria hoje por acidente e erraria no dia em que duas
+   lojas dividissem o mesmo banco.
+
+## Números que decidiram desenho
+
+- **2 projetos ativos** é o teto do Supabase grátis, somando organizações —
+  o terceiro projeto do Yuri aparece "paused". Um banco por cliente morre no
+  segundo cliente pagante. É o que justifica a fase 0 ter sido hoje.
+- **23 cantos, 80 tamanhos de letra, 216 espaçamentos** (131 usados uma vez
+  só). Os cantos foram normalizados; letra e espaçamento ficam como dívida
+  declarada.
+- **16 clientes no pool de ofertas**, 16 com marcas, 9 com faixa de preço.
+
+## Erros meus
+
+- **Escape do shell, sexta vez** — `
+` virou quebra de linha de verdade
+  dentro de uma string e a página parou de carregar. A regra está escrita
+  desde 04/set.
+- **Meu detector de código acusou duas funções certas** por não entender
+  função aninhada; e um teste meu acusou "sobra no banco" quando o código
+  fazia exclusão suave de propósito. Nos dois, o errado era a ferramenta.
+- Quase perdi um padrão do `compradores.js` (`Prefer: return=representation`)
+  ao trocar o `sb` — o cadastro salvaria e a tela receberia resposta vazia.
+
+## Decisões do Yuri
+
+- FIPE do piloto **sem token** — se a cota acabar, só o piloto sente.
+- Emoji da interface **fica como está**; o que saiu foi o texto de
+  apresentação.
+- Indicador de observações **sai do Painel**: o Match não lê aquele campo,
+  então era trabalho pedido que não mudava resultado.
+- Teto na chave própria do OpenRouter: **por ora fica como está.**
+
+## Onde retomar
+
+1. **O que o Bruno responder** — retorno de uso real vem antes da minha lista
+2. Fechar a fase 0: tornar o dono obrigatório no banco, depois de alguns dias
+3. Fase 1 do app: entrar por telefone com código, no lugar da chave por
+   aparelho
+4. CNPJ — segue travando consulta veicular completa e cobrança
+
+*Fechado em 23 de setembro de 2026.*

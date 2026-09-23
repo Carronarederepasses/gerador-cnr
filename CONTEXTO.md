@@ -1,7 +1,7 @@
 # Gerador CNR — contexto do projeto
 
 Documento de handoff. Serve para colocar alguém (ou outra IA) a par do estado
-do sistema sem precisar ler o código. Atualizado em **12 de setembro de 2026**.
+do sistema sem precisar ler o código. Atualizado em **23 de setembro de 2026**.
 
 ---
 
@@ -35,7 +35,14 @@ código, mas muda o peso de algumas pendências — ver §8.
 
 ### Gerador (aplicação web)
 HTML estático + funções serverless na **Vercel**, banco **Supabase**
-(Postgres). Sem framework de front-end: cada página é um `.html` com
+(Postgres).
+
+> **Desde 22/set o mesmo repositório publica DOIS sites:** `gerador-cnr`
+> (Carro na Rede) e `cnr-piloto` (BHM Autos, o lojista que está testando).
+> Cada push vai para os dois, com bancos separados. Por isso **nada de marca,
+> conta ou chave pode estar escrito no código** — tudo vem de variável de
+> ambiente, lida em `api/_marca.js` e `api/_conta.js`. Sem variável, é
+> Carro na Rede. Sem framework de front-end: cada página é um `.html` com
 `<script>` inline. Sem build step.
 
 **Páginas (19).** Captação: `radar` (config das buscas), `anuncios` (mesa de
@@ -57,7 +64,9 @@ uma cópia que divergiu em silêncio:
 `gerador-comum.js`/`gerador.css` (cascata FIPE e helpers das duas telas de
 anúncio), `mascaras.js` (telefone, CPF/CNPJ, CEP, mês/ano, placa),
 `placa.css` (a etiqueta de placa), `story.js` (a arte de story),
-`auth.js` (envelope que põe a chave em todo `fetch`), `tokens.css` (cores e
+`auth.js` (envelope que põe a chave em todo `fetch`),
+`marca.js` (nome, logo e telas de cada site), `anexos.js` (upload com dono),
+`tokens.css` (cores, **escala de medidas** e
 tipografia), `theme-toggle.js` (resíduo: o app tem **tema único** desde
 03/set — o arquivo só limpa `data-theme` antigo e expõe no-ops).
 
@@ -166,6 +175,22 @@ Estados de um anúncio: `novo → preparado → enviado → respondeu | morto`.
   `anuncios.operador` é carimbada pelo servidor e o card mostra quem abordou
   (08/set)
 - **Motor de Match não oferece repasse a particular** (03/set)
+- **Abordagem pelo celular** (23/set): sem extensão, o ABORDAR abre a página
+  do **anúncio** no app da OLX (o link de chat direto dá erro lá), com a
+  mensagem já copiada. Medido no aparelho, os dois passos
+- **Sinal e comprovante na negociação** (17–18/set): `valor_sinal`/`sinal_em`
+  em `negociacoes`, comprovante anexado, e cópia física dos arquivos na
+  conversão para venda
+
+**Produto (o Gerador vendido a outro lojista)**
+- **Piloto de pé** (22/set): `cnr-piloto.vercel.app`, banco próprio e vazio,
+  provado pelo Yuri — Catálogo e Vendas do lojista não enxergam nada da CNR
+- **Marca por site**: nome, Instagram, e-mail, logo, ícone, manifesto do app e
+  quais telas aparecem vêm de `MARCA_*`. O que sai para o cliente do lojista
+  (link do anúncio, arroba do story, PDF, contrato) leva a marca dele
+- **Multi-loja, fase 0** (23/set): tabelas `contas`/`usuarios`/`conta_membros`
+  e `conta_id` nas 12 tabelas (489 linhas carimbadas, nenhuma órfã). Todas as
+  funções que tocam linha passam pelo **funil** `api/_db.js`
 
 ---
 
@@ -180,14 +205,20 @@ Estas não são preferências. Quebram o sistema se ignoradas.
 | **Content script vira órfão ao recarregar a extensão** | Toda aba já aberta precisa de F5. Sintoma típico: "a extensão não responde" logo após um reload. |
 | **Verificação do radar é serial, 23s de teto por busca** | ~10 buscas é o limite prático antes do navegador cortar o ciclo. |
 | **PostgREST: `DESC` é `NULLS FIRST` por padrão** | Já causou um bug em que registros novos sumiam no fim da lista e pareciam não ter salvo. Usar `.desc.nullslast`. |
-| **Captação exige a sessão OLX no navegador daquela máquina** | Celular nunca capta. Celular é gestão; desktop é captação. |
+| **Captação exige a sessão OLX no navegador daquela máquina** | Celular nunca **varre** anúncio, nem detecta resposta, nem responde pelo card — isso é do Chrome com a extensão. Desde 23/set o celular **aborda**: o Gerador abre o anúncio no app da OLX com a mensagem copiada, e a pessoa cola e envia. |
 | **React ignora `input.value = x`** | Para preencher campos da OLX é preciso o setter nativo do prototype. |
 | **`utils?type=ping` tem de continuar SEM chave** | É o cron da Vercel (9h diário) que mantém o Supabase acordado, e cron não manda cabeçalho nosso. Fechar ali derruba o projeto inteiro em ~7 dias, por uma proteção que não protege nada. |
 | **`transition` + variável de tema congela a propriedade** | Medido em 03/set. Resolvido pela raiz ao adotar tema único. Reintroduzir tema claro traz o defeito de volta. |
 | **FIPE: 500 requisições/dia sem token, 1.000 com** | Uma busca por placa custa **~45 requisições** (o servidor pede os anos de cada modelo de nome parecido — 43 só para "Corolla"). Desde 10/set há token (`FIPE_TOKEN`) e cache de 6h em `api/_fipe.js`, com cópia de socorro de 7 dias quando a FIPE recusa. |
 | **Canvas 2D não tem `font-variant-numeric`** | A Playfair desenha algarismos de estilo antigo. Nas telas resolve-se com `lining-nums` no `:root`; **no canvas não existe a propriedade** — por isso o `story.js` desenha os trechos numéricos em DM Sans. |
 | **Nenhuma página da web publica no Instagram nem escreve no calendário do celular** | Não existe permissão para isso em Android nem iPhone. Por isso agenda sai como `.ics` e story sai como imagem para baixar. |
+| **RLS NÃO isola uma loja da outra** | As funções entram com `service_role`, que passa por cima dela. A RLS fecha a porta de quem chega com a chave pública; a porta entre contas é o filtro por `conta_id` no servidor — por isso o funil. |
 | **RLS ligada SEM policy nenhuma** | É correto *enquanto* o único caminho for o `service_role`, que ignora RLS. Mas é armadilha: no dia em que alguém puser a chave `anon`/`publishable` no front-end, **toda consulta volta vazia sem erro** — tela em branco sem mensagem, que é o pior modo de falha deste projeto. Pôr a anon key no front exige escrever policies ANTES, não depois. |
+| **Supabase grátis: 2 projetos ATIVOS por conta** | Confirmado em 23/set (o terceiro projeto do Yuri aparece "paused"). Não cabe um banco por cliente: o segundo cliente pagante já não entra. É o argumento que sustenta a fase 0. |
+| **Vercel Hobby é declarado para uso NÃO comercial** | Nas regras de uso justo deles. Não atrapalha hoje; vira questão no dia em que alguém pagar — aí é Pro (US$ 20/mês). |
+| **PostgREST `columns=` é lista FECHADA** | O que não está na lista é descartado **em silêncio**, mesmo vindo no corpo. Mordeu em 23/set: o upsert do Radar jogava fora o `conta_id`. |
+| **A descrição OpenAPI do Supabase não traz padrão complexo** | Banco gerado a partir dela nasce **sem** `default '[]'::jsonb`. Mordeu em 23/set: o piloto recusava cadastro que a produção aceita. |
+| **O `sb` da conta é PASSADO, nunca guardado em variável de módulo** | A Vercel pode atender dois pedidos ao mesmo tempo na mesma instância; variável trocada por pedido faria um usar a conta do outro. E o `sb` antigo foi **removido** dos arquivos, não deixado como reserva — reserva é o caminho sem dono esperando a chamada esquecida. |
 | **A âncora da mensagem de abordagem** | `olx-chat-monitor.js` usa `'Olá! Tudo bem? Meu nome é Yuri'` para separar o que o operador escreveu do que o vendedor escreveu. Cinco dos seis usos cortam em `slice(0, 20)` = `'Olá! Tudo bem? Meu n'`, que **para antes do nome** e sobrevive a uma troca. O sexto, `extrairApos()`, usa a string inteira — esse quebra. Relevante porque a segunda operadora entra no fim de setembro: ver §8. |
 
 ---
@@ -337,7 +368,9 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | Item | Situação |
 |---|---|
 | **CNPJ** | O gargalo de duas frentes ao mesmo tempo: destrava o site de consulta veicular **e** a venda do Gerador. Nada técnico depende disso; tudo comercial depende. |
-| **Multi-tenancy** | A API usa `SERVICE_ROLE_KEY` sem escopo de usuário; `seen`/`queue` vivem no storage local de cada máquina. As chaves de hoje identificam **quem** (`CNR_KEY_2..9`), mas não isolam **dados** — Yuri e mãe compartilham tudo de propósito. Vender a terceiros exige auth + RLS de verdade. |
+| **Fase 0 concluída, falta fechar** | Banco e funil prontos (23/set). Falta a segunda migração: tirar o DEFAULT e tornar `conta_id` obrigatório, depois de alguns dias de uso real. Storage (arquivos) ainda é separado por pasta do dono, não por regra. |
+| **Retorno do lojista piloto** | Acesso entregue em 22/set com marca, logo e IA própria (chave com teto de US$ 5). Aguardando ele usar. Retorno de uso real vale mais que qualquer item desta lista. |
+| **Multi-tenancy (o resto)** | A API usa `SERVICE_ROLE_KEY` sem escopo de usuário; `seen`/`queue` vivem no storage local de cada máquina. As chaves de hoje identificam **quem** (`CNR_KEY_2..9`), mas não isolam **dados** — Yuri e mãe compartilham tudo de propósito. Vender a terceiros exige auth + RLS de verdade. |
 | `Access-Control-Allow-Origin: *` em toda a API | Não é explorável com o portão ligado. Deixado como está para não quebrar a extensão, que fala de outra origem. |
 | `host_permissions: ["https://*.vercel.app/*"]` | Amplo demais para passar na revisão da Chrome Web Store. |
 | Logs de diagnóstico na extensão | Ainda lá (15 pontos no `sw.js`). Mantidos de propósito enquanto a captação é observada — foram eles que acharam os bugs de 01–02/set. Sair quando estabilizar. |
@@ -346,10 +379,16 @@ mas as três são para **quem anuncia**, e o Yuri faz o inverso.
 | Senhas e acesso ao e-mail | A senha do e-mail da empresa é a mesma de tudo, e esse e-mail é a conta de recuperação de Vercel, Supabase, OLX e Instagram. **A verificação em duas etapas está ligada desde 05/set** — telefone **e** app Authenticator, conferido nos próprios avisos do Google. Falta: (a) os **códigos de backup**, porque hoje os dois fatores moram no mesmo aparelho e perder o celular tranca a conta que recupera todas as outras; (b) o levantamento de onde a senha é usada, antes de trocá-la. Decisão dele: deixar para depois. |
 | **LGPD / retenção** | Medido em 11/set: **14 clientes com CPF/CNPJ**, 3 com banco ou Pix, 6 vendas com CPF do comprador. Dado de quem fechou negócio — precisa ficar, por contrato e nota. O que poderia acumular sem razão (nome de vendedor e conteúdo de conversa de quem **não** fechou) **não está acumulando**: nenhum anúncio passa de 60 dias e a mensagem mais antiga tem 12. Nada urgente hoje. Vira pauta real quando houver assinantes, porque aí passa a ser dado de cliente dos outros. |
 
-**Resolvidas desde a versão anterior deste documento:**
-`GET` público da API (03/set) · token da FIPE e cache (10/set) · mensagens
-novas em conversas não abertas (02/set, caixa de entrada) · RLS na tabela
-`historico`, que estava aberta e legível de fora (08/set).
+**Resolvidas desde a versão anterior deste documento (12/set):**
+abordagem pelo celular, que era impossível (23/set) · dono em cada linha do
+banco e o funil que recusa consulta sem dono (23/set) · o banco do piloto
+recusando cadastro que a produção aceita (23/set) · anexos de venda que
+existiam e não apareciam na tela — 92 de 190 (18/set) · sinal no lugar certo,
+na negociação e não na venda (17/set) · "T-Cross" virando "T" na FIPE, e o
+mesmo em CR-V, HR-V, GT-R e nas 68 caminhonetes Ford (16/set).
+
+**Da versão de 03/set:** `GET` público da API · token da FIPE e cache ·
+mensagens novas em conversas não abertas · RLS na tabela `historico`.
 
 ---
 
