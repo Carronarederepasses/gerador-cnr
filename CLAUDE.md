@@ -5764,3 +5764,78 @@ A regra está escrita desde 04/set: **texto longo vai por arquivo, com a
 ferramenta de escrever.** Continuo tropeçando nela.
 
 *Registrado em 23 de setembro de 2026.*
+
+### 23/set (tarde) — fase 0: dono em cada linha, e o funil
+
+Fundação do multi-loja. Duas metades: o banco e o caminho até ele.
+
+**No banco** (`supabase/fase0-contas.sql`, rodado por ele): tabelas
+`contas`, `usuarios` e `conta_membros`, mais a coluna `conta_id` nas 12
+tabelas, com índice. **489 linhas carimbadas, nenhuma órfã.**
+
+A decisão que torna isso seguro: a coluna nasce com **DEFAULT** apontando
+para a conta do Yuri e **não** obrigatória. Obrigatória agora quebraria toda
+gravação no instante do deploy, porque nenhuma chamada manda `conta_id`.
+Ensaiado antes em tabelas `lab_*` no projeto do piloto (10/10) e no próprio
+piloto com as 12 tabelas reais (16/16) — incluindo gravar SEM mandar dono e
+a linha nascer com dono.
+
+**No código** (`api/_db.js` + `api/_conta.js`): `db(contaId)` devolve o `sb()`
+daquela loja. Leitura, PATCH e DELETE ganham `conta_id=eq.<conta>` na URL;
+POST recebe o dono no corpo, sobrescrevendo o que vier de fora. **Sem conta
+válida, lança** — pedir sem dono não devolve tudo.
+
+Convertidos: `catalogo`, `vendas`, `compradores` e `fetch-anuncio` (radar,
+buscas, ideias, agenda, mensagens). **Todas as funções que tocam linha.** O
+que ainda fala direto com o Supabase é storage (arquivo, isolado por pasta
+do dono) e o ping do cron, que lê um id.
+
+Duas regras que saíram daqui, e valem para o resto:
+
+- **O `sb` é passado, nunca guardado em variável de módulo.** A Vercel pode
+  atender dois pedidos ao mesmo tempo na mesma instância; variável trocada
+  por pedido faria um usar a conta do outro — o vazamento que o funil existe
+  para impedir, criado por comodidade de escrita.
+- **O `sb` antigo foi removido, não deixado como reserva.** Um `sb` de
+  módulo ainda declarado seria o caminho sem dono esperando a chamada
+  esquecida — e ela funcionaria em silêncio.
+
+**E a RLS não cobre isto:** as funções entram com a chave de serviço, que
+passa por cima dela. A RLS fecha a porta de quem chega com a chave pública;
+a porta de uma conta para a outra é o filtro do servidor.
+
+#### Dois defeitos achados no caminho, nenhum era o que eu procurava
+
+**1. O banco do Bruno recusava o que a produção aceita.** Mesmo INSERT
+mínimo: produção aceita, piloto responde *"null value in column opcionais"*.
+Cinco colunas nasceram sem valor padrão, porque gerei aquele banco a partir
+da descrição OpenAPI, **que não informa padrão complexo** — ressalva anotada
+em 22/set que virou defeito medido. Corrigido em `supabase/piloto-defaults.sql`
+(veiculos: opcionais, fotos, documentos, avaliacao; vendas: anexos). As telas
+sempre mandam esses campos, então ninguém tinha visto: era sorte, não
+proteção.
+
+**2. O upsert do Radar descartaria o dono em silêncio.** Ele usa `columns=`
+do PostgREST, que é **lista fechada**: o que não está nela é jogado fora,
+mesmo vindo no corpo. `conta_id` entrou na lista. Hoje daria certo por
+acidente (o DEFAULT do banco acerta, com um site por loja) e erraria no dia
+em que duas lojas dividissem o mesmo banco.
+
+#### Aprendizados de teste
+
+- Cliente tem exclusão **suave** (`ativo=false`), de propósito, para
+  preservar histórico. Meu teste acusou "sobra no banco" — era o teste
+  errado, não o código.
+- `compradores.js` mandava `Prefer: return=representation` **por padrão** e o
+  funil não manda. Sem repor, o POST voltaria 204 sem corpo e a tela
+  quebraria ao ler a resposta. Reposto no handler.
+- Meu detector de "função que usa sb sem receber" **não entende função
+  aninhada** e acusou duas que estavam certas.
+
+#### O que falta na fase 0
+
+Segunda migração, curta: tirar o DEFAULT e tornar `conta_id` obrigatório —
+aí fica impossível nascer linha órfã. Só depois de o código rodar uns dias
+mandando o dono sozinho.
+
+*Registrado em 23 de setembro de 2026, tarde.*
