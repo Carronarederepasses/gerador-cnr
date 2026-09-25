@@ -280,6 +280,24 @@ têm.
 **A escala deles é o aviso.** Vitrine que tente ser o Auto Avaliar do zero
 nasce morta. A vitrine aqui é consequência da rede, não o produto.
 
+### 6.1.1 Cliente final fica de fora **[YURI, confirmado 25/set]**
+
+Ele perguntou se a vitrine seria de carros para venda final — e se fosse,
+precisaria liberar acesso a consumidor. Confirmou depois que não:
+
+> *"A ideia do app realmente é somente para lojistas, investidores e
+> repassadores."*
+
+Fica registrado porque a pergunta volta, e a resposta tem motivo duro:
+**preço de vitrine é preço de repasse, ou seja, atacado.** Consumidor vendo
+atacado destrói a margem do lojista — é a mesma razão pela qual o particular
+saiu do Motor de Match do Gerador em 03/set.
+
+Se um dia fizer sentido vender ao consumidor, é **outra superfície**: vitrine
+da loja, preço de varejo, carros escolhidos um a um, link aberto. Nunca a
+vitrine da rede aberta ao público. Duas tabelas de preço que não se
+encontram — que é como a loja já trabalha hoje.
+
 ### 6.2 Como a vitrine convive com a lista
 
 > **A lista é o primeiro olhar. A vitrine é depois.**
@@ -317,6 +335,13 @@ sinal é o que trava. O Yuri corrigiu — travar é decisão do dono e muitas ve
 acontece **sem sinal nenhum**, na confiança. Então cobrar no sinal só alcança
 parte dos negócios, e justamente os entre desconhecidos; o negócio entre
 conhecidos fecha sem passar por ele.
+
+**Cobrar por usuário: descartado [YURI, 25/set].** Eu sugeri que mais
+usuários por loja fosse mais caro — loja grande paga mais porque usa mais.
+Ele recusou: *"acho que não é justo"*. Tem razão, e o efeito colateral seria
+pior que a receita: cobrar por pessoa empurra a loja a compartilhar um login
+só, e aí o registro de quem fez o quê — que é metade do valor dos papéis
+(§8.2.1) — deixa de existir. **Assinatura por loja, valor único.**
 
 **[CLAUDE]** Com isso, a **assinatura da loja** volta a ser o caminho mais
 firme: não depende de o negócio passar por dentro do app. O sinal processado no
@@ -395,6 +420,45 @@ Tabelas da rede:
 E todas as 12 tabelas atuais ganham `conta_id`, com RLS por conta — não mais
 RLS ligada sem policy, que é o desenho de hoje e só funciona porque existe um
 dono só.
+
+### 8.2.1 Os papéis dentro da loja **[YURI, 25/set]**
+
+Levantado por ele ao ver a tela de entrar, onde eu tinha escrito "um número,
+uma loja":
+
+> *"Loja grande, quem compra é o gerente e o dono. E teremos outras funções
+> dentro do app — checklist de avaliação, de preparação, status do carro:
+> lavação, funilaria, pátio. Algumas dessas telas os funcionários terão
+> acesso também."*
+
+O número identifica **a pessoa**, não a loja. E a estrutura para isso **já
+existe desde a fase 0**: `usuarios.telefone` + `conta_membros.papel`.
+
+**Quatro papéis**, sendo o último opcional — *"dependendo do tamanho da loja,
+é o próprio vendedor que faz a correria de preparação do carro"*:
+
+| | Dono | Gerente | Vendedor | Pátio |
+|---|---|---|---|---|
+| Carros de repasse que chegam das listas | ✓ | ✓ | — | — |
+| Reservar | ✓ | ✓ | — | — |
+| Vitrine — procurar carro para um cliente | ✓ | ✓ | ✓ | — |
+| Onde está cada carro e o que falta fazer | ✓ | ✓ | ✓ | ✓ |
+| Custo do carro e margem | ✓ | ✓ | — | — |
+
+**A regra que eu ia errar:** perguntei quem pode mandar carro para a lista, e
+ele respondeu *"quem for responsável por isso, aí não temos como definir quem
+faz isso"*. Ou seja, **não é função de cargo** — varia de loja para loja.
+Então é **chave à parte, que o dono liga pessoa a pessoa**, nunca amarrada ao
+papel. Amarrar seria inventar regra que o mercado não tem (§3.5).
+
+**Distinção nova que apareceu aqui:** o vendedor **não** alcança os carros de
+repasse, mas **alcança a vitrine** — *"às vezes o vendedor tem cliente
+procurando carro específico que a loja não tem em estoque, ele pode
+procurar."* São duas superfícies diferentes, com públicos diferentes dentro da
+mesma loja.
+
+**[ABERTO]** Quem convida e tira gente da loja. Supus que só o dono; não foi
+confirmado.
 
 ### 8.3 Uma decisão que parece detalhe e não é **[ABERTO]**
 
