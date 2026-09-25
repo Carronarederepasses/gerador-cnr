@@ -6139,4 +6139,41 @@ A tela **Radar** (02/set) pagou-se hoje: as 4 buscas chegaram sozinhas à
 máquina dela. Sem ela, seria digitar quatro URLs longas à mão num
 notebook velho e lento.
 
+### 25/set — o `FIPE_TOKEN` estava guardado do jeito errado
+
+A tarja "Needs Attention" da Vercel **não era defeito nem falta de
+redeploy** (foi o que eu chutei de manhã, e estava errado). Ela dizia:
+*o valor parece um segredo, mas está visível para quem tem acesso.*
+
+Era verdade. Na lista, `CNR_KEY` e `CNR_KEY_2` aparecem com **cadeado**
+(tipo *Secret*, ninguém lê, nem o dono); `FIPE_TOKEN` aparecia com
+**olho** (tipo *Config*, valor à mostra). E o risco não é teórico aqui:
+em 03/set uma chave vazou exatamente assim — num print mandado para
+confirmar que algo tinha funcionado.
+
+Trocado na origem (`fipe.api.br`) e regravado como **Secret**.
+
+**Provado, não suposto.** Uma busca de FIPE funcionaria com token errado,
+porque o sistema cai para a cota anônima — então "a busca funcionou" não
+prova nada. A prova é o painel do `fipe.api.br`: **37 requisições, 100%
+de sucesso, 0 erros**, com a barra do gráfico na hora da busca. Bate com
+as ~40 chamadas que uma cascata custa.
+
+> Isto é o mesmo método de 10/set, quando a dúvida era se a v1 da API
+> aceitava token. Ali também só o painel respondeu.
+
+### O que a Vercel ensinou sobre as chaves perdidas
+
+O Yuri não sabe onde guardou nenhuma das chaves de acesso — foi por isso
+que ele pediu um arquivo com todas. A lista da Vercel responde metade:
+
+- **olho** → o valor pode ser lido e copiado agora
+- **cadeado** → não dá, nem para o dono. O caminho é gerar outra
+
+Ou seja, o arquivo é montável: o que tem olho se copia, o que tem cadeado
+se regenera. **Decisão dele: por ora anota só a da mãe** (que ele tem, em
+foto). A dele fica como está, e a do Bruno fica em paz de propósito — o
+iPhone dele já está liberado, e trocar agora significaria pedir para o
+piloto refazer aquilo justo antes de testar.
+
 *Registrado em 25 de setembro de 2026.*
