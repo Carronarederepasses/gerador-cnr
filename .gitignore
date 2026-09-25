@@ -5,3 +5,13 @@ node_modules/
 .DS_Store
 .vercel
 Celular - CNR Vendas/
+
+# Rede de segurança: arquivo de chave salvo por engano dentro da pasta do
+# projeto. O lugar das chaves é o gerenciador de senhas — ver CHAVES.md,
+# que lista onde cada uma vive sem guardar nenhum valor.
+# (só arquivo de texto: no Windows o git não distingue maiúscula, e um
+#  `chaves*` solto engoliria o próprio CHAVES.md)
+*chaves*.txt
+*senha*.txt
+*.key
+*.pem
