@@ -188,9 +188,73 @@ Três decisões de implementação que derivam disso:
 3. **Desistência devolve a vez.** O 2º da fila é avisado. É onde o app ganha
    dinheiro para o vendedor sem ele fazer nada.
 
+### 5.1 Reservar — o desenho fechado **[YURI, 25/set]**
+
+Fechado desenhando a tela com ele. Quatro decisões:
+
+**1. A palavra é "reservar", não "travar".** "Travar" era minha. O mercado
+dele diz **reservado** — e o Gerador **já usa** `reservado` como status de
+negociação desde antes. Foi justamente essa lista de status que eu não li em
+16/set, e isso me fez construir a "venda em andamento" no lugar errado.
+
+**2. Dois estados, e os dois são públicos:**
+
+| | |
+|---|---|
+| **Reservado** | na palavra. É a maioria dos casos |
+| **Reservado — sinal na conta** | quando o dinheiro entrou; registra valor e comprovante |
+
+> *"No WhatsApp, apenas colocamos carro reservado (com sinal na conta) quando
+> tem, quando não tem sinal, somente reservado. Assim, todos veem."*
+
+O próprio rótulo já diz o quanto a reserva é firme. Quem também queria lê e
+decide sozinho quanta esperança manter — **sem que o app precise avisar
+ninguém**. Eu tinha desenhado um sistema de notificação privada para o 2º da
+fila; era resolver com engenharia o que o mercado resolve mostrando o estado
+na cara de todos.
+
+**3. Sem prazo automático.** Eu propus 24h renováveis. Ele derrubou:
+
+> *"Prazo de reservado depende de N situações, mas geralmente é o prazo de
+> esperar resultado da cautelar e tal, a menos que carro que está
+> negociando demore pra entrar, não tem documento ainda pra poder pagar."*
+
+Um relógio derrubaria as reservas **legítimas**, que são a maioria das
+demoradas. No lugar dele: o app mostra **há quanto tempo** está reservado e,
+se o dono quiser, **por quê** (aguardando cautelar · documento · carro não
+entrou). "Reservado há 11 dias", sem motivo, fala por si — e quem some
+aparece sem precisar de regra.
+
+**4. Para quem reservou é privado.** O dono escolhe da fila; os outros veem
+apenas "Reservado". O nome fica registrado por dois motivos concretos: se a
+reserva cair, o app avisa o 2º sozinho; e é daí que nasce o histórico de
+desistências que aparece quando alguém pede para entrar numa lista.
+
+> Cheguei a oferecer um "reservar sem dizer para quem". Era mal-entendido
+> meu: quando ele disse que não marca para quem, falava do que **os outros**
+> veem — ele obviamente sabe, está falando com a pessoa. Descartado.
+
+### 5.2 O membro não vê os outros membros **[YURI, confirmado 25/set]**
+
+Pergunta dele: *"os integrantes não terão acesso aos membros né?"* Não — e é
+o que a §3.1 já dizia. Dentro de uma lista:
+
+- **o dono** vê os membros dele
+- **os membros** não se enxergam, nem sabem quantos são
+- um membro vê: nome da lista, quem é o dono, o que escolheu receber de
+  aviso, o próprio histórico ali, e o botão de sair
+
+É a diferença inteira para um grupo de WhatsApp, onde qualquer um abre a
+relação de participantes e copia os 188 contatos. **A lista não é um lugar
+onde as pessoas se encontram; é um canal que sai do dono para cada uma.**
+
 **[ABERTO]** Empate real (dois toques no mesmo segundo) e prazo de validade do
 "chamei primeiro" — depois de quanto tempo sem resposta a preferência passa
 adiante?
+
+**Esboço das telas:** `claude.ai/artifact/6ZPmk5F9yyTkntsx3DnAMu` — nove
+telas de celular, atualizado em 25/set. Faltam desenhar: entrar/criar conta,
+o aviso no celular, e o perfil da loja.
 
 ---
 
