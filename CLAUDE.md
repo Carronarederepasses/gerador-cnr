@@ -6088,3 +6088,55 @@ qualquer sistema que tu contrata."*
 > o sistema faz**, não sobre o que ele faz.
 
 *Registrado em 25 de setembro de 2026.*
+
+---
+
+### 25/set — a segunda operadora está de pé
+
+Planejado desde 02/set, decidido em 11/set, feito hoje. **Testado ponta a
+ponta no notebook dela:** ABORDAR abriu a aba da OLX com a mensagem já
+preenchida.
+
+Configurado: extensão carregada sem compactação (pasta na área de
+trabalho), aparelho liberado com chave própria, Gerador ligado na
+extensão, **radar desmarcado**, conta da OLX do Yuri logada.
+
+**A chave dela não foi procurada, foi gerada.** Ele não lembrava onde
+tinha salvo a de 08/set. Isso é o desenho funcionando: chave *Sensitive*
+da Vercel não se relê, então o caminho nunca é caçar — é gerar outra em
+`/entrar.html` e trocar. Dois minutos, contra uma busca sem fim.
+
+#### Os quatro tropeços, e o que cada um ensina
+
+| O que apareceu | O que era |
+|---|---|
+| GitHub deu **404** | Não estava logado. Repositório privado devolve 404 em vez de "sem permissão", para não confirmar que existe — parece link quebrado |
+| "não aparece o arquivo para selecionar" | A janela do *Carregar sem compactação* só mostra **pastas**. Não se seleciona o `manifest.json`, seleciona-se a pasta onde ele está |
+| "Aparelho liberado como **operador 2**" | O `Mãe:` não entrou na variável. **O nome não fica gravado no aparelho** — é resolvido no servidor a cada acesso, então bastou corrigir a Vercel e dar F5; não foi preciso liberar de novo |
+| **0 buscas** | Faltava o **R** de `vercel` no endereço. Sem `https://` ou com domínio errado, o `fetch` nem sai da extensão |
+
+#### O que o quarto tropeço revela, e ainda não foi corrigido
+
+`carregarBuscas()` **cai para a lista local quando dá erro** — e numa
+máquina nova a lista local está vazia. Então a tela mostra **0 buscas**
+tanto para *"o servidor respondeu zero"* quanto para *"não consegui
+falar com o servidor"*. São coisas opostas com a mesma cara.
+
+Quem salvou o dia foi o aviso do **Salvar Gerador**, que desde 03/set
+testa de verdade e separa os quatro casos (conectado / chave recusada /
+erro do servidor / sem rede). Foi ele que disse "não consegui falar", e
+daí saiu o erro de digitação em dois minutos.
+
+**Anotado, não feito:** a lista de buscas deveria dizer *"não consegui
+verificar"* em vez de *"0 buscas"* quando a última tentativa falhou. É o
+mesmo defeito que eu mesmo criei na tarja da caixa de entrada em 02/set
+e corrigi no mesmo dia — dizer "não tem nada" quando o certo é "não
+consegui olhar".
+
+#### Efeito colateral bom
+
+A tela **Radar** (02/set) pagou-se hoje: as 4 buscas chegaram sozinhas à
+máquina dela. Sem ela, seria digitar quatro URLs longas à mão num
+notebook velho e lento.
+
+*Registrado em 25 de setembro de 2026.*
