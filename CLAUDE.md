@@ -6029,3 +6029,62 @@ seriam irreversíveis, e o Supabase pergunta "tem certeza?" sem saber em
 qual banco você está.
 
 *Registrado em 23 de setembro de 2026, noite.*
+
+---
+
+## 24–25 de setembro de 2026 — o piloto liberou o aparelho
+
+Bruno (BHM Autos) liberou o iPhone na noite de 24/set e perguntou "e
+depois de liberado?". **É a primeira vez que alguém de fora entra no
+sistema.** Ele vai testar.
+
+### A armadilha que vale para todo cliente de iPhone
+
+O print mostra `◀ WhatsApp` no topo: **ele liberou dentro do navegador do
+WhatsApp**, não no Safari. A chave vive no armazenamento daquele
+navegador. Ao abrir pelo Safari, há chance real de pedir a chave de novo
+— e o cliente lê isso como "quebrou".
+
+Some-se o que já estava anotado em 22/set: o Safari apaga o que o site
+guarda depois de dias sem uso. Então, para iPhone, o roteiro é **abrir no
+Safari, liberar lá, e adicionar à tela de início** — nessa ordem. Link
+mandado por WhatsApp abre no lugar errado por padrão.
+
+Vale além do Bruno: é o primeiro contato de **todo** lojista que entrar.
+
+### O que ele vê, conferido no ar e não de memória
+
+`utils?type=marca` do piloto: `esconder: radar, anuncios, conversas,
+foto`. Sobram Painel, Parceiros, Captação, Catálogo, Negociações,
+Vendas, Clientes, Busca e Consultas. As quatro escondidas dependem da
+extensão de Chrome, que não existe em iPhone — esconder foi acerto, não
+limitação.
+
+**A conferir antes que ele tropece:** pelo registro de 22/set a consulta
+por placa (APiBrasil) não foi configurada no piloto. Tentei ler as
+variáveis do projeto pela API da Vercel e **não tenho permissão**
+(403) — então fica como "conferir", não como fato. Se ele clicar em
+Consultas e der erro, é isso.
+
+### Correção do Yuri: a frase que eu ia mandar não era verdade
+
+Eu tinha escrito na mensagem ao Bruno *"nada que tu cadastrar aparece pra
+mim"*. Ele estranhou, e estava certo — por um motivo melhor do que o que
+ele levantou: **o banco do piloto está dentro da conta Supabase do
+Yuri.** Ele é o administrador e pode ler tudo. O que o *sistema* não faz
+é misturar; a frase, do jeito que estava, era promessa que não se cumpre.
+
+Promessa dessas cobra no pior momento: no dia em que o Yuri comentar "vi
+que tu cadastrou o Corolla" para ajudar. E na fase de piloto ele *vai*
+querer olhar — é como se descobre se o sistema foi usado sem ficar
+perguntando.
+
+A versão verdadeira, se o Bruno perguntar: *"o sistema não mistura, é
+banco separado. Eu sou o administrador, então tenho acesso, que nem
+qualquer sistema que tu contrata."*
+
+> Terceira vez nesta semana que o Yuri corrige uma afirmação minha que
+> soava boa e não se sustentava. As três foram sobre **o que eu disse que
+> o sistema faz**, não sobre o que ele faz.
+
+*Registrado em 25 de setembro de 2026.*
