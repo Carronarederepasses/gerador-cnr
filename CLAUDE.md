@@ -6162,6 +6162,35 @@ as ~40 chamadas que uma cascata custa.
 > Isto é o mesmo método de 10/set, quando a dúvida era se a v1 da API
 > aceitava token. Ali também só o painel respondeu.
 
+### 25/set (tarde) — o desenho do app fechou
+
+Detalhes em `PROJETO-APP.md`; aqui fica só o rastro. O esboço foi de 7 para
+**14 telas** (`claude.ai/artifact/6ZPmk5F9yyTkntsx3DnAMu`), e cinco decisões
+de produto foram fechadas desenhando com ele na tela.
+
+**Quatro vezes ele corrigiu uma palavra ou uma suposição minha**, e as
+quatro mudaram o desenho:
+
+| eu tinha | ele corrigiu |
+|---|---|
+| "travar" o carro | **"reservar"** — e o Gerador já usa esse status desde antes |
+| aviso privado para o 2º da fila | o estado do carro é **público**; o mercado já resolve mostrando |
+| prazo de 24h na reserva | **sem prazo** — cautelar e documento demoram, o relógio derrubaria as legítimas |
+| "um número, uma loja" | o número é **da pessoa**; a loja tem dono, gerente, vendedor e pátio |
+
+E uma pergunta dele apagou um item em aberto desde 12/set: no empate,
+*"ambos recebem material, o primeiro que decidir é dele"*. A fila não é
+fechadura, é ordem de atenção — não há o que desempatar.
+
+**Decidido também:** cobrar por usuário fora (empurraria a loja a
+compartilhar login, e aí o registro de quem fez o quê morre); cliente final
+fora da vitrine (preço de vitrine é atacado); preço só depois dos custos de
+consulta; nome em aberto — e o teste mais barato é perguntar ao Bruno como
+ele chamaria.
+
+**Levantado antes de construir:** entrar por código de SMS custa ~R$ 0,32 por
+mensagem e **não exige CNPJ** — a fase 1 não está travada por nada.
+
 ### O que a Vercel ensinou sobre as chaves perdidas
 
 O Yuri não sabe onde guardou nenhuma das chaves de acesso — foi por isso
