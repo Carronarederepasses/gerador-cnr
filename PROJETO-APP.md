@@ -589,11 +589,37 @@ Cada fase é utilizável sozinha e não depende de decisão das seguintes.
 | | o quê | por que nesta ordem |
 |---|---|---|
 | **0** | `contas` / `usuarios` / `conta_membros` + `conta_id` em tudo + RLS por conta | Fundação. Não depende de nenhuma decisão de produto, e é o que multiplica de preço depois de ter cliente |
-| **1** | Identidade por telefone com código, substituindo a chave por aparelho | Sem isso não há usuário, só navegador liberado |
+| **1** | Identidade por telefone com código, substituindo a chave por aparelho | Sem isso não há usuário, só navegador liberado. **Custo levantado em 25/set — ver abaixo** |
 | **2** | Contatos, solicitação, envio para a lista, fila de interesse | **O coração.** Já ganha do WhatsApp com 10 usuários |
 | **3** | App embrulhado + notificação | Quando a lista existir e tiver o que notificar |
 | **4** | Vitrine nacional | Quando houver rede suficiente para ela não nascer vazia |
 | **5** | Sinal e cobrança | Depende de CNPJ |
+
+### 10.1 O código por SMS: custo e CNPJ **[levantado em 25/set]**
+
+Pesquisado em fonte antes de construir, porque a resposta estava fora do
+código. **Resumo: não trava nada e custa quase nada.**
+
+| | |
+|---|---|
+| SMS para celular brasileiro | US$ 0,0599 ≈ **R$ 0,32** por mensagem |
+| Número para enviar | ~US$ 1,15/mês ≈ R$ 6 |
+| **Exige CNPJ?** | **Não.** Número internacional alcança celular brasileiro |
+| Registrar o nome do remetente | Opcional, grátis, ~10 semanas, só TIM/Claro/Vivo |
+
+**Volume é o que torna isso irrelevante:** entrar por código acontece uma vez
+por aparelho, não todo dia. 50 lojas × 4 pessoas × 3 entradas por ano = 600
+mensagens ≈ **R$ 190 por ano**.
+
+Sem registrar o remetente, o nome no celular pode sair como número aleatório
+em vez de "Carro na Rede" — feio, não impeditivo.
+
+**Descartado por ora: código pelo WhatsApp.** Sai mais barato e é onde o
+mercado vive, mas a API oficial exige empresa verificada — cai no CNPJ e
+volta a travar. SMS primeiro; WhatsApp depois, se compensar.
+
+Fontes: twilio.com/en-us/sms/pricing/br · twilio.com/en-us/guidelines/br/sms
+· supabase.com/features/phone-logins
 
 **Antes da fase 0 tem uma coisa que custa zero:** um lojista de verdade usando
 o Gerador pelo navegador, como a mãe do Yuri já usa. Se ele não usar no
