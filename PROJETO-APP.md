@@ -248,9 +248,34 @@ o que a §3.1 já dizia. Dentro de uma lista:
 relação de participantes e copia os 188 contatos. **A lista não é um lugar
 onde as pessoas se encontram; é um canal que sai do dono para cada uma.**
 
-**[ABERTO]** Empate real (dois toques no mesmo segundo) e prazo de validade do
-"chamei primeiro" — depois de quanto tempo sem resposta a preferência passa
-adiante?
+### 5.3 O empate não se julga **[YURI, 25/set — fecha um [ABERTO]]**
+
+Ficou em aberto desde 12/set: dois toques no mesmo segundo, quem ganha? Eu
+vinha tratando como disputa a arbitrar — carimbo no milissegundo, regra de
+desempate. A resposta dele dissolve a pergunta:
+
+> *"Dois chamaram na mesma hora: ambos recebem material, o primeiro que
+> decidir é dele."*
+
+**A fila não é uma fechadura, é uma ordem de atenção.** O que fecha o negócio
+não é levantar a mão — é decidir. Então o app não desempata nada: os dois
+veem o carro inteiro desde o começo (no desenho, o material já está no
+cartão), e quem reservar primeiro leva.
+
+Duas consequências para não errar na construção:
+
+1. **Nada na tela pode prometer exclusividade ao 1º da fila.** "Tu é o 2º" é
+   informação, não fila de banco. Quem decide é o dono, e quem chega na
+   frente com a decisão leva.
+2. **O carimbo de hora continua valendo** — só que para ordenar a atenção e
+   registrar o histórico, não para julgar disputa. Isso mantém o item 1 da
+   §5 (hora do servidor) de pé pelo motivo certo.
+
+Item de menos na lista, e resolvido sem escrever uma linha de código.
+
+**[ABERTO]** Prazo de validade do "chamei primeiro" — depois de quanto tempo
+sem resposta a preferência de atenção passa adiante. Menos urgente agora que
+a fila deixou de ser fechadura.
 
 **Esboço das telas:** `claude.ai/artifact/6ZPmk5F9yyTkntsx3DnAMu` — nove
 telas de celular, atualizado em 25/set. Faltam desenhar: entrar/criar conta,
@@ -335,6 +360,13 @@ sinal é o que trava. O Yuri corrigiu — travar é decisão do dono e muitas ve
 acontece **sem sinal nenhum**, na confiança. Então cobrar no sinal só alcança
 parte dos negócios, e justamente os entre desconhecidos; o negócio entre
 conhecidos fecha sem passar por ele.
+
+**O valor fica para depois dos custos [YURI, 25/set].** *"Quero ver depois
+de termos os custos das consultas, pra ver como poderemos cobrar."* Está
+certo na ordem: a consulta veicular é custo por uso e entra dentro do
+produto, então ela é piso de preço, não detalhe. É a mesma conclusão da
+pesquisa de 05/set — o preço do dado define se o negócio existe. E depende do
+CNPJ, que é o que destrava falar com os fornecedores.
 
 **Cobrar por usuário: descartado [YURI, 25/set].** Eu sugeri que mais
 usuários por loja fosse mais caro — loja grande paga mais porque usa mais.
