@@ -723,6 +723,7 @@ module.exports = async (req, res) => {
     if (acao === 'feed'    && req.method === 'GET')  return rede.feed(req, res);
     if (acao === 'quero'   && req.method === 'POST') return rede.quero(req, res);
     if (acao === 'fila'    && req.method === 'GET')  return rede.filaDaOferta(req, res);
+    if (acao === 'minhas'  && req.method === 'GET')  return rede.minhasOfertas(req, res);
     if (acao === 'reservar' && req.method === 'POST') return rede.reservar(req, res);
     if (acao === 'desfazer' && req.method === 'POST') return rede.desfazerReserva(req, res);
     if (acao === 'listas'    && req.method === 'GET')  return rede.listas(req, res);
@@ -730,7 +731,7 @@ module.exports = async (req, res) => {
     if (acao === 'responder' && req.method === 'POST') return rede.responder(req, res);
     if (acao === 'sair'      && req.method === 'POST') return rede.sairOuRemover(req, res);
     return res.status(400).json({
-      error: 'rede deve ser ofertar, feed, quero, fila, reservar, desfazer, listas, solicitar, responder ou sair.',
+      error: 'rede deve ser ofertar, feed, quero, fila, minhas, reservar, desfazer, listas, solicitar, responder ou sair.',
     });
   }
 

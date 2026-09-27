@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Rede — Carro na Rede</title>
+<link rel="manifest" href="/api/utils?type=manifesto">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/auth.js"></script>
+<script src="/assets/marca.js"></script>
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
+  min-height:100vh;padding-bottom:4rem}
+.wrap{max-width:52rem;margin:0 auto;padding:1.6rem 1.2rem 0}
+
+h1{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900;line-height:1.1}
+.sub{color:var(--text-mid);font-size:.88rem;margin-top:.4rem;line-height:1.55;max-width:44rem}
+
+.aviso{margin:1.2rem 0;padding:.9rem 1rem;border:1px solid var(--line);
+  border-radius:var(--r-md, 12px);font-size:.88rem;line-height:1.55;color:var(--text-mid)}
+.aviso strong{color:var(--text)}
+.aviso.erro{border-color:var(--severity-crit)}
+
+section{margin-top:2rem}
+h2{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;
+  display:flex;align-items:baseline;gap:.5rem;margin-bottom:.2rem}
+h2 small{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+.dica{font-size:.8rem;color:var(--text-faint);line-height:1.5;margin-bottom:.9rem}
+
+.cartao{border:1px solid var(--line);border-radius:var(--r-md, 12px);
+  padding:.85rem .95rem;margin-bottom:.6rem;background:var(--surface-raise)}
+.linha{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap}
+.nome{font-family:'Playfair Display',serif;font-size:1.02rem;font-weight:700;line-height:1.2}
+.meta{font-size:.78rem;color:var(--text-mid);margin-top:.15rem}
+.preco{font-size:1rem;font-weight:700;white-space:nowrap}
+
+button{font-family:inherit;font-size:.82rem;font-weight:700;padding:.5rem .9rem;
+  border-radius:var(--r, 8px);border:none;background:var(--text);color:var(--surface);cursor:pointer}
+button.leve{background:none;border:1px solid var(--line);color:var(--text-mid);font-weight:500}
+button:disabled{opacity:.45;cursor:default}
+
+.selo{font-size:.68rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;
+  border:1px solid var(--line);color:var(--text-mid);white-space:nowrap}
+.selo.res{border-color:var(--accent);color:var(--accent)}
+
+.fila{margin-top:.7rem;border-top:1px solid var(--line);padding-top:.6rem}
+.fila .item{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  font-size:.82rem;padding:.35rem 0}
+.pos{width:1.35rem;height:1.35rem;border-radius:50%;background:var(--line);
+  display:inline-grid;place-items:center;font-size:.7rem;font-weight:700;margin-right:.45rem}
+
+.vazio{font-size:.85rem;color:var(--text-faint);padding:.6rem 0}
+.carregando{font-size:.85rem;color:var(--text-faint)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Rede</h1>
+  <p class="sub">Tela de prova do que já existe no servidor: mandar um carro
+  para a lista, ver quem levantou a mão e reservar. Ainda não é a tela final —
+  é para <strong>ver a rede funcionando</strong> antes de espalhar pelo app.</p>
+
+  <div class="aviso" id="quem">
+    <span class="carregando">Vendo quem é você…</span>
+  </div>
+
+  <!-- ── Chegou para ti ─────────────────────────────────────── -->
+  <section>
+    <h2>Chegou para ti <small>o que as listas te mandaram</small></h2>
+    <p class="dica">Carros que outras lojas mandaram para a lista em que você está.
+    “Quero” entra na fila — quem chama primeiro tem a preferência, e quem reserva
+    é o dono do carro.</p>
+    <div id="feed"><span class="carregando">Carregando…</span></div>
+  </section>
+
+  <!-- ── Mandar ─────────────────────────────────────────────── -->
+  <section>
+    <h2>Mandar para a lista <small>do seu estoque</small></h2>
+    <p class="dica">Vai só para quem está na sua lista. O que atravessa é o carro —
+    <strong>placa e valor de compra não vão junto</strong>.</p>
+    <div id="estoque"><span class="carregando">Carregando…</span></div>
+  </section>
+
+  <!-- ── O que eu mandei ────────────────────────────────────── -->
+  <section>
+    <h2>O que você mandou <small>e quem quer</small></h2>
+    <p class="dica">A hora é a do servidor. Reservar é decisão sua, para quem você
+    quiser da fila — com sinal na conta ou na palavra.</p>
+    <div id="minhas"><span class="carregando">Carregando…</span></div>
+  </section>
+
+  <!-- ── Listas ─────────────────────────────────────────────── -->
+  <section>
+    <h2>Listas <small>quem recebe o que você manda</small></h2>
+    <p class="dica">Ninguém entra sem pedir, e a saída é livre. Os membros não se
+    enxergam — só você vê quem está na sua lista.</p>
+    <div id="listas"><span class="carregando">Carregando…</span></div>
+  </section>
+</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const API = '/api/fetch-anuncio';
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const dinheiro = (v) => v == null ? '—'
+  : 'R$ ' + Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+const numero = (v) => v == null ? '—' : Number(v).toLocaleString('pt-BR');
+
+// Toda chamada passa por aqui: sem sessão, a rede não abre, e a tela
+// precisa dizer isso com todas as letras em vez de ficar vazia.
+async function rede(acao, opcoes = {}) {
+  const r = await fetch(`${API}?rede=${acao}` + (opcoes.q || ''), {
+    method: opcoes.body ? 'POST' : 'GET',
+    headers: opcoes.body ? { 'Content-Type': 'application/json' } : undefined,
+    body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
+  });
+  const corpo = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(corpo.error || `HTTP ${r.status}`), { corpo, status: r.status });
+  return corpo;
+}
+
+function erro(alvo, e) {
+  $(alvo).innerHTML = `<div class="aviso erro">${esc(e.message)}</div>`;
+}
+
+// ── Quem sou eu ───────────────────────────────────────────────
+async function verQuem() {
+  try {
+    const r = await fetch('/api/utils?type=quem', { cache: 'no-store' });
+    const d = await r.json().catch(() => ({}));
+    if (!d.sessao) {
+      $('quem').innerHTML = '<strong>Você não entrou pelo telefone.</strong> '
+        + 'A rede precisa saber de que loja você é — a chave do aparelho não diz isso. '
+        + '<a href="/entrar.html" style="color:var(--accent)">Entrar agora</a>.';
+      return false;
+    }
+    $('quem').innerHTML = `Você é <strong>${esc(d.sessao.nome)}</strong>`
+      + ` — ${esc(d.sessao.papel)} na loja <strong>${esc((window.cnrMarca || {}).nome || '')}</strong>.`;
+    return true;
+  } catch (e) {
+    $('quem').innerHTML = '<span class="aviso erro">Não consegui falar com o servidor.</span>';
+    return false;
+  }
+}
+
+// ── Chegou para ti ────────────────────────────────────────────
+async function verFeed() {
+  try {
+    const { ofertas } = await rede('feed');
+    if (!ofertas.length) {
+      $('feed').innerHTML = '<p class="vazio">Nada chegou ainda. Aparece aqui quando'
+        + ' alguém que tem você na lista mandar um carro.</p>';
+      return;
+    }
+    $('feed').innerHTML = ofertas.map((o) => `
+      <div class="cartao">
+        <div class="linha">
+          <div>
+            <div class="nome">${esc(o.marca)} ${esc(o.modelo)}</div>
+            <div class="meta">${esc(o.ano || '—')} · ${numero(o.km)} km${o.cidade ? ' · ' + esc(o.cidade) : ''}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="preco">${dinheiro(o.preco)}</div>
+            <div class="meta">${o.na_fila} na fila</div>
+          </div>
+        </div>
+        <div class="linha" style="margin-top:.7rem">
+          ${o.reservado
+            ? `<span class="selo res">🔒 Reservado ${o.reservado === 'sinal' ? '— sinal na conta' : 'na palavra'}</span>`
+            : o.eu_quero
+              ? '<span class="selo">✋ Você está na fila</span>'
+              : `<button onclick="quero('${o.id}')">✋ Quero</button>`}
+        </div>
+      </div>`).join('');
+  } catch (e) { erro('feed', e); }
+}
+
+async function quero(id) {
+  try {
+    const r = await rede('quero', { body: { oferta_id: id } });
+    await verFeed();
+    alert(`Você é o ${r.posicao}º da fila.`);
+  } catch (e) { alert(e.message); }
+}
+
+// ── Estoque, para mandar ──────────────────────────────────────
+async function verEstoque() {
+  try {
+    const r = await fetch('/api/catalogo?status=disponivel');
+    const lista = await r.json();
+    const carros = (Array.isArray(lista) ? lista : lista.veiculos || []).slice(0, 20);
+    if (!carros.length) { $('estoque').innerHTML = '<p class="vazio">Sem carro disponível no catálogo.</p>'; return; }
+    $('estoque').innerHTML = carros.map((v) => `
+      <div class="cartao">
+        <div class="linha">
+          <div>
+            <div class="nome">${esc(v.marca)} ${esc(v.modelo)}</div>
+            <div class="meta">${esc(v.ano || '—')} · ${numero(v.km)} km · ${dinheiro(v.valor)}</div>
+          </div>
+          <button onclick="mandar('${v.id}', this)">Mandar</button>
+        </div>
+      </div>`).join('');
+  } catch (e) { erro('estoque', e); }
+}
+
+async function mandar(id, botao) {
+  botao.disabled = true;
+  try {
+    const r = await rede('ofertar', { body: { veiculo_id: id, horas_antes_da_vitrine: 6 } });
+    alert(`Mandado para ${r.enviada_para} loja(s).`);
+    await verMinhas();
+  } catch (e) {
+    alert(e.corpo?.codigo === 'lista_vazia'
+      ? 'Sua lista está vazia — ninguém receberia este carro ainda.'
+      : e.message);
+  } finally { botao.disabled = false; }
+}
+
+// ── O que eu mandei ───────────────────────────────────────────
+async function verMinhas() {
+  try {
+    const { ofertas } = await rede('minhas');
+    if (!ofertas.length) {
+      $('minhas').innerHTML = '<p class="vazio">Você ainda não mandou nenhum carro.</p>';
+      return;
+    }
+    $('minhas').innerHTML = ofertas.map((o) => `
+      <div class="cartao">
+        <div class="linha">
+          <div>
+            <div class="nome">${esc(o.marca)} ${esc(o.modelo)}</div>
+            <div class="meta">${dinheiro(o.preco)} · mandado para ${o.destinos} loja(s)</div>
+          </div>
+          ${o.reserva
+            ? `<span class="selo res">🔒 Reservado ${o.reserva.com_sinal ? '— sinal ' + dinheiro(o.reserva.valor_sinal) : 'na palavra'}</span>`
+            : ''}
+        </div>
+        ${o.fila.length ? `<div class="fila">${o.fila.map((f, i) => `
+          <div class="item">
+            <span><span class="pos">${i + 1}</span>${esc(f.nome)}</span>
+            <span>
+              <span class="meta">${new Date(f.criado_em).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
+              ${o.reserva ? '' : ` <button class="leve" onclick="reservar('${o.id}','${f.conta_id}')">Reservar</button>`}
+            </span>
+          </div>`).join('')}</div>` : '<p class="vazio">Ninguém levantou a mão ainda.</p>'}
+        ${o.reserva ? `<div class="linha" style="margin-top:.6rem">
+          <button class="leve" onclick="desfazer('${o.id}')">Desfazer a reserva</button></div>` : ''}
+      </div>`).join('');
+  } catch (e) { erro('minhas', e); }
+}
+
+async function reservar(ofertaId, contaId) {
+  const comSinal = confirm('Entrou sinal na conta?\n\nOK = com sinal · Cancelar = na palavra');
+  let valor = null;
+  if (comSinal) {
+    const v = prompt('Valor do sinal (R$):', '5000');
+    if (v === null) return;
+    valor = Number(String(v).replace(/[^\d,.-]/g, '').replace(',', '.'));
+    if (!(valor > 0)) return alert('Valor inválido.');
+  }
+  const motivo = prompt('Motivo (opcional): aguardando cautelar, documento, carro não entrou…', '') || '';
+  try {
+    await rede('reservar', { body: { oferta_id: ofertaId, para_conta_id: contaId, com_sinal: comSinal, valor_sinal: valor, motivo } });
+    await verMinhas();
+  } catch (e) { alert(e.message); }
+}
+
+async function desfazer(ofertaId) {
+  const motivo = prompt('Por que está desfazendo? (fica no histórico)', '') || '';
+  try {
+    await rede('desfazer', { body: { oferta_id: ofertaId, motivo } });
+    await verMinhas();
+  } catch (e) { alert(e.message); }
+}
+
+// ── Listas ────────────────────────────────────────────────────
+async function verListas() {
+  try {
+    const d = await rede('listas');
+    const membros = d.membros.length
+      ? d.membros.map((m) => `<div class="item"><span>${esc(m.nome)}</span>
+          <button class="leve" onclick="tirar('${m.conta_id}')">Tirar</button></div>`).join('')
+      : '<p class="vazio">Sua lista está vazia.</p>';
+    const pedidos = d.pedidos.length
+      ? d.pedidos.map((p) => `<div class="item"><span>${esc(p.nome)}</span><span>
+          <button onclick="responder('${p.id}',true)">Aceitar</button>
+          <button class="leve" onclick="responder('${p.id}',false)">Recusar</button></span></div>`).join('')
+      : '<p class="vazio">Nenhum pedido pendente.</p>';
+    const onde = d.em_que_estou.length
+      ? d.em_que_estou.map((x) => `<div class="item"><span>${esc(x.nome)}</span>
+          <button class="leve" onclick="sair('${x.dono_conta_id}')">Sair</button></div>`).join('')
+      : '<p class="vazio">Você não está em nenhuma lista.</p>';
+    $('listas').innerHTML = `
+      <div class="cartao"><div class="meta" style="margin-bottom:.4rem">PEDIDOS PARA ENTRAR</div>${pedidos}</div>
+      <div class="cartao"><div class="meta" style="margin-bottom:.4rem">NA MINHA LISTA · ${d.membros.length}</div>${membros}</div>
+      <div class="cartao"><div class="meta" style="margin-bottom:.4rem">LISTAS EM QUE EU ESTOU</div>${onde}</div>`;
+  } catch (e) { erro('listas', e); }
+}
+
+async function responder(id, aceitar) {
+  try { await rede('responder', { body: { solicitacao_id: id, aceitar } }); await verListas(); }
+  catch (e) { alert(e.message); }
+}
+async function tirar(contaId) {
+  if (!confirm('Tirar essa loja da sua lista?')) return;
+  try { await rede('sair', { body: { membro_conta_id: contaId } }); await verListas(); }
+  catch (e) { alert(e.message); }
+}
+async function sair(donoId) {
+  if (!confirm('Sair dessa lista?')) return;
+  try { await rede('sair', { body: { dono_conta_id: donoId } }); await verListas(); }
+  catch (e) { alert(e.message); }
+}
+
+(async () => {
+  if (!(await verQuem())) return;   // sem sessão, não adianta pedir nada
+  verFeed(); verEstoque(); verMinhas(); verListas();
+})();
+</script>
+</body>
+</html>

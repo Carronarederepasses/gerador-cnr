@@ -260,6 +260,51 @@ async function filaDaOferta(req, res) {
   return res.status(200).json({ fila });
 }
 
+// ── O que eu mandei, com a fila de cada uma ───────────────────────
+// Regra: só as ofertas da MINHA loja. A fila vem junto porque é ela que
+// o dono precisa ver para decidir — pedir a fila de cada oferta numa
+// chamada separada faria a tela disparar uma dúzia de pedidos.
+//
+// Aqui o nome de quem levantou a mão APARECE, ao contrário do feed: é a
+// tela do dono decidindo para quem vai o carro dele. Quem recebe continua
+// vendo só "reservado", nunca para quem.
+async function minhasOfertas(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const ofertas = await rsb(
+    `ofertas?conta_id=eq.${eu.conta_id}&estado=neq.encerrada&select=*&order=criado_em.desc&limit=50`
+  );
+  if (!ofertas.length) return res.status(200).json({ ofertas: [] });
+
+  const ids = ofertas.map((o) => o.id);
+  const [interesses, reservas, destinos] = await Promise.all([
+    rsb(`interesses?oferta_id=in.(${ids.join(',')})&estado=eq.quer&select=oferta_id,conta_id,criado_em&order=criado_em.asc`),
+    rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,para_conta_id,com_sinal,valor_sinal,motivo,criado_em`),
+    rsb(`oferta_destinos?oferta_id=in.(${ids.join(',')})&select=oferta_id`),
+  ]);
+
+  const nomes = await nomesDe([...new Set(interesses.map((i) => i.conta_id))]);
+  const porOferta = (lista) => lista.reduce((acc, x) => {
+    (acc[x.oferta_id] = acc[x.oferta_id] || []).push(x); return acc;
+  }, {});
+  const fila = porOferta(interesses);
+  const res_ = porOferta(reservas);
+  const dest = porOferta(destinos);
+
+  return res.status(200).json({
+    ofertas: ofertas.map((o) => ({
+      id: o.id, marca: o.marca, modelo: o.modelo, ano: o.ano, km: o.km,
+      preco: o.preco, criado_em: o.criado_em, vitrine_em: o.vitrine_em,
+      destinos: (dest[o.id] || []).length,
+      fila: (fila[o.id] || []).map((f) => ({
+        conta_id: f.conta_id, nome: nomes[f.conta_id] || '—', criado_em: f.criado_em,
+      })),
+      reserva: (res_[o.id] || [])[0] || null,
+    })),
+  });
+}
+
 // ── Reservar ──────────────────────────────────────────────────────
 // Desenhada com o Yuri em 25/set, com as palavras do mercado dele:
 //
@@ -516,7 +561,7 @@ async function sairOuRemover(req, res) {
 }
 
 module.exports = {
-  ofertar, feed, quero, filaDaOferta, reservar, desfazerReserva,
+  ofertar, feed, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
   listas, solicitar, responder, sairOuRemover,
   rsb, quem,
 };
