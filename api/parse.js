@@ -1,7 +1,7 @@
 // Vercel API Route — parse de anúncio via OpenRouter (LLM free tier)
 // Env var necessária: OPENROUTER_API_KEY
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 
 const MODELS = [
   // Pago barato e confiável (principal) — ~R$ 0,001 por anúncio
@@ -201,6 +201,8 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // OpenRouter cobra por chamada.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
 

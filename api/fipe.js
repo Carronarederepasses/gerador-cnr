@@ -1,5 +1,5 @@
 // Vercel API Route — proxy Parallelum FIPE + anos/versões (sem CORS, sem chave)
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 
 // O acesso à FIPE (cache + token) mora em _fipe.js desde 10/set. Este arquivo
 // tinha a sua própria cópia do fipeGet, SEM cache, enquanto o fipe-search.js
@@ -22,6 +22,8 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // Parallelum e gratis, mas proxy aberto e proxy de todo mundo.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
 

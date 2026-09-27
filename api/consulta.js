@@ -5,7 +5,7 @@
 // POST /api/consulta?acao=solicitar body{placa}→ solicita relatório completo
 // GET  /api/consulta?acao=verificar&protocolo= → verifica status / retorna PDF URL
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 
 const CP_EMAIL = process.env.CP_EMAIL;
 const CP_KEY   = process.env.CP_KEY;
@@ -24,6 +24,8 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // Consultar Placa cobra por consulta. Aberto, qualquer um gastava a fatura do Yuri.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
 

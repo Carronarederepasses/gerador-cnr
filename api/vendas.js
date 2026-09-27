@@ -21,7 +21,7 @@
 //   GET    /api/vendas?anexo=1&path=...   → { url } (link temporário, 1h)
 //   DELETE /api/vendas?anexo=1    body { vendaId, path }
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 const { db } = require('./_db');
 const { contaDoPedido } = require('./_conta');
 
@@ -328,6 +328,10 @@ module.exports = async (req, res) => {
 
   // Portão único (api/_auth.js). Passou a valer também no GET: esta rota
   // devolvia placa, renavam, chassi, valor de compra e lucro a quem pedisse.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+
+  await comSessao(req);
+
   if (exigirChave(req, res)) return;
 
   // De quem é este pedido (fase 0, 23/set). `db()` recusa sem conta, e o

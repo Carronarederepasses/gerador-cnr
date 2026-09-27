@@ -26,7 +26,7 @@ const { contaDoPedido } = require('./_conta');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 
 const TABLE = 'veiculos';
 const BUCKET = 'veiculos';
@@ -277,6 +277,10 @@ module.exports = async (req, res) => {
   }
 
   // Portão único (api/_auth.js)
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+
+  await comSessao(req);
+
   if (exigirChave(req, res)) return;
 
   // De quem é este pedido. Daqui para baixo não existe caminho para o banco

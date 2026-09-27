@@ -2,7 +2,7 @@
 //  • ChatGPT (gpt-image)  → API DIRETA da OpenAI (rápido)        — env: OPENAI_API_KEY
 //  • Nano Banana (Gemini) → OpenRouter                          — env: OPENROUTER_API_KEY
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 
 const fs   = require('fs');
 const path = require('path');
@@ -45,6 +45,8 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // OpenAI e OpenRouter cobram por imagem gerada.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
 

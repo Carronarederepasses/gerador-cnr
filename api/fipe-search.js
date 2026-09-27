@@ -1,5 +1,5 @@
 // Vercel API Route — busca FIPE completa server-side a partir de texto livre
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 
 // O cache nasceu aqui em 02/set e ficou só aqui — o fipe.js, que é quem mais
 // consome, seguiu sem. Desde 10/set os dois usam a mesma peça, em _fipe.js,
@@ -124,6 +124,8 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // Idem fipe.js — e esta faz dezenas de chamadas por consulta.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
 

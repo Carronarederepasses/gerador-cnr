@@ -14,7 +14,7 @@
 //   POST   /api/compradores?evento=1    body { tipo, veiculo_id?, venda_id?, comprador_id?, dados? }
 //   GET    /api/compradores?evento=1&veiculo_id=X  → eventos de um veículo (ordem cronológica)
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 const { db } = require('./_db');
 const { contaDoPedido } = require('./_conta');
 
@@ -181,6 +181,8 @@ module.exports = async (req, res) => {
   // Portão único (api/_auth.js). Esta rota não tinha guarda NENHUM: qualquer
   // um lia, criava, alterava e apagava compradores e negociações. E o que
   // sai daqui é dado de terceiro — telefone, CPF, banco e Pix.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
   // De quem é este pedido (fase 0, 23/set), com o padrão antigo preservado:

@@ -2,11 +2,13 @@
 // POST /api/placa   body: { placa: "ABC1234" }
 // Env var: APIBRASIL_TOKEN
 
-const { exigirChave } = require('./_auth');
+const { exigirChave, comSessao } = require('./_auth');
 
 module.exports = async (req, res) => {
 
   // APiBrasil cobra por consulta.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

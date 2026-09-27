@@ -16,7 +16,7 @@
 
 const { db } = require('./_db');
 const { contaDoPedido } = require('./_conta');
-const { exigirChave, operadorDe } = require('./_auth');
+const { exigirChave, operadorDe, comSessao } = require('./_auth');
 
 const RADAR_KEY = process.env.RADAR_KEY; // opcional — protege o POST (upsert da extensão)
 
@@ -685,6 +685,8 @@ module.exports = async (req, res) => {
   // um proxy aberto se qualquer um puder chamar.
   // As guardas RADAR_KEY internas seguem de pé de propósito — se o portão
   // estiver desligado, elas ainda protegem a escrita.
+  // Sessão vale tanto quanto chave — ver FASE1-ENTRAR.md §5.
+  await comSessao(req);
   if (exigirChave(req, res)) return;
 
   // De quem é este pedido (fase 0, 23/set). Cada handler recebe o `sb` desta
