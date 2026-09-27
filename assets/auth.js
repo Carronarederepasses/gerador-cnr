@@ -67,23 +67,37 @@
   //
   // Falha aqui não pode derrubar nada: o localStorage continua sendo a
   // fonte para as telas; isto é cópia.
-  function espelharNoIDB(valor) {
+  // A CHAVE vai junto, e não só a sessão. Descoberto no primeiro aviso
+  // real (27/set): o celular do Yuri está liberado por chave de aparelho,
+  // não por telefone. O service worker não tinha com que se identificar, o
+  // pedido voltava 401, e o aviso chegava dizendo só "você tem novidade".
+  // Chegava — mas sem o carro, que é a razão de ele existir.
+  //
+  // Mesma regra do envelope abaixo: os dois viajam juntos, para a
+  // transição da fase 1 não deixar ninguém pelo caminho.
+  function guardarNoIDB(qual, valor) {
     try {
       var req = indexedDB.open('cnr', 1);
       req.onupgradeneeded = function () { req.result.createObjectStore('sessao'); };
       req.onsuccess = function () {
         try {
           var tx = req.result.transaction('sessao', 'readwrite');
-          if (valor) tx.objectStore('sessao').put(valor, 'token');
-          else tx.objectStore('sessao').delete('token');
+          if (valor) tx.objectStore('sessao').put(valor, qual);
+          else tx.objectStore('sessao').delete(qual);
         } catch (e) { /* modo privado, cota, etc. */ }
       };
     } catch (e) { /* sem IndexedDB: o aviso fica genérico, nada quebra */ }
   }
 
+  function espelharNoIDB(valor) { guardarNoIDB('token', valor); }
+
   // Quem já entrou antes desta mudança não tem o espelho. Copia na
-  // primeira carga, em vez de exigir sair e entrar de novo.
-  (function () { var t = lerSessao(); if (t) espelharNoIDB(t); })();
+  // primeira carga, em vez de exigir sair e entrar de novo — e o mesmo
+  // vale para a chave, que nunca foi espelhada.
+  (function () {
+    var t = lerSessao(); if (t) espelharNoIDB(t);
+    var c = ler();       if (c) guardarNoIDB('chave', c);
+  })();
 
   // ── Envelopa o fetch ────────────────────────────────────────────
   var original = window.fetch.bind(window);
@@ -172,9 +186,15 @@
 
   // Exposto para a tela de liberação.
   window.CNR_AUTH = {
-    guardar: function (v) { localStorage.setItem(GUARDA, v); },
+    guardar: function (v) {
+      localStorage.setItem(GUARDA, v);
+      guardarNoIDB('chave', v);      // para o service worker montar o texto do aviso
+    },
     ler: ler,
-    esquecer: function () { localStorage.removeItem(GUARDA); },
+    esquecer: function () {
+      localStorage.removeItem(GUARDA);
+      guardarNoIDB('chave', null);
+    },
     guardarSessao: function (v) {
       try { localStorage.setItem(GUARDA_SESSAO, v); } catch (e) {}
       espelharNoIDB(v);

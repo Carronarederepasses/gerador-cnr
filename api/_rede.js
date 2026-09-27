@@ -1133,8 +1133,21 @@ async function assinarAviso(req, res) {
 // O que o service worker pergunta quando o aviso chega: o texto a
 // mostrar. Devolve a coisa mais recente que interessa a esta loja.
 async function novidades(req, res) {
-  const eu = quem(req);
-  if (!eu) return semSessao(res);
+  // ÚNICA rota da rede que atende sem sessão, e a razão está escrita aqui
+  // porque é numa exceção à mão que um vazamento nasce:
+  //
+  //  1. A rota já passou por `exigirChave` — quem chegou aqui tem chave
+  //     de aparelho válida ou sessão. Não é caminho aberto.
+  //  2. Ela lê SÓ `conta_id`. Não usa `usuario_id`, papel, nem permissão:
+  //     o que volta é o mesmo para qualquer pessoa da loja.
+  //  3. A chave de aparelho já abre catálogo, vendas e clientes com CPF.
+  //     Recusar aqui não protegeria nada — só faria o aviso chegar sem o
+  //     carro, que foi o que aconteceu no primeiro teste real (27/set).
+  //
+  // Sessão continua vencendo: `contaDoPedido` lê dela primeiro.
+  const s = quem(req);
+  const eu = s || { conta_id: require('./_conta').contaDoPedido(req) };
+  if (!eu.conta_id) return semSessao(res);
 
   // 1. Mensagem nova ganha da oferta: alguém falando com você é mais
   //    urgente que um carro no feed.
