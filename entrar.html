@@ -64,15 +64,49 @@ summary:hover{color:var(--text)}
     <div><strong>Conferindo…</strong><span>Perguntando ao servidor se este aparelho passa.</span></div>
   </div>
 
-  <div id="campo" style="display:none">
-    <label for="chave">Chave de liberação</label>
-    <input id="chave" type="text" autocomplete="off" spellcheck="false"
-           placeholder="cole aqui" aria-label="Chave de liberação">
-    <div class="linha">
-      <button id="btn">Liberar</button>
-      <button class="leve" id="btn-esquecer" style="display:none">Esquecer este aparelho</button>
+  <!-- ── Entrar por telefone (fase 1) ─────────────────────────────
+       Caminho principal. A chave continua embaixo, recolhida: ela é o
+       que sustenta os aparelhos já liberados, e tirar antes da hora
+       trancaria a operação do lado de fora — o erro de 03/set. -->
+  <div id="logado" style="display:none">
+    <div class="linha" style="margin-top:0">
+      <button class="leve" id="btn-sair">Sair desta conta</button>
     </div>
   </div>
+
+  <div id="tel-passo1">
+    <label for="tel">Seu telefone</label>
+    <input id="tel" type="tel" inputmode="numeric" autocomplete="tel"
+           placeholder="(48) 99999-0000" aria-label="Seu telefone">
+    <div class="linha">
+      <button id="btn-codigo">Receber código</button>
+    </div>
+  </div>
+
+  <div id="tel-passo2" style="display:none">
+    <label for="cod">Código que chegou</label>
+    <input id="cod" type="text" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" placeholder="000000" aria-label="Código de seis dígitos">
+    <div class="linha">
+      <button id="btn-entrar">Entrar</button>
+      <button class="leve" id="btn-voltar">Trocar o telefone</button>
+    </div>
+  </div>
+
+  <details id="bloco-chave">
+    <summary>Entrar com chave de liberação</summary>
+    <p class="sub" style="margin:.7rem 0 .8rem">É o jeito antigo, e continua
+    valendo. Os aparelhos já liberados seguem funcionando sem mexer em nada.</p>
+    <div id="campo" style="display:none">
+      <label for="chave">Chave de liberação</label>
+      <input id="chave" type="text" autocomplete="off" spellcheck="false"
+             placeholder="cole aqui" aria-label="Chave de liberação">
+      <div class="linha">
+        <button id="btn">Liberar</button>
+        <button class="leve" id="btn-esquecer" style="display:none">Esquecer este aparelho</button>
+      </div>
+    </div>
+  </details>
 
   <!-- Gerador embutido. Sem isto o primeiro passo dependia de terminal, e
        o terminal foi onde o Yuri travou. A chave nasce aqui, no navegador
@@ -123,12 +157,18 @@ async function conferir() {
       let quem = null;
       try { quem = (await r.json()).operador; } catch (e) { /* corpo estranho: segue sem nome */ }
 
+      const temSessao = Boolean(window.CNR_AUTH.lerSessao());
       mostrar('ok',
-        quem ? 'Aparelho liberado como ' + quem : 'Aparelho liberado',
-        temChave ? 'Pode usar o Gerador normalmente.'
-                 : 'O portão ainda está desligado no servidor — todo mundo passa.');
+        quem ? (temSessao ? 'Entrou como ' + quem : 'Aparelho liberado como ' + quem)
+             : 'Aparelho liberado',
+        temSessao ? 'Entrou pelo telefone. Vale neste navegador até você sair.'
+                  : (temChave ? 'Pode usar o Gerador normalmente.'
+                              : 'O portão ainda está desligado no servidor — todo mundo passa.'));
       $('campo').style.display = 'block';
       $('btn-esquecer').style.display = temChave ? 'inline-block' : 'none';
+      // Entrou pelo telefone: some o formulário de entrar e aparece o sair.
+      $('logado').style.display = temSessao ? 'block' : 'none';
+      passo(temSessao ? 0 : 1);
       return;
     }
     if (r.status === 401) {
@@ -197,6 +237,102 @@ $('btn-copiar').addEventListener('click', () => {
 $('btn-esquecer').addEventListener('click', async () => {
   window.CNR_AUTH.esquecer();
   await conferir();
+});
+
+// ── Entrar por telefone ─────────────────────────────────────────
+// Máscara enquanto digita, igual ao resto do sistema. O servidor aceita
+// com ou sem pontuação — isto é só para a leitura ficar familiar.
+function mascaraTel(v) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2)  return d.length ? '(' + d : '';
+  if (d.length <= 6)  return '(' + d.slice(0, 2) + ') ' + d.slice(2);
+  if (d.length <= 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+  return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+}
+$('tel').addEventListener('input', (e) => { e.target.value = mascaraTel(e.target.value); });
+
+function passo(n) {
+  $('tel-passo1').style.display = n === 1 ? 'block' : 'none';
+  $('tel-passo2').style.display = n === 2 ? 'block' : 'none';
+  if (n === 2) $('cod').focus();
+}
+
+$('btn-codigo').addEventListener('click', async () => {
+  const tel = $('tel').value.replace(/\D/g, '');
+  if (tel.length < 10) { mostrar('erro', 'Telefone incompleto', 'Digite com DDD.'); return; }
+  $('btn-codigo').disabled = true;
+  try {
+    const r = await fetch('/api/utils?type=codigo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telefone: tel }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      mostrar('erro', 'Não consegui pedir o código', d.error || ('Servidor respondeu ' + r.status));
+      return;
+    }
+    // A resposta é a MESMA para telefone cadastrado, não cadastrado ou
+    // segurado pelo freio — de propósito. Então a tela também não promete
+    // que chegou: diz o que fazer se não chegar.
+    mostrar('neutro', 'Se este telefone estiver cadastrado, o código foi enviado',
+      d.simulado
+        ? 'O envio por SMS está desligado: o código está no registro do servidor.'
+        : 'Vale por ' + (d.minutos || 10) + ' minutos. Não chegou? Confira o número.');
+    passo(2);
+  } catch (e) {
+    mostrar('neutro', 'Não consegui falar com o servidor', 'Sem internet aqui, ou o Gerador fora do ar.');
+  } finally {
+    $('btn-codigo').disabled = false;
+  }
+});
+
+$('btn-entrar').addEventListener('click', async () => {
+  const tel = $('tel').value.replace(/\D/g, '');
+  const cod = $('cod').value.replace(/\D/g, '');
+  if (cod.length !== 6) { $('cod').focus(); return; }
+  $('btn-entrar').disabled = true;
+  try {
+    const r = await fetch('/api/utils?type=sessao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telefone: tel, codigo: cod }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.token) {
+      // Mensagem única: dizer se foi o código ou o telefone entregaria
+      // informação a quem está tentando adivinhar.
+      mostrar('erro', 'Código inválido ou vencido', 'Peça outro e tente de novo.');
+      return;
+    }
+    window.CNR_AUTH.guardarSessao(d.token);
+    $('cod').value = '';
+    passo(1);
+    await conferir();
+  } catch (e) {
+    mostrar('neutro', 'Não consegui falar com o servidor', 'Tente de novo daqui a pouco.');
+  } finally {
+    $('btn-entrar').disabled = false;
+  }
+});
+
+$('btn-voltar').addEventListener('click', () => { $('cod').value = ''; passo(1); });
+
+$('btn-sair').addEventListener('click', async () => {
+  // Avisa o servidor para a sessão morrer de verdade, não só sumir deste
+  // navegador. Se a rede falhar, some daqui mesmo assim — melhor sair
+  // parecendo que saiu do que ficar preso numa tela que não obedece.
+  try {
+    await fetch('/api/utils?type=sair', { method: 'POST' });
+  } catch (e) { /* segue */ }
+  window.CNR_AUTH.sair();
+  await conferir();
+});
+$('cod').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('btn-entrar').click(); }
+});
+$('tel').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('btn-codigo').click(); }
 });
 
 conferir();

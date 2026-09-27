@@ -17,9 +17,17 @@
   'use strict';
 
   var GUARDA = 'cnr_chave';
+  // Fase 1: entrar por telefone. A sessão vive ao lado da chave, não no
+  // lugar dela — quem já está liberado continua liberado, e a troca
+  // acontece no tempo de cada aparelho. Ver FASE1-ENTRAR.md §5.
+  var GUARDA_SESSAO = 'cnr_sessao';
 
   function ler() {
     try { return localStorage.getItem(GUARDA) || ''; } catch (e) { return ''; }
+  }
+
+  function lerSessao() {
+    try { return localStorage.getItem(GUARDA_SESSAO) || ''; } catch (e) { return ''; }
   }
 
   // A chave chega pelo fragmento (#), nunca pela query (?). Fragmento não
@@ -64,10 +72,14 @@
     if (!ehDaNossaApi(entrada)) return original(entrada, init);
 
     var chave = ler();
-    if (chave) {
+    var sessao = lerSessao();
+    if (chave || sessao) {
       init = init || {};
       var h = new Headers(init.headers || (entrada && entrada.headers) || {});
-      if (!h.has('x-cnr-key')) h.set('x-cnr-key', chave);
+      if (chave && !h.has('x-cnr-key')) h.set('x-cnr-key', chave);
+      // Os dois vão juntos de propósito: se a sessão vencer, a chave ainda
+      // abre a porta e a operação não para no meio.
+      if (sessao && !h.has('x-cnr-sessao')) h.set('x-cnr-sessao', sessao);
       init = Object.assign({}, init, { headers: h });
     }
 
@@ -123,5 +135,8 @@
     guardar: function (v) { localStorage.setItem(GUARDA, v); },
     ler: ler,
     esquecer: function () { localStorage.removeItem(GUARDA); },
+    guardarSessao: function (v) { try { localStorage.setItem(GUARDA_SESSAO, v); } catch (e) {} },
+    lerSessao: lerSessao,
+    sair: function () { try { localStorage.removeItem(GUARDA_SESSAO); } catch (e) {} },
   };
 })();

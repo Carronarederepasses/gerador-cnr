@@ -137,7 +137,22 @@ module.exports = async (req, res) => {
         ok: true,
         operador:    operadorDe(req),        // null = chave legada ou portão desligado
         portaoLigado: portaoLigado(),
+        // Quem entrou pelo telefone sabe de que loja é e o que pode fazer.
+        // Null para quem entrou por chave — ela não diz nada disso.
+        sessao: req.cnrSessao ? {
+          nome:  req.cnrSessao.nome,
+          papel: req.cnrSessao.papel,
+        } : null,
       });
+    }
+
+    // Encerrar a sessão no servidor, não só sumir do navegador. Sair que
+    // só apaga daqui deixa o token valendo para quem o tiver copiado.
+    if (type === 'sair') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
+      const { encerrarSessao } = require('./_sessao');
+      await encerrarSessao(req);
+      return res.status(200).json({ ok: true });
     }
 
     // Mensagem de abordagem. O servidor é a fonte; o Gerador e a extensão
