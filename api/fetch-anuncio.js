@@ -734,6 +734,10 @@ module.exports = async (req, res) => {
     if (acao === 'transmissao' && req.method === 'GET')  return rede.verListasTransmissao(req, res);
     if (acao === 'transmissao' && req.method === 'POST') return rede.mexerNaLista(req, res);
     if (acao === 'membro'      && req.method === 'POST') return rede.membrosDaLista(req, res);
+    // Conversas 1 a 1 — o outro lado do WhatsApp.
+    if (acao === 'conversas' && req.method === 'GET')  return rede.conversas(req, res);
+    if (acao === 'conversa'  && req.method === 'GET')  return rede.abrirConversa(req, res);
+    if (acao === 'mensagem'  && req.method === 'POST') return rede.mandarMensagem(req, res);
     return res.status(400).json({
       error: 'rede deve ser ofertar, feed, quero, fila, minhas, reservar, desfazer, listas, solicitar, responder ou sair.',
     });

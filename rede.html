@@ -78,6 +78,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
   margin-top:.55rem;padding-top:.5rem;border-top:1px solid var(--line);
   font-size:.74rem;color:var(--text-faint)}
 .balao.recebido{align-self:flex-start;background:transparent}
+/* Balão de conversa: só o texto e a hora, sem a moldura do cartão de carro. */
+.balao.msg-so{padding:.55rem .7rem;max-width:24rem}
+.balao.msg-so .msg{margin-top:0}
+.balao.msg-so .rodape{border-top:none;padding-top:.25rem;margin-top:.2rem}
 
 .selo{font-size:.68rem;font-weight:700;padding:.15rem .45rem;border-radius:999px;
   border:1px solid var(--line);color:var(--text-mid);white-space:nowrap}
@@ -188,9 +192,10 @@ async function rede(acao, opcoes = {}) {
 }
 
 // Estado da tela: o que está aberto à direita.
-let aberto = null;            // { tipo: 'lista'|'todos'|'recebidos', id, nome }
+let aberto = null;            // { tipo: 'lista'|'todos'|'recebidos'|'conversa', id, nome }
 let carroEscolhido = null;
-let dados = { listas: [], contatos: [], minhas: [], recebidas: [] };
+let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: [] };
+let thread = [];              // mensagens da conversa aberta
 
 function verLista()    { $('tela').dataset.onde = 'lista'; }
 function verConversa() { $('tela').dataset.onde = 'conversa'; }
@@ -238,9 +243,19 @@ function desenharColuna() {
       dados.recebidas.length ? quando(dados.recebidas[0].criado_em) : '',
       aberto?.tipo === 'recebidos', 'abrirRecebidos()', naoLidas ? String(naoLidas) : '') +
     `<div class="grupo">Transmissões</div>` + todos + listas +
+    (dados.conversas.length ? `<div class="grupo">Conversas</div>` + dados.conversas.map((c) => linha(
+      '💬', c.nome,
+      c.ultima ? (c.ultima.minha ? 'Você: ' : '') + c.ultima.texto : 'sem mensagens',
+      c.ultima ? quando(c.ultima.criado_em) : '',
+      aberto?.tipo === 'conversa' && aberto.id === c.conta_id,
+      `abrirConversa('${c.conta_id}')`,
+      c.nao_lidas ? String(c.nao_lidas) : '')).join('') : '') +
     `<div class="grupo">Contatos · ${dados.contatos.length}</div>` +
     (dados.contatos.length
-      ? dados.contatos.map((c) => linha('🏪', c.nome, 'na sua rede', '', false, 'void 0')).join('')
+      // Tocar num contato abre a conversa com ele — como no WhatsApp,
+      // onde a agenda e o chat são a mesma porta.
+      ? dados.contatos.map((c) => linha('🏪', c.nome, 'tocar para conversar', '', false,
+          `abrirConversa('${c.conta_id}')`)).join('')
       : '<div class="vazio" style="padding:1rem">Ninguém na sua rede ainda.</div>');
 }
 
@@ -274,8 +289,25 @@ function balaoDoCarro(o, comFila) {
 function desenharPainel() {
   if (!aberto) return;
   $('pan-nome').textContent = aberto.nome;
-  $('pan-icone').textContent = aberto.tipo === 'recebidos' ? '📥' : aberto.tipo === 'todos' ? '👥' : '📣';
+  $('pan-icone').textContent = { recebidos: '📥', todos: '👥', conversa: '💬' }[aberto.tipo] || '📣';
   $('compor').hidden = aberto.tipo === 'recebidos';
+  // Carro é conteúdo de transmissão. Na conversa 1 a 1 se escreve, como
+  // no WhatsApp — o botão do carro só atrapalharia.
+  $('btn-carro').hidden = aberto.tipo === 'conversa';
+  $('texto').placeholder = aberto.tipo === 'conversa' ? 'Mensagem' : 'Escreva algo (opcional)…';
+
+  if (aberto.tipo === 'conversa') {
+    $('pan-sub').textContent = 'conversa direta';
+    $('thread').innerHTML = thread.length
+      ? thread.map((m) => `
+        <div class="balao msg-so ${m.minha ? '' : 'recebido'}">
+          <div class="msg">${esc(m.texto)}</div>
+          <div class="rodape"><span>${quando(m.criado_em)}</span><span></span></div>
+        </div>`).join('')
+      : '<div class="vazio">Nenhuma mensagem ainda. Escreva a primeira.</div>';
+    $('thread').scrollTop = $('thread').scrollHeight;
+    return;
+  }
 
   if (aberto.tipo === 'recebidos') {
     $('pan-sub').textContent = `${dados.recebidas.length} carro(s)`;
@@ -302,6 +334,34 @@ function desenharPainel() {
 function abrirLista(id) { const l = dados.listas.find((x) => x.id === id); aberto = { tipo: 'lista', id, nome: l.nome }; desenharColuna(); desenharPainel(); verConversa(); }
 function abrirTodos()   { aberto = { tipo: 'todos', id: null, nome: 'Todos os contatos' }; desenharColuna(); desenharPainel(); verConversa(); }
 function abrirRecebidos() { aberto = { tipo: 'recebidos', id: null, nome: 'Chegou para mim' }; desenharColuna(); desenharPainel(); verConversa(); }
+
+// ── Conversa 1 a 1 ──────────────────────────────────────────
+async function abrirConversa(contaId) {
+  try {
+    const d = await rede('conversa', { q: `&conta_id=${contaId}` });
+    thread = d.mensagens;
+    aberto = { tipo: 'conversa', id: contaId, nome: d.nome };
+    // Abrir marcou as dela como lidas no servidor; recarregar a coluna é
+    // o que faz a bolinha sumir aqui também.
+    const c = await rede('conversas');
+    dados.conversas = c.conversas;
+    desenharColuna(); desenharPainel(); verConversa();
+    $('texto').focus();
+  } catch (e) { alert(e.message); }
+}
+
+async function enviarMensagem() {
+  const texto = $('texto').value.trim();
+  if (!texto) return;
+  $('btn-enviar').disabled = true;
+  try {
+    await rede('mensagem', { body: { conta_id: aberto.id, texto } });
+    $('texto').value = '';
+    $('texto').style.height = 'auto';
+    await abrirConversa(aberto.id);
+  } catch (e) { alert(e.message); }
+  finally { $('btn-enviar').disabled = false; }
+}
 
 // ── Escolher o carro ────────────────────────────────────────
 async function escolherCarro() {
@@ -331,6 +391,8 @@ function tirarCarro() { carroEscolhido = null; $('escolhido').hidden = true; }
 
 // ── Enviar ──────────────────────────────────────────────────
 async function enviar() {
+  // Na conversa o conteúdo é o texto; na transmissão é o carro.
+  if (aberto && aberto.tipo === 'conversa') return enviarMensagem();
   if (!carroEscolhido) return escolherCarro();   // o carro é o conteúdo
   $('btn-enviar').disabled = true;
   try {
@@ -422,10 +484,10 @@ async function apagarLista(id) {
 
 // ── Carregar tudo ───────────────────────────────────────────
 async function carregar() {
-  const [t, l, f, m] = await Promise.all([
-    rede('transmissao'), rede('listas'), rede('feed'), rede('minhas'),
+  const [t, l, f, m, c] = await Promise.all([
+    rede('transmissao'), rede('listas'), rede('feed'), rede('minhas'), rede('conversas'),
   ]);
-  dados = { listas: t.listas, contatos: l.membros, recebidas: f.ofertas, minhas: m.ofertas };
+  dados = { listas: t.listas, contatos: l.membros, recebidas: f.ofertas, minhas: m.ofertas, conversas: c.conversas };
   desenharColuna();
   if (aberto) desenharPainel();
 }

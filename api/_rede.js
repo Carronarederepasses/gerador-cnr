@@ -32,7 +32,8 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // Repasses · Joinville"), e o cadastro das lojas fica fora do funil desde a
 // fase 0 — não é dado de loja, é o registro delas. Só leitura daqui.
 const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos',
-                 'interesses', 'reservas', 'contas', 'listas', 'lista_membros'];
+                 'interesses', 'reservas', 'contas', 'listas', 'lista_membros',
+                 'conversas', 'mensagens_rede'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -719,9 +720,168 @@ async function membrosDaLista(req, res) {
   return res.status(200).json({ ok: true, dentro: false });
 }
 
+// ══ CONVERSAS 1 A 1 ════════════════════════════════════════════════
+//
+// O outro lado do WhatsApp [YURI, 27/set]: a transmissão vai para muitos,
+// e quem se interessa responde numa conversa que é só entre os dois.
+//
+// ── Quem pode falar com quem ──────────────────────────────────────
+// Não é qualquer um: conversa aberta para toda a rede vira caixa de spam
+// no dia em que ela crescer. Só fala quem já tem relação:
+//
+//   • um é contato do outro (em qualquer direção), OU
+//   • um mandou carro para o outro (existe oferta com ele como destino)
+//
+// A segunda existe porque o carro chega ANTES de a pessoa virar contato:
+// quem recebeu uma transmissão precisa poder responder, que é
+// exatamente como funciona lá.
+async function podeFalarCom(minhaConta, outra) {
+  if (minhaConta === outra) return false;
+
+  const contatos = await rsb(
+    `contatos?estado=eq.ativo&select=conta_id,contato_conta_id` +
+    `&or=(and(conta_id.eq.${minhaConta},contato_conta_id.eq.${outra}),` +
+    `and(conta_id.eq.${outra},contato_conta_id.eq.${minhaConta}))`
+  );
+  if (contatos.length) return true;
+
+  // Mandei carro para ela?
+  const minhas = await rsb(`ofertas?conta_id=eq.${minhaConta}&select=id&limit=200`);
+  if (minhas.length) {
+    const d = await rsb(`oferta_destinos?conta_id=eq.${outra}&oferta_id=in.(${minhas.map((o) => o.id).join(',')})&select=oferta_id&limit=1`);
+    if (d.length) return true;
+  }
+  // Ela mandou carro para mim?
+  const dela = await rsb(`ofertas?conta_id=eq.${outra}&select=id&limit=200`);
+  if (dela.length) {
+    const d = await rsb(`oferta_destinos?conta_id=eq.${minhaConta}&oferta_id=in.(${dela.map((o) => o.id).join(',')})&select=oferta_id&limit=1`);
+    if (d.length) return true;
+  }
+  return false;
+}
+
+// Acha ou cria a conversa do par. O par é guardado em ordem para que
+// (X,Y) e (Y,X) sejam a MESMA linha — senão cada lado teria a sua thread
+// e as mensagens se perderiam entre as duas.
+async function acharConversa(a, b, criar) {
+  const [x, y] = a < b ? [a, b] : [b, a];
+  const achada = await rsb(`conversas?conta_a=eq.${x}&conta_b=eq.${y}&select=*&limit=1`);
+  if (achada.length) return achada[0];
+  if (!criar) return null;
+  return (await rsb('conversas', {
+    method: 'POST', prefer: 'return=representation',
+    body: JSON.stringify({ conta_a: x, conta_b: y }),
+  }))[0];
+}
+
+// ── As minhas conversas, para a coluna da esquerda ────────────────
+async function conversas(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const lista = await rsb(
+    `conversas?or=(conta_a.eq.${eu.conta_id},conta_b.eq.${eu.conta_id})&select=*&order=ultima_em.desc&limit=100`
+  );
+  if (!lista.length) return res.status(200).json({ conversas: [] });
+
+  const ids = lista.map((c) => c.id);
+  const msgs = await rsb(
+    `mensagens_rede?conversa_id=in.(${ids.join(',')})&select=conversa_id,de_conta_id,texto,criado_em,lida_em&order=criado_em.desc&limit=500`
+  );
+  const outras = lista.map((c) => (c.conta_a === eu.conta_id ? c.conta_b : c.conta_a));
+  const nomes = await nomesDe([...new Set(outras)]);
+
+  return res.status(200).json({
+    conversas: lista.map((c) => {
+      const outra = c.conta_a === eu.conta_id ? c.conta_b : c.conta_a;
+      const daConversa = msgs.filter((m) => m.conversa_id === c.id);
+      const ultima = daConversa[0] || null;
+      return {
+        id: c.id,
+        conta_id: outra,
+        nome: nomes[outra] || '—',
+        ultima: ultima ? { texto: ultima.texto, criado_em: ultima.criado_em, minha: ultima.de_conta_id === eu.conta_id } : null,
+        nao_lidas: daConversa.filter((m) => m.de_conta_id !== eu.conta_id && !m.lida_em).length,
+        ultima_em: c.ultima_em,
+      };
+    }),
+  });
+}
+
+// ── Abrir uma conversa ────────────────────────────────────────────
+// Regra: só quem é uma das duas contas. E abrir MARCA COMO LIDAS as
+// mensagens da outra — é o que faz a bolinha sumir, como no WhatsApp.
+async function abrirConversa(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const outra = req.query.conta_id;
+  if (!UUID.test(String(outra || ''))) return res.status(400).json({ error: 'conta_id inválido.' });
+  if (!(await podeFalarCom(eu.conta_id, outra))) {
+    return res.status(404).json({ error: 'Conversa não encontrada.' });
+  }
+
+  const c = await acharConversa(eu.conta_id, outra, false);
+  const nomes = await nomesDe([outra]);
+  if (!c) return res.status(200).json({ conversa_id: null, nome: nomes[outra] || '—', mensagens: [] });
+
+  const msgs = await rsb(
+    `mensagens_rede?conversa_id=eq.${c.id}&select=id,de_conta_id,texto,oferta_id,criado_em&order=criado_em.asc&limit=300`
+  );
+
+  // Marca como lidas as que a outra mandou. Fire-and-forget seria perder
+  // a marcação quando a Vercel encerra o worker — então espera.
+  await rsb(`mensagens_rede?conversa_id=eq.${c.id}&de_conta_id=neq.${eu.conta_id}&lida_em=is.null`, {
+    method: 'PATCH', body: JSON.stringify({ lida_em: new Date().toISOString() }),
+  }).catch(() => {});
+
+  return res.status(200).json({
+    conversa_id: c.id,
+    conta_id: outra,
+    nome: nomes[outra] || '—',
+    mensagens: msgs.map((m) => ({
+      id: m.id, texto: m.texto, oferta_id: m.oferta_id,
+      criado_em: m.criado_em, minha: m.de_conta_id === eu.conta_id,
+    })),
+  });
+}
+
+// ── Mandar mensagem ───────────────────────────────────────────────
+async function mandarMensagem(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { conta_id, texto, oferta_id } = req.body || {};
+  if (!UUID.test(String(conta_id || ''))) return res.status(400).json({ error: 'conta_id inválido.' });
+  const limpo = String(texto || '').trim().slice(0, 2000);
+  if (!limpo) return res.status(400).json({ error: 'Escreva alguma coisa.' });
+  if (!(await podeFalarCom(eu.conta_id, conta_id))) {
+    // Mesma resposta de "não existe": dizer "vocês não têm relação"
+    // confirmaria que a loja existe.
+    return res.status(404).json({ error: 'Conversa não encontrada.' });
+  }
+
+  const c = await acharConversa(eu.conta_id, conta_id, true);
+  await rsb('mensagens_rede', {
+    method: 'POST',
+    body: JSON.stringify({
+      conversa_id: c.id, de_conta_id: eu.conta_id, de_usuario_id: eu.usuario_id,
+      texto: limpo, oferta_id: UUID.test(String(oferta_id || '')) ? oferta_id : null,
+    }),
+  });
+  // `ultima_em` é o que ordena a coluna da esquerda: sem isto, a conversa
+  // com mensagem nova não sobe para o topo.
+  await rsb(`conversas?id=eq.${c.id}`, {
+    method: 'PATCH', body: JSON.stringify({ ultima_em: new Date().toISOString() }),
+  });
+
+  return res.status(201).json({ ok: true, conversa_id: c.id });
+}
+
 module.exports = {
   ofertar, feed, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
   listas, solicitar, responder, sairOuRemover,
   verListasTransmissao, mexerNaLista, membrosDaLista,
+  conversas, abrirConversa, mandarMensagem,
   rsb, quem,
 };
