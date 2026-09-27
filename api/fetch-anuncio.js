@@ -725,7 +725,13 @@ module.exports = async (req, res) => {
     if (acao === 'fila'    && req.method === 'GET')  return rede.filaDaOferta(req, res);
     if (acao === 'reservar' && req.method === 'POST') return rede.reservar(req, res);
     if (acao === 'desfazer' && req.method === 'POST') return rede.desfazerReserva(req, res);
-    return res.status(400).json({ error: 'rede deve ser ofertar, feed, quero, fila, reservar ou desfazer.' });
+    if (acao === 'listas'    && req.method === 'GET')  return rede.listas(req, res);
+    if (acao === 'solicitar' && req.method === 'POST') return rede.solicitar(req, res);
+    if (acao === 'responder' && req.method === 'POST') return rede.responder(req, res);
+    if (acao === 'sair'      && req.method === 'POST') return rede.sairOuRemover(req, res);
+    return res.status(400).json({
+      error: 'rede deve ser ofertar, feed, quero, fila, reservar, desfazer, listas, solicitar, responder ou sair.',
+    });
   }
 
   // Modo padrão: fetch URL para IA

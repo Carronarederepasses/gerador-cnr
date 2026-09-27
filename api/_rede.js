@@ -28,7 +28,11 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos', 'interesses', 'reservas'];
+// `contas` entra na lista porque a tela precisa do NOME da loja ("Vale Car
+// Repasses · Joinville"), e o cadastro das lojas fica fora do funil desde a
+// fase 0 — não é dado de loja, é o registro delas. Só leitura daqui.
+const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos',
+                 'interesses', 'reservas', 'contas'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -363,4 +367,156 @@ async function desfazerReserva(req, res) {
   return res.status(200).json({ ok: true });
 }
 
-module.exports = { ofertar, feed, quero, filaDaOferta, reservar, desfazerReserva, rsb, quem };
+// ══ AS LISTAS ══════════════════════════════════════════════════════
+//
+// A regra que separa isto de um grupo de WhatsApp, e que o Yuri
+// confirmou em 25/set ao perguntar *"os integrantes não terão acesso aos
+// membros né?"*:
+//
+//   • o DONO da lista vê os membros dele
+//   • os MEMBROS não se enxergam, nem sabem quantos são
+//   • um membro vê: o nome da lista, quem é o dono, e o botão de sair
+//
+// Num grupo, qualquer um abre a relação de participantes e copia os 188
+// contatos — o ativo do dono indo embora pela porta da frente. Aqui a
+// lista não é um lugar onde as pessoas se encontram; é um canal que sai
+// do dono para cada uma.
+
+const nomesDe = async (ids) => {
+  if (!ids.length) return {};
+  const r = await rsb(`contas?id=in.(${ids.join(',')})&select=id,nome`);
+  return Object.fromEntries(r.map((c) => [c.id, c.nome]));
+};
+
+// ── O que eu vejo na tela Listas ──────────────────────────────────
+async function listas(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const [meus, pedidos, ondeEstou] = await Promise.all([
+    rsb(`contatos?conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=contato_conta_id,criado_em&order=criado_em.desc`),
+    rsb(`solicitacoes?para_conta_id=eq.${eu.conta_id}&estado=eq.pendente&select=id,de_conta_id,criado_em&order=criado_em.asc`),
+    rsb(`contatos?contato_conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=conta_id,criado_em&order=criado_em.desc`),
+  ]);
+
+  const nomes = await nomesDe([...new Set([
+    ...meus.map((x) => x.contato_conta_id),
+    ...pedidos.map((x) => x.de_conta_id),
+    ...ondeEstou.map((x) => x.conta_id),
+  ])]);
+
+  return res.status(200).json({
+    // A minha lista: eu sou a dona, então vejo quem está nela.
+    membros: meus.map((x) => ({ conta_id: x.contato_conta_id, nome: nomes[x.contato_conta_id] || '—', desde: x.criado_em })),
+    pedidos: pedidos.map((x) => ({ id: x.id, conta_id: x.de_conta_id, nome: nomes[x.de_conta_id] || '—', em: x.criado_em })),
+    // As listas em que EU estou: só de quem é, nunca quem mais está nela.
+    em_que_estou: ondeEstou.map((x) => ({ dono_conta_id: x.conta_id, nome: nomes[x.conta_id] || '—', desde: x.criado_em })),
+  });
+}
+
+// ── Pedir para entrar ─────────────────────────────────────────────
+// "Ninguém é adicionado sem pedir" (§3.2). Consequência aceita: começa
+// devagar — em troca, quem está ali quis estar.
+async function solicitar(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeComprar) {
+    return res.status(403).json({ error: 'Seu acesso não inclui entrar em listas.' });
+  }
+
+  const { para_conta_id } = req.body || {};
+  if (!UUID.test(String(para_conta_id || ''))) return res.status(400).json({ error: 'para_conta_id inválido.' });
+  if (para_conta_id === eu.conta_id) return res.status(400).json({ error: 'Essa lista é sua.' });
+
+  const ja = await rsb(`contatos?conta_id=eq.${para_conta_id}&contato_conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=id&limit=1`);
+  if (ja.length) return res.status(409).json({ error: 'Você já está nessa lista.', codigo: 'ja_membro' });
+
+  // Pedido repetido é toque repetido, não erro: o índice parcial no banco
+  // já garante um pendente por par.
+  const pend = await rsb(`solicitacoes?de_conta_id=eq.${eu.conta_id}&para_conta_id=eq.${para_conta_id}&estado=eq.pendente&select=id&limit=1`);
+  if (pend.length) return res.status(200).json({ ok: true, ja_pedido: true });
+
+  await rsb('solicitacoes', {
+    method: 'POST',
+    body: JSON.stringify({ de_conta_id: eu.conta_id, para_conta_id }),
+  });
+  return res.status(201).json({ ok: true });
+}
+
+// ── Aceitar ou recusar ────────────────────────────────────────────
+// Regra: só o dono da lista responde, e a resposta é sobre a lista dele.
+async function responder(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { solicitacao_id, aceitar } = req.body || {};
+  if (!UUID.test(String(solicitacao_id || ''))) return res.status(400).json({ error: 'solicitacao_id inválido.' });
+
+  const s = await rsb(`solicitacoes?id=eq.${solicitacao_id}&para_conta_id=eq.${eu.conta_id}&estado=eq.pendente&select=id,de_conta_id&limit=1`);
+  if (!s.length) return res.status(404).json({ error: 'Pedido não encontrado.' });
+
+  await rsb(`solicitacoes?id=eq.${solicitacao_id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ estado: aceitar ? 'aceita' : 'recusada', respondido_em: new Date().toISOString() }),
+  });
+
+  if (aceitar) {
+    // Quem já esteve e saiu volta a ficar ativo, em vez de dar conflito
+    // com a linha antiga — sair e voltar é caso normal.
+    const antigo = await rsb(`contatos?conta_id=eq.${eu.conta_id}&contato_conta_id=eq.${s[0].de_conta_id}&select=id&limit=1`);
+    if (antigo.length) {
+      await rsb(`contatos?id=eq.${antigo[0].id}`, {
+        method: 'PATCH', body: JSON.stringify({ estado: 'ativo', encerrado_em: null }),
+      });
+    } else {
+      await rsb('contatos', {
+        method: 'POST',
+        body: JSON.stringify({ conta_id: eu.conta_id, contato_conta_id: s[0].de_conta_id }),
+      });
+    }
+  }
+  return res.status(200).json({ ok: true, aceito: !!aceitar });
+}
+
+// ── Sair, ou tirar alguém ─────────────────────────────────────────
+// "Saída livre" (§3.2): ninguém precisa pedir licença para sair. E o dono
+// pode tirar quem quiser da lista dele. As duas coisas param na mesma
+// linha de `contatos`, só muda quem manda.
+async function sairOuRemover(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { dono_conta_id, membro_conta_id } = req.body || {};
+
+  // Eu saindo da lista de alguém.
+  if (dono_conta_id) {
+    if (!UUID.test(String(dono_conta_id))) return res.status(400).json({ error: 'dono_conta_id inválido.' });
+    const r = await rsb(`contatos?conta_id=eq.${dono_conta_id}&contato_conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=id&limit=1`);
+    if (!r.length) return res.status(404).json({ error: 'Você não está nessa lista.' });
+    await rsb(`contatos?id=eq.${r[0].id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ estado: 'saiu', encerrado_em: new Date().toISOString() }),
+    });
+    return res.status(200).json({ ok: true, sai: true });
+  }
+
+  // O dono tirando alguém da lista dele.
+  if (membro_conta_id) {
+    if (!UUID.test(String(membro_conta_id))) return res.status(400).json({ error: 'membro_conta_id inválido.' });
+    const r = await rsb(`contatos?conta_id=eq.${eu.conta_id}&contato_conta_id=eq.${membro_conta_id}&estado=eq.ativo&select=id&limit=1`);
+    if (!r.length) return res.status(404).json({ error: 'Essa loja não está na sua lista.' });
+    await rsb(`contatos?id=eq.${r[0].id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ estado: 'removido', encerrado_em: new Date().toISOString() }),
+    });
+    return res.status(200).json({ ok: true, removido: true });
+  }
+
+  return res.status(400).json({ error: 'dono_conta_id (sair) ou membro_conta_id (remover).' });
+}
+
+module.exports = {
+  ofertar, feed, quero, filaDaOferta, reservar, desfazerReserva,
+  listas, solicitar, responder, sairOuRemover,
+  rsb, quem,
+};
