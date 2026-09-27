@@ -6367,6 +6367,42 @@ prova, e as telas de verdade (as 14 desenhadas) continuam por fazer.
 > carro mandado pela lista "Compram acima de 100 mil" e a mão levantada,
 > para ele abrir a tela e mexer. Apagar quando ele disser.
 
+#### A tela virou WhatsApp — e dois defeitos do primeiro uso real
+
+Ele mandou o estoque pela tela e trouxe as duas coisas:
+
+**1. Três dos seis carros foram sem preço.** Aircross e Voyage têm só a
+FIPE no catálogo, sem valor de repasse. O app mandou calado, e a outra
+loja receberia um anúncio pela metade. **Não era defeito de código, era
+do dado — o defeito foi aceitar dado sem sentido em silêncio.** Agora
+recusa e diz o que falta. As três ofertas ruins foram tiradas da rede.
+
+**2. A tela precisa parecer o que ele já usa.** Mandou o print da
+*"Transmissão SP · 32 destinatários"* com o campo de digitar: *"quero
+algo semelhante ao WhatsApp"*.
+
+`/rede.html` refeita nesse formato — duas colunas no notebook, uma de
+cada vez no celular. À esquerda: **Chegou para mim**, as transmissões
+(com o último carro mandado como prévia) e os contatos. À direita: o que
+foi mandado por ali, em balões, e embaixo o campo de digitar.
+
+**O que isso revelou:** o conteúdo é o carro, mas no WhatsApp ele manda o
+carro **e o texto** — *"entrou hoje, aceito troca, só à vista"*. Daí a
+coluna `mensagem` em `ofertas`. **Campo de digitar que não leva nada é
+pior que campo nenhum.**
+
+Provado na tela: carro + texto enviados, balão mostrando os dois, e a
+prévia da coluna esquerda atualizando na hora.
+
+> Defeito meu pego na captura: o campo de digitar aparecia em "Chegou
+> para mim", onde não se manda nada — `display:` de classe vence o
+> atributo `hidden`. Uma linha de CSS.
+
+**[ABERTO]** Nada impede mandar o mesmo carro duas vezes, e ele fez isso
+sem querer. Pode ser defeito (dois cartões do mesmo carro na tela do
+outro) ou pode ser legítimo (remandar semanas depois o que ninguém
+pegou). Pergunta feita, ainda sem resposta.
+
 ### "0 buscas" deixou de ter duas causas com a mesma cara
 
 Anotado em 25/set, ao montar o notebook da mãe, e corrigido agora. Quando
