@@ -33,7 +33,7 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // fase 0 — não é dado de loja, é o registro delas. Só leitura daqui.
 const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos',
                  'interesses', 'reservas', 'contas', 'listas', 'lista_membros',
-                 'conversas', 'mensagens_rede'];
+                 'conversas', 'mensagens_rede', 'grupos', 'grupo_membros'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -878,10 +878,211 @@ async function mandarMensagem(req, res) {
   return res.status(201).json({ ok: true, conversa_id: c.id });
 }
 
+// ══ GRUPOS ═════════════════════════════════════════════════════════
+//
+// A terceira peça, com o diferencial que o Yuri definiu em 27/set:
+//
+//   *"No grupo, quero que os membros sejam ocultos, o que será
+//     diferencial do WhatsApp."*
+//
+// No WhatsApp, entrar num grupo entrega a agenda de todo mundo: qualquer
+// um abre a relação de participantes e copia 200 contatos. É por isso
+// que o grupo de 188 pessoas dele é um ativo em risco permanente.
+//
+// Aqui a conversa é coletiva e **a lista não existe para ninguém**, nem
+// para quem está dentro. Quem só observa — a maioria — fica invisível.
+// Quem fala se identifica pela própria mensagem, e é assim que dá para
+// chamar no privado.
+//
+// ── A REGRA QUE NÃO PODE CAIR ─────────────────────────────────────
+// **Nenhuma função abaixo devolve `grupo_membros`.** Só a CONTAGEM, e só
+// para quem está dentro. Se um dia alguém precisar da lista para alguma
+// tela, a resposta é não: é o diferencial inteiro do produto.
+//
+// `aberto` é decisão do admin: fechado (padrão) só entra por convite;
+// aberto, qualquer loja da rede entra sozinha. Nos dois, o autor da
+// mensagem aparece e a lista continua oculta.
+
+async function souDoGrupo(grupoId, contaId) {
+  const r = await rsb(`grupo_membros?grupo_id=eq.${grupoId}&conta_id=eq.${contaId}&saiu_em=is.null&select=admin&limit=1`);
+  return r.length ? r[0] : null;
+}
+
+// ── Meus grupos, para a coluna da esquerda ────────────────────────
+async function grupos(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const meus = await rsb(`grupo_membros?conta_id=eq.${eu.conta_id}&saiu_em=is.null&select=grupo_id,admin`);
+  if (!meus.length) return res.status(200).json({ grupos: [] });
+
+  const ids = meus.map((m) => m.grupo_id);
+  const gs = await rsb(`grupos?id=in.(${ids.join(',')})&arquivado_em=is.null&select=*&order=ultima_em.desc`);
+  const msgs = await rsb(`mensagens_rede?grupo_id=in.(${ids.join(',')})&select=grupo_id,de_conta_id,texto,criado_em,lida_em&order=criado_em.desc&limit=400`);
+  // Contagem, nunca a lista — ver a regra no topo deste bloco.
+  const todos = await rsb(`grupo_membros?grupo_id=in.(${ids.join(',')})&saiu_em=is.null&select=grupo_id`);
+  const nomes = await nomesDe([...new Set(msgs.map((m) => m.de_conta_id))]);
+
+  return res.status(200).json({
+    grupos: gs.map((g) => {
+      const doGrupo = msgs.filter((m) => m.grupo_id === g.id);
+      const ultima = doGrupo[0] || null;
+      return {
+        id: g.id, nome: g.nome, aberto: g.aberto,
+        sou_admin: (meus.find((m) => m.grupo_id === g.id) || {}).admin === true,
+        participantes: todos.filter((t) => t.grupo_id === g.id).length,
+        ultima: ultima ? {
+          texto: ultima.texto, criado_em: ultima.criado_em,
+          quem: ultima.de_conta_id === eu.conta_id ? 'Você' : (nomes[ultima.de_conta_id] || '—'),
+        } : null,
+        nao_lidas: doGrupo.filter((m) => m.de_conta_id !== eu.conta_id && !m.lida_em).length,
+      };
+    }),
+  });
+}
+
+// ── Abrir um grupo ────────────────────────────────────────────────
+// Regra: só quem está dentro. E a resposta traz a CONTAGEM de
+// participantes, jamais quem são.
+async function abrirGrupo(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const id = req.query.grupo_id;
+  if (!UUID.test(String(id || ''))) return res.status(400).json({ error: 'grupo_id inválido.' });
+  const sou = await souDoGrupo(id, eu.conta_id);
+  if (!sou) return res.status(404).json({ error: 'Grupo não encontrado.' });
+
+  const g = (await rsb(`grupos?id=eq.${id}&select=*&limit=1`))[0];
+  const msgs = await rsb(`mensagens_rede?grupo_id=eq.${id}&select=id,de_conta_id,texto,oferta_id,criado_em&order=criado_em.asc&limit=300`);
+  const nomes = await nomesDe([...new Set(msgs.map((m) => m.de_conta_id))]);
+  // `select=grupo_id` e não `conta_id`: só o número interessa, e os ids
+  // dos participantes nem chegam a existir aqui dentro. Um dia alguém
+  // acrescenta um campo na resposta sem pensar — e o que não foi lido não
+  // pode vazar.
+  const quantos = (await rsb(`grupo_membros?grupo_id=eq.${id}&saiu_em=is.null&select=grupo_id`)).length;
+
+  await rsb(`mensagens_rede?grupo_id=eq.${id}&de_conta_id=neq.${eu.conta_id}&lida_em=is.null`, {
+    method: 'PATCH', body: JSON.stringify({ lida_em: new Date().toISOString() }),
+  }).catch(() => {});
+
+  return res.status(200).json({
+    id: g.id, nome: g.nome, aberto: g.aberto, sou_admin: sou.admin === true,
+    participantes: quantos,     // só o número. A lista não sai daqui.
+    mensagens: msgs.map((m) => ({
+      id: m.id, texto: m.texto, oferta_id: m.oferta_id, criado_em: m.criado_em,
+      minha: m.de_conta_id === eu.conta_id,
+      // O autor aparece — é o que permite chamar no privado. Quem nunca
+      // fala nunca aparece, e é essa a proteção.
+      quem: m.de_conta_id === eu.conta_id ? 'Você' : (nomes[m.de_conta_id] || '—'),
+      conta_id: m.de_conta_id,
+    })),
+  });
+}
+
+// ── Criar, entrar, sair, acrescentar ──────────────────────────────
+async function mexerNoGrupo(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  const { acao, grupo_id, nome, aberto, conta_id } = req.body || {};
+
+  if (acao === 'criar') {
+    const limpo = String(nome || '').trim().slice(0, 60);
+    if (!limpo) return res.status(400).json({ error: 'Dê um nome ao grupo.' });
+    const g = (await rsb('grupos', { method: 'POST', prefer: 'return=representation',
+      body: JSON.stringify({ criado_por: eu.conta_id, nome: limpo, aberto: aberto === true }) }))[0];
+    await rsb('grupo_membros', { method: 'POST',
+      body: JSON.stringify({ grupo_id: g.id, conta_id: eu.conta_id, admin: true }) });
+    return res.status(201).json({ ok: true, grupo: { id: g.id, nome: g.nome, aberto: g.aberto } });
+  }
+
+  if (!UUID.test(String(grupo_id || ''))) return res.status(400).json({ error: 'grupo_id inválido.' });
+  const g = (await rsb(`grupos?id=eq.${grupo_id}&arquivado_em=is.null&select=*&limit=1`))[0];
+  if (!g) return res.status(404).json({ error: 'Grupo não encontrado.' });
+  const sou = await souDoGrupo(grupo_id, eu.conta_id);
+
+  // Entrar sozinho: só em grupo aberto.
+  if (acao === 'entrar') {
+    if (sou) return res.status(200).json({ ok: true, ja_estava: true });
+    if (!g.aberto) return res.status(403).json({ error: 'Este grupo é fechado — só entra por convite.' });
+    await rsb('grupo_membros?on_conflict=grupo_id,conta_id', {
+      method: 'POST', prefer: 'resolution=merge-duplicates',
+      body: JSON.stringify({ grupo_id, conta_id: eu.conta_id, admin: false, saiu_em: null }),
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (!sou) return res.status(404).json({ error: 'Grupo não encontrado.' });
+
+  if (acao === 'sair') {
+    await rsb(`grupo_membros?grupo_id=eq.${grupo_id}&conta_id=eq.${eu.conta_id}`, {
+      method: 'PATCH', body: JSON.stringify({ saiu_em: new Date().toISOString() }),
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  // Daqui para baixo, só admin.
+  if (!sou.admin) return res.status(403).json({ error: 'Só quem administra o grupo pode fazer isso.' });
+
+  if (acao === 'acrescentar') {
+    if (!UUID.test(String(conta_id || ''))) return res.status(400).json({ error: 'conta_id inválido.' });
+    // Só dá para acrescentar quem é seu contato: sem isso, o grupo viraria
+    // um jeito de alcançar loja que nunca aceitou falar com você.
+    const c = await rsb(`contatos?conta_id=eq.${eu.conta_id}&contato_conta_id=eq.${conta_id}&estado=eq.ativo&select=id&limit=1`);
+    if (!c.length) return res.status(400).json({ error: 'Essa loja não é seu contato.' });
+    await rsb('grupo_membros?on_conflict=grupo_id,conta_id', {
+      method: 'POST', prefer: 'resolution=merge-duplicates',
+      body: JSON.stringify({ grupo_id, conta_id, admin: false, saiu_em: null }),
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (acao === 'abrir' || acao === 'fechar') {
+    await rsb(`grupos?id=eq.${grupo_id}`, { method: 'PATCH', body: JSON.stringify({ aberto: acao === 'abrir' }) });
+    return res.status(200).json({ ok: true, aberto: acao === 'abrir' });
+  }
+
+  if (acao === 'apagar') {
+    await rsb(`grupos?id=eq.${grupo_id}`, {
+      method: 'PATCH', body: JSON.stringify({ arquivado_em: new Date().toISOString() }),
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  return res.status(400).json({ error: 'acao deve ser criar, entrar, sair, acrescentar, abrir, fechar ou apagar.' });
+}
+
+// ── Falar no grupo ────────────────────────────────────────────────
+async function mandarNoGrupo(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { grupo_id, texto, oferta_id } = req.body || {};
+  if (!UUID.test(String(grupo_id || ''))) return res.status(400).json({ error: 'grupo_id inválido.' });
+  const limpo = String(texto || '').trim().slice(0, 2000);
+  if (!limpo) return res.status(400).json({ error: 'Escreva alguma coisa.' });
+  if (!(await souDoGrupo(grupo_id, eu.conta_id))) {
+    return res.status(404).json({ error: 'Grupo não encontrado.' });
+  }
+
+  await rsb('mensagens_rede', {
+    method: 'POST',
+    body: JSON.stringify({
+      grupo_id, de_conta_id: eu.conta_id, de_usuario_id: eu.usuario_id,
+      texto: limpo, oferta_id: UUID.test(String(oferta_id || '')) ? oferta_id : null,
+    }),
+  });
+  await rsb(`grupos?id=eq.${grupo_id}`, {
+    method: 'PATCH', body: JSON.stringify({ ultima_em: new Date().toISOString() }),
+  });
+  return res.status(201).json({ ok: true });
+}
+
 module.exports = {
   ofertar, feed, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
   listas, solicitar, responder, sairOuRemover,
   verListasTransmissao, mexerNaLista, membrosDaLista,
   conversas, abrirConversa, mandarMensagem,
+  grupos, abrirGrupo, mexerNoGrupo, mandarNoGrupo,
   rsb, quem,
 };

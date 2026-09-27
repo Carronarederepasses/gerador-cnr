@@ -738,6 +738,11 @@ module.exports = async (req, res) => {
     if (acao === 'conversas' && req.method === 'GET')  return rede.conversas(req, res);
     if (acao === 'conversa'  && req.method === 'GET')  return rede.abrirConversa(req, res);
     if (acao === 'mensagem'  && req.method === 'POST') return rede.mandarMensagem(req, res);
+    // Grupos — muitos com muitos, e a lista de participantes NUNCA sai.
+    if (acao === 'grupos'    && req.method === 'GET')  return rede.grupos(req, res);
+    if (acao === 'grupo'     && req.method === 'GET')  return rede.abrirGrupo(req, res);
+    if (acao === 'grupo'     && req.method === 'POST') return rede.mexerNoGrupo(req, res);
+    if (acao === 'falar'     && req.method === 'POST') return rede.mandarNoGrupo(req, res);
     return res.status(400).json({
       error: 'rede deve ser ofertar, feed, quero, fila, minhas, reservar, desfazer, listas, solicitar, responder ou sair.',
     });
