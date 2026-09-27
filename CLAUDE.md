@@ -6162,6 +6162,48 @@ transforma a cobrança em conserto.
 > Vale como padrão: a gente testou a entrada com quem já sabia o que tinha
 > do outro lado. Quem não sabe para onde vai, para.
 
+### A marca sai do site e passa a ser da loja
+
+A fase 1 fez os **dados** virem de quem entrou; faltava a **marca**.
+Enquanto o nome e o logo saíssem de variável de ambiente, o lojista ainda
+precisava de um projeto próprio na Vercel só para o logo dele aparecer no
+topo — "um site atende todas as lojas" estava pela metade.
+
+Seis colunas em `contas`, `marcaDaConta()` no `_marca.js`, e
+`utils?type=marca` lendo da conta quando há sessão. Sem sessão, cai na
+variável — mesma transição da fase 1.
+
+**Provado com duas lojas de verdade, no mesmo endereço:** entrando como
+uma loja de teste, a marca volta com o nome, o subtítulo, o Instagram e
+as telas escondidas dela; sem sessão, o mesmo site segue Carro na Rede.
+11 de 11, e a loja de teste apagada com a limpeza conferida.
+
+#### O defeito que o teste pegou, e é o mais perigoso do dia
+
+A marca da loja não aparecia. **A resposta vinha do cache da borda da
+Vercel:** o pedido anterior, sem sessão, tinha sido guardado como público,
+e o pedido seguinte — com sessão — recebeu a cópia guardada. A função nem
+foi chamada, porque o cabeçalho de sessão não entra na chave do cache.
+
+Apareceu como "a marca não muda". **O mesmo mecanismo, com dois clientes
+pagantes, serve a marca de um para o outro.**
+
+Eu tinha me lembrado do risco e escrito `private, no-store` — mas só no
+caminho COM sessão. Não bastava: **uma resposta pública guardada antes
+envenena as seguintes.** Agora é `no-store` sempre nessa rota.
+
+> Terceira vez que o cache morde neste projeto: o ícone do BHM em 22/set,
+> o documento apagado que seguia respondendo 200 em 23/set, e agora este.
+> Os três com a mesma forma — **o que já foi guardado não obedece à regra
+> nova.**
+
+#### Um acerto de dados no caminho
+
+`contas.nome` estava "Carro na Rede Repasses", mas nome e subtítulo são
+campos separados e a tela junta os dois — o título sairia "Carro na Rede
+Repasses Repasses". Corrigido para "Carro na Rede". Peguei comparando a
+saída dos dois caminhos **antes** de ligar, não olhando a tela depois.
+
 *Registrado em 27 de setembro de 2026.*
 
 ---
