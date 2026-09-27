@@ -55,7 +55,7 @@ summary:hover{color:var(--text)}
 <body>
 
 <div class="cartao">
-  <h1>Liberar este aparelho</h1>
+  <h1>Entrar</h1>
   <p class="sub">Uma vez só por aparelho. Depois disso o Gerador não pergunta
   mais nada aqui — nem no celular, nem no notebook.</p>
 
@@ -124,8 +124,8 @@ summary:hover{color:var(--text)}
     <output id="nova" hidden></output>
   </details>
 
-  <p class="nota">A chave vive só neste navegador. Ela não aparece no endereço
-  depois de usada, e não é enviada nos registros do servidor.</p>
+  <p class="nota">O código chega por mensagem e vale por 10 minutos. Depois de
+  entrar, este navegador fica lembrado — não tem senha para decorar.</p>
 </div>
 
 <script>
@@ -172,8 +172,12 @@ async function conferir() {
       return;
     }
     if (r.status === 401) {
-      mostrar('erro', temChave ? 'A chave deste aparelho não confere' : 'Aparelho não liberado',
-        'Cole a chave abaixo e toque em Liberar.');
+      // O texto aponta para o caminho principal — o telefone. Mandar colar
+      // a chave, que agora está recolhida embaixo, seria a tela indicando o
+      // caminho secundário.
+      mostrar('erro', temChave ? 'A chave deste aparelho não confere' : 'Este aparelho ainda não entrou',
+        temChave ? 'Entre pelo telefone abaixo, ou corrija a chave.'
+                 : 'Digite o seu telefone abaixo para receber um código.');
       $('campo').style.display = 'block';
       $('btn-esquecer').style.display = temChave ? 'inline-block' : 'none';
       return;
