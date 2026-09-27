@@ -730,6 +730,10 @@ module.exports = async (req, res) => {
     if (acao === 'solicitar' && req.method === 'POST') return rede.solicitar(req, res);
     if (acao === 'responder' && req.method === 'POST') return rede.responder(req, res);
     if (acao === 'sair'      && req.method === 'POST') return rede.sairOuRemover(req, res);
+    // Listas de transmissão (padrão WhatsApp): recortes nomeados dos contatos.
+    if (acao === 'transmissao' && req.method === 'GET')  return rede.verListasTransmissao(req, res);
+    if (acao === 'transmissao' && req.method === 'POST') return rede.mexerNaLista(req, res);
+    if (acao === 'membro'      && req.method === 'POST') return rede.membrosDaLista(req, res);
     return res.status(400).json({
       error: 'rede deve ser ofertar, feed, quero, fila, minhas, reservar, desfazer, listas, solicitar, responder ou sair.',
     });

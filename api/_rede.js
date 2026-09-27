@@ -32,7 +32,7 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // Repasses · Joinville"), e o cadastro das lojas fica fora do funil desde a
 // fase 0 — não é dado de loja, é o registro delas. Só leitura daqui.
 const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos',
-                 'interesses', 'reservas', 'contas'];
+                 'interesses', 'reservas', 'contas', 'listas', 'lista_membros'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -85,11 +85,27 @@ const semSessao = (res) => res.status(401).json({
   error: 'Entre com o seu telefone para usar a rede.', codigo: 'sem_sessao',
 });
 
-// ── Minha lista: as contas que recebem o que eu mando ─────────────
-// Regra: só o dono da lista enxerga a lista dele.
-async function minhaLista(contaId) {
-  const r = await rsb(`contatos?conta_id=eq.${contaId}&estado=eq.ativo&select=contato_conta_id`);
-  return r.map((x) => x.contato_conta_id);
+// ── Para quem vai o carro ─────────────────────────────────────────
+// Sem `listaId`, vai para TODOS os contatos — é o comportamento de quem
+// nunca criou uma lista, e tem de continuar funcionando (padrão WhatsApp:
+// dá para mandar sem transmissão nenhuma).
+//
+// Com `listaId`, vai para o recorte — mas só para quem AINDA é contato
+// ativo. Uma loja que saiu da rede não recebe mais, mesmo que o nome dela
+// tenha ficado para trás numa lista antiga.
+//
+// Regra: a lista tem de ser minha. Mandar pela lista de outro seria usar
+// a agenda alheia.
+async function destinatarios(contaId, listaId) {
+  const contatos = await rsb(`contatos?conta_id=eq.${contaId}&estado=eq.ativo&select=contato_conta_id`);
+  const ativos = new Set(contatos.map((x) => x.contato_conta_id));
+  if (!listaId) return { contas: [...ativos], lista: null };
+
+  const l = await rsb(`listas?id=eq.${listaId}&conta_id=eq.${contaId}&arquivada_em=is.null&select=id,nome&limit=1`);
+  if (!l.length) return { erro: 'Lista não encontrada.' };
+
+  const membros = await rsb(`lista_membros?lista_id=eq.${listaId}&select=conta_id`);
+  return { contas: membros.map((m) => m.conta_id).filter((c) => ativos.has(c)), lista: l[0] };
 }
 
 // ── Mandar um carro para a lista ──────────────────────────────────
@@ -102,9 +118,12 @@ async function ofertar(sb, req, res) {
     return res.status(403).json({ error: 'Você não tem permissão para mandar carro para a lista.' });
   }
 
-  const { veiculo_id, horas_antes_da_vitrine } = req.body || {};
+  const { veiculo_id, horas_antes_da_vitrine, lista_id } = req.body || {};
   if (!UUID.test(String(veiculo_id || ''))) {
     return res.status(400).json({ error: 'veiculo_id inválido.' });
+  }
+  if (lista_id && !UUID.test(String(lista_id))) {
+    return res.status(400).json({ error: 'lista_id inválido.' });
   }
 
   // O carro é meu? Quem responde é o funil — `sb` já filtra por dono.
@@ -113,10 +132,14 @@ async function ofertar(sb, req, res) {
   const veic = (await rv.json())[0];
   if (!veic) return res.status(404).json({ error: 'Veículo não encontrado.' });
 
-  const destinos = await minhaLista(eu.conta_id);
+  const alvo = await destinatarios(eu.conta_id, lista_id);
+  if (alvo.erro) return res.status(404).json({ error: alvo.erro });
+  const destinos = alvo.contas;
   if (!destinos.length) {
     return res.status(400).json({
-      error: 'Sua lista está vazia — ninguém receberia este carro ainda.',
+      error: lista_id
+        ? 'Essa lista não tem ninguém que ainda seja seu contato.'
+        : 'Você ainda não tem contatos — ninguém receberia este carro.',
       codigo: 'lista_vazia',
     });
   }
@@ -148,6 +171,11 @@ async function ofertar(sb, req, res) {
       vitrine_em: Number.isFinite(horas) && horas > 0
         ? new Date(Date.now() + horas * 3600e3).toISOString()
         : null,
+      // De qual lista saiu. O NOME fica gravado junto: a lista pode ser
+      // renomeada ou apagada, e o histórico tem de continuar explicando
+      // por que aquele carro chegou.
+      lista_id:   alvo.lista ? alvo.lista.id : null,
+      lista_nome: alvo.lista ? alvo.lista.nome : null,
     }),
   }))[0];
 
@@ -560,8 +588,124 @@ async function sairOuRemover(req, res) {
   return res.status(400).json({ error: 'dono_conta_id (sair) ou membro_conta_id (remover).' });
 }
 
+// ══ LISTAS DE TRANSMISSÃO ══════════════════════════════════════════
+//
+// O padrão do WhatsApp, que o mercado dele já entende [YURI, 27/set]:
+//
+//   • **Contatos** — quem está na sua agenda (a tabela `contatos`).
+//   • **Lista de transmissão** — um recorte nomeado desses contatos.
+//     Cada um recebe individualmente e ninguém vê quem mais recebeu.
+//   • **Grupo** — não existe aqui, e é decisão: num grupo qualquer um
+//     copia a relação de participantes.
+//
+// Regra de acesso, igual em todas as funções abaixo: a lista é da loja de
+// quem pediu, e só ela mexe. Lista de outro responde "não encontrada".
+
+// ── As minhas listas, com quem está em cada uma ───────────────────
+async function verListasTransmissao(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const listas = await rsb(`listas?conta_id=eq.${eu.conta_id}&arquivada_em=is.null&select=id,nome,criada_em&order=criada_em.asc`);
+  if (!listas.length) return res.status(200).json({ listas: [] });
+
+  const membros = await rsb(`lista_membros?lista_id=in.(${listas.map((l) => l.id).join(',')})&select=lista_id,conta_id`);
+  const nomes = await nomesDe([...new Set(membros.map((m) => m.conta_id))]);
+
+  // Quem saiu da rede continua na linha da lista, mas a tela precisa
+  // dizer isso — senão o dono conta com alguém que não recebe mais.
+  const contatos = await rsb(`contatos?conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=contato_conta_id`);
+  const ativos = new Set(contatos.map((x) => x.contato_conta_id));
+
+  return res.status(200).json({
+    listas: listas.map((l) => ({
+      id: l.id, nome: l.nome, criada_em: l.criada_em,
+      membros: membros.filter((m) => m.lista_id === l.id).map((m) => ({
+        conta_id: m.conta_id, nome: nomes[m.conta_id] || '—', ativo: ativos.has(m.conta_id),
+      })),
+    })),
+  });
+}
+
+// ── Criar, renomear, apagar ───────────────────────────────────────
+async function mexerNaLista(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { acao, lista_id, nome } = req.body || {};
+
+  if (acao === 'criar') {
+    const limpo = String(nome || '').trim().slice(0, 60);
+    if (!limpo) return res.status(400).json({ error: 'Dê um nome à lista.' });
+    try {
+      const l = (await rsb('listas', { method: 'POST', prefer: 'return=representation',
+        body: JSON.stringify({ conta_id: eu.conta_id, nome: limpo }) }))[0];
+      return res.status(201).json({ ok: true, lista: { id: l.id, nome: l.nome } });
+    } catch (e) {
+      // O índice único é por loja: nome repetido é engano de quem digita,
+      // não erro de sistema — então a mensagem diz o que houve.
+      if (/23505/.test(e.message)) {
+        return res.status(409).json({ error: 'Você já tem uma lista com esse nome.' });
+      }
+      throw e;
+    }
+  }
+
+  if (!UUID.test(String(lista_id || ''))) return res.status(400).json({ error: 'lista_id inválido.' });
+  const l = await rsb(`listas?id=eq.${lista_id}&conta_id=eq.${eu.conta_id}&arquivada_em=is.null&select=id&limit=1`);
+  if (!l.length) return res.status(404).json({ error: 'Lista não encontrada.' });
+
+  if (acao === 'renomear') {
+    const limpo = String(nome || '').trim().slice(0, 60);
+    if (!limpo) return res.status(400).json({ error: 'Dê um nome à lista.' });
+    await rsb(`listas?id=eq.${lista_id}`, { method: 'PATCH', body: JSON.stringify({ nome: limpo }) });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (acao === 'apagar') {
+    // Arquiva, não apaga: as ofertas já mandadas guardam `lista_id`, e o
+    // histórico precisa continuar explicando por que o carro chegou.
+    await rsb(`listas?id=eq.${lista_id}`, {
+      method: 'PATCH', body: JSON.stringify({ arquivada_em: new Date().toISOString() }),
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  return res.status(400).json({ error: 'acao deve ser criar, renomear ou apagar.' });
+}
+
+// ── Quem está na lista ────────────────────────────────────────────
+// Só entra quem já é contato: lista de transmissão é recorte da agenda,
+// não um jeito de alcançar quem nunca aceitou entrar.
+async function membrosDaLista(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { lista_id, conta_id, dentro } = req.body || {};
+  if (!UUID.test(String(lista_id || '')) || !UUID.test(String(conta_id || ''))) {
+    return res.status(400).json({ error: 'lista_id e conta_id são obrigatórios.' });
+  }
+
+  const l = await rsb(`listas?id=eq.${lista_id}&conta_id=eq.${eu.conta_id}&arquivada_em=is.null&select=id&limit=1`);
+  if (!l.length) return res.status(404).json({ error: 'Lista não encontrada.' });
+
+  if (dentro) {
+    const c = await rsb(`contatos?conta_id=eq.${eu.conta_id}&contato_conta_id=eq.${conta_id}&estado=eq.ativo&select=id&limit=1`);
+    if (!c.length) return res.status(400).json({ error: 'Essa loja não é seu contato.' });
+    await rsb('lista_membros?on_conflict=lista_id,conta_id', {
+      method: 'POST', prefer: 'resolution=ignore-duplicates',
+      body: JSON.stringify({ lista_id, conta_id }),
+    });
+    return res.status(200).json({ ok: true, dentro: true });
+  }
+
+  await rsb(`lista_membros?lista_id=eq.${lista_id}&conta_id=eq.${conta_id}`, { method: 'DELETE' });
+  return res.status(200).json({ ok: true, dentro: false });
+}
+
 module.exports = {
   ofertar, feed, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
   listas, solicitar, responder, sairOuRemover,
+  verListasTransmissao, mexerNaLista, membrosDaLista,
   rsb, quem,
 };
