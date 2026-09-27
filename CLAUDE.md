@@ -6292,9 +6292,36 @@ que não entrou). E `valor_sinal` é **declaração do dono**, não pagamento
 processado — anotado no código que isso precisa ficar claro na tela,
 senão promete o que não cumpre.
 
+#### Terceira fatia: as listas — 19 de 19
+
+Pedir para entrar, aceitar, recusar, sair e remover. **O motor da rede
+está fechado.**
+
+A pergunta central era a dele, de 25/set: *"os integrantes não terão
+acesso aos membros né?"* O teste responde com duas lojas dentro da mesma
+lista:
+
+| | |
+|---|---|
+| a loja A vê **que está** na lista do Yuri | ✓ |
+| a loja A **não vê membro nenhum** dela | ✓ |
+| com A e B dentro, **A não enxerga B** — nem o id, nem o nome | ✓ |
+| mas o **dono** vê as duas | ✓ |
+| quem não é dono **não responde** pedido nem **tira** membro | ✓ |
+| a saída é livre: a loja sai sozinha, sem pedir licença | ✓ |
+| quem saiu **pode voltar**, e continua sendo uma linha só no banco | ✓ |
+
+Pedir duas vezes não vira erro nem pedido duplicado — toque repetido é
+toque repetido.
+
+> **Tropecei na limpeza, não no produto:** apaguei `usuarios` antes de
+> `sessoes` e o banco barrou pela chave estrangeira, deixando lojas de
+> teste para trás. Limpei na ordem certa e conferi: sobrou só a conta
+> "Carro na Rede". É a mesma lição da ordem dos `drop` em 23/set —
+> **quem aponta sai antes de quem é apontado.**
+
 **Nada disso está no ar para o Yuri ainda** — as rotas existem, nenhuma
-tela as chama. Falta a terceira fatia (listas: pedir para entrar e
-aceitar) e as telas.
+tela as chama. O que falta agora é só tela.
 
 ### "0 buscas" deixou de ter duas causas com a mesma cara
 
