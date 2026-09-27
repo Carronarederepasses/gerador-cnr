@@ -74,6 +74,21 @@ module.exports = async (req, res) => {
     // abre o site, e a tela de liberação precisa dela ANTES de o aparelho
     // ter chave. Não lê banco e não gasta nada.
     if (type === 'marca') {
+      // ── NUNCA cache compartilhado aqui, nem quando não há sessão ─────
+      // Descoberto testando em 27/set: a resposta sem sessão tinha sido
+      // guardada como pública na borda da Vercel. O pedido seguinte, COM
+      // sessão, recebeu a cópia guardada — a função nem foi chamada,
+      // porque o cabeçalho de sessão não entra na chave do cache.
+      //
+      // Apareceu como "a marca da loja não aparece". O mesmo mecanismo,
+      // com duas lojas, serve a marca de uma para a outra. Por isso a
+      // regra é `no-store` SEMPRE, e não só quando há sessão: uma resposta
+      // pública guardada antes envenena as seguintes.
+      //
+      // O custo é uma chamada por carregamento de página — que já
+      // acontecia. E a tela não pisca porque `assets/marca.js` guarda a
+      // última marca no próprio navegador.
+      res.setHeader('Cache-Control', 'private, no-store');
       // Quem entrou traz a própria loja: a marca sai de `contas`, não da
       // variável de ambiente. É o que tira a necessidade de um site por
       // cliente — a sessão já separava os dados; faltava o logo no topo.
@@ -82,20 +97,13 @@ module.exports = async (req, res) => {
         try {
           const { contaDaSessao } = require('./_sessao');
           const conta = await contaDaSessao(req.cnrSessao.conta_id);
-          if (conta) {
-            // NUNCA cache compartilhado aqui. A resposta passa a ser de
-            // UMA loja; guardada na borda, ela apareceria para a loja
-            // seguinte que pedisse — logo de um no topo do outro.
-            res.setHeader('Cache-Control', 'private, no-store');
-            return res.status(200).json(marcaDaConta(conta, CNR));
-          }
+          if (conta) return res.status(200).json(marcaDaConta(conta, CNR));
         } catch (e) {
           // Banco fora ou coluna ainda não criada: cai na variável, que é
           // o comportamento de sempre. Marca é tela — não pode derrubar.
           console.error('[marca] não consegui ler a conta:', e.message);
         }
       }
-      res.setHeader('Cache-Control', 'public, max-age=300');
       return res.status(200).json(marca());
     }
     if (type === 'manifesto') {
