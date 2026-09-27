@@ -6218,6 +6218,29 @@ diferença confirmaria que o arquivo existe.
 abrindo; caminho forjado, caminho de negociação forjado e caminho fora do
 padrão são recusados.
 
+### "0 buscas" deixou de ter duas causas com a mesma cara
+
+Anotado em 25/set, ao montar o notebook da mãe, e corrigido agora. Quando
+a extensão não consegue falar com o Gerador, ela cai na cópia guardada —
+e a tela mostrava **"0 buscas"**, igual a quando o Gerador responde zero.
+São coisas opostas.
+
+**Era pior do que eu tinha anotado:** o botão Sincronizar dizia
+*"✓ 0 busca(s) carregada(s) do Gerador"* — com o visto verde — numa falha
+de rede. Frase que nunca foi verdade.
+
+Agora `carregarBuscas()` registra de onde veio a lista (`gerador`,
+`local`, `sem_gerador`) e o motivo da falha, e a tela diz *"não consegui
+falar com o Gerador — o radar segue com a configuração guardada, não é
+'sem buscas'"*. O ✓ verde só aparece quando o Gerador respondeu.
+
+10 testes com a rede e o navegador dublados, rodando a função **recortada
+do `sw.js`** — não uma cópia do raciocínio, que é como um teste passa a
+concordar com o erro. Extensão: `21de4cc`.
+
+> **Exige recarregar a extensão em cada máquina.** Enquanto não recarregar,
+> a máquina segue com a versão que mente.
+
 #### Um acerto de dados no caminho
 
 `contas.nome` estava "Carro na Rede Repasses", mas nome e subtítulo são
