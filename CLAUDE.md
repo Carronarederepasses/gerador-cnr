@@ -6142,6 +6142,26 @@ defeitos: chamada comentada e chamada depois do portão.
 - **Três sessões de teste criadas e encerradas**, conferido na tabela. Não
   ficou acesso meu aberto.
 
+### Entrar terminava numa tela parada — e isso pode explicar o piloto
+
+Achado pelo Yuri assim que usou: *"depois de digitado o código, não
+deveria direcionar para a página principal?"* A tela dizia "Entrou como
+Yuri" e ficava ali. **Entrar é meio do caminho, não destino.**
+
+Corrigido nos dois caminhos (telefone e chave) e, como os dois sites saem
+do mesmo repositório, no do Bruno junto. `location.replace`, para o Voltar
+do celular não trazer de volta para a tela de entrar.
+
+**A consequência que importa mais que o conserto:** o Bruno liberou o
+iPhone em 24/set e caiu exatamente nessa tela — "Aparelho liberado como
+BHM", sem nada indicando o que fazer em seguida. Não cadastrou nada desde
+então. **Pode não ser desinteresse; pode ser beco sem saída.** O Yuri
+mandou mensagem a ele no mesmo dia, dizendo que consertou — o que também
+transforma a cobrança em conserto.
+
+> Vale como padrão: a gente testou a entrada com quem já sabia o que tinha
+> do outro lado. Quem não sabe para onde vai, para.
+
 *Registrado em 27 de setembro de 2026.*
 
 ---
