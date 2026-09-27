@@ -6398,6 +6398,49 @@ prévia da coluna esquerda atualizando na hora.
 > para mim", onde não se manda nada — `display:` de classe vence o
 > atributo `hidden`. Uma linha de CSS.
 
+#### Conversa 1 a 1 e grupo — e o diferencial que ele inventou
+
+*"Essa parte da troca de msgs, quero igual ao WhatsApp."* Lá são três
+coisas, e a gente só tinha uma. Agora tem as três:
+
+| | |
+|---|---|
+| **Transmissão** | 1 → N. Cada um recebe sozinho, ninguém vê quem mais recebeu |
+| **Conversa** | 1 ↔ 1. Uma thread por par de lojas — não por carro, como no WhatsApp se tem um chat por pessoa |
+| **Grupo** | N ↔ N. Todos leem todos… **e a lista de participantes é oculta** |
+
+**O grupo é dele, e é o melhor pedaço do dia.** Eu tinha avisado que
+grupo expõe quem está dentro, e ele respondeu com o desenho que resolve:
+*"no grupo, quero que os membros sejam ocultos, o que será diferencial do
+WhatsApp"*.
+
+No WhatsApp, entrar num grupo entrega a agenda de todo mundo — é por isso
+que o grupo de 188 pessoas dele vive em risco. Aqui **a lista não existe
+para ninguém, nem para o admin**. Quem só lê fica invisível; quem fala se
+identifica pela própria mensagem, e é assim que dá para chamar no
+privado. Decisão dele também: **autor sempre visível**, nos dois tipos de
+grupo — sem isso o carro aparece no grupo e morre ali, porque ninguém
+saberia com quem falar.
+
+**Aberto ou fechado é do admin**, padrão **fechado**: se fosse aberto por
+padrão, um grupo criado sem pensar já nasceria alcançável por toda a
+rede, e o engano só apareceria depois de alguém entrar.
+
+**26 de 26**, com a pergunta central provada de três jeitos: a lista não
+sai ao abrir o grupo, não sai ao listar os grupos, **e não sai nem com o
+grupo aberto**. Também: quem não é contato não pode ser acrescentado
+(senão o grupo viraria jeito de alcançar quem nunca aceitou falar), e
+quem não é admin não abre o grupo.
+
+No código ficou escrito como regra: **nenhuma rota devolve
+`grupo_membros`, só a contagem.** E a consulta que conta pede `grupo_id`
+em vez de `conta_id` — o que não é lido não vaza quando alguém
+acrescentar um campo na resposta sem pensar.
+
+> Três vezes hoje eu editei um arquivo **depois** de mandar ele copiar
+> para o SQL Editor. O conserto: terminar o arquivo antes de abrir o
+> bloco, e SQL de uma linha vai no chat, sem bloco nenhum.
+
 **[ABERTO]** Nada impede mandar o mesmo carro duas vezes, e ele fez isso
 sem querer. Pode ser defeito (dois cartões do mesmo carro na tela do
 outro) ou pode ser legítimo (remandar semanas depois o que ninguém
