@@ -6320,8 +6320,52 @@ toque repetido.
 > "Carro na Rede". É a mesma lição da ordem dos `drop` em 23/set —
 > **quem aponta sai antes de quem é apontado.**
 
-**Nada disso está no ar para o Yuri ainda** — as rotas existem, nenhuma
-tela as chama. O que falta agora é só tela.
+#### A tela de prova, e a volta inteira funcionando
+
+`/rede.html` — uma tela só, no menu como **"Rede (prova)"**, para ver a
+coisa funcionar antes de espalhar pelo app. Testada ponta a ponta com uma
+loja de teste: aceitar o pedido → mandar o carro → a outra loja recebe e
+levanta a mão → a fila aparece com nome e hora → reservar na palavra. O
+cartão passou a mostrar **🔒 Reservado na palavra**.
+
+Do lado de quem recebeu, o que apareceu do carro foi
+`{ano, km, cidade}` — **sem placa, sem valor de compra**, como desenhado.
+
+Na tela do dono o nome de quem levantou a mão **aparece** (é ele decidindo
+para quem vai), e no feed de quem recebe **não** — lá só existe
+"reservado", nunca para quem.
+
+#### Listas de transmissão — o padrão do WhatsApp [YURI, 27/set]
+
+Pedido dele: *"a lista de transmissão e os grupos, tenta seguir padrão
+WhatsApp"*. Lá são duas coisas, e a diferença é a que protege o ativo:
+
+| WhatsApp | aqui |
+|---|---|
+| **Contatos** | as lojas que pediram para entrar e foram aceitas |
+| **Lista de transmissão** | um recorte **nomeado** desses contatos |
+| **Grupo** | **não existe** — num grupo qualquer um copia a relação de participantes |
+
+O que a gente já tinha **era** uma lista de transmissão, sem saber o
+nome: cada loja recebe individualmente e ninguém vê quem mais recebeu.
+Faltava poder ter **várias**, com nome.
+
+**18 de 18**, e três cuidados que valem mais que o código:
+
+- **quem saiu da rede não recebe**, mesmo que o nome tenha ficado numa
+  lista antiga — e a tela mostra quem é esse
+- **só entra na lista quem já é contato**: transmissão é recorte da
+  agenda, não um jeito de alcançar quem nunca aceitou entrar
+- **apagar arquiva, não apaga**: a oferta guarda o `lista_id` **e o
+  nome**, e o histórico precisa continuar explicando por que o carro
+  chegou, mesmo que a lista tenha sido renomeada ou apagada
+
+**Nada disso está no ar para o Yuri ainda** — a `/rede.html` é tela de
+prova, e as telas de verdade (as 14 desenhadas) continuam por fazer.
+
+> **Deixado no banco de propósito:** a loja **DEMO Serra Motors**, um
+> carro mandado pela lista "Compram acima de 100 mil" e a mão levantada,
+> para ele abrir a tela e mexer. Apagar quando ele disser.
 
 ### "0 buscas" deixou de ter duas causas com a mesma cara
 
