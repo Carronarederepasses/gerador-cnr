@@ -6197,6 +6197,27 @@ envenena as seguintes.** Agora é `no-store` sempre nessa rota.
 > Os três com a mesma forma — **o que já foi guardado não obedece à regra
 > nova.**
 
+### O storage ganhou regra, em vez de só pasta
+
+O `GET` de documento (catálogo) e de anexo (vendas) assinava **qualquer
+caminho** do balde privado: bastava conhecer o caminho para receber uma
+permissão de 1h sobre o arquivo. Nenhum dos dois conferia se aquilo
+pertencia a uma linha da loja de quem pediu.
+
+Hoje não vaza — cada loja tem banco e balde próprios. Mas é a regra que o
+multi-loja exige, e é o tipo de porta que ninguém lembra de fechar depois.
+Era literalmente o que eu tinha escrito no cabeçalho do `rede-fase2.sql`
+pela manhã: **é nas regras escritas à mão que um vazamento nasce.**
+
+Quem responde "é desta loja?" é o `sb` do funil, que já filtra por dono —
+então perguntar se a linha existe é, na mesma pergunta, perguntar se é
+dela. E caminho de outra loja responde igual a caminho inexistente: a
+diferença confirmaria que o arquivo existe.
+
+**9 de 9 contra a produção:** documento e anexo de verdade seguem
+abrindo; caminho forjado, caminho de negociação forjado e caminho fora do
+padrão são recusados.
+
 #### Um acerto de dados no caminho
 
 `contas.nome` estava "Carro na Rede Repasses", mas nome e subtítulo são
