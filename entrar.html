@@ -169,7 +169,7 @@ async function conferir() {
       // Entrou pelo telefone: some o formulário de entrar e aparece o sair.
       $('logado').style.display = temSessao ? 'block' : 'none';
       passo(temSessao ? 0 : 1);
-      return;
+      return true;   // quem chamou decide se leva para dentro
     }
     if (r.status === 401) {
       // O texto aponta para o caminho principal — o telefone. Mandar colar
@@ -199,7 +199,9 @@ $('btn').addEventListener('click', async () => {
   $('btn').disabled = true;
   window.CNR_AUTH.guardar(v);
   $('chave').value = '';
-  await conferir();
+  const passou = await conferir();
+  // Mesma ideia da entrada por telefone: liberar é meio do caminho.
+  if (passou) setTimeout(() => { location.replace('/home.html'); }, 1200);
   $('btn').disabled = false;
 });
 
@@ -311,8 +313,15 @@ $('btn-entrar').addEventListener('click', async () => {
     }
     window.CNR_AUTH.guardarSessao(d.token);
     $('cod').value = '';
-    passo(1);
-    await conferir();
+    passo(0);
+    mostrar('ok', 'Entrou como ' + (d.nome || 'você'), 'Abrindo o Gerador…');
+    // Entrar é meio do caminho, não destino: quem digitou o código quer
+    // usar o sistema. O instante antes de sair daqui é para dar tempo de
+    // ler que deu certo — sem ele, a tela pisca e some.
+    //
+    // `replace` e não `href`: assim o Voltar do celular não traz de volta
+    // para a tela de entrar depois de já ter entrado.
+    setTimeout(() => { location.replace('/home.html'); }, 1200);
   } catch (e) {
     mostrar('neutro', 'Não consegui falar com o servidor', 'Tente de novo daqui a pouco.');
   } finally {
