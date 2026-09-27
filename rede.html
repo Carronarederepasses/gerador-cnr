@@ -225,8 +225,10 @@ async function mandar(id, botao) {
     alert(`Mandado para ${r.enviada_para} loja(s).`);
     await verMinhas();
   } catch (e) {
-    alert(e.corpo?.codigo === 'lista_vazia'
-      ? 'Sua lista está vazia — ninguém receberia este carro ainda.'
+    // Mensagem por causa, não genérica: "não mandou" sem dizer por quê
+    // faz a pessoa tentar de novo esperando outro resultado.
+    alert(e.corpo?.codigo === 'sem_preco'
+      ? 'Este carro está sem preço de repasse.\n\nAbra o Catálogo, preencha o valor e mande de novo.'
       : e.message);
   } finally { botao.disabled = false; }
 }

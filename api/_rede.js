@@ -132,6 +132,18 @@ async function ofertar(sb, req, res) {
   const veic = (await rv.json())[0];
   if (!veic) return res.status(404).json({ error: 'Veículo não encontrado.' });
 
+  // Carro sem preço de repasse não é oferta — é um anúncio pela metade
+  // chegando na tela de outra loja. Aconteceu no primeiro uso real
+  // (27/set): dois carros do catálogo tinham só a FIPE, e o app mandou
+  // os dois calado. Melhor recusar e dizer o que falta.
+  const preco = Number(veic.valor);
+  if (!(preco > 0)) {
+    return res.status(400).json({
+      error: 'Este carro está sem preço de repasse. Preencha o valor no catálogo antes de mandar.',
+      codigo: 'sem_preco',
+    });
+  }
+
   const alvo = await destinatarios(eu.conta_id, lista_id);
   if (alvo.erro) return res.status(404).json({ error: alvo.erro });
   const destinos = alvo.contas;
@@ -156,7 +168,7 @@ async function ofertar(sb, req, res) {
       modelo: veic.modelo || null,
       ano:    Number(veic.ano) || null,
       km:     Number(veic.km)  || null,
-      preco:  Number(veic.valor) || null,   // repasse, nunca valor_compra
+      preco,   // repasse, nunca valor_compra — conferido acima
       cidade: veic.regiao || null,
       dados: {
         versao:       veic.versao       || '',
