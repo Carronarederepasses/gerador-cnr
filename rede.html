@@ -20,6 +20,9 @@
 <script src="/assets/sidebar.js" defer></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
+/* `display:` de classe vence o atributo `hidden` — sem isto, o campo de
+   digitar aparecia em "Chegou para mim", onde não se manda nada. */
+[hidden]{display:none!important}
 body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
   height:100vh;overflow:hidden}
 
