@@ -32,7 +32,8 @@ const ENVIOS_POR_HORA  = 5;
 async function sb(caminho, opcoes = {}) {
   if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('Supabase não configurado.');
   const tabela = String(caminho).split(/[?/]/)[0];
-  if (tabela !== 'codigos' && tabela !== 'sessoes' && tabela !== 'usuarios' && tabela !== 'conta_membros') {
+  const PERMITIDAS = ['codigos', 'sessoes', 'usuarios', 'conta_membros', 'contas'];
+  if (!PERMITIDAS.includes(tabela)) {
     // Trava de segurança contra mim mesmo: este arquivo existe fora do
     // funil, então ele não pode virar a porta dos fundos para o resto.
     throw new Error(`_sessao.js não fala com a tabela ${tabela}`);
@@ -247,6 +248,21 @@ async function sessaoDoPedido(req) {
   };
 }
 
+/**
+ * A linha de `contas` daquela loja — nome, logo, Instagram, telas
+ * escondidas. Lida aqui, e não dentro de `sessaoDoPedido`, de propósito:
+ * só a tela da marca precisa disso, e buscar em toda chamada de API seria
+ * uma consulta a mais por requisição, sem ganho.
+ *
+ * `contas` é o cadastro das lojas, não dado de loja — por isso fica fora
+ * do funil `_db.js`, como já estava desde a fase 0.
+ */
+async function contaDaSessao(contaId) {
+  if (!contaId) return null;
+  const linhas = await sb(`contas?id=eq.${contaId}&select=*&limit=1`);
+  return linhas.length ? linhas[0] : null;
+}
+
 async function encerrarSessao(req) {
   const token = req.headers['x-cnr-sessao'];
   if (!token) return false;
@@ -261,6 +277,7 @@ module.exports = {
   pedirCodigo,
   conferirCodigo,
   sessaoDoPedido,
+  contaDaSessao,
   encerrarSessao,
   normalizar,
   VIDA_CODIGO_MIN,

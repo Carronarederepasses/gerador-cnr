@@ -40,6 +40,40 @@ function marca(env = process.env) {
   };
 }
 
+/**
+ * A marca da LOJA, a partir da linha de `contas`.
+ *
+ * A fase 1 fez a conta vir de quem entrou; esta função faz a marca vir da
+ * conta. Enquanto ela não existir, o lojista precisa de um site próprio
+ * só para o logo dele aparecer — os dados a sessão já separava.
+ *
+ * `propria` é true para qualquer loja que não seja a Carro na Rede: é o
+ * que faz o subtítulo virar slogan (e sair do título) e impede herdar o
+ * Instagram e o e-mail da CNR por esquecimento. Mesma regra de antes, só
+ * que decidida pelo dono em vez de pela presença de uma variável.
+ *
+ * @param {object} conta linha de `contas`
+ * @param {string} cnrId id da conta da Carro na Rede
+ */
+function marcaDaConta(conta, cnrId) {
+  const limpa = (v) => (typeof v === 'string' ? v.trim() : '');
+  const propria = String(conta.id) !== String(cnrId);
+  const nome = limpa(conta.nome) || PADRAO.nome;
+  const vazioOu = (v, def) => limpa(v) || (propria ? '' : def);
+
+  return {
+    nome,
+    subtitulo: vazioOu(conta.subtitulo, PADRAO.subtitulo),
+    instagram: vazioOu(conta.instagram, PADRAO.instagram).replace(/^@+/, ''),
+    email:     vazioOu(conta.email,     PADRAO.email),
+    logo:      limpa(conta.logo),
+    // Mesmo formato do MARCA_ESCONDER, e cortado pelo mesmo código: duas
+    // regras de leitura para a mesma coisa é como elas divergem.
+    esconder:  limpa(conta.esconder).split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
+    propria,
+  };
+}
+
 // Manifesto do app instalado na tela inicial. Arquivo estático sairia com
 // nome e ícone da Carro na Rede nos dois sites — e é a primeira coisa que o
 // lojista vê no celular. Sem marca própria, devolve o mesmo do arquivo.
@@ -63,4 +97,4 @@ function manifesto(env = process.env) {
   };
 }
 
-module.exports = { marca, manifesto, PADRAO };
+module.exports = { marca, marcaDaConta, manifesto, PADRAO };

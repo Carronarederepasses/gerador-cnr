@@ -4,7 +4,8 @@
 
 const { exigirChave, operadorDe, portaoLigado, comSessao } = require('./_auth');
 const { MSG_ABORDAGEM, ANCORA } = require('./_abordagem');
-const { marca, manifesto } = require('./_marca');
+const { marca, marcaDaConta, manifesto } = require('./_marca');
+const { CNR } = require('./_conta');
 
 const ML_CATEGORIA = 'MLB1744'; // Carros e Caminhonetes
 const PRECO_MINIMO = 8000;
@@ -73,6 +74,27 @@ module.exports = async (req, res) => {
     // abre o site, e a tela de liberação precisa dela ANTES de o aparelho
     // ter chave. Não lê banco e não gasta nada.
     if (type === 'marca') {
+      // Quem entrou traz a própria loja: a marca sai de `contas`, não da
+      // variável de ambiente. É o que tira a necessidade de um site por
+      // cliente — a sessão já separava os dados; faltava o logo no topo.
+      await comSessao(req);
+      if (req.cnrSessao) {
+        try {
+          const { contaDaSessao } = require('./_sessao');
+          const conta = await contaDaSessao(req.cnrSessao.conta_id);
+          if (conta) {
+            // NUNCA cache compartilhado aqui. A resposta passa a ser de
+            // UMA loja; guardada na borda, ela apareceria para a loja
+            // seguinte que pedisse — logo de um no topo do outro.
+            res.setHeader('Cache-Control', 'private, no-store');
+            return res.status(200).json(marcaDaConta(conta, CNR));
+          }
+        } catch (e) {
+          // Banco fora ou coluna ainda não criada: cai na variável, que é
+          // o comportamento de sempre. Marca é tela — não pode derrubar.
+          console.error('[marca] não consegui ler a conta:', e.message);
+        }
+      }
       res.setHeader('Cache-Control', 'public, max-age=300');
       return res.status(200).json(marca());
     }
