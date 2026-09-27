@@ -361,6 +361,57 @@ acontece **sem sinal nenhum**, na confiança. Então cobrar no sinal só alcanç
 parte dos negócios, e justamente os entre desconhecidos; o negócio entre
 conhecidos fecha sem passar por ele.
 
+### 6.3.1 Como as consultas são cobradas **[YURI, 27/set]**
+
+Pergunta dele: *"se elas custarem 35 reais pra nós, como cobrar dos
+usuários, 60 reais?"*
+
+**Primeiro, não é uma coisa, são duas**, com preços de ordem diferente:
+
+| | custo | o que é |
+|---|---|---|
+| Dados do veículo | ~R$ 0,02 | placa → marca, modelo, ano, FIPE. Já usado na Captação |
+| Situação do veículo | dezenas de reais | débitos, multas, restrição, leilão, sinistro, gravame |
+
+A primeira é barata demais para cobrar: entra na assinatura. A segunda é a
+que precisa de controle.
+
+**O modelo é do Yuri, e é melhor que o meu.** Eu propus crédito pré-pago
+(sem calote, dinheiro antes). Ele preferiu **assinatura + consumo na mesma
+fatura**:
+
+> *"Paga X reais de mensalidade do uso do aplicativo; o cliente fez 30
+> consultas de placas, o boleto seria X mais 30 × Y, especificando as
+> consultas na NF."*
+
+Está certo por uma razão que o pré-pago não resolve: **o lojista não quer
+pôr dinheiro antes**, e NF de prestação de serviço com itens
+discriminados é o que a contabilidade dele espera. É o modelo padrão de
+software — conta de luz funciona assim.
+
+**Duas coisas que este modelo exige e o pré-pago não exigia:**
+
+1. **Teto mensal por loja.** No pós-pago o Yuri paga o fornecedor antes de
+   receber. Sem teto, a exposição é ilimitada. Loja nova começa com limite
+   baixo e sobe com histórico de pagamento — mesma lógica do "0
+   desistências" da rede (§5.2). A alavanca de corte é fácil: o app é dele.
+2. **O preço fica gravado NA LINHA da consulta, não calculado pela tabela
+   atual.** Se o preço subir em maio, as consultas de março têm de
+   continuar valendo o de março — senão a fatura antiga muda sozinha e
+   vira discussão de nota fiscal com cliente. Cada consulta guarda: quem
+   fez, quando, a placa, **quanto custou** e **quanto foi cobrado**. Daí
+   saem a fatura e a margem real por cliente, sem conta à parte.
+
+**Números que ele trouxe:** laudo cautelar no mercado custa **no mínimo
+R$ 300**; a consulta de placa varia por fornecedor. Se a situação sai por
+dezenas e o mercado paga centenas pelo laudo, o espaço de margem é grande
+— e isso vira argumento de venda do app inteiro, não só da consulta.
+
+**[ABERTO]** Confirmar com o fornecedor, quando houver um: **consulta sem
+resultado é cobrada?** Placa errada ou veículo não encontrado — se o
+fornecedor cobra mesmo assim, é preciso regra de estorno, senão some a
+margem em reclamação.
+
 **O valor fica para depois dos custos [YURI, 25/set].** *"Quero ver depois
 de termos os custos das consultas, pra ver como poderemos cobrar."* Está
 certo na ordem: a consulta veicular é custo por uso e entra dentro do
