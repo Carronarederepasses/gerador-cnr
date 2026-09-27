@@ -178,11 +178,37 @@ const BUCKET_DOC = 'veiculos-docs';
 // anexos de venda em 18/set.
 const UUID_V = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * O caminho pedido é de um carro DESTA loja?
+ *
+ * O documento mora em `<uuid do veículo>/arquivo`. Quem manda o caminho é
+ * o navegador, e antes disto o servidor assinava qualquer um — bastava
+ * conhecer o caminho para receber uma permissão de 1h sobre o arquivo.
+ *
+ * Hoje não vaza nada, porque cada loja tem o próprio banco e o próprio
+ * balde. Mas é exatamente a regra que o multi-loja vai exigir, e é o tipo
+ * de porta que ninguém lembra de fechar depois — então fecha agora.
+ *
+ * Quem responde "é desta loja?" é o `sb` do funil, que já filtra por dono.
+ */
+async function docEhDaLoja(sb, path) {
+  const primeiro = String(path || '').split('/')[0];
+  if (!UUID_V.test(primeiro)) return false;
+  const r = await sb(`veiculos?id=eq.${primeiro}&select=id`);
+  if (!r.ok) return false;
+  return (await r.json()).length === 1;
+}
+
 async function docHandler(sb, req, res) {
   // Abrir: devolve link temporário. Não é o arquivo, é uma permissão de 1h.
   if (req.method === 'GET') {
     const path = req.query.path;
     if (!path) return res.status(400).json({ error: 'path obrigatório.' });
+    // Mesma resposta de "não existe" para caminho de outra loja: dizer
+    // "não é seu" confirmaria que o arquivo existe.
+    if (!(await docEhDaLoja(sb, path))) {
+      return res.status(404).json({ error: 'Documento não encontrado.' });
+    }
     const r = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${BUCKET_DOC}/${path}`, {
       method: 'POST',
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },

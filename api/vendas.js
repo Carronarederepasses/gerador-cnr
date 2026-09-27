@@ -233,11 +233,36 @@ async function copiarAnexosDaNegociacao(sb, negociacaoId, venda) {
   return resultado;
 }
 
+/**
+ * O caminho pedido pertence a uma venda ou negociação DESTA loja?
+ *
+ * O anexo mora em `<pasta>/<tipo>/<arquivo>`, e a pasta é `<uuid da
+ * venda>` ou `neg-<uuid da negociação>` (ver `donoDoAnexo`). O caminho vem
+ * do navegador; antes disto o servidor assinava qualquer um.
+ *
+ * O `sb` do funil já filtra por dono — então perguntar a ele se a linha
+ * existe é, ao mesmo tempo, perguntar se ela é desta loja.
+ */
+async function anexoEhDaLoja(sb, path) {
+  const pasta = String(path || '').split('/')[0];
+  const neg = pasta.startsWith('neg-');
+  const id = neg ? pasta.slice(4) : pasta;
+  if (!UUID.test(id)) return false;
+  const r = await sb(`${neg ? 'negociacoes' : 'vendas'}?id=eq.${id}&select=id`);
+  if (!r.ok) return false;
+  return (await r.json()).length === 1;
+}
+
 async function anexoHandler(sb, req, res, q) {
   // GET → link temporário assinado
   if (req.method === 'GET') {
     const { path } = q;
     if (!path) return res.status(400).json({ error: 'path obrigatório.' });
+    // "Não é seu" e "não existe" respondem igual: a diferença confirmaria
+    // que o arquivo existe.
+    if (!(await anexoEhDaLoja(sb, path))) {
+      return res.status(404).json({ error: 'Anexo não encontrado.' });
+    }
     const r = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${path}`, {
       method: 'POST',
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
