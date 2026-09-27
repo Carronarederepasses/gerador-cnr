@@ -1123,7 +1123,11 @@ async function assinarAviso(req, res) {
       ultimo_erro: null,
     }),
   });
-  return res.status(200).json({ ok: true });
+  // `ligado` diz se o servidor CONSEGUE mandar (a chave privada está no
+  // ambiente). Sem isto a tela diria "pronto, você será avisado" e nada
+  // chegaria — o assinante ficaria esperando um aviso que não existe.
+  const { ligado } = require('./_aviso');
+  return res.status(200).json({ ok: true, ligado: ligado() });
 }
 
 // O que o service worker pergunta quando o aviso chega: o texto a

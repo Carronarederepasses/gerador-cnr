@@ -653,9 +653,15 @@ async function pedirAviso() {
       applicationServerKey: paraBytes(VAPID_PUBLICA),
     });
     const j = ass.toJSON();
-    await rede('assinar', { body: { endpoint: j.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth } });
+    const r = await rede('assinar', { body: { endpoint: j.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth } });
     $('btn-avisar').classList.remove('leve');
-    alert('Pronto. Você será avisado quando chegar carro ou mensagem.');
+    // O aparelho pode estar assinado e o envio desligado no servidor. Dizer
+    // "pronto" nesse caso seria prometer um aviso que nunca sai.
+    if (r && r.ligado === false) {
+      alert('Este aparelho ficou registrado, mas o envio de avisos ainda está desligado no servidor.\n\nNada foi perdido: assim que ligar, os avisos passam a chegar aqui sem você precisar refazer nada.');
+    } else {
+      alert('Pronto. Você será avisado quando chegar carro ou mensagem.');
+    }
   } catch (e) {
     alert('Não consegui ligar o aviso: ' + e.message);
   }
