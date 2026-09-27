@@ -96,6 +96,13 @@
   var jaAvisou = false;
   function avisar() {
     if (jaAvisou) return;
+    // Na própria tela de entrar, não. Ela JÁ é o lugar de resolver isso, e
+    // ela própria pergunta ao servidor para saber o que mostrar. O aviso
+    // cobria a tela inteira e mandava "abrir o link de liberação" bem em
+    // cima do campo de telefone — visto na captura em 27/set, num aparelho
+    // sem chave. Antes ninguém chegava aqui sem chave; com entrada por
+    // telefone, é a primeira tela de todo cliente novo.
+    if (/\/entrar(\.html)?$/.test(location.pathname)) return;
     jaAvisou = true;
 
     var box = document.createElement('div');
@@ -113,12 +120,16 @@
           'Os dados estão salvos e intactos — este navegador é que não tem ' +
           'a liberação ainda.</p>' +
         '<p style="font-size:.92rem;margin:0 0 1.2rem">' +
-          'Abra o <strong>link de liberação</strong> uma vez neste aparelho. ' +
+          'Entre com o seu <strong>telefone</strong> uma vez neste aparelho. ' +
           'Depois disso ele não pergunta mais nada.</p>' +
+        '<div style="display:flex;gap:.6rem;flex-wrap:wrap">' +
+        '<a href="/entrar.html" style="font:inherit;font-size:.9rem;font-weight:700;' +
+          'padding:.65rem 1.2rem;border-radius:var(--r-md, 12px);text-decoration:none;' +
+          'background:var(--text,#111);color:var(--surface,#fff)">Entrar</a>' +
         '<button id="cnr-auth-ok" style="font:inherit;font-size:.9rem;' +
-          'font-weight:700;padding:.65rem 1.2rem;border:none;border-radius:var(--r-md, 12px);' +
-          'background:var(--text,#111);color:var(--surface,#fff);cursor:pointer">' +
-          'Entendi</button>' +
+          'font-weight:500;padding:.65rem 1.2rem;border:1px solid var(--line,#ccc);' +
+          'border-radius:var(--r-md, 12px);background:none;color:var(--text-mid,#555);' +
+          'cursor:pointer">Agora não</button></div>' +
       '</div>';
 
     function montar() {
