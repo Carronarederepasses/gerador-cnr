@@ -256,4 +256,111 @@ async function filaDaOferta(req, res) {
   return res.status(200).json({ fila });
 }
 
-module.exports = { ofertar, feed, quero, filaDaOferta, rsb, quem };
+// ── Reservar ──────────────────────────────────────────────────────
+// Desenhada com o Yuri em 25/set, com as palavras do mercado dele:
+//
+//   "No WhatsApp, apenas colocamos carro reservado (com sinal na conta)
+//    quando tem; quando não tem sinal, somente reservado. Assim, todos
+//    veem."
+//
+// Regra de acesso: só o DONO da oferta reserva, e só para quem levantou
+// a mão. Reservar para quem não pediu seria inventar processo que o
+// mercado não tem — e tiraria o sentido da fila.
+//
+// O que NÃO existe aqui, e cada ausência é decisão dele:
+//
+//   • **Prazo.** Nada de `expira_em`. "Depende de N situações, mas
+//     geralmente é o prazo de esperar o resultado da cautelar, a menos
+//     que o carro demore a entrar, não tenha documento ainda pra poder
+//     pagar." Relógio derrubaria as reservas legítimas, que são a maioria
+//     das demoradas. No lugar dele, a tela mostra há quanto tempo está.
+//   • **Garantia de dinheiro.** `valor_sinal` é declaração do dono, não
+//     pagamento processado. O app registra que ele disse que entrou; não
+//     atesta que entrou. Isso precisa ficar claro na tela, senão promete
+//     o que não cumpre.
+async function reservar(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeComprar) {
+    return res.status(403).json({ error: 'Seu acesso não inclui reservar carros.' });
+  }
+
+  const { oferta_id, para_conta_id, com_sinal, valor_sinal, motivo } = req.body || {};
+  if (!UUID.test(String(oferta_id || ''))) return res.status(400).json({ error: 'oferta_id inválido.' });
+  if (!UUID.test(String(para_conta_id || ''))) return res.status(400).json({ error: 'para_conta_id inválido.' });
+
+  // A oferta é minha? Mesma resposta de "não existe" para oferta de outro.
+  const o = await rsb(`ofertas?id=eq.${oferta_id}&conta_id=eq.${eu.conta_id}&select=id,estado&limit=1`);
+  if (!o.length) return res.status(404).json({ error: 'Oferta não encontrada.' });
+
+  const naFila = await rsb(
+    `interesses?oferta_id=eq.${oferta_id}&conta_id=eq.${para_conta_id}&estado=eq.quer&select=conta_id&limit=1`
+  );
+  if (!naFila.length) {
+    return res.status(400).json({
+      error: 'Essa loja não está na fila deste carro.', codigo: 'fora_da_fila',
+    });
+  }
+
+  const comSinal = com_sinal === true;
+  const valor = comSinal ? Number(valor_sinal) : null;
+  if (comSinal && !(valor > 0)) {
+    return res.status(400).json({ error: 'Com sinal na conta, o valor é obrigatório.' });
+  }
+
+  // Uma reserva de pé por oferta — o índice parcial no banco garante,
+  // mas conferir aqui dá erro que a tela sabe explicar, em vez de 409 cru.
+  const jaTem = await rsb(`reservas?oferta_id=eq.${oferta_id}&desfeita_em=is.null&select=id&limit=1`);
+  if (jaTem.length) {
+    return res.status(409).json({ error: 'Este carro já está reservado.', codigo: 'ja_reservado' });
+  }
+
+  const r = (await rsb('reservas', {
+    method: 'POST', prefer: 'return=representation',
+    body: JSON.stringify({
+      oferta_id, para_conta_id,
+      com_sinal: comSinal,
+      valor_sinal: valor,
+      motivo: (motivo || '').slice(0, 120) || null,
+    }),
+  }))[0];
+
+  await rsb(`ofertas?id=eq.${oferta_id}`, {
+    method: 'PATCH', body: JSON.stringify({ estado: 'reservada' }),
+  });
+
+  return res.status(201).json({ ok: true, reserva_id: r.id, com_sinal: comSinal });
+}
+
+// ── Desfazer a reserva ────────────────────────────────────────────
+// Regra: só o dono da oferta. O carro volta a ficar aberto, e a reserva
+// desfeita FICA no banco — é dela que nasce o "0 desistências" do perfil
+// da loja. Apagar seria apagar a única defesa contra quem reserva e some.
+async function desfazerReserva(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { oferta_id, motivo } = req.body || {};
+  if (!UUID.test(String(oferta_id || ''))) return res.status(400).json({ error: 'oferta_id inválido.' });
+
+  const o = await rsb(`ofertas?id=eq.${oferta_id}&conta_id=eq.${eu.conta_id}&select=id&limit=1`);
+  if (!o.length) return res.status(404).json({ error: 'Oferta não encontrada.' });
+
+  const r = await rsb(`reservas?oferta_id=eq.${oferta_id}&desfeita_em=is.null&select=id&limit=1`);
+  if (!r.length) return res.status(404).json({ error: 'Este carro não está reservado.' });
+
+  await rsb(`reservas?id=eq.${r[0].id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      desfeita_em: new Date().toISOString(),
+      desfeita_motivo: (motivo || '').slice(0, 120) || null,
+    }),
+  });
+  await rsb(`ofertas?id=eq.${oferta_id}`, {
+    method: 'PATCH', body: JSON.stringify({ estado: 'aberta' }),
+  });
+
+  return res.status(200).json({ ok: true });
+}
+
+module.exports = { ofertar, feed, quero, filaDaOferta, reservar, desfazerReserva, rsb, quem };
