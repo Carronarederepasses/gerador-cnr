@@ -6218,6 +6218,55 @@ diferença confirmaria que o arquivo existe.
 abrindo; caminho forjado, caminho de negociação forjado e caminho fora do
 padrão são recusados.
 
+### A rede começou a existir — fase 2, primeira fatia
+
+Seis tabelas no **banco da operação**, e não num terceiro banco. O
+bloqueio que eu descrevi de manhã (Supabase grátis dá 2 projetos)
+**dissolveu por causa do trabalho da tarde**: `conta_id` + funil, sessão
+e storage por dono já isolam uma loja de teste do Yuri. Ele topou, com a
+pergunta certa — *"dá para desmembrar depois?"* — e dá: separar é cópia
+filtrada por `conta_id`, que é para isso que a coluna existe. Loja de
+teste, na prática, se apaga; não se migra.
+
+`api/_rede.js` com quatro ações, roteadas por `fetch-anuncio?rede=…`
+(o teto de 12 funções segue intacto): **ofertar, feed, quero, fila**.
+
+#### A decisão de desenho que mudou tudo: a oferta não é um ponteiro
+
+Eu tinha escrito `ofertas` guardando só o `veiculo_id`. Ao escrever os
+endpoints vi o que isso obrigava: a loja que recebe teria de **ler
+`veiculos` da loja que mandou** — exatamente a consulta que o funil
+existe para impedir. Furar o funil na peça mais sensível do produto.
+
+A oferta passou a levar a **fotografia do carro**. Três ganhos, e o
+primeiro decide: nada atravessa a fronteira além do que o dono escolheu
+mandar; **placa e `valor_compra` não têm nem coluna lá**, então não vazam
+nem por descuido de um `select *`; e a oferta é do momento em que foi
+feita — baixar o preço amanhã não reescreve o que os outros viram ontem.
+
+> Corrigi o SQL **depois** de já ter aberto o bloco de notas, e o Yuri
+> copiou a versão velha. Daí o `rede-fase2b`. Da próxima: terminar de
+> escrever antes de mandar copiar.
+
+#### 16 de 16, e a metade que importa é a negativa
+
+Três lojas contra a produção — o Yuri manda, a loja A (na lista dele)
+recebe, a loja C (de fora) não:
+
+| | |
+|---|---|
+| a loja C **não recebe** o carro | ✓ |
+| a loja C **não entra na fila** nem sabendo o id da oferta | ✓ |
+| quem recebeu **não vê a fila** — ela é do dono | ✓ |
+| sem sessão, o feed não abre | ✓ |
+| **placa e valor de compra não atravessam** | ✓ |
+
+Tocar duas vezes em ✋ Quero não cria fila dupla, e a limpeza foi
+conferida: nenhuma loja de teste sobrou.
+
+**Nada disso está no ar para o Yuri ainda** — as rotas existem, nenhuma
+tela as chama. Falta a segunda fatia (reservar) e as telas.
+
 ### "0 buscas" deixou de ter duas causas com a mesma cara
 
 Anotado em 25/set, ao montar o notebook da mãe, e corrigido agora. Quando
