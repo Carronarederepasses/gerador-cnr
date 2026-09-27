@@ -194,7 +194,7 @@ async function rede(acao, opcoes = {}) {
 // Estado da tela: o que está aberto à direita.
 let aberto = null;            // { tipo: 'lista'|'todos'|'recebidos'|'conversa', id, nome }
 let carroEscolhido = null;
-let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: [] };
+let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: [], grupos: [] };
 let thread = [];              // mensagens da conversa aberta
 
 function verLista()    { $('tela').dataset.onde = 'lista'; }
@@ -243,6 +243,13 @@ function desenharColuna() {
       dados.recebidas.length ? quando(dados.recebidas[0].criado_em) : '',
       aberto?.tipo === 'recebidos', 'abrirRecebidos()', naoLidas ? String(naoLidas) : '') +
     `<div class="grupo">Transmissões</div>` + todos + listas +
+    (dados.grupos.length ? `<div class="grupo">Grupos</div>` + dados.grupos.map((g) => linha(
+      '👥', g.nome,
+      g.ultima ? `${g.ultima.quem}: ${g.ultima.texto}` : `${g.participantes} participantes`,
+      g.ultima ? quando(g.ultima.criado_em) : '',
+      aberto?.tipo === 'grupo' && aberto.id === g.id,
+      `abrirGrupo('${g.id}')`,
+      g.nao_lidas ? String(g.nao_lidas) : '')).join('') : '') +
     (dados.conversas.length ? `<div class="grupo">Conversas</div>` + dados.conversas.map((c) => linha(
       '💬', c.nome,
       c.ultima ? (c.ultima.minha ? 'Você: ' : '') + c.ultima.texto : 'sem mensagens',
@@ -293,8 +300,27 @@ function desenharPainel() {
   $('compor').hidden = aberto.tipo === 'recebidos';
   // Carro é conteúdo de transmissão. Na conversa 1 a 1 se escreve, como
   // no WhatsApp — o botão do carro só atrapalharia.
-  $('btn-carro').hidden = aberto.tipo === 'conversa';
-  $('texto').placeholder = aberto.tipo === 'conversa' ? 'Mensagem' : 'Escreva algo (opcional)…';
+  $('btn-carro').hidden = aberto.tipo === 'conversa' || aberto.tipo === 'grupo';
+  $('texto').placeholder = (aberto.tipo === 'conversa' || aberto.tipo === 'grupo') ? 'Mensagem' : 'Escreva algo (opcional)…';
+
+  if (aberto.tipo === 'grupo') {
+    const g = dados.grupos.find((x) => x.id === aberto.id) || {};
+    // O número de participantes aparece; QUEM são, não. É o diferencial
+    // do produto, e ele mora tanto no servidor quanto aqui.
+    $('pan-sub').innerHTML = `${g.participantes || 0} participantes · ${g.aberto ? 'aberto' : 'fechado'}`
+      + (g.sou_admin ? ` · <a href="#" onclick="editarGrupo('${g.id}');return false" style="color:var(--accent)">gerenciar</a>` : '')
+      + ` · <a href="#" onclick="sairDoGrupo('${g.id}');return false" style="color:var(--text-faint)">sair</a>`;
+    $('thread').innerHTML = thread.length
+      ? thread.map((m) => `
+        <div class="balao msg-so ${m.minha ? '' : 'recebido'}">
+          ${m.minha ? '' : `<div class="meta" style="font-weight:600">${esc(m.quem)}</div>`}
+          <div class="msg">${esc(m.texto)}</div>
+          <div class="rodape"><span>${quando(m.criado_em)}</span><span></span></div>
+        </div>`).join('')
+      : '<div class="vazio">Nenhuma mensagem ainda.<br><br>Quem só lê fica invisível — só aparece quem fala.</div>';
+    $('thread').scrollTop = $('thread').scrollHeight;
+    return;
+  }
 
   if (aberto.tipo === 'conversa') {
     $('pan-sub').textContent = 'conversa direta';
@@ -350,6 +376,82 @@ async function abrirConversa(contaId) {
   } catch (e) { alert(e.message); }
 }
 
+// ── Grupo ───────────────────────────────────────────────────
+async function abrirGrupo(id) {
+  try {
+    const d = await rede('grupo', { q: `&grupo_id=${id}` });
+    thread = d.mensagens;
+    aberto = { tipo: 'grupo', id, nome: d.nome };
+    const g = await rede('grupos'); dados.grupos = g.grupos;
+    desenharColuna(); desenharPainel(); verConversa();
+    $('texto').focus();
+  } catch (e) { alert(e.message); }
+}
+
+async function falarNoGrupo() {
+  const texto = $('texto').value.trim();
+  if (!texto) return;
+  $('btn-enviar').disabled = true;
+  try {
+    await rede('falar', { body: { grupo_id: aberto.id, texto } });
+    $('texto').value = ''; $('texto').style.height = 'auto';
+    await abrirGrupo(aberto.id);
+  } catch (e) { alert(e.message); }
+  finally { $('btn-enviar').disabled = false; }
+}
+
+function novoGrupo() {
+  $('dlg-corpo').innerHTML = `<h3>Novo grupo</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);line-height:1.55;margin-bottom:.8rem">
+      Todos leem o que os outros escrevem. <strong>A lista de participantes fica oculta</strong> —
+      quem só lê não aparece. É o que diferencia do WhatsApp.</p>
+    <input type="text" id="novo-nome" placeholder="ex: Repasse Litoral SC" maxlength="60">
+    <div class="op"><span>Qualquer loja da rede pode entrar</span>
+      <input type="checkbox" id="novo-aberto" style="width:auto"></div>
+    <div class="op" style="justify-content:flex-end;gap:.5rem">
+      <button class="leve" onclick="dlg.close()">Cancelar</button>
+      <button onclick="criarGrupo()">Criar</button></div>`;
+  $('dlg').showModal(); $('novo-nome').focus();
+}
+async function criarGrupo() {
+  const nome = $('novo-nome').value.trim();
+  if (!nome) return $('novo-nome').focus();
+  try {
+    const r = await rede('grupo', { body: { acao: 'criar', nome, aberto: $('novo-aberto').checked } });
+    $('dlg').close(); await carregar(); abrirGrupo(r.grupo.id);
+  } catch (e) { alert(e.message); }
+}
+
+function editarGrupo(id) {
+  const g = dados.grupos.find((x) => x.id === id);
+  $('dlg-corpo').innerHTML = `<h3>${esc(g.nome)}</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);margin-bottom:.4rem">
+      ${g.participantes} participantes. <strong>Nem você vê quem são</strong> — é o desenho.</p>
+    <div class="op"><span>Qualquer loja da rede pode entrar</span>
+      <button class="${g.aberto ? '' : 'leve'}" onclick="trocarAbertura('${id}', ${!g.aberto})">
+        ${g.aberto ? '✓ aberto' : 'fechado'}</button></div>
+    <p style="font-size:.8rem;color:var(--text-faint);margin:.5rem 0">Acrescentar dos seus contatos:</p>
+    ${dados.contatos.length ? dados.contatos.map((c) => `
+      <div class="op"><span>${esc(c.nome)}</span>
+        <button class="leve" onclick="acrescentarNoGrupo('${id}','${c.conta_id}')">incluir</button></div>`).join('')
+      : '<p class="vazio">Você ainda não tem contatos.</p>'}
+    <div class="op" style="justify-content:flex-end"><button onclick="dlg.close()">Pronto</button></div>`;
+  $('dlg').showModal();
+}
+async function trocarAbertura(id, abrir) {
+  try { await rede('grupo', { body: { acao: abrir ? 'abrir' : 'fechar', grupo_id: id } }); await carregar(); editarGrupo(id); }
+  catch (e) { alert(e.message); }
+}
+async function acrescentarNoGrupo(id, contaId) {
+  try { await rede('grupo', { body: { acao: 'acrescentar', grupo_id: id, conta_id: contaId } }); await carregar(); editarGrupo(id); }
+  catch (e) { alert(e.message); }
+}
+async function sairDoGrupo(id) {
+  if (!confirm('Sair deste grupo?')) return;
+  try { await rede('grupo', { body: { acao: 'sair', grupo_id: id } }); aberto = null; await carregar(); verLista(); }
+  catch (e) { alert(e.message); }
+}
+
 async function enviarMensagem() {
   const texto = $('texto').value.trim();
   if (!texto) return;
@@ -392,6 +494,7 @@ function tirarCarro() { carroEscolhido = null; $('escolhido').hidden = true; }
 // ── Enviar ──────────────────────────────────────────────────
 async function enviar() {
   // Na conversa o conteúdo é o texto; na transmissão é o carro.
+  if (aberto && aberto.tipo === 'grupo') return falarNoGrupo();
   if (aberto && aberto.tipo === 'conversa') return enviarMensagem();
   if (!carroEscolhido) return escolherCarro();   // o carro é o conteúdo
   $('btn-enviar').disabled = true;
@@ -484,10 +587,10 @@ async function apagarLista(id) {
 
 // ── Carregar tudo ───────────────────────────────────────────
 async function carregar() {
-  const [t, l, f, m, c] = await Promise.all([
-    rede('transmissao'), rede('listas'), rede('feed'), rede('minhas'), rede('conversas'),
+  const [t, l, f, m, c, g] = await Promise.all([
+    rede('transmissao'), rede('listas'), rede('feed'), rede('minhas'), rede('conversas'), rede('grupos'),
   ]);
-  dados = { listas: t.listas, contatos: l.membros, recebidas: f.ofertas, minhas: m.ofertas, conversas: c.conversas };
+  dados = { listas: t.listas, contatos: l.membros, recebidas: f.ofertas, minhas: m.ofertas, conversas: c.conversas, grupos: g.grupos };
   desenharColuna();
   if (aberto) desenharPainel();
 }
@@ -511,7 +614,15 @@ async function carregar() {
   }
 })();
 
-$('btn-nova').addEventListener('click', novaTransmissao);
+$('btn-nova').addEventListener('click', () => {
+  $('dlg-corpo').innerHTML = '<h3>Criar</h3>' +
+    '<div class="op"><span>📣 <strong>Transmissão</strong><br><span style="font-size:.78rem;color:var(--text-mid)">manda carro para vários — ninguém vê quem mais recebeu</span></span>' +
+      '<button onclick="novaTransmissao()">Criar</button></div>' +
+    '<div class="op"><span>👥 <strong>Grupo</strong><br><span style="font-size:.78rem;color:var(--text-mid)">todos conversam — e a lista de participantes fica oculta</span></span>' +
+      '<button onclick="novoGrupo()">Criar</button></div>' +
+    '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
+  $('dlg').showModal();
+});
 $('btn-carro').addEventListener('click', escolherCarro);
 $('btn-enviar').addEventListener('click', enviar);
 $('texto').addEventListener('keydown', (e) => {
