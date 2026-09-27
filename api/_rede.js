@@ -33,7 +33,8 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // fase 0 — não é dado de loja, é o registro delas. Só leitura daqui.
 const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos',
                  'interesses', 'reservas', 'contas', 'listas', 'lista_membros',
-                 'conversas', 'mensagens_rede', 'grupos', 'grupo_membros'];
+                 'conversas', 'mensagens_rede', 'grupos', 'grupo_membros',
+                 'push_assinaturas'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -201,6 +202,13 @@ async function ofertar(sb, req, res) {
     method: 'POST',
     body: JSON.stringify(destinos.map((c) => ({ oferta_id: oferta.id, conta_id: c }))),
   });
+
+  // Avisa quem recebeu. Com  e nao fire-and-forget: a Vercel
+  // encerra o worker ao responder, e o aviso morreria pela metade —
+  // lição de 19/ago, que custou uma etapa inteira para entender.
+  // Falha de aviso nunca derruba a oferta:  nao lanca.
+  const { avisarConta } = require('./_aviso');
+  for (const c of destinos) await avisarConta(rsb, c, null);
 
   return res.status(201).json({ ok: true, oferta_id: oferta.id, enviada_para: destinos.length });
 }
@@ -875,6 +883,9 @@ async function mandarMensagem(req, res) {
     method: 'PATCH', body: JSON.stringify({ ultima_em: new Date().toISOString() }),
   });
 
+  const { avisarConta } = require('./_aviso');
+  await avisarConta(rsb, conta_id, null);
+
   return res.status(201).json({ ok: true, conversa_id: c.id });
 }
 
@@ -1075,11 +1086,99 @@ async function mandarNoGrupo(req, res) {
   await rsb(`grupos?id=eq.${grupo_id}`, {
     method: 'PATCH', body: JSON.stringify({ ultima_em: new Date().toISOString() }),
   });
+
+  // Avisa os outros participantes. Os ids são lidos aqui dentro e não
+  // saem em resposta nenhuma — a lista continua oculta (ver a regra no
+  // topo do bloco de grupos).
+  const { avisarConta } = require('./_aviso');
+  const participantes = await rsb(`grupo_membros?grupo_id=eq.${grupo_id}&saiu_em=is.null&select=conta_id`);
+  for (const p of participantes) {
+    if (p.conta_id === eu.conta_id) continue;
+    await avisarConta(rsb, p.conta_id, null);
+  }
+
   return res.status(201).json({ ok: true });
+}
+
+// ══ AVISO NO CELULAR ═══════════════════════════════════════════════
+
+// Guardar o endereço que o navegador deu. Um por aparelho.
+async function assinarAviso(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { endpoint, p256dh, auth } = req.body || {};
+  if (!endpoint || !/^https:\/\//.test(String(endpoint))) {
+    return res.status(400).json({ error: 'endpoint inválido.' });
+  }
+  // `merge-duplicates` porque o mesmo aparelho reassina toda vez que o
+  // navegador renova a permissão — sem isto, a pessoa receberia o mesmo
+  // aviso três vezes.
+  await rsb('push_assinaturas?on_conflict=endpoint', {
+    method: 'POST', prefer: 'resolution=merge-duplicates',
+    body: JSON.stringify({
+      conta_id: eu.conta_id, usuario_id: eu.usuario_id,
+      endpoint: String(endpoint), p256dh: p256dh || null, auth: auth || null,
+      aparelho: String(req.headers['user-agent'] || '').slice(0, 120) || null,
+      ultimo_erro: null,
+    }),
+  });
+  return res.status(200).json({ ok: true });
+}
+
+// O que o service worker pergunta quando o aviso chega: o texto a
+// mostrar. Devolve a coisa mais recente que interessa a esta loja.
+async function novidades(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  // 1. Mensagem nova ganha da oferta: alguém falando com você é mais
+  //    urgente que um carro no feed.
+  const convs = await rsb(`conversas?or=(conta_a.eq.${eu.conta_id},conta_b.eq.${eu.conta_id})&select=id&limit=100`);
+  if (convs.length) {
+    const naoLidas = await rsb(
+      `mensagens_rede?conversa_id=in.(${convs.map((c) => c.id).join(',')})&de_conta_id=neq.${eu.conta_id}` +
+      `&lida_em=is.null&select=de_conta_id,texto&order=criado_em.desc&limit=20`
+    );
+    if (naoLidas.length) {
+      const nomes = await nomesDe([...new Set(naoLidas.map((m) => m.de_conta_id))]);
+      const ultima = naoLidas[0];
+      return res.status(200).json({
+        titulo: nomes[ultima.de_conta_id] || 'Nova mensagem',
+        corpo: naoLidas.length > 1 ? `${naoLidas.length} mensagens novas` : ultima.texto.slice(0, 120),
+        url: '/rede.html',
+      });
+    }
+  }
+
+  // 2. Carro que chegou e você ainda não olhou. O texto leva preço e a
+  //    distância da FIPE: é o que permite decidir SEM abrir o app.
+  const meus = await rsb(`oferta_destinos?conta_id=eq.${eu.conta_id}&select=oferta_id&order=criado_em.desc&limit=30`);
+  if (meus.length) {
+    const ids = meus.map((x) => x.oferta_id);
+    const ofertas = await rsb(`ofertas?id=in.(${ids.join(',')})&estado=eq.aberta&select=*&order=criado_em.desc&limit=10`);
+    const jaQuis = await rsb(`interesses?oferta_id=in.(${ids.join(',')})&conta_id=eq.${eu.conta_id}&select=oferta_id`);
+    const vistos = new Set(jaQuis.map((i) => i.oferta_id));
+    const nova = ofertas.find((o) => !vistos.has(o.id));
+    if (nova) {
+      const fipe = Number(nova.dados?.fipe) || 0;
+      const abaixo = fipe && nova.preco ? Math.round((1 - nova.preco / fipe) * 100) : 0;
+      return res.status(200).json({
+        titulo: `${nova.marca} ${nova.modelo} · ${nova.ano || ''}`.trim(),
+        corpo: `R$ ${Number(nova.preco).toLocaleString('pt-BR')}`
+          + (abaixo > 0 ? ` — ${abaixo}% abaixo da FIPE` : '')
+          + (nova.cidade ? ` · ${nova.cidade}` : ''),
+        url: '/rede.html',
+      });
+    }
+  }
+
+  return res.status(200).json({ titulo: 'Carro na Rede', corpo: 'Você tem novidade na rede.', url: '/rede.html' });
 }
 
 module.exports = {
   ofertar, feed, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
+  assinarAviso, novidades,
   listas, solicitar, responder, sairOuRemover,
   verListasTransmissao, mexerNaLista, membrosDaLista,
   conversas, abrirConversa, mandarMensagem,

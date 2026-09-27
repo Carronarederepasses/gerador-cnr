@@ -56,6 +56,35 @@
     localStorage.removeItem('cnr_catalogo_key');
   } catch (e) { /* modo privado */ }
 
+  // ── A sessão também num lugar que o service worker alcance ──────
+  // O aviso no celular chega quando o app está FECHADO, e quem monta o
+  // texto ("Polo 2022, R$ 70.990, 7,5% abaixo da FIPE") é o service
+  // worker. Ele não enxerga o localStorage — só IndexedDB e Cache.
+  //
+  // Sem este espelho, o aviso só poderia dizer "você tem novidade", e aí
+  // a pessoa abre o app para descobrir que não era para ela. O objetivo
+  // da tela 3 do desenho era o contrário: decidir SEM abrir.
+  //
+  // Falha aqui não pode derrubar nada: o localStorage continua sendo a
+  // fonte para as telas; isto é cópia.
+  function espelharNoIDB(valor) {
+    try {
+      var req = indexedDB.open('cnr', 1);
+      req.onupgradeneeded = function () { req.result.createObjectStore('sessao'); };
+      req.onsuccess = function () {
+        try {
+          var tx = req.result.transaction('sessao', 'readwrite');
+          if (valor) tx.objectStore('sessao').put(valor, 'token');
+          else tx.objectStore('sessao').delete('token');
+        } catch (e) { /* modo privado, cota, etc. */ }
+      };
+    } catch (e) { /* sem IndexedDB: o aviso fica genérico, nada quebra */ }
+  }
+
+  // Quem já entrou antes desta mudança não tem o espelho. Copia na
+  // primeira carga, em vez de exigir sair e entrar de novo.
+  (function () { var t = lerSessao(); if (t) espelharNoIDB(t); })();
+
   // ── Envelopa o fetch ────────────────────────────────────────────
   var original = window.fetch.bind(window);
 
@@ -146,8 +175,14 @@
     guardar: function (v) { localStorage.setItem(GUARDA, v); },
     ler: ler,
     esquecer: function () { localStorage.removeItem(GUARDA); },
-    guardarSessao: function (v) { try { localStorage.setItem(GUARDA_SESSAO, v); } catch (e) {} },
+    guardarSessao: function (v) {
+      try { localStorage.setItem(GUARDA_SESSAO, v); } catch (e) {}
+      espelharNoIDB(v);
+    },
     lerSessao: lerSessao,
-    sair: function () { try { localStorage.removeItem(GUARDA_SESSAO); } catch (e) {} },
+    sair: function () {
+      try { localStorage.removeItem(GUARDA_SESSAO); } catch (e) {}
+      espelharNoIDB(null);
+    },
   };
 })();

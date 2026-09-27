@@ -743,6 +743,9 @@ module.exports = async (req, res) => {
     if (acao === 'grupo'     && req.method === 'GET')  return rede.abrirGrupo(req, res);
     if (acao === 'grupo'     && req.method === 'POST') return rede.mexerNoGrupo(req, res);
     if (acao === 'falar'     && req.method === 'POST') return rede.mandarNoGrupo(req, res);
+    // Aviso no celular: assinar, e o texto que o service worker pergunta.
+    if (acao === 'assinar'   && req.method === 'POST') return rede.assinarAviso(req, res);
+    if (acao === 'novidades' && req.method === 'GET')  return rede.novidades(req, res);
     return res.status(400).json({
       error: 'rede deve ser ofertar, feed, quero, fila, minhas, reservar, desfazer, listas, solicitar, responder ou sair.',
     });

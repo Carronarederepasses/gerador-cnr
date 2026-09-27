@@ -13,6 +13,9 @@
 <link rel="apple-touch-icon" href="/assets/icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/tokens.css">
+<!-- Sem registrar o service worker, `serviceWorker.ready` nunca resolve e
+     o botão do aviso fica pendurado para sempre, sem erro nenhum. -->
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 <script src="/assets/auth.js"></script>
 <script src="/assets/marca.js"></script>
 <script src="/assets/theme-toggle.js"></script>
@@ -132,7 +135,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <aside class="coluna">
     <div class="col-topo">
       <h1>Rede</h1>
-      <button class="redondo" id="btn-nova" title="Nova transmissão">✚</button>
+      <button class="redondo leve" id="btn-avisar" title="Ser avisado no celular">🔔</button>
+      <button class="redondo" id="btn-nova" title="Criar">✚</button>
     </div>
     <div class="rolagem" id="col"><div class="vazio">Carregando…</div></div>
   </aside>
@@ -623,6 +627,41 @@ $('btn-nova').addEventListener('click', () => {
     '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
   $('dlg').showModal();
 });
+// ── Ser avisado no celular ──────────────────────────────────
+// A chave pública identifica o remetente do aviso; ela vai para o
+// navegador de qualquer jeito, então não é segredo.
+const VAPID_PUBLICA = 'BBC7R1zlyfXM0Rd5QUsxrWAO0NTvLL8kCewulHJVEMRm1uKuL3OvSWzXKe3CZ-CW7KpzGqbIUKn5vgRjfYcn_YM';
+const paraBytes = (b64) => {
+  const s = (b64 + '='.repeat((4 - b64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+};
+
+async function pedirAviso() {
+  // Cada motivo tem a sua frase: "não deu" sem dizer por quê faz a
+  // pessoa tentar de novo esperando outro resultado.
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return alert('Este navegador não recebe aviso.\n\nNo iPhone, só funciona com o app na tela de início:\nabra pelo Safari e use Compartilhar → Adicionar à Tela de Início.');
+  }
+  try {
+    const permissao = await Notification.requestPermission();
+    if (permissao !== 'granted') {
+      return alert('Sem permissão, não dá para avisar.\n\nSe você recusou sem querer, libere nas configurações do navegador para este site.');
+    }
+    const reg = await navigator.serviceWorker.ready;
+    const ass = await reg.pushManager.subscribe({
+      userVisibleOnly: true,                       // exigido: todo aviso aparece
+      applicationServerKey: paraBytes(VAPID_PUBLICA),
+    });
+    const j = ass.toJSON();
+    await rede('assinar', { body: { endpoint: j.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth } });
+    $('btn-avisar').classList.remove('leve');
+    alert('Pronto. Você será avisado quando chegar carro ou mensagem.');
+  } catch (e) {
+    alert('Não consegui ligar o aviso: ' + e.message);
+  }
+}
+$('btn-avisar').addEventListener('click', pedirAviso);
+
 $('btn-carro').addEventListener('click', escolherCarro);
 $('btn-enviar').addEventListener('click', enviar);
 $('texto').addEventListener('keydown', (e) => {
