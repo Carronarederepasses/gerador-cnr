@@ -83,10 +83,40 @@ function igual(a, b) {
 
 function autorizado(req) {
   if (!CNR_KEY) return true; // portão desligado
+  // Sessão já conferida neste pedido (ver `comSessao` abaixo) também abre.
+  if (req.cnrSessao) return true;
   const enviada = req.headers['x-cnr-key'];
   if (!enviada) return false;
   if (OPERADORES.some((o) => igual(enviada, o.chave))) return true;
   return LEGADAS.some((k) => igual(enviada, k));
+}
+
+// ── Entrar por telefone, sem derrubar quem entra por chave ────────
+// A fase 1 troca a chave por aparelho por sessão de pessoa. A troca NÃO
+// pode ser de uma vez: Yuri e mãe usam isto todo dia, e em 03/set eu
+// fechei a API e quebrei o backup das vendas por não perguntar quem mais
+// usava. Então aqui os dois valem ao mesmo tempo.
+//
+// `comSessao` lê a sessão (se houver) e a pendura no pedido. Chamar isto
+// é opcional: endpoint que não chamar continua funcionando exatamente
+// como hoje, pela chave.
+//
+// Carregado por dentro da função de propósito: assim um endpoint que
+// nunca usa sessão não paga o custo de abrir o arquivo.
+async function comSessao(req) {
+  if (req.cnrSessao !== undefined) return req.cnrSessao;   // já resolvido
+  if (!req.headers['x-cnr-sessao']) { req.cnrSessao = null; return null; }
+  try {
+    const { sessaoDoPedido } = require('./_sessao');
+    req.cnrSessao = await sessaoDoPedido(req);
+  } catch (e) {
+    // Banco fora, tabela ainda não criada, token estragado: cai para o
+    // caminho da chave em vez de derrubar o pedido. Falha de login novo
+    // não pode parar a operação que já funciona.
+    console.error('[auth] sessão não pôde ser lida:', e.message);
+    req.cnrSessao = null;
+  }
+  return req.cnrSessao;
 }
 
 // Quem está mandando, pelo que a chave diz. Devolve null quando não dá para
@@ -96,6 +126,9 @@ function autorizado(req) {
 // Devolver null em vez de chutar "Yuri" é de propósito: um registro que diz
 // quem foi está certo ou está vazio, nunca inventado.
 function operadorDe(req) {
+  // Sessão sabe o nome pelo cadastro, não por prefixo de variável de
+  // ambiente — é o que acaba com o "operador 2" de 08/set.
+  if (req.cnrSessao && req.cnrSessao.nome) return req.cnrSessao.nome;
   if (!CNR_KEY) return null;
   const enviada = req.headers['x-cnr-key'];
   if (!enviada) return null;
@@ -119,5 +152,6 @@ module.exports = {
   exigirChave,
   autorizado,
   operadorDe,
+  comSessao,
   portaoLigado: () => Boolean(CNR_KEY),
 };

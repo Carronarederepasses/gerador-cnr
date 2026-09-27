@@ -2,7 +2,7 @@
 // Supabase, "quem é este aparelho", a mensagem de abordagem e a marca do site.
 // Rota por ?type=cep | ?type=mercado | ?type=ping | ?type=quem | ?type=abordagem | ?type=marca
 
-const { exigirChave, operadorDe, portaoLigado } = require('./_auth');
+const { exigirChave, operadorDe, portaoLigado, comSessao } = require('./_auth');
 const { MSG_ABORDAGEM, ANCORA } = require('./_abordagem');
 const { marca, manifesto } = require('./_marca');
 
@@ -82,8 +82,46 @@ module.exports = async (req, res) => {
       return res.status(200).send(JSON.stringify(manifesto()));
     }
 
+    // ── Entrar por telefone (fase 1) ──────────────────────────────
+    // Ficam ABERTAS, como o ping e a marca: quem está entrando ainda não
+    // tem com que se identificar. Desenho e riscos em `FASE1-ENTRAR.md`.
+    if (type === 'codigo' || type === 'sessao') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
+      const { pedirCodigo, conferirCodigo, VIDA_CODIGO_MIN } = require('./_sessao');
+      const corpo = req.body || {};
+      const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || null;
+
+      if (type === 'codigo') {
+        const r = await pedirCodigo(corpo.telefone, ip);
+        if (!r.ok) return res.status(400).json({ error: 'Telefone inválido.', codigo: r.erro });
+        // Resposta IGUAL para telefone cadastrado ou não, e para quando o
+        // freio segurou o envio. Resposta diferente transformaria esta
+        // rota numa lista de clientes: bastaria testar números.
+        return res.status(200).json({
+          ok: true,
+          minutos: VIDA_CODIGO_MIN,
+          // Só aparece quando o SMS está desligado (desenvolvimento), para
+          // o código poder ser lido no registro do servidor.
+          simulado: r.simulado === true || undefined,
+        });
+      }
+
+      const r = await conferirCodigo(corpo.telefone, corpo.codigo, {
+        ip,
+        aparelho: req.headers['user-agent'],
+      });
+      if (!r.ok) {
+        // Mensagem única para código errado, vencido, queimado ou telefone
+        // desconhecido. Dizer qual dos quatro foi entrega informação a quem
+        // está tentando adivinhar.
+        return res.status(401).json({ error: 'Código inválido ou vencido.', codigo: 'codigo_invalido' });
+      }
+      return res.status(200).json({ ok: true, token: r.token, nome: r.nome });
+    }
+
     // CEP e Mercado Livre são gratuitos, mas proxy aberto é proxy de todo
     // mundo — e o tráfego sai com o nome do projeto dele.
+    await comSessao(req);        // sessão vale tanto quanto chave, se houver
     if (exigirChave(req, res)) return;
 
     // Quem é este aparelho, pela chave que ele mandou. Passou pelo portão

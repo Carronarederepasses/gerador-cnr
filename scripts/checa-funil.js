@@ -37,6 +37,10 @@ const DIR = path.join(__dirname, '..', 'api');
 const LIBERADOS = {
   '_db.js': 'é o funil',
   'utils.js': 'ping do cron — a Vercel não manda cabeçalho nosso, e ele só lê um id',
+  // `codigos` e `sessoes` não têm dono por natureza: a sessão é o que
+  // DESCOBRE a conta, então filtrar por conta antes dela é impossível.
+  // O próprio arquivo tem uma trava que recusa qualquer outra tabela.
+  '_sessao.js': 'entrar por telefone — as tabelas de login não são de conta nenhuma',
 };
 
 // Arquivos que podem declarar SUPABASE_URL sem usar para banco: os que

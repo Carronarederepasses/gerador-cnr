@@ -24,6 +24,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * @returns {string} uuid da loja
  */
 function contaDoPedido(req, env = process.env) {
+  // ── Fase 1 ──────────────────────────────────────────────────────
+  // Quem entrou pelo telefone traz a própria conta. É ESTA linha que faz
+  // um site atender várias lojas — sem ela, cada cliente custa um projeto
+  // na Vercel e um banco no Supabase, e o Supabase grátis trava no
+  // segundo.
+  //
+  // A sessão precisa ter sido lida antes, com `comSessao(req)` do
+  // `_auth.js`. Quem não ler continua no comportamento de sempre — é o
+  // que permite ligar isto em produção sem combinar nada com ninguém.
+  if (req && req.cnrSessao && UUID.test(String(req.cnrSessao.conta_id || ''))) {
+    return req.cnrSessao.conta_id;
+  }
+
   const daVariavel = String(env.CNR_CONTA_ID || '').trim();
 
   if (daVariavel) {
