@@ -41,6 +41,12 @@ const LIBERADOS = {
   // DESCOBRE a conta, então filtrar por conta antes dela é impossível.
   // O próprio arquivo tem uma trava que recusa qualquer outra tabela.
   '_sessao.js': 'entrar por telefone — as tabelas de login não são de conta nenhuma',
+  // A rede existe para o dado atravessar de uma loja para outra: a loja A
+  // manda um carro e a loja B precisa ver. Filtrar por conta aqui seria
+  // impedir o produto de funcionar. Em troca, cada consulta do arquivo
+  // carrega a própria regra, e ele tem trava recusando qualquer tabela
+  // que não seja das seis da rede.
+  '_rede.js': 'a rede — por definição as tabelas dela cruzam contas',
 };
 
 // Arquivos que podem declarar SUPABASE_URL sem usar para banco: os que

@@ -1,0 +1,259 @@
+// A rede — mandar carro para a lista, receber, levantar a mão.
+//
+// ══ LEIA ISTO ANTES DE MEXER ═══════════════════════════════════════
+//
+// Todo o resto do sistema é isolado pelo funil `api/_db.js`, que põe
+// `conta_id=eq.<minha conta>` em cada consulta. **Aqui não dá.** A rede
+// existe justamente para um dado atravessar de uma loja para outra: a
+// loja A manda um carro e a loja B precisa ver.
+//
+// Então as tabelas da rede ficam FORA do funil, e cada consulta carrega a
+// própria regra, escrita à mão. **É aqui que um vazamento nasceria** — e
+// por isso cada função abaixo diz, em uma linha, qual é a regra dela.
+//
+// As três travas que sobram, e que valem mais que a boa intenção:
+//
+//   1. O que atravessa é a FOTOGRAFIA do carro, guardada na oferta. A
+//      tabela `veiculos` da outra loja nunca é lida. Placa e valor de
+//      compra não têm coluna em `ofertas`, então não vazam nem por
+//      descuido de um `select *`.
+//   2. Quem pode o quê vem da SESSÃO (papel + `pode_ofertar`), nunca do
+//      corpo do pedido.
+//   3. Toda leitura começa pela minha conta e caminha para fora — nunca
+//      o contrário. "Quais ofertas chegaram para mim" é uma busca em
+//      `oferta_destinos` pela minha conta; não é varrer ofertas e filtrar.
+//
+// Prefixo `_`: não é rota, não consome função (teto de 12 na Hobby).
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos', 'interesses', 'reservas'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Fala com as tabelas da rede, e só com elas. A trava de tabela é contra
+ * mim mesmo: este arquivo existe fora do funil, então não pode virar a
+ * porta dos fundos para o resto do banco.
+ */
+async function rsb(caminho, opcoes = {}) {
+  if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('Supabase não configurado.');
+  const tabela = String(caminho).split(/[?/]/)[0];
+  if (!TABELAS.includes(tabela)) throw new Error(`_rede.js não fala com a tabela ${tabela}`);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, {
+    ...opcoes,
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      ...(opcoes.prefer ? { Prefer: opcoes.prefer } : {}),
+      ...(opcoes.headers || {}),
+    },
+  });
+  const corpo = await r.text();
+  if (!r.ok) throw new Error(`Supabase ${r.status}: ${corpo}`);
+  return corpo ? JSON.parse(corpo) : null;
+}
+
+// ── Quem está pedindo, e o que essa pessoa alcança ────────────────
+// Espelha a tabela decidida com o Yuri em 25/set (PROJETO-APP §8.2.1).
+// `dono` fora das listas de propósito: ele pode tudo na loja dele.
+const PODE_COMPRAR  = ['dono', 'gerente'];              // ver repasse, levantar a mão, reservar
+const PODE_VER_REDE = ['dono', 'gerente', 'vendedor'];  // vendedor alcança a vitrine
+
+function quem(req) {
+  const s = req.cnrSessao;
+  if (!s) return null;
+  return {
+    conta_id: s.conta_id,
+    usuario_id: s.usuario_id,
+    papel: s.papel || '',
+    // Mandar carro para a lista NÃO é função de cargo — varia de loja
+    // para loja (decisão do Yuri, 25/set). É chave por pessoa. O dono
+    // sempre pode: a loja é dele.
+    podeOfertar: s.papel === 'dono' || s.pode_ofertar === true,
+    podeComprar: PODE_COMPRAR.includes(s.papel),
+    podeVerRede: PODE_VER_REDE.includes(s.papel),
+  };
+}
+
+const semSessao = (res) => res.status(401).json({
+  error: 'Entre com o seu telefone para usar a rede.', codigo: 'sem_sessao',
+});
+
+// ── Minha lista: as contas que recebem o que eu mando ─────────────
+// Regra: só o dono da lista enxerga a lista dele.
+async function minhaLista(contaId) {
+  const r = await rsb(`contatos?conta_id=eq.${contaId}&estado=eq.ativo&select=contato_conta_id`);
+  return r.map((x) => x.contato_conta_id);
+}
+
+// ── Mandar um carro para a lista ──────────────────────────────────
+// Regra: só quem tem a chave de ofertar, e o carro tem de ser da minha
+// loja — quem confirma isso é o funil, no `sb` que vem de fora.
+async function ofertar(sb, req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeOfertar) {
+    return res.status(403).json({ error: 'Você não tem permissão para mandar carro para a lista.' });
+  }
+
+  const { veiculo_id, horas_antes_da_vitrine } = req.body || {};
+  if (!UUID.test(String(veiculo_id || ''))) {
+    return res.status(400).json({ error: 'veiculo_id inválido.' });
+  }
+
+  // O carro é meu? Quem responde é o funil — `sb` já filtra por dono.
+  const rv = await sb(`veiculos?id=eq.${veiculo_id}&select=*`);
+  if (!rv.ok) return res.status(502).json({ error: 'Não consegui ler o veículo.' });
+  const veic = (await rv.json())[0];
+  if (!veic) return res.status(404).json({ error: 'Veículo não encontrado.' });
+
+  const destinos = await minhaLista(eu.conta_id);
+  if (!destinos.length) {
+    return res.status(400).json({
+      error: 'Sua lista está vazia — ninguém receberia este carro ainda.',
+      codigo: 'lista_vazia',
+    });
+  }
+
+  // A FOTOGRAFIA. Só o que pode atravessar: nada de placa, renavam,
+  // chassi, valor de compra, avaliação ou documentos.
+  const horas = Number(horas_antes_da_vitrine);
+  const oferta = (await rsb('ofertas', {
+    method: 'POST', prefer: 'return=representation',
+    body: JSON.stringify({
+      conta_id:   eu.conta_id,
+      veiculo_id: veic.id,
+      marca:  veic.marca  || null,
+      modelo: veic.modelo || null,
+      ano:    Number(veic.ano) || null,
+      km:     Number(veic.km)  || null,
+      preco:  Number(veic.valor) || null,   // repasse, nunca valor_compra
+      cidade: veic.regiao || null,
+      dados: {
+        versao:       veic.versao       || '',
+        cor:          veic.cor          || '',
+        cambio:       veic.cambio       || '',
+        combustivel:  veic.combustivel  || '',
+        fipe:         Number(veic.fipe) || null,
+        fotos:        Array.isArray(veic.fotos) ? veic.fotos.slice(0, 10) : [],
+        observacoes:  veic.observacoes  || '',
+      },
+      // `null` = não abrir para a vitrine (é uma das opções da tela).
+      vitrine_em: Number.isFinite(horas) && horas > 0
+        ? new Date(Date.now() + horas * 3600e3).toISOString()
+        : null,
+    }),
+  }))[0];
+
+  // Destino linha a linha, e não "foi para a lista": a lista muda, e o
+  // feed de ontem de quem saiu não pode mudar junto.
+  await rsb('oferta_destinos', {
+    method: 'POST',
+    body: JSON.stringify(destinos.map((c) => ({ oferta_id: oferta.id, conta_id: c }))),
+  });
+
+  return res.status(201).json({ ok: true, oferta_id: oferta.id, enviada_para: destinos.length });
+}
+
+// ── Chegou para ti ────────────────────────────────────────────────
+// Regra: começa em `oferta_destinos` pela MINHA conta e caminha para
+// fora. Nunca varre ofertas para filtrar depois — a busca ao contrário é
+// como se lê o que não é seu por acidente.
+async function feed(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeComprar) {
+    return res.status(403).json({ error: 'Seu acesso não inclui os carros de repasse.' });
+  }
+
+  const meus = await rsb(
+    `oferta_destinos?conta_id=eq.${eu.conta_id}&select=oferta_id&order=criado_em.desc&limit=100`
+  );
+  if (!meus.length) return res.status(200).json({ ofertas: [] });
+
+  const ids = meus.map((x) => x.oferta_id);
+  const ofertas = await rsb(
+    `ofertas?id=in.(${ids.join(',')})&estado=neq.encerrada&select=*&order=criado_em.desc`
+  );
+
+  // Meu interesse em cada uma, e o tamanho da fila. Duas consultas, não
+  // uma por oferta — a tela mostra dezenas de cartões.
+  const interesses = await rsb(`interesses?oferta_id=in.(${ids.join(',')})&select=oferta_id,conta_id,estado`);
+  const reservas   = await rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,com_sinal`);
+
+  const fila = {}; const meu = {}; const reservada = {};
+  for (const i of interesses) {
+    if (i.estado !== 'quer') continue;
+    fila[i.oferta_id] = (fila[i.oferta_id] || 0) + 1;
+    if (i.conta_id === eu.conta_id) meu[i.oferta_id] = true;
+  }
+  for (const r of reservas) reservada[r.oferta_id] = r.com_sinal ? 'sinal' : 'palavra';
+
+  return res.status(200).json({
+    ofertas: ofertas.map((o) => ({
+      id: o.id, marca: o.marca, modelo: o.modelo, ano: o.ano, km: o.km,
+      preco: o.preco, cidade: o.cidade, uf: o.uf, dados: o.dados,
+      criado_em: o.criado_em,
+      na_fila: fila[o.id] || 0,
+      eu_quero: !!meu[o.id],
+      reservado: reservada[o.id] || null,   // null | 'palavra' | 'sinal'
+    })),
+  });
+}
+
+// ── ✋ Quero ───────────────────────────────────────────────────────
+// Regra: só levanto a mão em oferta que chegou PARA MIM. Sem esta
+// conferência, bastaria conhecer o id de uma oferta para entrar na fila
+// de um carro que nunca me foi mandado.
+async function quero(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeComprar) {
+    return res.status(403).json({ error: 'Seu acesso não inclui reservar carros.' });
+  }
+
+  const { oferta_id } = req.body || {};
+  if (!UUID.test(String(oferta_id || ''))) return res.status(400).json({ error: 'oferta_id inválido.' });
+
+  const destino = await rsb(
+    `oferta_destinos?oferta_id=eq.${oferta_id}&conta_id=eq.${eu.conta_id}&select=oferta_id&limit=1`
+  );
+  // Mesma resposta de "não existe": dizer "não é para você" confirmaria
+  // que a oferta existe.
+  if (!destino.length) return res.status(404).json({ error: 'Oferta não encontrada.' });
+
+  // `on_conflict` porque a mesma loja levantando a mão duas vezes é toque
+  // repetido, não erro — e a hora que vale é a primeira.
+  await rsb('interesses?on_conflict=oferta_id,conta_id', {
+    method: 'POST', prefer: 'resolution=ignore-duplicates',
+    body: JSON.stringify({
+      oferta_id, conta_id: eu.conta_id, usuario_id: eu.usuario_id,
+    }),
+  });
+
+  const fila = await rsb(`interesses?oferta_id=eq.${oferta_id}&estado=eq.quer&select=conta_id,criado_em&order=criado_em.asc`);
+  const posicao = fila.findIndex((x) => x.conta_id === eu.conta_id) + 1;
+  return res.status(200).json({ ok: true, posicao, na_fila: fila.length });
+}
+
+// ── A fila do meu carro ───────────────────────────────────────────
+// Regra: só o dono da oferta vê quem levantou a mão.
+async function filaDaOferta(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const oferta_id = req.query.oferta_id;
+  if (!UUID.test(String(oferta_id || ''))) return res.status(400).json({ error: 'oferta_id inválido.' });
+
+  const o = await rsb(`ofertas?id=eq.${oferta_id}&conta_id=eq.${eu.conta_id}&select=id&limit=1`);
+  if (!o.length) return res.status(404).json({ error: 'Oferta não encontrada.' });
+
+  const fila = await rsb(
+    `interesses?oferta_id=eq.${oferta_id}&select=conta_id,criado_em,estado&order=criado_em.asc`
+  );
+  return res.status(200).json({ fila });
+}
+
+module.exports = { ofertar, feed, quero, filaDaOferta, rsb, quem };

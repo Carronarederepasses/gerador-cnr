@@ -708,6 +708,24 @@ module.exports = async (req, res) => {
   // Modo Mensagens (Reforma 43)
   if ('mensagens' in req.query) return handleMensagens(sb, req, res);
 
+  // ── Modo Rede (fase 2, 27/set) ──────────────────────────────────
+  // Mora aqui, e não em arquivo próprio, porque o plano Hobby da Vercel
+  // dá 12 funções e as 12 estão ocupadas. Mesmo motivo de `buscas`,
+  // `ideias`, `agenda` e `mensagens` — é o padrão da casa.
+  //
+  // A regra de quem enxerga o quê está em `api/_rede.js`, junto de cada
+  // consulta: estas tabelas ficam FORA do funil por natureza, porque a
+  // rede existe para o dado atravessar de uma loja para outra.
+  if ('rede' in req.query) {
+    const rede = require('./_rede');
+    const acao = String(req.query.rede || '');
+    if (acao === 'ofertar' && req.method === 'POST') return rede.ofertar(sb, req, res);
+    if (acao === 'feed'    && req.method === 'GET')  return rede.feed(req, res);
+    if (acao === 'quero'   && req.method === 'POST') return rede.quero(req, res);
+    if (acao === 'fila'    && req.method === 'GET')  return rede.filaDaOferta(req, res);
+    return res.status(400).json({ error: 'rede deve ser ofertar, feed, quero ou fila.' });
+  }
+
   // Modo padrão: fetch URL para IA
   const url = (req.body && req.body.url) || req.query.url;
   if (!url || !/^https?:\/\//i.test(url)) {

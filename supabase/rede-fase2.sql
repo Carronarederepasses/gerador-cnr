@@ -1,13 +1,24 @@
 -- ════════════════════════════════════════════════════════════════════
 -- AS TABELAS DA REDE — fase 2 do app ("o coração")
 --
--- NÃO RODAR AINDA. Este arquivo é preparação, escrito em 27/set para
--- estar pronto no dia em que existir um banco para o app. Hoje não
--- existe: o Supabase grátis dá 2 projetos ativos por conta, e os dois
--- estão ocupados (Carro na Rede e o piloto do Bruno).
+-- RODAR NO BANCO DA OPERAÇÃO. Escrito de manhã em 27/set para esperar um
+-- terceiro banco que o Supabase grátis não dá — e liberado à tarde,
+-- quando o próprio trabalho do dia tirou a necessidade dele:
 --
--- Quando rodar, rodar NO BANCO DO APP — vazio, separado. Nunca no banco
--- da operação do Yuri.
+--   • `conta_id` + o funil `_db.js` separam loja de loja (23/set)
+--   • a sessão diz de que loja é quem pediu (fase 1, 27/set)
+--   • o link de arquivo só sai para a loja dona dele (27/set)
+--
+-- Uma loja de teste neste banco é invisível para o Yuri — provado três
+-- vezes hoje, inclusive criando uma loja e entrando como ela. E o teste
+-- passa a acontecer no caminho de verdade, não numa cópia dele.
+--
+-- **Nenhuma destas tabelas encosta em `veiculos`, `vendas` ou
+-- `compradores`.** São todas novas.
+--
+-- Loja de teste se APAGA quando termina, não se migra. Se um dia for
+-- preciso separar um cliente de verdade, é cópia filtrada por `conta_id`
+-- — que é exatamente para isso que a coluna existe.
 --
 -- ── O AVISO QUE IMPORTA MAIS QUE O SQL ──────────────────────────────
 --
@@ -119,16 +130,47 @@ create index if not exists solicitacoes_para_idx on public.solicitacoes (para_co
 -- `vitrine_em` é quando o carro abre para o país. NULL = não abrir
 -- ("Não abrir" é uma das opções da tela). Data no passado = já está na
 -- vitrine.
+-- ── O QUE A OFERTA GUARDA, E POR QUE NÃO É UM PONTEIRO ──────────────
+-- A oferta carrega os dados do carro, não só o id dele. Três razões, e a
+-- primeira é a que decide:
+--
+-- 1. **O funil não pode ser furado aqui.** Se a oferta fosse só um
+--    ponteiro, a loja que recebe teria de ler `veiculos` da loja que
+--    mandou — exatamente a consulta que `_db.js` existe para impedir. Com
+--    a fotografia, nada atravessa a fronteira: o que cruza é o que o dono
+--    escolheu mandar.
+-- 2. **O que não deve atravessar, não atravessa.** Placa é uso interno e
+--    `valor_compra` é a margem dele. Nenhum dos dois tem coluna aqui, e
+--    por isso não há como vazarem por descuido de um `select`.
+-- 3. **A oferta é do momento em que foi feita.** Se o dono baixar o preço
+--    amanhã, o que os outros viram ontem não muda sozinho — e a fila de
+--    quem levantou a mão continua fazendo sentido.
+--
+-- Colunas soltas para o que a vitrine filtra e ordena; o resto em `dados`
+-- (versão, cor, câmbio, combustível, fotos, FIPE), que muda com o tempo
+-- sem pedir migração.
 create table if not exists public.ofertas (
   id           uuid primary key default gen_random_uuid(),
   conta_id     uuid not null references public.contas(id),
   veiculo_id   uuid not null,  -- sem FK: ver cabeçalho
+  -- fotografia do carro no envio
+  marca        text,
+  modelo       text,
+  ano          integer,
+  km           integer,
+  preco        numeric(12,2),
+  cidade       text,
+  uf           text,
+  dados        jsonb not null default '[]'::jsonb,
   criado_em    timestamptz not null default now(),
   vitrine_em   timestamptz,
   estado       text not null default 'aberta',
   encerrada_em timestamptz,
   constraint ofertas_estado_valido check (estado in ('aberta','reservada','encerrada'))
 );
+-- A vitrine ordena por preço e filtra por ano — sem isto, varre tudo.
+create index if not exists ofertas_preco_idx on public.ofertas (preco)
+  where estado = 'aberta' and vitrine_em is not null;
 create index if not exists ofertas_conta_idx   on public.ofertas (conta_id, criado_em desc);
 create index if not exists ofertas_veiculo_idx on public.ofertas (veiculo_id);
 -- A vitrine: o que já abriu e ainda está de pé.
