@@ -6091,6 +6091,61 @@ qualquer sistema que tu contrata."*
 
 ---
 
+## 27 de setembro de 2026 — a fase 1 está de pé: entrar por telefone
+
+Em produção e provada ponta a ponta. **O que ela destrava não é o login:**
+`contaDoPedido()` passa a tirar a conta da **sessão** em vez da variável de
+ambiente. Era a variável que obrigava um site na Vercel e um banco no
+Supabase por cliente — e o Supabase grátis travou no segundo.
+
+Duas tabelas novas (`codigos`, `sessoes`), o motor em `api/_sessao.js`,
+duas rotas dentro do `utils.js` (o teto de 12 funções segue intacto) e a
+tela `/entrar.html` com o telefone como caminho principal.
+
+**Transição sem derrubar ninguém:** chave por aparelho continua valendo, e
+sem sessão tudo cai no comportamento de hoje. É a lição de 03/set, quando
+fechei a API e quebrei o backup das vendas por não perguntar quem mais
+usava.
+
+### Quatro defeitos, e nenhum apareceu lendo o código
+
+| onde apareceu | o quê |
+|---|---|
+| teste local | pedia a coluna `pode_ofertar`, que é da fase 2 e ainda não existe — 400 em toda chamada |
+| teste local | PostgREST responde **201 com corpo vazio** ao inserir, e eu lia JSON direto: toda inserção estourava, e o erro sairia como "falha de login", longe da causa |
+| teste em produção | **a sessão abria o `utils` e levava 401 no resto.** Cada endpoint tem o próprio portão e só um tinha aprendido. Entregue assim, ele entraria pelo telefone e o Catálogo diria "aparelho não liberado" |
+| **captura de tela** | na própria tela de entrar, um aviso cobria tudo mandando "abrir o link de liberação" — em cima do campo de telefone. Era anterior, mas antes ninguém chegava ali sem chave |
+
+> Os dois primeiros o teste pegou; o terceiro só apareceu contra o
+> servidor de verdade; o quarto só na imagem. Três camadas, três defeitos
+> diferentes — nenhum deles visível no editor.
+
+### A guarda que nasceu torta
+
+Escrevi `scripts/checa-sessao.js` para recusar endpoint que não lê sessão.
+**A primeira versão não pegou nada:** eu comentei a chamada para testar, e
+o texto continuou no arquivo, então ela disse "ok". Falso negativo numa
+guarda é pior que não ter guarda — vira carimbo. Foi exatamente o que eu
+tinha escrito no `checa-funil.js` cinco dias antes e não segui.
+
+Agora ignora linha comentada, compara por linha, e está provada nos dois
+defeitos: chamada comentada e chamada depois do portão.
+
+### O que está e o que não está
+
+- **SMS desligado.** Sem as variáveis do Twilio, o código vai para o
+  registro do servidor. Dá para provar o mecanismo inteiro sem abrir conta
+  nem gastar. Custo quando ligar: ~R$ 0,32 por mensagem (§10.1 do
+  PROJETO-APP).
+- **Só o Yuri tem telefone cadastrado.** A mãe entra quando quiser — a
+  chave dela segue funcionando até lá.
+- **Três sessões de teste criadas e encerradas**, conferido na tabela. Não
+  ficou acesso meu aberto.
+
+*Registrado em 27 de setembro de 2026.*
+
+---
+
 ### 25/set — a segunda operadora está de pé
 
 Planejado desde 02/set, decidido em 11/set, feito hoje. **Testado ponta a
