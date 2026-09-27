@@ -21,95 +21,141 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
-  min-height:100vh;padding-bottom:4rem}
-.wrap{max-width:52rem;margin:0 auto;padding:1.6rem 1.2rem 0}
+  height:100vh;overflow:hidden}
 
-h1{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900;line-height:1.1}
-.sub{color:var(--text-mid);font-size:.88rem;margin-top:.4rem;line-height:1.55;max-width:44rem}
+/* Duas colunas no notebook, uma de cada vez no celular — igual ao WhatsApp. */
+.tela{display:grid;grid-template-columns:20rem 1fr;height:100vh}
+@media (max-width:760px){
+  .tela{grid-template-columns:1fr}
+  .coluna{display:none}
+  .tela[data-onde="lista"] .coluna{display:flex}
+  .tela[data-onde="conversa"] .painel{display:flex}
+  .tela[data-onde="lista"] .painel{display:none}
+  .voltar{display:inline-flex!important}
+}
 
-.aviso{margin:1.2rem 0;padding:.9rem 1rem;border:1px solid var(--line);
-  border-radius:var(--r-md, 12px);font-size:.88rem;line-height:1.55;color:var(--text-mid)}
-.aviso strong{color:var(--text)}
-.aviso.erro{border-color:var(--severity-crit)}
+/* ── Coluna da esquerda ─────────────────────────────────────── */
+.coluna{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.col-topo{padding:1rem .9rem .7rem;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.col-topo h1{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:900}
+.rolagem{flex:1;overflow-y:auto}
 
-section{margin-top:2rem}
-h2{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;
-  display:flex;align-items:baseline;gap:.5rem;margin-bottom:.2rem}
-h2 small{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:500;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
-.dica{font-size:.8rem;color:var(--text-faint);line-height:1.5;margin-bottom:.9rem}
+.item{display:flex;gap:.7rem;align-items:center;padding:.75rem .9rem;cursor:pointer;
+  border-bottom:1px solid var(--line)}
+.item:hover{background:var(--surface-raise)}
+.item.ativo{background:var(--surface-raise)}
+.avatar{width:2.6rem;height:2.6rem;border-radius:50%;background:var(--surface-raise);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:1.1rem;flex:none}
+.item .txt{min-width:0;flex:1}
+.item .t1{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t2{font-size:.78rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;margin-top:.1rem}
+.item .hora{font-size:.68rem;color:var(--text-faint);flex:none;align-self:flex-start}
+.grupo{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);
+  padding:.9rem .9rem .35rem;font-weight:700}
 
-.cartao{border:1px solid var(--line);border-radius:var(--r-md, 12px);
-  padding:.85rem .95rem;margin-bottom:.6rem;background:var(--surface-raise)}
-.linha{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap}
-.nome{font-family:'Playfair Display',serif;font-size:1.02rem;font-weight:700;line-height:1.2}
-.meta{font-size:.78rem;color:var(--text-mid);margin-top:.15rem}
-.preco{font-size:1rem;font-weight:700;white-space:nowrap}
+/* ── Painel da direita ──────────────────────────────────────── */
+.painel{display:flex;flex-direction:column;min-width:0;height:100vh}
+.pan-topo{padding:.8rem .95rem;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:.7rem}
+.pan-topo h2{font-size:1rem;font-weight:700;line-height:1.2}
+.pan-topo .sub{font-size:.75rem;color:var(--text-mid)}
+.voltar{display:none;align-items:center;background:none;border:none;color:var(--text);
+  font-size:1.2rem;cursor:pointer;padding:.2rem .4rem 0 0}
 
-button{font-family:inherit;font-size:.82rem;font-weight:700;padding:.5rem .9rem;
-  border-radius:var(--r, 8px);border:none;background:var(--text);color:var(--surface);cursor:pointer}
-button.leve{background:none;border:1px solid var(--line);color:var(--text-mid);font-weight:500}
-button:disabled{opacity:.45;cursor:default}
+.thread{flex:1;overflow-y:auto;padding:1rem .95rem;display:flex;flex-direction:column;gap:.7rem}
+.balao{max-width:30rem;align-self:flex-end;background:var(--surface-raise);
+  border:1px solid var(--line);border-radius:var(--r-md, 12px);padding:.7rem .8rem}
+.balao .carro{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;line-height:1.2}
+.balao .meta{font-size:.78rem;color:var(--text-mid);margin-top:.15rem}
+.balao .preco{font-weight:700;margin-top:.35rem}
+.balao .msg{font-size:.86rem;line-height:1.5;margin-top:.5rem;white-space:pre-wrap}
+.balao .rodape{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  margin-top:.55rem;padding-top:.5rem;border-top:1px solid var(--line);
+  font-size:.74rem;color:var(--text-faint)}
+.balao.recebido{align-self:flex-start;background:transparent}
 
-.selo{font-size:.68rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;
+.selo{font-size:.68rem;font-weight:700;padding:.15rem .45rem;border-radius:999px;
   border:1px solid var(--line);color:var(--text-mid);white-space:nowrap}
 .selo.res{border-color:var(--accent);color:var(--accent)}
 
-.fila{margin-top:.7rem;border-top:1px solid var(--line);padding-top:.6rem}
-.fila .item{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
-  font-size:.82rem;padding:.35rem 0}
-.pos{width:1.35rem;height:1.35rem;border-radius:50%;background:var(--line);
-  display:inline-grid;place-items:center;font-size:.7rem;font-weight:700;margin-right:.45rem}
+.fila{margin-top:.5rem;border-top:1px solid var(--line);padding-top:.45rem}
+.fila .quem{display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  font-size:.8rem;padding:.25rem 0}
 
-.vazio{font-size:.85rem;color:var(--text-faint);padding:.6rem 0}
-.carregando{font-size:.85rem;color:var(--text-faint)}
+/* ── Campo de digitar ───────────────────────────────────────── */
+.compor{border-top:1px solid var(--line);padding:.7rem .95rem;display:grid;gap:.55rem;
+  background:var(--surface)}
+.carro-escolhido{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  font-size:.84rem;border:1px solid var(--line);border-radius:var(--r, 8px);padding:.45rem .6rem}
+.escrever{display:flex;gap:.55rem;align-items:flex-end}
+textarea{flex:1;font-family:inherit;font-size:.92rem;padding:.6rem .7rem;resize:none;
+  border:1px solid var(--line);border-radius:var(--r-md, 12px);background:var(--surface-raise);
+  color:var(--text);min-height:2.6rem;max-height:8rem}
+textarea:focus{outline:none;border-color:var(--accent)}
+
+button{font-family:inherit;font-size:.85rem;font-weight:700;padding:.55rem .9rem;
+  border-radius:var(--r, 8px);border:none;background:var(--text);color:var(--surface);cursor:pointer}
+button.leve{background:none;border:1px solid var(--line);color:var(--text-mid);font-weight:500}
+button:disabled{opacity:.45;cursor:default}
+button.redondo{width:2.7rem;height:2.7rem;border-radius:50%;padding:0;font-size:1.05rem;flex:none}
+
+.vazio{padding:2rem 1.2rem;text-align:center;color:var(--text-faint);font-size:.9rem;line-height:1.6}
+.aviso{margin:.9rem;padding:.85rem .9rem;border:1px solid var(--line);
+  border-radius:var(--r-md, 12px);font-size:.86rem;line-height:1.55;color:var(--text-mid)}
+.aviso strong{color:var(--text)}
+
+dialog{border:none;border-radius:var(--r-lg, 16px);background:var(--surface-raise);color:var(--text);
+  padding:0;max-width:26rem;width:calc(100% - 2rem)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.dlg{padding:1.2rem}
+.dlg h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:.8rem}
+.dlg .op{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  padding:.6rem 0;border-top:1px solid var(--line);font-size:.9rem}
+.dlg input[type=text]{width:100%;font-family:inherit;font-size:.95rem;padding:.6rem .7rem;
+  border:1px solid var(--line);border-radius:var(--r, 8px);background:var(--surface);color:var(--text)}
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <h1>Rede</h1>
-  <p class="sub">Tela de prova do que já existe no servidor: mandar um carro
-  para a lista, ver quem levantou a mão e reservar. Ainda não é a tela final —
-  é para <strong>ver a rede funcionando</strong> antes de espalhar pelo app.</p>
+<div class="tela" id="tela" data-onde="lista">
 
-  <div class="aviso" id="quem">
-    <span class="carregando">Vendo quem é você…</span>
-  </div>
+  <!-- ── Esquerda: transmissões e contatos ─────────────────── -->
+  <aside class="coluna">
+    <div class="col-topo">
+      <h1>Rede</h1>
+      <button class="redondo" id="btn-nova" title="Nova transmissão">✚</button>
+    </div>
+    <div class="rolagem" id="col"><div class="vazio">Carregando…</div></div>
+  </aside>
 
-  <!-- ── Chegou para ti ─────────────────────────────────────── -->
-  <section>
-    <h2>Chegou para ti <small>o que as listas te mandaram</small></h2>
-    <p class="dica">Carros que outras lojas mandaram para a lista em que você está.
-    “Quero” entra na fila — quem chama primeiro tem a preferência, e quem reserva
-    é o dono do carro.</p>
-    <div id="feed"><span class="carregando">Carregando…</span></div>
-  </section>
-
-  <!-- ── Mandar ─────────────────────────────────────────────── -->
-  <section>
-    <h2>Mandar para a lista <small>do seu estoque</small></h2>
-    <p class="dica">Vai só para quem está na sua lista. O que atravessa é o carro —
-    <strong>placa e valor de compra não vão junto</strong>.</p>
-    <div id="estoque"><span class="carregando">Carregando…</span></div>
-  </section>
-
-  <!-- ── O que eu mandei ────────────────────────────────────── -->
-  <section>
-    <h2>O que você mandou <small>e quem quer</small></h2>
-    <p class="dica">A hora é a do servidor. Reservar é decisão sua, para quem você
-    quiser da fila — com sinal na conta ou na palavra.</p>
-    <div id="minhas"><span class="carregando">Carregando…</span></div>
-  </section>
-
-  <!-- ── Listas ─────────────────────────────────────────────── -->
-  <section>
-    <h2>Listas <small>quem recebe o que você manda</small></h2>
-    <p class="dica">Ninguém entra sem pedir, e a saída é livre. Os membros não se
-    enxergam — só você vê quem está na sua lista.</p>
-    <div id="listas"><span class="carregando">Carregando…</span></div>
-  </section>
+  <!-- ── Direita: a transmissão aberta ─────────────────────── -->
+  <main class="painel" id="painel">
+    <div class="pan-topo">
+      <button class="voltar" onclick="verLista()">‹</button>
+      <div class="avatar" id="pan-icone">📣</div>
+      <div style="min-width:0">
+        <h2 id="pan-nome">Rede</h2>
+        <div class="sub" id="pan-sub">escolha uma transmissão à esquerda</div>
+      </div>
+    </div>
+    <div class="thread" id="thread">
+      <div class="vazio">Abra uma transmissão para ver o que você mandou —
+      ou <strong>Chegou para mim</strong>, para ver o que mandaram para você.</div>
+    </div>
+    <div class="compor" id="compor" hidden>
+      <div class="carro-escolhido" id="escolhido" hidden></div>
+      <div class="escrever">
+        <button class="leve" id="btn-carro">🚗 Carro</button>
+        <textarea id="texto" rows="1" placeholder="Escreva algo (opcional)…"></textarea>
+        <button class="redondo" id="btn-enviar" title="Enviar">➤</button>
+      </div>
+    </div>
+  </main>
 </div>
+
+<dialog id="dlg"><div class="dlg" id="dlg-corpo"></div></dialog>
 
 <script>
 'use strict';
@@ -120,219 +166,296 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
 const dinheiro = (v) => v == null ? '—'
   : 'R$ ' + Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
 const numero = (v) => v == null ? '—' : Number(v).toLocaleString('pt-BR');
+const quando = (iso) => {
+  const d = new Date(iso); const hoje = new Date();
+  const mesmoDia = d.toDateString() === hoje.toDateString();
+  return mesmoDia ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                  : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+};
 
-// Toda chamada passa por aqui: sem sessão, a rede não abre, e a tela
-// precisa dizer isso com todas as letras em vez de ficar vazia.
 async function rede(acao, opcoes = {}) {
-  const r = await fetch(`${API}?rede=${acao}` + (opcoes.q || ''), {
+  const r = await fetch(`${API}?rede=${acao}${opcoes.q || ''}`, {
     method: opcoes.body ? 'POST' : 'GET',
     headers: opcoes.body ? { 'Content-Type': 'application/json' } : undefined,
     body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
   });
   const corpo = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(corpo.error || `HTTP ${r.status}`), { corpo, status: r.status });
+  if (!r.ok) throw Object.assign(new Error(corpo.error || `HTTP ${r.status}`), { corpo });
   return corpo;
 }
 
-function erro(alvo, e) {
-  $(alvo).innerHTML = `<div class="aviso erro">${esc(e.message)}</div>`;
+// Estado da tela: o que está aberto à direita.
+let aberto = null;            // { tipo: 'lista'|'todos'|'recebidos', id, nome }
+let carroEscolhido = null;
+let dados = { listas: [], contatos: [], minhas: [], recebidas: [] };
+
+function verLista()    { $('tela').dataset.onde = 'lista'; }
+function verConversa() { $('tela').dataset.onde = 'conversa'; }
+
+// ── Coluna da esquerda ──────────────────────────────────────
+function desenharColuna() {
+  const naoLidas = dados.recebidas.filter((o) => !o.eu_quero && !o.reservado).length;
+  const ultimaDe = (id) => {
+    const lista = dados.minhas.filter((o) => (id === '__todos' ? !o.lista_id : o.lista_id === id));
+    return lista[0] || null;
+  };
+  const linha = (icone, nome, sub, hora, ativo, onclick, badge) => `
+    <div class="item ${ativo ? 'ativo' : ''}" onclick="${onclick}">
+      <div class="avatar">${icone}</div>
+      <div class="txt">
+        <div class="t1">${esc(nome)}</div>
+        <div class="t2">${esc(sub)}</div>
+      </div>
+      <div class="hora">${hora || ''}${badge ? ` <span class="selo">${badge}</span>` : ''}</div>
+    </div>`;
+
+  const recebidasSub = dados.recebidas.length
+    ? `${dados.recebidas[0].marca} ${dados.recebidas[0].modelo}`
+    : 'nada chegou ainda';
+
+  const listas = dados.listas.map((l) => {
+    const u = ultimaDe(l.id);
+    return linha('📣', l.nome, u ? `${u.marca} ${u.modelo}` : `${l.membros.filter((m) => m.ativo).length} destinatários`,
+      u ? quando(u.criado_em) : '',
+      aberto?.tipo === 'lista' && aberto.id === l.id,
+      `abrirLista('${l.id}')`);
+  }).join('');
+
+  const todos = (() => {
+    const u = ultimaDe('__todos');
+    return linha('👥', 'Todos os contatos',
+      u ? `${u.marca} ${u.modelo}` : `${dados.contatos.length} lojas`,
+      u ? quando(u.criado_em) : '',
+      aberto?.tipo === 'todos', `abrirTodos()`);
+  })();
+
+  $('col').innerHTML =
+    `<div class="grupo">Chegou para mim</div>` +
+    linha('📥', 'Chegou para mim', recebidasSub,
+      dados.recebidas.length ? quando(dados.recebidas[0].criado_em) : '',
+      aberto?.tipo === 'recebidos', 'abrirRecebidos()', naoLidas ? String(naoLidas) : '') +
+    `<div class="grupo">Transmissões</div>` + todos + listas +
+    `<div class="grupo">Contatos · ${dados.contatos.length}</div>` +
+    (dados.contatos.length
+      ? dados.contatos.map((c) => linha('🏪', c.nome, 'na sua rede', '', false, 'void 0')).join('')
+      : '<div class="vazio" style="padding:1rem">Ninguém na sua rede ainda.</div>');
 }
 
-// ── Quem sou eu ───────────────────────────────────────────────
-async function verQuem() {
-  try {
-    const r = await fetch('/api/utils?type=quem', { cache: 'no-store' });
-    const d = await r.json().catch(() => ({}));
-    if (!d.sessao) {
-      $('quem').innerHTML = '<strong>Você não entrou pelo telefone.</strong> '
-        + 'A rede precisa saber de que loja você é — a chave do aparelho não diz isso. '
-        + '<a href="/entrar.html" style="color:var(--accent)">Entrar agora</a>.';
-      return false;
-    }
-    $('quem').innerHTML = `Você é <strong>${esc(d.sessao.nome)}</strong>`
-      + ` — ${esc(d.sessao.papel)} na loja <strong>${esc((window.cnrMarca || {}).nome || '')}</strong>.`;
-    return true;
-  } catch (e) {
-    $('quem').innerHTML = '<span class="aviso erro">Não consegui falar com o servidor.</span>';
-    return false;
+// ── Painel da direita ───────────────────────────────────────
+function balaoDoCarro(o, comFila) {
+  const fila = comFila && o.fila ? o.fila : null;
+  return `
+    <div class="balao ${comFila ? '' : 'recebido'}">
+      <div class="carro">${esc(o.marca)} ${esc(o.modelo)}</div>
+      <div class="meta">${esc(o.ano || '—')} · ${numero(o.km)} km${o.cidade ? ' · ' + esc(o.cidade) : ''}</div>
+      <div class="preco">${dinheiro(o.preco)}</div>
+      ${o.mensagem ? `<div class="msg">${esc(o.mensagem)}</div>` : ''}
+      ${fila && fila.length ? `<div class="fila">${fila.map((f, i) => `
+        <div class="quem"><span>${i + 1}. ${esc(f.nome)}</span>
+          ${o.reserva ? '' : `<button class="leve" onclick="reservar('${o.id}','${f.conta_id}')">Reservar</button>`}
+        </div>`).join('')}</div>` : ''}
+      ${comFila && fila && !fila.length ? '<div class="fila"><div class="quem"><span style="color:var(--text-faint)">Ninguém levantou a mão ainda</span></div></div>' : ''}
+      <div class="rodape">
+        <span>${quando(o.criado_em)}</span>
+        <span>
+          ${o.reserva || o.reservado
+            ? `<span class="selo res">🔒 Reservado ${(o.reserva?.com_sinal || o.reservado === 'sinal') ? '— sinal' : 'na palavra'}</span>`
+            : comFila ? '' : (o.eu_quero ? '<span class="selo">✋ na fila</span>'
+                                         : `<button onclick="quero('${o.id}')">✋ Quero</button>`)}
+          ${o.reserva && comFila ? `<button class="leve" onclick="desfazer('${o.id}')">Desfazer</button>` : ''}
+        </span>
+      </div>
+    </div>`;
+}
+
+function desenharPainel() {
+  if (!aberto) return;
+  $('pan-nome').textContent = aberto.nome;
+  $('pan-icone').textContent = aberto.tipo === 'recebidos' ? '📥' : aberto.tipo === 'todos' ? '👥' : '📣';
+  $('compor').hidden = aberto.tipo === 'recebidos';
+
+  if (aberto.tipo === 'recebidos') {
+    $('pan-sub').textContent = `${dados.recebidas.length} carro(s)`;
+    $('thread').innerHTML = dados.recebidas.length
+      ? dados.recebidas.map((o) => balaoDoCarro(o, false)).join('')
+      : '<div class="vazio">Nada chegou ainda. Aparece aqui quando alguém que tem você na lista mandar um carro.</div>';
+    return;
   }
+
+  const lista = aberto.tipo === 'lista' ? dados.listas.find((l) => l.id === aberto.id) : null;
+  const destinatarios = lista ? lista.membros.filter((m) => m.ativo).length : dados.contatos.length;
+  const inativos = lista ? lista.membros.filter((m) => !m.ativo).length : 0;
+  $('pan-sub').innerHTML = `${destinatarios} destinatário(s)`
+    + (inativos ? ` · <span style="color:var(--severity-warn)">${inativos} saiu(ram) da sua rede</span>` : '')
+    + (lista ? ` · <a href="#" onclick="editarLista('${lista.id}');return false" style="color:var(--accent)">editar</a>` : '');
+
+  const mandadas = dados.minhas.filter((o) => aberto.tipo === 'todos' ? !o.lista_id : o.lista_id === aberto.id);
+  $('thread').innerHTML = mandadas.length
+    ? mandadas.slice().reverse().map((o) => balaoDoCarro(o, true)).join('')
+    : '<div class="vazio">Nada mandado por aqui ainda. Escolha um carro embaixo e envie.</div>';
+  $('thread').scrollTop = $('thread').scrollHeight;
 }
 
-// ── Chegou para ti ────────────────────────────────────────────
-async function verFeed() {
-  try {
-    const { ofertas } = await rede('feed');
-    if (!ofertas.length) {
-      $('feed').innerHTML = '<p class="vazio">Nada chegou ainda. Aparece aqui quando'
-        + ' alguém que tem você na lista mandar um carro.</p>';
-      return;
-    }
-    $('feed').innerHTML = ofertas.map((o) => `
-      <div class="cartao">
-        <div class="linha">
-          <div>
-            <div class="nome">${esc(o.marca)} ${esc(o.modelo)}</div>
-            <div class="meta">${esc(o.ano || '—')} · ${numero(o.km)} km${o.cidade ? ' · ' + esc(o.cidade) : ''}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="preco">${dinheiro(o.preco)}</div>
-            <div class="meta">${o.na_fila} na fila</div>
-          </div>
-        </div>
-        <div class="linha" style="margin-top:.7rem">
-          ${o.reservado
-            ? `<span class="selo res">🔒 Reservado ${o.reservado === 'sinal' ? '— sinal na conta' : 'na palavra'}</span>`
-            : o.eu_quero
-              ? '<span class="selo">✋ Você está na fila</span>'
-              : `<button onclick="quero('${o.id}')">✋ Quero</button>`}
-        </div>
-      </div>`).join('');
-  } catch (e) { erro('feed', e); }
-}
+function abrirLista(id) { const l = dados.listas.find((x) => x.id === id); aberto = { tipo: 'lista', id, nome: l.nome }; desenharColuna(); desenharPainel(); verConversa(); }
+function abrirTodos()   { aberto = { tipo: 'todos', id: null, nome: 'Todos os contatos' }; desenharColuna(); desenharPainel(); verConversa(); }
+function abrirRecebidos() { aberto = { tipo: 'recebidos', id: null, nome: 'Chegou para mim' }; desenharColuna(); desenharPainel(); verConversa(); }
 
-async function quero(id) {
-  try {
-    const r = await rede('quero', { body: { oferta_id: id } });
-    await verFeed();
-    alert(`Você é o ${r.posicao}º da fila.`);
-  } catch (e) { alert(e.message); }
+// ── Escolher o carro ────────────────────────────────────────
+async function escolherCarro() {
+  const r = await fetch('/api/catalogo?status=disponivel');
+  const lista = await r.json();
+  const carros = (Array.isArray(lista) ? lista : lista.veiculos || []);
+  $('dlg-corpo').innerHTML = `<h3>Qual carro?</h3>` + (carros.length
+    ? carros.map((v) => `<div class="op">
+        <span>${esc(v.marca)} ${esc(v.modelo)}<br>
+          <span style="font-size:.78rem;color:var(--text-mid)">${esc(v.ano || '')} · ${numero(v.km)} km · ${dinheiro(v.valor)}</span>
+        </span>
+        <button onclick='pegarCarro(${JSON.stringify({ id: v.id, marca: v.marca, modelo: v.modelo, valor: v.valor }).replace(/'/g, "&#39;")})'>Escolher</button>
+      </div>`).join('')
+    : '<p class="vazio">Sem carro disponível no catálogo.</p>')
+    + `<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>`;
+  $('dlg').showModal();
 }
-
-// ── Estoque, para mandar ──────────────────────────────────────
-async function verEstoque() {
-  try {
-    const r = await fetch('/api/catalogo?status=disponivel');
-    const lista = await r.json();
-    const carros = (Array.isArray(lista) ? lista : lista.veiculos || []).slice(0, 20);
-    if (!carros.length) { $('estoque').innerHTML = '<p class="vazio">Sem carro disponível no catálogo.</p>'; return; }
-    $('estoque').innerHTML = carros.map((v) => `
-      <div class="cartao">
-        <div class="linha">
-          <div>
-            <div class="nome">${esc(v.marca)} ${esc(v.modelo)}</div>
-            <div class="meta">${esc(v.ano || '—')} · ${numero(v.km)} km · ${dinheiro(v.valor)}</div>
-          </div>
-          <button onclick="mandar('${v.id}', this)">Mandar</button>
-        </div>
-      </div>`).join('');
-  } catch (e) { erro('estoque', e); }
+function pegarCarro(v) {
+  carroEscolhido = v;
+  $('escolhido').hidden = false;
+  $('escolhido').innerHTML = `<span>🚗 ${esc(v.marca)} ${esc(v.modelo)} — ${dinheiro(v.valor)}</span>
+    <button class="leve" onclick="tirarCarro()">Tirar</button>`;
+  $('dlg').close();
+  $('texto').focus();
 }
+function tirarCarro() { carroEscolhido = null; $('escolhido').hidden = true; }
 
-async function mandar(id, botao) {
-  botao.disabled = true;
+// ── Enviar ──────────────────────────────────────────────────
+async function enviar() {
+  if (!carroEscolhido) return escolherCarro();   // o carro é o conteúdo
+  $('btn-enviar').disabled = true;
   try {
-    const r = await rede('ofertar', { body: { veiculo_id: id, horas_antes_da_vitrine: 6 } });
-    alert(`Mandado para ${r.enviada_para} loja(s).`);
-    await verMinhas();
+    await rede('ofertar', { body: {
+      veiculo_id: carroEscolhido.id,
+      lista_id: aberto.tipo === 'lista' ? aberto.id : null,
+      mensagem: $('texto').value,
+      horas_antes_da_vitrine: 6,
+    } });
+    tirarCarro(); $('texto').value = '';
+    await carregar();
   } catch (e) {
-    // Mensagem por causa, não genérica: "não mandou" sem dizer por quê
-    // faz a pessoa tentar de novo esperando outro resultado.
     alert(e.corpo?.codigo === 'sem_preco'
       ? 'Este carro está sem preço de repasse.\n\nAbra o Catálogo, preencha o valor e mande de novo.'
-      : e.message);
-  } finally { botao.disabled = false; }
+      : e.corpo?.codigo === 'lista_vazia'
+        ? 'Não há ninguém para receber: essa transmissão está sem destinatário ativo.'
+        : e.message);
+  } finally { $('btn-enviar').disabled = false; }
 }
 
-// ── O que eu mandei ───────────────────────────────────────────
-async function verMinhas() {
-  try {
-    const { ofertas } = await rede('minhas');
-    if (!ofertas.length) {
-      $('minhas').innerHTML = '<p class="vazio">Você ainda não mandou nenhum carro.</p>';
-      return;
-    }
-    $('minhas').innerHTML = ofertas.map((o) => `
-      <div class="cartao">
-        <div class="linha">
-          <div>
-            <div class="nome">${esc(o.marca)} ${esc(o.modelo)}</div>
-            <div class="meta">${dinheiro(o.preco)} · mandado para ${o.destinos} loja(s)</div>
-          </div>
-          ${o.reserva
-            ? `<span class="selo res">🔒 Reservado ${o.reserva.com_sinal ? '— sinal ' + dinheiro(o.reserva.valor_sinal) : 'na palavra'}</span>`
-            : ''}
-        </div>
-        ${o.fila.length ? `<div class="fila">${o.fila.map((f, i) => `
-          <div class="item">
-            <span><span class="pos">${i + 1}</span>${esc(f.nome)}</span>
-            <span>
-              <span class="meta">${new Date(f.criado_em).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
-              ${o.reserva ? '' : ` <button class="leve" onclick="reservar('${o.id}','${f.conta_id}')">Reservar</button>`}
-            </span>
-          </div>`).join('')}</div>` : '<p class="vazio">Ninguém levantou a mão ainda.</p>'}
-        ${o.reserva ? `<div class="linha" style="margin-top:.6rem">
-          <button class="leve" onclick="desfazer('${o.id}')">Desfazer a reserva</button></div>` : ''}
-      </div>`).join('');
-  } catch (e) { erro('minhas', e); }
+// ── Ações ───────────────────────────────────────────────────
+async function quero(id) {
+  try { const r = await rede('quero', { body: { oferta_id: id } }); await carregar(); alert(`Você é o ${r.posicao}º da fila.`); }
+  catch (e) { alert(e.message); }
 }
-
 async function reservar(ofertaId, contaId) {
   const comSinal = confirm('Entrou sinal na conta?\n\nOK = com sinal · Cancelar = na palavra');
   let valor = null;
   if (comSinal) {
-    const v = prompt('Valor do sinal (R$):', '5000');
-    if (v === null) return;
+    const v = prompt('Valor do sinal (R$):', '5000'); if (v === null) return;
     valor = Number(String(v).replace(/[^\d,.-]/g, '').replace(',', '.'));
     if (!(valor > 0)) return alert('Valor inválido.');
   }
   const motivo = prompt('Motivo (opcional): aguardando cautelar, documento, carro não entrou…', '') || '';
-  try {
-    await rede('reservar', { body: { oferta_id: ofertaId, para_conta_id: contaId, com_sinal: comSinal, valor_sinal: valor, motivo } });
-    await verMinhas();
-  } catch (e) { alert(e.message); }
+  try { await rede('reservar', { body: { oferta_id: ofertaId, para_conta_id: contaId, com_sinal: comSinal, valor_sinal: valor, motivo } }); await carregar(); }
+  catch (e) { alert(e.message); }
 }
-
 async function desfazer(ofertaId) {
   const motivo = prompt('Por que está desfazendo? (fica no histórico)', '') || '';
+  try { await rede('desfazer', { body: { oferta_id: ofertaId, motivo } }); await carregar(); }
+  catch (e) { alert(e.message); }
+}
+
+// ── Transmissões: criar e editar ────────────────────────────
+function novaTransmissao() {
+  $('dlg-corpo').innerHTML = `<h3>Nova transmissão</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);line-height:1.55;margin-bottom:.8rem">
+      Um recorte dos seus contatos. Cada um recebe sozinho — ninguém vê quem mais recebeu.</p>
+    <input type="text" id="novo-nome" placeholder="ex: Compram acima de 100 mil" maxlength="60">
+    <div class="op" style="justify-content:flex-end;gap:.5rem">
+      <button class="leve" onclick="dlg.close()">Cancelar</button>
+      <button onclick="criarTransmissao()">Criar</button></div>`;
+  $('dlg').showModal(); $('novo-nome').focus();
+}
+async function criarTransmissao() {
+  const nome = $('novo-nome').value.trim();
+  if (!nome) return $('novo-nome').focus();
   try {
-    await rede('desfazer', { body: { oferta_id: ofertaId, motivo } });
-    await verMinhas();
+    const r = await rede('transmissao', { body: { acao: 'criar', nome } });
+    $('dlg').close(); await carregar(); abrirLista(r.lista.id); editarLista(r.lista.id);
   } catch (e) { alert(e.message); }
 }
 
-// ── Listas ────────────────────────────────────────────────────
-async function verListas() {
-  try {
-    const d = await rede('listas');
-    const membros = d.membros.length
-      ? d.membros.map((m) => `<div class="item"><span>${esc(m.nome)}</span>
-          <button class="leve" onclick="tirar('${m.conta_id}')">Tirar</button></div>`).join('')
-      : '<p class="vazio">Sua lista está vazia.</p>';
-    const pedidos = d.pedidos.length
-      ? d.pedidos.map((p) => `<div class="item"><span>${esc(p.nome)}</span><span>
-          <button onclick="responder('${p.id}',true)">Aceitar</button>
-          <button class="leve" onclick="responder('${p.id}',false)">Recusar</button></span></div>`).join('')
-      : '<p class="vazio">Nenhum pedido pendente.</p>';
-    const onde = d.em_que_estou.length
-      ? d.em_que_estou.map((x) => `<div class="item"><span>${esc(x.nome)}</span>
-          <button class="leve" onclick="sair('${x.dono_conta_id}')">Sair</button></div>`).join('')
-      : '<p class="vazio">Você não está em nenhuma lista.</p>';
-    $('listas').innerHTML = `
-      <div class="cartao"><div class="meta" style="margin-bottom:.4rem">PEDIDOS PARA ENTRAR</div>${pedidos}</div>
-      <div class="cartao"><div class="meta" style="margin-bottom:.4rem">NA MINHA LISTA · ${d.membros.length}</div>${membros}</div>
-      <div class="cartao"><div class="meta" style="margin-bottom:.4rem">LISTAS EM QUE EU ESTOU</div>${onde}</div>`;
-  } catch (e) { erro('listas', e); }
+function editarLista(id) {
+  const l = dados.listas.find((x) => x.id === id);
+  const dentro = new Set(l.membros.map((m) => m.conta_id));
+  $('dlg-corpo').innerHTML = `<h3>${esc(l.nome)}</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);margin-bottom:.6rem">Quem recebe desta transmissão:</p>
+    ${dados.contatos.length ? dados.contatos.map((c) => `
+      <div class="op"><span>${esc(c.nome)}</span>
+        <button class="${dentro.has(c.conta_id) ? '' : 'leve'}"
+          onclick="trocarMembro('${id}','${c.conta_id}',${!dentro.has(c.conta_id)})">
+          ${dentro.has(c.conta_id) ? '✓ recebe' : 'incluir'}</button></div>`).join('')
+      : '<p class="vazio">Você ainda não tem contatos.</p>'}
+    <div class="op" style="justify-content:space-between">
+      <button class="leve" onclick="apagarLista('${id}')">Apagar transmissão</button>
+      <button onclick="dlg.close()">Pronto</button></div>`;
+  $('dlg').showModal();
+}
+async function trocarMembro(listaId, contaId, dentro) {
+  try { await rede('membro', { body: { lista_id: listaId, conta_id: contaId, dentro } }); await carregar(); editarLista(listaId); }
+  catch (e) { alert(e.message); }
+}
+async function apagarLista(id) {
+  if (!confirm('Apagar esta transmissão? Os carros já mandados continuam valendo.')) return;
+  try { await rede('transmissao', { body: { acao: 'apagar', lista_id: id } }); $('dlg').close(); aberto = null; await carregar(); verLista(); }
+  catch (e) { alert(e.message); }
 }
 
-async function responder(id, aceitar) {
-  try { await rede('responder', { body: { solicitacao_id: id, aceitar } }); await verListas(); }
-  catch (e) { alert(e.message); }
-}
-async function tirar(contaId) {
-  if (!confirm('Tirar essa loja da sua lista?')) return;
-  try { await rede('sair', { body: { membro_conta_id: contaId } }); await verListas(); }
-  catch (e) { alert(e.message); }
-}
-async function sair(donoId) {
-  if (!confirm('Sair dessa lista?')) return;
-  try { await rede('sair', { body: { dono_conta_id: donoId } }); await verListas(); }
-  catch (e) { alert(e.message); }
+// ── Carregar tudo ───────────────────────────────────────────
+async function carregar() {
+  const [t, l, f, m] = await Promise.all([
+    rede('transmissao'), rede('listas'), rede('feed'), rede('minhas'),
+  ]);
+  dados = { listas: t.listas, contatos: l.membros, recebidas: f.ofertas, minhas: m.ofertas };
+  desenharColuna();
+  if (aberto) desenharPainel();
 }
 
 (async () => {
-  if (!(await verQuem())) return;   // sem sessão, não adianta pedir nada
-  verFeed(); verEstoque(); verMinhas(); verListas();
+  // Sem sessão a rede não abre, e a tela precisa dizer isso com todas as
+  // letras em vez de ficar vazia — a chave do aparelho não diz de que
+  // loja a pessoa é.
+  try {
+    const d = await (await fetch('/api/utils?type=quem', { cache: 'no-store' })).json();
+    if (!d.sessao) {
+      $('col').innerHTML = '<div class="aviso"><strong>Entre com o seu telefone.</strong> '
+        + 'A rede precisa saber de que loja você é — a chave do aparelho não diz isso.<br><br>'
+        + '<a href="/entrar.html" style="color:var(--accent)">Entrar agora</a></div>';
+      return;
+    }
+    await carregar();
+    abrirRecebidos(); verLista();
+  } catch (e) {
+    $('col').innerHTML = `<div class="aviso">Não consegui carregar: ${esc(e.message)}</div>`;
+  }
 })();
+
+$('btn-nova').addEventListener('click', novaTransmissao);
+$('btn-carro').addEventListener('click', escolherCarro);
+$('btn-enviar').addEventListener('click', enviar);
+$('texto').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
+});
+$('texto').addEventListener('input', (e) => {
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
+});
 </script>
 </body>
 </html>

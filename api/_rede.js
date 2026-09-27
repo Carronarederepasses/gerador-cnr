@@ -118,7 +118,7 @@ async function ofertar(sb, req, res) {
     return res.status(403).json({ error: 'Você não tem permissão para mandar carro para a lista.' });
   }
 
-  const { veiculo_id, horas_antes_da_vitrine, lista_id } = req.body || {};
+  const { veiculo_id, horas_antes_da_vitrine, lista_id, mensagem } = req.body || {};
   if (!UUID.test(String(veiculo_id || ''))) {
     return res.status(400).json({ error: 'veiculo_id inválido.' });
   }
@@ -188,6 +188,9 @@ async function ofertar(sb, req, res) {
       // por que aquele carro chegou.
       lista_id:   alvo.lista ? alvo.lista.id : null,
       lista_nome: alvo.lista ? alvo.lista.nome : null,
+      // O texto que vai junto com o carro, como ele já faz no WhatsApp:
+      // "entrou esse hoje", "aceito troca", "só à vista".
+      mensagem: String(mensagem || '').trim().slice(0, 500) || null,
     }),
   }))[0];
 
@@ -239,7 +242,7 @@ async function feed(req, res) {
     ofertas: ofertas.map((o) => ({
       id: o.id, marca: o.marca, modelo: o.modelo, ano: o.ano, km: o.km,
       preco: o.preco, cidade: o.cidade, uf: o.uf, dados: o.dados,
-      criado_em: o.criado_em,
+      mensagem: o.mensagem, lista_nome: o.lista_nome, criado_em: o.criado_em,
       na_fila: fila[o.id] || 0,
       eu_quero: !!meu[o.id],
       reservado: reservada[o.id] || null,   // null | 'palavra' | 'sinal'
@@ -335,7 +338,8 @@ async function minhasOfertas(req, res) {
   return res.status(200).json({
     ofertas: ofertas.map((o) => ({
       id: o.id, marca: o.marca, modelo: o.modelo, ano: o.ano, km: o.km,
-      preco: o.preco, criado_em: o.criado_em, vitrine_em: o.vitrine_em,
+      preco: o.preco, mensagem: o.mensagem, lista_id: o.lista_id, lista_nome: o.lista_nome,
+      criado_em: o.criado_em, vitrine_em: o.vitrine_em,
       destinos: (dest[o.id] || []).length,
       fila: (fila[o.id] || []).map((f) => ({
         conta_id: f.conta_id, nome: nomes[f.conta_id] || '—', criado_em: f.criado_em,
