@@ -6264,8 +6264,37 @@ recebe, a loja C (de fora) não:
 Tocar duas vezes em ✋ Quero não cria fila dupla, e a limpeza foi
 conferida: nenhuma loja de teste sobrou.
 
+#### Segunda fatia: reservar — 15 de 15
+
+Só o **dono** da oferta reserva, e só para quem **levantou a mão**:
+reservar para quem não pediu seria inventar processo que o mercado não
+tem, e tiraria o sentido da fila.
+
+O que o teste prova, e de novo a metade negativa é a que importa:
+
+| | |
+|---|---|
+| quem não é dono do carro **não reserva** — nem desfaz | ✓ |
+| não dá para reservar para quem **não está na fila** | ✓ |
+| com sinal na conta, **o valor é obrigatório** | ✓ |
+| não dá para reservar **duas vezes** o mesmo carro | ✓ |
+| o estado (**palavra** / **sinal**) é público para todos | ✓ |
+| mas o feed **não diz para quem** foi reservado | ✓ |
+| a reserva desfeita **fica no banco** — vira histórico | ✓ |
+
+Aquele último é o que sustenta o "0 desistências" do perfil da loja.
+Apagar a reserva desfeita seria apagar a única defesa contra quem reserva
+e some.
+
+**Sem prazo**, como ele decidiu: relógio derrubaria as reservas
+legítimas, que são a maioria das demoradas (cautelar, documento, carro
+que não entrou). E `valor_sinal` é **declaração do dono**, não pagamento
+processado — anotado no código que isso precisa ficar claro na tela,
+senão promete o que não cumpre.
+
 **Nada disso está no ar para o Yuri ainda** — as rotas existem, nenhuma
-tela as chama. Falta a segunda fatia (reservar) e as telas.
+tela as chama. Falta a terceira fatia (listas: pedir para entrar e
+aceitar) e as telas.
 
 ### "0 buscas" deixou de ter duas causas com a mesma cara
 
