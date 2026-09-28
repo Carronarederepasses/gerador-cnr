@@ -91,7 +91,17 @@ self.addEventListener('push', (e) => {
       // O nome do erro vai junto: "não consegui falar" cabe em rede caída,
       // em endereço errado e em permissão negada, que se consertam em
       // lugares diferentes. Sem o nome, a investigação recomeça do zero.
-      motivo = `falhou — ${String((err && (err.name + ': ' + err.message)) || err).slice(0, 90)}`;
+      motivo = `falhou — ${String((err && (err.name + ': ' + err.message)) || err).slice(0, 60)}`;
+      // Separa "este aparelho está sem rede agora" de "este pedido
+      // específico não passa". São defeitos em lugares opostos: o
+      // primeiro é o Android segurando dado em segundo plano, o segundo é
+      // nosso. Uma busca a um arquivo estático responde isso em uma linha.
+      try {
+        const t = await fetch('/assets/icon-512.png', { cache: 'no-store' });
+        motivo += ` / estático ${t.status}`;
+      } catch (e2) {
+        motivo += ' / sem rede nenhuma';
+      }
     }
     if (motivo) corpo = `Toque para ver — ${motivo}.`;
     await self.registration.showNotification(titulo, {

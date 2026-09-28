@@ -174,7 +174,7 @@ function calcScore(comprador, { marca, valor, veiculo_id = null }) {
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cnr-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cnr-key, x-cnr-sessao');
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
