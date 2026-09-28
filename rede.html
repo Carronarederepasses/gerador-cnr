@@ -75,7 +75,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
   border:1px solid var(--line);border-radius:var(--r-md, 12px);padding:.7rem .8rem}
 .balao .carro{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;line-height:1.2}
 .balao .meta{font-size:.78rem;color:var(--text-mid);margin-top:.15rem}
-.balao .preco{font-weight:700;margin-top:.35rem}
+/* Sem margem própria: quem espaça é a `.linha-preco`, que o envolve. Com
+   as duas, o espaço dobrava. */
+.balao .preco{font-weight:700;font-size:1.05rem}
 .balao .msg{font-size:.86rem;line-height:1.5;margin-top:.5rem;white-space:pre-wrap}
 .balao .rodape{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
   margin-top:.55rem;padding-top:.5rem;border-top:1px solid var(--line);
@@ -85,6 +87,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .balao.msg-so{padding:.55rem .7rem;max-width:24rem}
 .balao.msg-so .msg{margin-top:0}
 .balao.msg-so .rodape{border-top:none;padding-top:.25rem;margin-top:.2rem}
+
+/* ── Cartão de carro ─────────────────────────────────────────
+   A foto vem primeiro porque é assim que se olha carro: a pessoa
+   reconhece o modelo antes de ler o nome dele. `aspect-ratio` fixo para
+   os cartões não pularem de altura enquanto as fotos carregam. */
+.balao .foto{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;
+  border-radius:var(--r, 8px);background:var(--surface);margin-bottom:.55rem}
+/* Preço e distância da FIPE na MESMA linha: separados, obrigam a conta de
+   cabeça que o app existe para poupar. */
+.balao .linha-preco{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;margin-top:.35rem}
+/* A identidade é preto e branco (03/set), então destaque não vem de cor —
+   vem de forma. A pastilha `.selo` já é o vocabulário do projeto para
+   isso; inventar outra marcação aqui só criaria um segundo dialeto. */
+.balao .selo.fipe{border-color:var(--text-mid, #9a9a9a);color:var(--text, #f5f5f5)}
+.balao .selo.fipe.acima{border-color:var(--line, #2a2a2a);color:var(--text-faint, #6e6e6e);font-weight:400}
 
 .selo{font-size:.68rem;font-weight:700;padding:.15rem .45rem;border-radius:999px;
   border:1px solid var(--line);color:var(--text-mid);white-space:nowrap}
@@ -271,13 +288,29 @@ function desenharColuna() {
 }
 
 // ── Painel da direita ───────────────────────────────────────
+// A distância da FIPE é o número que decide, e estava só no aviso do
+// celular — a notificação dizia "8% abaixo da FIPE" e a tela, não. O app
+// ficava pior que o aviso dele. (27/set)
+function fipeDoCarro(o) {
+  const fipe = Number(o.dados && o.dados.fipe) || 0;
+  if (!fipe || !o.preco) return '';
+  const dif = Math.round((1 - o.preco / fipe) * 100);
+  if (dif > 0) return `<span class="selo fipe">${dif}% abaixo da FIPE</span>`;
+  // Acima da FIPE não ganha destaque — é informação, não oportunidade.
+  if (dif < 0) return `<span class="selo fipe acima">${-dif}% acima da FIPE</span>`;
+  return '<span class="selo fipe acima">na FIPE</span>';
+}
+
 function balaoDoCarro(o, comFila) {
   const fila = comFila && o.fila ? o.fila : null;
+  const foto = (o.dados && Array.isArray(o.dados.fotos) && o.dados.fotos[0]) || '';
   return `
     <div class="balao ${comFila ? '' : 'recebido'}">
+      ${foto ? `<img class="foto" src="${esc(foto)}" alt="" loading="lazy"
+                    onerror="this.remove()">` : ''}
       <div class="carro">${esc(o.marca)} ${esc(o.modelo)}</div>
       <div class="meta">${esc(o.ano || '—')} · ${numero(o.km)} km${o.cidade ? ' · ' + esc(o.cidade) : ''}</div>
-      <div class="preco">${dinheiro(o.preco)}</div>
+      <div class="linha-preco"><span class="preco">${dinheiro(o.preco)}</span>${fipeDoCarro(o)}</div>
       ${o.mensagem ? `<div class="msg">${esc(o.mensagem)}</div>` : ''}
       ${fila && fila.length ? `<div class="fila">${fila.map((f, i) => `
         <div class="quem"><span>${i + 1}. ${esc(f.nome)}</span>
