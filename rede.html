@@ -95,18 +95,43 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
    campo de digitar para fora da tela. */
 .thread{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:1rem .95rem;display:flex;flex-direction:column;gap:.7rem}
-.balao{max-width:30rem;align-self:flex-end;background:var(--surface-raise);
-  border:1px solid var(--line);border-radius:var(--r-md, 12px);padding:.7rem .8rem}
+/* ── Balão, na forma do WhatsApp ─────────────────────────────
+   O que fazia o cartão ler como bloco de texto solto e não como mensagem
+   era o balão recebido ter fundo TRANSPARENTE. Mensagem é uma coisa
+   pousada sobre a conversa: precisa de fundo, canto e bico.
+   Os cantos: três arredondados e o do lado de quem falou quase reto — é
+   assim que o olho sabe de quem é a mensagem antes de ler. */
+.balao{position:relative;max-width:min(30rem, 82%);align-self:flex-end;
+  background:var(--accent-soft, #1f1f1f);border:1px solid var(--line);
+  border-radius:var(--r-md, 12px) var(--r-md, 12px) var(--r, 4px) var(--r-md, 12px);
+  padding:.6rem .7rem .45rem}
+/* O bico. Dois triângulos: o de fora faz a borda, o de dentro o
+   preenchimento — senão o bico sai sem contorno e destoa do balão. */
+.balao::before,.balao::after{content:'';position:absolute;bottom:-1px;
+  width:0;height:0;border:7px solid transparent}
+.balao::before{right:-8px;border-left-color:var(--line);border-bottom:none}
+.balao::after{right:-6px;border-left-color:var(--accent-soft, #1f1f1f);border-bottom:none}
 .balao .carro{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;line-height:1.2}
 .balao .meta{font-size:.78rem;color:var(--text-mid);margin-top:.15rem}
 /* Sem margem própria: quem espaça é a `.linha-preco`, que o envolve. Com
    as duas, o espaço dobrava. */
 .balao .preco{font-weight:700;font-size:1.05rem}
 .balao .msg{font-size:.86rem;line-height:1.5;margin-top:.5rem;white-space:pre-wrap}
+/* Sem linha separando e com a hora miúda no canto, como no WhatsApp. A
+   régua existia para separar o cartão da ação; num balão ela vira uma
+   divisão a mais numa coisa que já é um objeto só. A ordem também muda:
+   a ação fica à direita, onde o polegar chega. */
 .balao .rodape{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
-  margin-top:.55rem;padding-top:.5rem;border-top:1px solid var(--line);
-  font-size:.74rem;color:var(--text-faint)}
-.balao.recebido{align-self:flex-start;background:transparent}
+  margin-top:.45rem;font-size:.7rem;color:var(--text-faint)}
+/* Recebido: do outro lado, com o canto quase reto na esquerda e o bico
+   virado para lá. Fundo diferente do enviado — é o que faz "meu" e "dele"
+   se distinguirem num relance, sem precisar ler. */
+.balao.recebido{align-self:flex-start;background:var(--surface-raise);
+  border-radius:var(--r-md, 12px) var(--r-md, 12px) var(--r-md, 12px) var(--r, 4px)}
+.balao.recebido::before{right:auto;left:-8px;border-left-color:transparent;
+  border-right-color:var(--line)}
+.balao.recebido::after{right:auto;left:-6px;border-left-color:transparent;
+  border-right-color:var(--surface-raise)}
 /* Balão de conversa: só o texto e a hora, sem a moldura do cartão de carro. */
 .balao.msg-so{padding:.55rem .7rem;max-width:24rem}
 .balao.msg-so .msg{margin-top:0}
@@ -115,9 +140,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 /* ── Cartão de carro ─────────────────────────────────────────
    A foto vem primeiro porque é assim que se olha carro: a pessoa
    reconhece o modelo antes de ler o nome dele. `aspect-ratio` fixo para
-   os cartões não pularem de altura enquanto as fotos carregam. */
-.balao .foto{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;
-  border-radius:var(--r, 8px);background:var(--surface);margin-bottom:.55rem}
+   os cartões não pularem de altura enquanto as fotos carregam.
+   No WhatsApp a foto de uma mensagem vai COLADA nas bordas do balão, com
+   só uma moldurinha em volta — por isso as margens negativas. */
+.balao .foto{display:block;width:calc(100% + .6rem);margin:-.3rem -.3rem .55rem;
+  aspect-ratio:4/3;object-fit:cover;background:var(--surface);
+  border-radius:calc(var(--r-md, 12px) - .3rem) calc(var(--r-md, 12px) - .3rem) var(--r, 4px) var(--r, 4px)}
 /* Preço e distância da FIPE na MESMA linha: separados, obrigam a conta de
    cabeça que o app existe para poupar. */
 .balao .linha-preco{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;margin-top:.35rem}
