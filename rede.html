@@ -603,6 +603,16 @@ async function carregar() {
   // Sem sessão a rede não abre, e a tela precisa dizer isso com todas as
   // letras em vez de ficar vazia — a chave do aparelho não diz de que
   // loja a pessoa é.
+  // As duas viagens saem JUNTAS. Antes, a tela perguntava quem é você e
+  // só depois carregava — uma ida e volta inteira parada, e é a primeira,
+  // justamente a que pega a função fria na Vercel (medido em 27/set: 770 ms
+  // fria contra ~200 ms quente).
+  //
+  // Sem sessão, `carregar()` volta 401 — o `catch` aqui existe para essa
+  // recusa não virar erro não tratado enquanto ninguém está esperando por
+  // ela. Quem decide o que a tela mostra continua sendo a resposta do
+  // `quem`, logo abaixo.
+  const jaCarregando = carregar().catch(() => null);
   try {
     const d = await (await fetch('/api/utils?type=quem', { cache: 'no-store' })).json();
     if (!d.sessao) {
@@ -611,7 +621,10 @@ async function carregar() {
         + '<a href="/entrar.html" style="color:var(--accent)">Entrar agora</a></div>';
       return;
     }
-    await carregar();
+    // Já está a caminho desde o começo; aqui só se espera terminar. Se
+    // tiver falhado, refaz — assim o erro aparece com a mensagem certa em
+    // vez de a tela ficar vazia sem explicação.
+    if ((await jaCarregando) === null) await carregar();
     abrirRecebidos(); verLista();
   } catch (e) {
     $('col').innerHTML = `<div class="aviso">Não consegui carregar: ${esc(e.message)}</div>`;
