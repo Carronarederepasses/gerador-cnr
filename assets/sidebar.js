@@ -30,10 +30,12 @@
     { href: '/negociacoes.html', emoji: '🤝', label: 'Negociações' },
     { href: '/vendas.html',      emoji: '📋', label: 'Vendas' },
 
-    // Tela de prova da rede (27/set). Entra no menu porque tela que não
-    // se acha não é testada — mas o rótulo diz que é prova, para não
-    // parecer produto pronto.
-    { href: '/rede.html',        emoji: '🕸️', label: 'Rede (prova)' },
+    // Nasceu como "Rede (prova)" em 27/set, com o rótulo avisando que
+    // não era produto pronto. O "(prova)" saiu em 28/set: a tela manda
+    // carro para lista e grupo, tem feed da rede, fila, reserva,
+    // conversa e aviso no celular — tudo provado contra produção.
+    // O que ainda falta não é função, é gente dentro.
+    { href: '/rede.html',        emoji: '🕸️', label: 'Rede' },
 
     { grupo: 'Apoio' },
     { href: '/consultas.html',   emoji: '🔍', label: 'Consulta' },
