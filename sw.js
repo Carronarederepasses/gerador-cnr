@@ -67,12 +67,19 @@ self.addEventListener('push', (e) => {
         if (sessao) cab['x-cnr-sessao'] = sessao;
         if (chave)  cab['x-cnr-key']    = chave;
         const r = await fetch('/api/fetch-anuncio?rede=novidades', { headers: cab });
-        if (r.ok) {
-          const d = await r.json();
-          if (d.titulo) { titulo = d.titulo; corpo = d.corpo || corpo; url = d.url || url; }
-          else motivo = 'o servidor respondeu sem texto';
-        } else {
+        if (!r.ok) {
           motivo = `o servidor recusou (${r.status})`;
+        } else {
+          // A leitura do corpo fica no seu próprio try: resposta 200 que
+          // não é JSON estoura aqui, e isso é defeito bem diferente de
+          // "não tem rede". Somados, viram um motivo só e não explicam.
+          let d = null;
+          try { d = await r.json(); }
+          catch (e) { motivo = 'resposta ilegível do servidor'; }
+          if (d) {
+            if (d.titulo) { titulo = d.titulo; corpo = d.corpo || corpo; url = d.url || url; }
+            else motivo = 'o servidor respondeu sem texto';
+          }
         }
       }
     } catch (err) {
@@ -80,7 +87,11 @@ self.addEventListener('push', (e) => {
       // completo, e MUITO melhor que aviso nenhum — a pessoa perderia o
       // carro sem saber que ele existiu. Mas diz que foi falha, não que
       // não havia nada.
-      motivo = 'não consegui falar com o Gerador';
+      //
+      // O nome do erro vai junto: "não consegui falar" cabe em rede caída,
+      // em endereço errado e em permissão negada, que se consertam em
+      // lugares diferentes. Sem o nome, a investigação recomeça do zero.
+      motivo = `falhou — ${String((err && (err.name + ': ' + err.message)) || err).slice(0, 90)}`;
     }
     if (motivo) corpo = `Toque para ver — ${motivo}.`;
     await self.registration.showNotification(titulo, {
