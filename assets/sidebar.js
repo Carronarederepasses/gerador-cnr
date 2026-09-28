@@ -11,36 +11,44 @@
   var PAGES = [
     { href: '/home.html',        emoji: '🏠', label: 'Painel' },
 
+    // ── ORDEM ALFABÉTICA DENTRO DE CADA GRUPO (28/set) ──────────────
+    // Pedido do Yuri. O ganho não é estética: numa lista alfabética o
+    // dedo vai sozinho, sem ler. Antes a ordem era por frequência de
+    // uso, que só quem montou a lista conhece.
+    //
+    // Custo assumido: "Parceiros" era a primeira de Captar por ser a
+    // mais usada (decisão dele em 07/set) e agora é a quarta.
+    //
+    // Item novo entra pela letra, nunca no fim do grupo.
+
     { grupo: 'Captar' },
-    { href: '/radar.html',       emoji: '🎯', label: 'Radar' },
     { href: '/anuncios.html',    emoji: '📡', label: 'Anúncios' },
-    { href: '/conversas.html',   emoji: '💬', label: 'Conversas' },
     // O 'Gerador' era uma tela só com duas abas por dentro. Virou duas telas
     // em 08/set — decisão do Yuri na entrevista de 07/set, pelo dia a dia
     // dele: "tenho mais carros de parceiros do que captação própria", e larga
     // uma captação no meio quando aparece carro de parceiro. Com telas
     // separadas, cada uma guarda o próprio rascunho.
-    // Parceiros vem primeiro por ser a mais usada.
-    { href: '/parceiros.html',   emoji: '🚗', label: 'Parceiros' },
     { href: '/captacao.html',    emoji: '📝', label: 'Captação' },
+    { href: '/conversas.html',   emoji: '💬', label: 'Conversas' },
+    { href: '/parceiros.html',   emoji: '🚗', label: 'Parceiros' },
+    { href: '/radar.html',       emoji: '🎯', label: 'Radar' },
 
     { grupo: 'Vender' },
     { href: '/catalogo.html',    emoji: '📂', label: 'Catálogo' },
     { href: '/compradores.html', emoji: '👥', label: 'Clientes' },
     { href: '/negociacoes.html', emoji: '🤝', label: 'Negociações' },
-    { href: '/vendas.html',      emoji: '📋', label: 'Vendas' },
-
     // Nasceu como "Rede (prova)" em 27/set, com o rótulo avisando que
     // não era produto pronto. O "(prova)" saiu em 28/set: a tela manda
     // carro para lista e grupo, tem feed da rede, fila, reserva,
     // conversa e aviso no celular — tudo provado contra produção.
     // O que ainda falta não é função, é gente dentro.
     { href: '/rede.html',        emoji: '🕸️', label: 'Rede' },
+    { href: '/vendas.html',      emoji: '📋', label: 'Vendas' },
 
     { grupo: 'Apoio' },
-    { href: '/consultas.html',   emoji: '🔍', label: 'Consulta' },
-    { href: '/busca.html',       emoji: '🔎', label: 'Busca' },
     { href: '/foto.html',        emoji: '🎨', label: 'Arte' },
+    { href: '/busca.html',       emoji: '🔎', label: 'Busca' },
+    { href: '/consultas.html',   emoji: '🔍', label: 'Consulta' },
     { href: '/ideias.html',      emoji: '💡', label: 'Ideias' },
   ];
 
