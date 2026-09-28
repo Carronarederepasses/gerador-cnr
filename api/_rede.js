@@ -230,14 +230,16 @@ async function feed(req, res) {
   if (!meus.length) return res.status(200).json({ ofertas: [] });
 
   const ids = meus.map((x) => x.oferta_id);
-  const ofertas = await rsb(
-    `ofertas?id=in.(${ids.join(',')})&estado=neq.encerrada&select=*&order=criado_em.desc`
-  );
 
-  // Meu interesse em cada uma, e o tamanho da fila. Duas consultas, não
-  // uma por oferta — a tela mostra dezenas de cartões.
-  const interesses = await rsb(`interesses?oferta_id=in.(${ids.join(',')})&select=oferta_id,conta_id,estado`);
-  const reservas   = await rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,com_sinal`);
+  // As três dependem só dos ids, não uma da outra — então saem juntas.
+  // Em fila, a tela esperava a soma; assim espera a mais lenta. Continuam
+  // sendo consultas por LOTE, nunca uma por oferta: a tela mostra dezenas
+  // de cartões.
+  const [ofertas, interesses, reservas] = await Promise.all([
+    rsb(`ofertas?id=in.(${ids.join(',')})&estado=neq.encerrada&select=*&order=criado_em.desc`),
+    rsb(`interesses?oferta_id=in.(${ids.join(',')})&select=oferta_id,conta_id,estado`),
+    rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,com_sinal`),
+  ]);
 
   const fila = {}; const meu = {}; const reservada = {};
   for (const i of interesses) {
@@ -631,15 +633,19 @@ async function verListasTransmissao(req, res) {
   const eu = quem(req);
   if (!eu) return semSessao(res);
 
-  const listas = await rsb(`listas?conta_id=eq.${eu.conta_id}&arquivada_em=is.null&select=id,nome,criada_em&order=criada_em.asc`);
+  // Quem saiu da rede continua na linha da lista, mas a tela precisa
+  // dizer isso — senão o dono conta com alguém que não recebe mais.
+  //
+  // Os contatos não dependem das listas, então as duas consultas saem
+  // juntas em vez de uma esperar a outra.
+  const [listas, contatos] = await Promise.all([
+    rsb(`listas?conta_id=eq.${eu.conta_id}&arquivada_em=is.null&select=id,nome,criada_em&order=criada_em.asc`),
+    rsb(`contatos?conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=contato_conta_id`),
+  ]);
   if (!listas.length) return res.status(200).json({ listas: [] });
 
   const membros = await rsb(`lista_membros?lista_id=in.(${listas.map((l) => l.id).join(',')})&select=lista_id,conta_id`);
   const nomes = await nomesDe([...new Set(membros.map((m) => m.conta_id))]);
-
-  // Quem saiu da rede continua na linha da lista, mas a tela precisa
-  // dizer isso — senão o dono conta com alguém que não recebe mais.
-  const contatos = await rsb(`contatos?conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=contato_conta_id`);
   const ativos = new Set(contatos.map((x) => x.contato_conta_id));
 
   return res.status(200).json({
