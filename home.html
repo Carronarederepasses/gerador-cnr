@@ -149,12 +149,14 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:.5rem}
 .atalho{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.7rem .6rem;text-decoration:none;color:var(--text);display:flex;flex-direction:column;align-items:center;text-align:center;gap:.3rem;transition:border-color .15s}
 .atalho .desc{display:none}
-/* Os rotulos de grupo atravessam a grade inteira — sao os mesmos da
-   barra lateral (Captar, Vender, Apoio), para quem aprende um lugar
-   saber o outro. */
-.atalho-grupo{grid-column:1/-1;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;
-  color:var(--text-faint);font-weight:700;margin:.35rem 0 -.15rem}
-.atalho-grupo:first-child{margin-top:0}
+/* Dez atalhos em tres colunas deixam o ultimo sozinho na linha, o que
+   le como esquecimento e nao como escolha. Cercado por largura porque
+   a regra conta atalhos e o numero de colunas muda: sem o cerco, em
+   1280px a grade vira oito por linha e o decimo esticava para 962px
+   atravessando a tela. Medido, nao suposto. */
+@media (max-width:460px){
+  .atalhos > :last-child:nth-child(3n+1){grid-column:1/-1;flex-direction:row;justify-content:center;gap:.5rem}
+}
 /* Sobrando um sozinho na ultima linha, ele ocupa a linha inteira. Dez
    atalhos em tres colunas deixavam a Busca orfa, o que le como
    esquecimento em vez de escolha. A regra se corrige sozinha se o
@@ -272,62 +274,6 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   <div class="secao">
     <div class="secao-titulo">Acesso rápido</div>
     <div class="atalhos">
-
-      <div class="atalho-grupo">Captar</div>
-      <a class="atalho" href="/anuncios.html" title="Anúncios que o Radar trouxe da OLX">
-        <div class="ico">📡</div>
-        <div class="nome">Anúncios</div>
-        <div class="desc">Anúncios que o Radar trouxe da OLX</div>
-      </a>
-      <a class="atalho" href="/captacao.html" title="Carro captado por você">
-        <div class="ico">📝</div>
-        <div class="nome">Captação</div>
-        <div class="desc">Carro captado por você</div>
-      </a>
-      <a class="atalho" href="/conversas.html" title="Conversas espelhadas da OLX">
-        <div class="ico">💬</div>
-        <div class="nome">Conversas</div>
-        <div class="desc">Conversas espelhadas da OLX</div>
-      </a>
-      <a class="atalho" href="/parceiros.html" title="Colar anúncio de loja parceira">
-        <div class="ico">🚗</div>
-        <div class="nome">Parceiros</div>
-        <div class="desc">Colar anúncio de loja parceira</div>
-      </a>
-      <a class="atalho" href="/radar.html" title="As buscas que trazem anúncios novos">
-        <div class="ico">🎯</div>
-        <div class="nome">Radar</div>
-        <div class="desc">As buscas que trazem anúncios novos</div>
-      </a>
-
-      <div class="atalho-grupo">Vender</div>
-      <a class="atalho" href="/catalogo.html" title="Veículos em estoque e status de cada um">
-        <div class="ico">📂</div>
-        <div class="nome">Catálogo</div>
-        <div class="desc">Veículos em estoque e status de cada um</div>
-      </a>
-      <a class="atalho" href="/compradores.html" title="Compradores, contatos e histórico">
-        <div class="ico">👥</div>
-        <div class="nome">Clientes</div>
-        <div class="desc">Compradores, contatos e histórico</div>
-      </a>
-      <a class="atalho" href="/negociacoes.html" title="Acompanhar propostas em andamento">
-        <div class="ico">🤝</div>
-        <div class="nome">Negociações</div>
-        <div class="desc">Acompanhar propostas em andamento</div>
-      </a>
-      <a class="atalho" href="/rede.html" title="Mandar carro para lojas, feed e conversas">
-        <div class="ico">🕸️</div>
-        <div class="nome">Rede</div>
-        <div class="desc">Mandar carro para lojas, feed e conversas</div>
-      </a>
-      <a class="atalho" href="/vendas.html" title="Registrar e consultar negócios fechados">
-        <div class="ico">📋</div>
-        <div class="nome">Vendas</div>
-        <div class="desc">Registrar e consultar negócios fechados</div>
-      </a>
-
-      <div class="atalho-grupo">Apoio</div>
       <a class="atalho" href="/foto.html" title="Remove fundo e compõe com o estúdio padrão">
         <div class="ico">🎨</div>
         <div class="nome">Arte</div>
@@ -338,15 +284,45 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
         <div class="nome">Busca</div>
         <div class="desc">Pesquisa em catálogo, vendas, negociações e compradores</div>
       </a>
+      <a class="atalho" href="/captacao.html" title="Carro captado por você">
+        <div class="ico">📝</div>
+        <div class="nome">Captação</div>
+        <div class="desc">Carro captado por você</div>
+      </a>
+      <a class="atalho" href="/catalogo.html" title="Veículos em estoque e status de cada um">
+        <div class="ico">📂</div>
+        <div class="nome">Catálogo</div>
+        <div class="desc">Veículos em estoque e status de cada um</div>
+      </a>
+      <a class="atalho" href="/compradores.html" title="Compradores, contatos e histórico">
+        <div class="ico">👥</div>
+        <div class="nome">Clientes</div>
+        <div class="desc">Compradores, contatos e histórico</div>
+      </a>
       <a class="atalho" href="/consultas.html" title="Histórico veicular por placa">
         <div class="ico">🔍</div>
         <div class="nome">Consulta</div>
         <div class="desc">Histórico veicular por placa</div>
       </a>
-      <a class="atalho" href="/ideias.html" title="Seu caderno de ideias">
-        <div class="ico">💡</div>
-        <div class="nome">Ideias</div>
-        <div class="desc">Seu caderno de ideias</div>
+      <a class="atalho" href="/negociacoes.html" title="Acompanhar propostas em andamento">
+        <div class="ico">🤝</div>
+        <div class="nome">Negociações</div>
+        <div class="desc">Acompanhar propostas em andamento</div>
+      </a>
+      <a class="atalho" href="/parceiros.html" title="Colar anúncio de loja parceira">
+        <div class="ico">🚗</div>
+        <div class="nome">Parceiros</div>
+        <div class="desc">Colar anúncio de loja parceira</div>
+      </a>
+      <a class="atalho" href="/rede.html" title="Mandar carro para lojas, feed e conversas">
+        <div class="ico">🕸️</div>
+        <div class="nome">Rede</div>
+        <div class="desc">Mandar carro para lojas, feed e conversas</div>
+      </a>
+      <a class="atalho" href="/vendas.html" title="Registrar e consultar negócios fechados">
+        <div class="ico">📋</div>
+        <div class="nome">Vendas</div>
+        <div class="desc">Registrar e consultar negócios fechados</div>
       </a>
     </div>
   </div>
