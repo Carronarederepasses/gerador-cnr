@@ -96,14 +96,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 /* Fundo estampado atrás da conversa, como o do WhatsApp. Serve para os
    balões parecerem POUSADOS sobre alguma coisa, em vez de recortados no
    vazio — é metade do que faz aquilo parecer conversa.
-   Desenhado em SVG embutido, não em imagem: pesa ~600 bytes, não custa um
-   pedido a mais e acompanha o tema. A estampa é a marca do projeto — o
-   losango do preto e branco — bem apagada, para não competir com foto de
+   Desenhado em SVG embutido, não em imagem: pesa pouco mais de 1 KB, não
+   custa um pedido a mais e acompanha o tema.
+   O motivo é do ramo — roda, carro de perfil, PLACA, volante e chave —
+   num ladrilho de 140px com os cinco em posições diferentes. Ladrilho
+   grande e motivos variados porque um só, repetido de perto, vira papel
+   de parede e o olho fixa nele; assim lê como textura.
+   Apagado de propósito (9%): a estampa não pode competir com a foto do
    carro, que é o que a pessoa veio ver. */
 .thread{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:1rem .95rem;display:flex;flex-direction:column;gap:.7rem;
   background-color:var(--surface);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.09' stroke-width='1.2'%3E%3Cpath d='M28 6 L50 28 L28 50 L6 28 Z'/%3E%3Ccircle cx='28' cy='28' r='3.5'/%3E%3C/g%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.09' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='28' cy='28' r='12'/%3E%3Ccircle cx='28' cy='28' r='3.5'/%3E%3Cpath d='M28 28 L28 18 M28 28 L37.5 24.9 M28 28 L33.9 36.1 M28 28 L22.1 36.1 M28 28 L18.5 24.9'/%3E%3Cpath d='M88 36 L91 29 Q92.5 26 96.5 26 L109 26 Q113 26 115 29 L118 36 M88 36 H118'/%3E%3Ccircle cx='95' cy='36' r='2.8'/%3E%3Ccircle cx='111' cy='36' r='2.8'/%3E%3Crect x='52' y='60' width='36' height='16' rx='3'/%3E%3Cpath d='M52 66 H88 M58 71 H82'/%3E%3Ccircle cx='28' cy='100' r='11'/%3E%3Ccircle cx='28' cy='100' r='3'/%3E%3Cpath d='M17 100 H25 M31 100 H39 M28 103 V111'/%3E%3Ccircle cx='106' cy='98' r='5'/%3E%3Cpath d='M109.5 101.5 L118 110 M114 106 L117 103 M111 103 L114 100'/%3E%3C/g%3E%3C/svg%3E");
   background-repeat:repeat}
 /* ── Balão, na forma do WhatsApp ─────────────────────────────
    O que fazia o cartão ler como bloco de texto solto e não como mensagem
