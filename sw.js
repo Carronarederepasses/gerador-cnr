@@ -96,12 +96,31 @@ self.addEventListener('push', (e) => {
       // específico não passa". São defeitos em lugares opostos: o
       // primeiro é o Android segurando dado em segundo plano, o segundo é
       // nosso. Uma busca a um arquivo estático responde isso em uma linha.
+      // O estático carrega e o nosso pedido não: a diferença entre os dois
+      // são os cabeçalhos. Três sondas no MESMO disparo dizem qual deles —
+      // uma por vez custaria três idas e voltas, e cada uma depende do
+      // Yuri estar com o celular na mão.
+      const sondar = async (nome, cab) => {
+        try {
+          const t = await fetch('/api/fetch-anuncio?rede=novidades',
+            { cache: 'no-store', headers: cab });
+          return `${nome}${t.status}`;
+        } catch (e2) { return `${nome}X`; }
+      };
       try {
-        const t = await fetch('/assets/icon-512.png', { cache: 'no-store' });
-        motivo += ` / estático ${t.status}`;
-      } catch (e2) {
-        motivo += ' / sem rede nenhuma';
-      }
+        const { sessao, chave } = await lerCredenciais();
+        const partes = [
+          `s${sessao ? sessao.length : 0}k${chave ? chave.length : 0}`,
+          await sondar('nu', undefined),
+          await sondar('ch', chave  ? { 'x-cnr-key': chave } : undefined),
+          await sondar('se', sessao ? { 'x-cnr-sessao': sessao } : undefined),
+          await (async () => {
+            try { const t = await fetch('/assets/icon-512.png', { cache: 'no-store' }); return 'est' + t.status; }
+            catch (e3) { return 'estX'; }
+          })(),
+        ];
+        motivo += ' / ' + partes.join(' ');
+      } catch (e4) { motivo += ' / sondas falharam'; }
     }
     if (motivo) corpo = `Toque para ver — ${motivo}.`;
     await self.registration.showNotification(titulo, {
