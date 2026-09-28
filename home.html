@@ -44,50 +44,22 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .kpi .lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-mid);font-weight:600;margin-bottom:.35rem}
 .kpi .val{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:900;line-height:1;margin-bottom:.15rem}
 .kpi .sub{font-size:.72rem;color:var(--text-mid)}
-.kpi.verde .val{color:var(--severity-ok)}
 .kpi.amarelo .val{color:var(--severity-warn)}
-.kpi.azul .val{color:var(--accent)}
-.kpi.roxo .val{color:#a78bfa}
 
 /* Pipeline */
 .secao{margin-bottom:2rem}
 .secao-titulo{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-mid);font-weight:700;margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem}
 .secao-titulo::after{content:'';flex:1;height:1px;background:var(--line)}
 
-.pipeline{display:flex;gap:.5rem;align-items:stretch}
-.etapa{flex:1;background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.9rem;min-width:0}
-.etapa .etapa-nome{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
-.etapa .dot{width:8px;height:8px;border-radius: 50%;flex-shrink:0}
 .dot.disponivel{background:var(--severity-ok)}
 .dot.reservado{background:var(--severity-warn)}
 .dot.vendido{background:var(--text-faint)}
-.etapa .etapa-num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;line-height:1;margin-bottom:.2rem}
-.etapa .etapa-lista{margin-top:.6rem;display:flex;flex-direction:column;gap:.3rem;max-height:220px;overflow-y:auto}
-.etapa-item{font-size:.77rem;background:var(--surface);border:1px solid var(--line);border-radius: var(--r, 8px);padding:.4rem .55rem;cursor:pointer;transition:border-color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.etapa-item:hover{border-color:var(--accent)}
-.etapa-item .item-nome{font-weight:500;margin-bottom:.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.etapa-item .item-val{font-size:.7rem;color:var(--text-mid)}
-.etapa-arrow{display:flex;align-items:center;color:var(--text-faint);font-size:1.2rem;flex-shrink:0;padding:0 .1rem}
 @media(max-width:600px){
-  .pipeline{flex-direction:row;gap:.4rem}
-  .etapa{padding:.65rem .5rem;text-align:center}
-  .etapa .etapa-nome{font-size:.55rem;justify-content:center}
-  .etapa .etapa-num{font-size:1.6rem}
-  .etapa-arrow{display:none}
-  .etapa .etapa-lista{display:none}
-  .etapa .etapa-link{display:block;font-size:.62rem;color:var(--accent);margin-top:.35rem;text-decoration:none}
 }
 @media(min-width:601px){
-  .etapa .etapa-link{display:none}
 }
 
 /* Rede de compradores */
-.comp-row{display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--line)}
-.comp-row:last-child{border-bottom:none}
-.comp-nome{flex:1;font-size:.84rem;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.comp-tipo{font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;background:var(--line);border-radius: var(--r-sm, 4px);padding:.15rem .4rem;color:var(--text-mid);white-space:nowrap;flex-shrink:0}
-.comp-faixa{font-size:.72rem;color:var(--text-mid);white-space:nowrap;flex-shrink:0}
-.comp-marcas{font-size:.7rem;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;flex-shrink:0}
 .secao-titulo-link{float:right;font-size:.72rem;font-weight:400;color:var(--accent);text-decoration:none}
 .secao-titulo-link:hover{text-decoration:underline}
 
@@ -150,8 +122,10 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .rel-card{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.75rem .9rem}
 .rel-val{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;line-height:1}
 .rel-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-mid);margin-top:.25rem}
-.rel-val.verde{color:var(--severity-ok)}
-.rel-val.roxo{color:#a78bfa}
+/* O resumo do mes tinha numero verde, roxo (#a78bfa cravado, o segundo
+   do arquivo) e creme. Numero de relatorio nao e alarme: nao ha nada a
+   fazer com "vendidos" ser verde. Cor aqui vira peso, que e o que a
+   identidade preto e branco tem para hierarquizar. */
 
 /* Tabela histórico 12 meses */
 .hist-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:1rem}
@@ -165,16 +139,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .btn-hist12:hover{border-color:var(--text);color:var(--text)}
 
 /* Últimas vendas */
-.venda-row{display:flex;align-items:center;gap:.8rem;padding:.7rem 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.venda-row:last-child{border-bottom:none}
-.venda-vei{font-size:.88rem;font-weight:500;flex:1;min-width:120px}
-.venda-partes{font-size:.75rem;color:var(--text-mid)}
-.venda-taxa{font-size:.88rem;font-weight:700;color:var(--severity-ok);white-space:nowrap}
-.venda-data{font-size:.72rem;color:var(--text-faint);white-space:nowrap}
 
 /* Atalhos */
-.atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.7rem}
-.atalho{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:1rem;text-decoration:none;color:var(--text);display:flex;flex-direction:column;gap:.35rem;transition:box-shadow .15s,border-color .15s}
+/* Atalhos compactos. Eram nove cartoes altos com descricao, ocupando
+   683px — 38% da tela — e empurrando "Carros parados" para 1159px de
+   rolagem. A descricao ("Colar anuncio de loja parceira") e texto de
+   quem esta conhecendo o app; quem usa todo dia le o nome. Ela some da
+   tela e vira , para continuar ali no primeiro dia de alguem. */
+.atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:.5rem}
+.atalho{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.7rem .6rem;text-decoration:none;color:var(--text);display:flex;flex-direction:column;align-items:center;text-align:center;gap:.3rem;transition:border-color .15s}
+.atalho .desc{display:none}
 .atalho:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:var(--accent)}
 .atalho .ico{font-size:1.4rem}
 .atalho .nome{font-size:.82rem;font-weight:600}
@@ -212,56 +186,19 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .parado-link{font-size:.72rem;color:var(--accent);text-decoration:none;flex-shrink:0}
 
 /* Capital de Conhecimento */
-.kcr-panel{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:1.2rem 1.3rem}
-.kcr-top{display:flex;align-items:center;gap:1.2rem;margin-bottom:1.1rem;flex-wrap:wrap}
-.kcr-score-wrap{flex-shrink:0}
-.kcr-num{font-family:'Playfair Display',serif;font-size:2.6rem;font-weight:900;line-height:1}
-.kcr-num.verde{color:var(--severity-ok)}.kcr-num.amarelo{color:var(--severity-warn)}.kcr-num.crit{color:var(--severity-crit)}
-.kcr-status-lbl{font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:.2rem}
-.kcr-status-lbl.verde{color:var(--severity-ok)}.kcr-status-lbl.amarelo{color:var(--severity-warn)}.kcr-status-lbl.crit{color:var(--severity-crit)}
-.kcr-barra-wrap{flex:1;min-width:140px}
-.kcr-barra{height:6px;background:var(--line);border-radius: var(--r-sm, 4px);overflow:hidden;margin-bottom:.4rem}
-.kcr-barra-fill{height:100%;border-radius: var(--r-sm, 4px);transition:width .7s cubic-bezier(.22,1,.36,1)}
-.kcr-barra-fill.verde{background:var(--severity-ok)}.kcr-barra-fill.amarelo{background:var(--severity-warn)}.kcr-barra-fill.crit{background:var(--severity-crit)}
-.kcr-barra-sub{font-size:.67rem;color:var(--text-faint);line-height:1.4}
 .kcr-grid{display:flex;flex-direction:column;gap:.15rem}
-.kcr-item{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:.4rem .9rem;padding:.38rem .45rem;border-radius: var(--r, 8px);transition:background-color .12s}
-.kcr-item:hover{background:var(--surface)}
-.kcr-item-main{min-width:0}
-.kcr-item-nome{font-size:.8rem;font-weight:500;color:var(--text)}
-.kcr-item-cap{font-size:.67rem;color:var(--text-faint)}
-.kcr-item-pct{font-size:.8rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:2.4rem;text-align:right}
-.kcr-dot{width:6px;height:6px;border-radius: 50%;flex-shrink:0}
-.kcr-item.verde .kcr-item-pct{color:var(--severity-ok)}.kcr-item.verde .kcr-dot{background:var(--severity-ok)}
-.kcr-item.amarelo .kcr-item-pct{color:var(--severity-warn)}.kcr-item.amarelo .kcr-dot{background:var(--severity-warn)}
-.kcr-item.crit .kcr-item-pct{color:var(--severity-crit)}.kcr-item.crit .kcr-dot{background:var(--severity-crit)}
-.kcr-item.neutro .kcr-item-pct{color:var(--text-faint)}.kcr-item.neutro .kcr-dot{background:var(--text-faint)}
-.kcr-acao{margin-top:.9rem;padding:.55rem .75rem;background:color-mix(in srgb,var(--severity-warn) 8%,transparent);border:1px solid color-mix(in srgb,var(--severity-warn) 22%,transparent);border-radius: var(--r, 8px);font-size:.76rem;color:var(--text-mid);display:flex;align-items:center;gap:.4rem}
-.kcr-acao a{color:var(--accent);text-decoration:none;font-weight:500}
-.kcr-acao a:hover{text-decoration:underline}
 
 /* KCR — trend e capacidades */
-.kcr-trend{display:flex;align-items:center;gap:.35rem;margin-top:.4rem;flex-wrap:wrap}
 .kcr-pill{font-size:.68rem;font-weight:600;color:var(--text-mid);background:var(--line);border-radius: var(--r-sm, 4px);padding:.1rem .38rem;font-variant-numeric:tabular-nums}
 .kcr-pill.atual{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
 .kcr-arrow{font-size:.66rem;color:var(--text-faint)}
 .kcr-delta{font-size:.68rem;color:var(--severity-ok);font-weight:600;margin-left:.15rem}
 
-.kcr-caps{display:grid;grid-template-columns:1fr 1fr;gap:.9rem 1.4rem;margin:.9rem 0 .7rem}
 @media(max-width:540px){.kcr-caps{grid-template-columns:1fr;gap:.6rem}}
-.kcr-cap-title{font-size:.6rem;text-transform:uppercase;letter-spacing:.09em;color:var(--text-faint);font-weight:700;margin-bottom:.38rem}
-.kcr-cap-item{font-size:.8rem;padding:.22rem 0;display:flex;align-items:baseline;gap:.35rem;flex-wrap:wrap;line-height:1.45}
-.kcr-cap-item.verde{color:var(--severity-ok)}
-.kcr-cap-item.amarelo{color:var(--severity-warn)}
-.kcr-cap-item.crit,.kcr-cap-item.neutro{color:var(--text-mid)}
-.kcr-cap-pct{font-size:.68rem;opacity:.65;font-variant-numeric:tabular-nums}
-.kcr-cap-link{font-size:.68rem;color:var(--accent);text-decoration:none;flex-shrink:0;margin-left:auto}
-.kcr-cap-link:hover{text-decoration:underline}
 
 .kcr-details{margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem}
 .kcr-details summary{font-size:.7rem;color:var(--text-faint);cursor:pointer;list-style:none;margin-bottom:.4rem;user-select:none}
 .kcr-details summary:hover{color:var(--text-mid)}
-.kcr-marco{font-size:.7rem;font-weight:600;margin-top:.35rem;padding:.18rem .5rem;border-radius: var(--r-sm, 4px);display:inline-block;background:color-mix(in srgb,currentColor 12%,transparent)}
 
 /* O botão "Novo veículo" saiu em 11/set junto com o markup dele. Ia para a
    Captação, e o card "Captação" ficou 200px abaixo quando o Acesso rápido
@@ -320,47 +257,47 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   <div class="secao">
     <div class="secao-titulo">Acesso rápido</div>
     <div class="atalhos">
-      <a class="atalho" href="/parceiros.html">
+      <a class="atalho" href="/parceiros.html" title="Colar anúncio de loja parceira">
         <div class="ico">🚗</div>
         <div class="nome">Parceiros</div>
         <div class="desc">Colar anúncio de loja parceira</div>
       </a>
-      <a class="atalho" href="/captacao.html">
+      <a class="atalho" href="/captacao.html" title="Carro captado por você">
         <div class="ico">📝</div>
         <div class="nome">Captação</div>
         <div class="desc">Carro captado por você</div>
       </a>
-      <a class="atalho" href="/catalogo.html">
+      <a class="atalho" href="/catalogo.html" title="Veículos em estoque e status de cada um">
         <div class="ico">📂</div>
         <div class="nome">Catálogo</div>
         <div class="desc">Veículos em estoque e status de cada um</div>
       </a>
-      <a class="atalho" href="/vendas.html">
+      <a class="atalho" href="/vendas.html" title="Registrar e consultar negócios fechados">
         <div class="ico">📋</div>
         <div class="nome">Vendas</div>
         <div class="desc">Registrar e consultar negócios fechados</div>
       </a>
-      <a class="atalho" href="/negociacoes.html">
+      <a class="atalho" href="/negociacoes.html" title="Acompanhar propostas em andamento">
         <div class="ico">🤝</div>
         <div class="nome">Negociações</div>
         <div class="desc">Acompanhar propostas em andamento</div>
       </a>
-      <a class="atalho" href="/consultas.html">
+      <a class="atalho" href="/consultas.html" title="Histórico veicular por placa">
         <div class="ico">🔍</div>
         <div class="nome">Consulta</div>
         <div class="desc">Histórico veicular por placa</div>
       </a>
-      <a class="atalho" href="/compradores.html">
+      <a class="atalho" href="/compradores.html" title="Compradores, contatos e histórico">
         <div class="ico">👥</div>
         <div class="nome">Clientes</div>
         <div class="desc">Compradores, contatos e histórico</div>
       </a>
-      <a class="atalho" href="/foto.html">
+      <a class="atalho" href="/foto.html" title="Remove fundo e compõe com o estúdio padrão">
         <div class="ico">🎨</div>
         <div class="nome">Arte</div>
         <div class="desc">Remove fundo e compõe com o estúdio padrão</div>
       </a>
-      <a class="atalho" href="/busca.html">
+      <a class="atalho" href="/busca.html" title="Pesquisa em catálogo, vendas, negociações e compradores">
         <div class="ico">🔎</div>
         <div class="nome">Busca</div>
         <div class="desc">Pesquisa em catálogo, vendas, negociações e compradores</div>
@@ -368,83 +305,44 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     </div>
   </div>
 
-  <!-- KPIs -->
+  <!-- KPIs — três, e em preto e branco.
+       Eram sete, quatro deles coloridos (um com roxo #a78bfa cravado no
+       código, fora dos tokens), contra a identidade decidida em 03/set.
+       Quando tudo é destaque, nada é.
+       Saíram: Reservados (repetia "Carros travados"), Compradores
+       ativos e Negociações ativas — as duas telas já estão a um toque,
+       e negociações tem seção própria logo abaixo. -->
   <div class="kpis">
-    <div class="kpi verde">
+    <div class="kpi">
       <div class="lbl">Disponíveis</div>
       <div class="val" id="kpi-disp">—</div>
       <div class="sub">no catálogo agora</div>
     </div>
-    <div class="kpi amarelo">
-      <div class="lbl">Reservados</div>
-      <div class="val" id="kpi-res">—</div>
-      <div class="sub">aguardando fechar</div>
-    </div>
-    <div class="kpi azul">
+    <div class="kpi">
       <div class="lbl">Vendas este mês</div>
       <div class="val" id="kpi-vend">—</div>
       <div class="sub" id="kpi-vend-sub">negócios fechados</div>
     </div>
-    <div class="kpi roxo">
+    <div class="kpi">
       <div class="lbl">Taxa (mês)</div>
       <div class="val" id="kpi-taxa">—</div>
       <div class="sub">comissão acumulada</div>
     </div>
-    <!-- Sinal recebido, venda ainda não fechada. Nasce escondido: só aparece
-         quando existe algo travado, senão vira mais um "—" na tela. -->
+    <!-- Sinal recebido, venda ainda não fechada. Nasce escondido: só
+         aparece quando existe algo travado, senão vira mais um "—".
+         Este mantém cor porque a cor SIGNIFICA: é o único que pede
+         atenção, e é atenção de dinheiro parado. -->
     <div class="kpi amarelo" id="kpi-andamento-card" hidden
          onclick="window.location='/negociacoes.html'" style="cursor:pointer">
       <div class="lbl">Carros travados</div>
       <div class="val" id="kpi-andamento">—</div>
       <div class="sub" id="kpi-andamento-sub">reservados</div>
     </div>
-    <div class="kpi azul" onclick="window.location='/compradores.html'" style="cursor:pointer">
-      <div class="lbl">Compradores ativos</div>
-      <div class="val" id="kpi-comp">—</div>
-      <div class="sub" id="kpi-comp-sub">na rede de match</div>
-    </div>
-    <div class="kpi amarelo" onclick="window.location='/negociacoes.html'" style="cursor:pointer">
-      <div class="lbl">Negociações ativas</div>
-      <div class="val" id="kpi-neg">—</div>
-      <div class="sub" id="kpi-neg-sub">em andamento</div>
-    </div>
   </div>
 
-  <!-- Cadastro dos clientes (o código ainda chama de KCR / Capital de
-       Conhecimento). O título visível era "Capital de Conhecimento · Prontidão
-       para IA" — texto de apresentação, não de ferramenta: o bloco mostra o
-       que falta preencher no cadastro. -->
-  <div class="secao">
-    <div class="secao-titulo">Cadastro dos clientes</div>
-    <div id="kcr-panel" class="kcr-panel"><div class="loading">carregando...</div></div>
-  </div>
+  
 
-  <!-- Pipeline -->
-  <div class="secao">
-    <div class="secao-titulo">Pipeline atual</div>
-    <div class="pipeline">
-      <div class="etapa">
-        <div class="etapa-nome"><span class="dot disponivel"></span> Disponíveis</div>
-        <div class="etapa-num" id="pipe-disp">—</div>
-        <div class="etapa-lista" id="pipe-disp-lista"><div class="loading">carregando...</div></div>
-        <a class="etapa-link" href="/catalogo.html">ver →</a>
-      </div>
-      <div class="etapa-arrow">→</div>
-      <div class="etapa">
-        <div class="etapa-nome"><span class="dot reservado"></span> Reservados</div>
-        <div class="etapa-num" id="pipe-res">—</div>
-        <div class="etapa-lista" id="pipe-res-lista"><div class="loading">carregando...</div></div>
-        <a class="etapa-link" href="/catalogo.html">ver →</a>
-      </div>
-      <div class="etapa-arrow">→</div>
-      <div class="etapa">
-        <div class="etapa-nome"><span class="dot vendido"></span> Vendidos</div>
-        <div class="etapa-num" id="pipe-vend">—</div>
-        <div class="etapa-lista" id="pipe-vend-lista"><div class="loading">carregando...</div></div>
-        <a class="etapa-link" href="/vendas.html">ver →</a>
-      </div>
-    </div>
-  </div>
+  
 
   <!-- Carros parados -->
   <div class="secao" id="secao-parados" style="display:none">
@@ -464,11 +362,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <div id="neg-lista"><div class="loading">carregando...</div></div>
   </div>
 
-  <!-- Últimas vendas -->
-  <div class="secao">
-    <div class="secao-titulo">Últimas vendas registradas</div>
-    <div id="ultimas-vendas"><div class="loading">carregando...</div></div>
-  </div>
+  
 
   <!-- Relatório mensal -->
   <div class="secao">
@@ -485,14 +379,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
     <button class="btn-hist12" id="btn-hist12" onclick="toggleHist12()">📊 Ver histórico completo</button>
   </div>
 
-  <!-- Rede de compradores -->
-  <div class="secao">
-    <div class="secao-titulo">
-      Rede de compradores
-      <a class="secao-titulo-link" href="/compradores.html">ver todos →</a>
-    </div>
-    <div id="comp-lista"><div class="loading">carregando...</div></div>
-  </div>
+  
 
 
 </div>
@@ -620,14 +507,8 @@ setInterval(atualizarDataHora, 1000);
 
 let _catalogoLista = [];
 
-function itemCard(v) {
-  const nome = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ') || 'Veículo sem nome';
-  const val  = v.valor ? moeda(v.valor) : '—';
-  return `<div class="etapa-item" onclick="window.location='/catalogo.html'" title="${nome}">
-    <div class="item-nome">${nome}</div>
-    <div class="item-val">${val}</div>
-  </div>`;
-}
+// `itemCard` saiu junto com o pipeline em 28/set — era ele que desenhava
+// os carrinhos de cada etapa, e ninguém mais o chama.
 
 async function carregarCatalogo() {
   try {
@@ -639,20 +520,6 @@ async function carregarCatalogo() {
     const vend  = lista.filter(v => v.status === 'vendido');
 
     document.getElementById('kpi-disp').textContent = disp.length;
-    document.getElementById('kpi-res').textContent  = res.length;
-    document.getElementById('pipe-disp').textContent = disp.length;
-    document.getElementById('pipe-res').textContent  = res.length;
-    document.getElementById('pipe-vend').textContent = vend.length;
-
-    const renderLista = (id, arr) => {
-      const el = document.getElementById(id);
-      el.innerHTML = arr.length
-        ? arr.slice(0,8).map(itemCard).join('')
-        : '<div class="vazio">Nenhum</div>';
-    };
-    renderLista('pipe-disp-lista', disp);
-    renderLista('pipe-res-lista', res);
-    renderLista('pipe-vend-lista', vend);
 
     // Carros parados: disponíveis há mais de 7 dias
     const agora = Date.now();
@@ -679,9 +546,16 @@ async function carregarCatalogo() {
       secao.style.display = 'none';
     }
   } catch(e) {
-    ['pipe-disp-lista','pipe-res-lista','pipe-vend-lista'].forEach(id => {
-      document.getElementById(id).innerHTML = '<div class="vazio">Erro ao carregar</div>';
-    });
+    // Falha de leitura do catálogo: os carros parados são o que esta
+    // função mostra, e "não consegui ler" é diferente de "não há carro
+    // parado" — dizer a segunda coisa no lugar da primeira é o falso
+    // sucesso que já custou caro aqui.
+    const secao = document.getElementById('secao-parados');
+    const listaEl = document.getElementById('parados-lista');
+    if (secao && listaEl) {
+      secao.style.display = '';
+      listaEl.innerHTML = '<div class="vazio">Não consegui ler o catálogo agora.</div>';
+    }
   }
 }
 
@@ -703,68 +577,19 @@ async function carregarVendas() {
     document.getElementById('kpi-vend-sub').textContent = doMes.length === 1 ? 'negócio fechado' : 'negócios fechados';
     document.getElementById('kpi-taxa').textContent = taxaMes > 0 ? moeda(taxaMes) : '—';
 
-    const ul = document.getElementById('ultimas-vendas');
-    const recentes = [...vendas]
-      .sort((a, b) => {
-        const da = a.data_venda || a.created_at || '';
-        const db = b.data_venda || b.created_at || '';
-        return db.localeCompare(da);
-      })
-      .slice(0, 6);
-    if (!recentes.length) { ul.innerHTML = '<div class="vazio">Nenhuma venda registrada ainda.</div>'; return; }
-
-    ul.innerHTML = recentes.map(v => {
-      const nome = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ') || 'Veículo';
-      const partes = [v.vendedor_nome, v.comprador_nome].filter(Boolean).join(' → ');
-      return `<div class="venda-row">
-        <div style="flex:1;min-width:0">
-          <div class="venda-vei">${nome}</div>
-          ${partes ? `<div class="venda-partes">${partes}</div>` : ''}
-        </div>
-        ${v.taxa_intermediacao ? `<div class="venda-taxa">${moeda(v.taxa_intermediacao)}</div>` : ''}
-        ${v.data_venda ? `<div class="venda-data">${dataBR(v.data_venda)}</div>` : ''}
-      </div>`;
-    }).join('');
+    // A lista das últimas vendas saiu daqui em 28/set: ela já mora na
+    // tela de Vendas, que tem busca e filtro. Esta função ficou só com
+    // os dois números do mês.
   } catch(e) {
-    document.getElementById('ultimas-vendas').innerHTML = '<div class="vazio">Erro ao carregar vendas.</div>';
+    // Sem inventar zero: número que não foi lido não é número baixo.
+    document.getElementById('kpi-vend').textContent = '—';
+    document.getElementById('kpi-taxa').textContent = '—';
   }
 }
 
-async function carregarCompradores() {
-  try {
-    const r = await fetch('/api/compradores?ativo=true');
-    if (!r.ok) throw new Error();
-    const lista = await r.json();
-
-    document.getElementById('kpi-comp').textContent = lista.length;
-    document.getElementById('kpi-comp-sub').textContent = lista.length === 1 ? 'comprador ativo' : 'compradores ativos';
-
-    const el = document.getElementById('comp-lista');
-    if (!lista.length) {
-      el.innerHTML = '<div class="vazio">Nenhum comprador cadastrado ainda. <a href="/compradores.html">Cadastrar →</a></div>';
-      return;
-    }
-    const moedaK = n => {
-      if (!n) return '—';
-      const v = Number(n);
-      return v >= 1000 ? 'R$' + (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0}) + 'k' : 'R$' + v.toLocaleString('pt-BR');
-    };
-    el.innerHTML = lista.slice(0, 8).map(c => {
-      const faixa = (c.preco_min || c.preco_max)
-        ? moedaK(c.preco_min) + ' – ' + moedaK(c.preco_max)
-        : '';
-      const marcas = (c.marcas || []).slice(0,3).join(', ');
-      return `<div class="comp-row" onclick="window.location='/compradores.html'" style="cursor:pointer">
-        <span class="comp-nome">${c.nome}</span>
-        <span class="comp-tipo">${c.tipo === 'pj' ? 'PJ' : 'PF'}</span>
-        ${faixa ? `<span class="comp-faixa">${faixa}</span>` : ''}
-        ${marcas ? `<span class="comp-marcas">${marcas}</span>` : ''}
-      </div>`;
-    }).join('');
-  } catch(e) {
-    document.getElementById('comp-lista').innerHTML = '<div class="vazio">Erro ao carregar compradores.</div>';
-  }
-}
+//  saiu em 28/set: a lista e o numero de
+// compradores ja moram na tela de Clientes, e o Painel passou a
+// responder so "o que eu preciso fazer hoje".
 
 async function carregarRelatorio() {
   const mes = _relMes;
@@ -816,19 +641,19 @@ async function carregarRelatorio() {
         <div class="rel-lbl">Captados</div>
       </div>
       <div class="rel-card">
-        <div class="rel-val verde">${doMes.length}</div>
+        <div class="rel-val">${doMes.length}</div>
         <div class="rel-lbl">Vendidos</div>
       </div>
       <div class="rel-card">
-        <div class="rel-val roxo">${taxaTotal > 0 ? moeda(taxaTotal) : '—'}</div>
+        <div class="rel-val">${taxaTotal > 0 ? moeda(taxaTotal) : '—'}</div>
         <div class="rel-lbl">Taxa total</div>
       </div>
       <div class="rel-card">
-        <div class="rel-val" style="font-size:1.1rem;color:var(--accent)">${volumeTotal > 0 ? moeda(volumeTotal) : '—'}</div>
+        <div class="rel-val" style="font-size:1.1rem">${volumeTotal > 0 ? moeda(volumeTotal) : '—'}</div>
         <div class="rel-lbl">Volume negociado</div>
       </div>
       ${margemCount > 0 ? `<div class="rel-card">
-        <div class="rel-val verde" style="font-size:1.1rem">${moeda(margemTotal)}</div>
+        <div class="rel-val" style="font-size:1.1rem">${moeda(margemTotal)}</div>
         <div class="rel-lbl">Margem bruta (${margemCount} venda${margemCount > 1 ? 's' : ''})</div>
       </div>` : ''}
       <div class="rel-card">
@@ -888,9 +713,9 @@ async function carregarNegociacoes() {
       n.status !== 'comprado' && (n.status === 'reservado' || temSinal(n))
     ));
 
-    document.getElementById('kpi-neg').textContent = ativas.length;
-    document.getElementById('kpi-neg-sub').textContent = ativas.length === 1 ? 'em andamento' : 'em andamento';
-
+    // O KPI "Negociações ativas" saiu em 28/set: a seção logo abaixo
+    // mostra as mesmas negociações, com nome e valor. O número sozinho
+    // não dizia nada que a lista já não dissesse.
     const el = document.getElementById('neg-lista');
     if (!ativas.length) {
       el.innerHTML = '<div class="vazio">Nenhuma negociação ativa. <a href="/negociacoes.html">Criar →</a></div>';
@@ -986,129 +811,9 @@ async function toggleHist12() {
 }
 
 saudacao();
-// ── Capital de Conhecimento ────────────────────────────────────
-const KCR_IND = [
-  { nome:'Compradores com marcas de interesse', cap:'Motor de Match',         capacidade:'Recomendar compradores por marca',              pct: d => _pct(d.compradores.com_marcas,         d.compradores.total),       link:'/compradores.html', acao:'Preencher marcas de interesse nos compradores' },
-  { nome:'Compradores com faixa de preço',      cap:'Motor de Match',         capacidade:'Filtrar compradores por faixa de preço',        pct: d => _pct(d.compradores.com_preco,          d.compradores.total),       link:'/compradores.html', acao:'Preencher preço mínimo e máximo nos compradores' },
-  // 'Compradores com observações' saiu daqui em 23/set: o painel cobrava o
-  // preenchimento como se alimentasse o Match, e `calcScore` (api/compradores.js)
-  // lê só marcas (+30) e faixa de preço. Pedia trabalho que não mudava resultado.
-  // A API ainda devolve `com_obs` em ?saude=1 — se um dia o Match passar a ler
-  // observações, o indicador volta com uma linha.
-  { nome:'Descartes com motivo registrado',     cap:'Aprender rejeições',     capacidade:'Aprender por que negócios não fecham',          pct: d => _pct(d.negociacoes.com_motivo_descarte,d.negociacoes.descartadas), link:'/negociacoes.html', acao:'Registrar motivo ao descartar negociações' },
-  { nome:'Vendas com motivo de match',          cap:'Aprender recomendações', capacidade:'Entender o que gera boas recomendações',        pct: d => _pct(d.vendas.com_motivo_match,        d.vendas.total),            link:'/vendas.html',      acao:'Preencher "Por que esse comprador?" nas vendas' },
-  { nome:'Vendas com valor de compra',          cap:'Calcular margem real',   capacidade:'Calcular margem real por operação',             pct: d => _pct(d.vendas.com_valor_compra,        d.vendas.total),            link:'/vendas.html',      acao:'Preencher valor de compra nas vendas registradas' },
-];
-
-function _pct(num, den) { return den > 0 ? num / den * 100 : null; }
-function _kcrCor(p)  { return p === null ? 'neutro' : p >= 80 ? 'verde' : p >= 60 ? 'amarelo' : 'crit'; }
-function _kcrTxt(p)  { return p >= 80 ? 'Boa' : p >= 60 ? 'Atenção' : 'Ação necessária'; }
-function _kcrMarco(p) {
-  if (p >= 90) return { msg: 'Cadastro quase completo — o Match trabalha com dado real.', cor: 'var(--severity-ok)' };
-  if (p >= 75) return { msg: 'Boa parte do cadastro preenchida.', cor: 'var(--severity-ok)' };
-  if (p >= 50) return { msg: 'Metade preenchida — o Match já ajuda, mas ainda erra.', cor: 'var(--severity-warn)' };
-  if (p >= 25) return { msg: 'Cadastro no começo — o Match tem pouco com que trabalhar.', cor: 'var(--severity-warn)' };
-  return null;
-}
-
-function _kcrSaveHistory(kcr) {
-  const CHAVE = 'cnr_kcr_history';
-  const hoje = new Date().toISOString().slice(0, 10);
-  const hist = JSON.parse(localStorage.getItem(CHAVE) || '[]');
-  if (!hist.length || hist[hist.length - 1].d !== hoje) {
-    hist.push({ d: hoje, v: kcr });
-    if (hist.length > 30) hist.shift();
-    localStorage.setItem(CHAVE, JSON.stringify(hist));
-  }
-  return hist;
-}
-
-function _kcrTrendHTML(hist, kcrAtual) {
-  if (hist.length < 2) return '';
-  const ultimos = hist.slice(-4);
-  const pills = ultimos.map((h, i) =>
-    `<span class="kcr-pill${i === ultimos.length - 1 ? ' atual' : ''}">${h.v}%</span>`
-  ).join('<span class="kcr-arrow">→</span>');
-  const primeiro = hist[0];
-  const delta = kcrAtual - primeiro.v;
-  const dias = Math.max(1, Math.round((Date.now() - new Date(primeiro.d)) / 86400000));
-  const deltaStr = delta > 0 ? `<span class="kcr-delta">↑ +${delta}% em ${dias} dia${dias > 1 ? 's' : ''}</span>` : '';
-  return `<div class="kcr-trend">${pills}${deltaStr}</div>`;
-}
-
-function _kcrCapsHTML(d) {
-  const desbloqueados = KCR_IND.filter(i => { const p = i.pct(d); return p !== null && p >= 80; });
-  const proximos = KCR_IND
-    .filter(i => { const p = i.pct(d); return p === null || p < 80; })
-    .sort((a, b) => (b.pct(d) ?? -1) - (a.pct(d) ?? -1));
-
-  const ativoHTML = desbloqueados.length ? `
-    <div>
-      <div class="kcr-cap-title">Já dá para usar</div>
-      ${desbloqueados.map(i => `<div class="kcr-cap-item verde">✓ ${i.capacidade}</div>`).join('')}
-    </div>` : '';
-
-  const proximosHTML = proximos.length ? `
-    <div>
-      <div class="kcr-cap-title">Falta preencher</div>
-      ${proximos.slice(0, 4).map(i => {
-        const p = i.pct(d);
-        const pStr = p !== null ? `<span class="kcr-cap-pct">${Math.round(p)}%</span>` : '';
-        return `<div class="kcr-cap-item ${_kcrCor(p)}">→ ${i.capacidade} ${pStr} <a class="kcr-cap-link" href="${i.link}">preencher →</a></div>`;
-      }).join('')}
-    </div>` : '';
-
-  return `<div class="kcr-caps">${ativoHTML}${proximosHTML}</div>`;
-}
-
-async function carregarKCR() {
-  const panel = document.getElementById('kcr-panel');
-  try {
-    const r = await fetch('/api/compradores?saude=1');
-    if (!r.ok) throw new Error('erro');
-    const d = await r.json();
-    const pcts = KCR_IND.map(i => i.pct(d)).filter(p => p !== null);
-    const kcr  = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length) : 0;
-    const cor  = _kcrCor(kcr);
-    const hist  = _kcrSaveHistory(kcr);
-    const marco = _kcrMarco(kcr);
-    let piorInd = null, piorP = Infinity;
-    KCR_IND.forEach(i => { const p = i.pct(d); if (p !== null && p < piorP) { piorP = p; piorInd = i; } });
-    const itens = KCR_IND.map(i => {
-      const p = i.pct(d), c = _kcrCor(p);
-      return `<div class="kcr-item ${c}">
-        <div class="kcr-item-main"><div class="kcr-item-nome">${i.nome}</div><div class="kcr-item-cap">${i.cap}</div></div>
-        <span class="kcr-item-pct">${p === null ? '—' : Math.round(p)+'%'}</span>
-        <span class="kcr-dot"></span>
-      </div>`;
-    }).join('');
-    const acao = (piorInd && piorP < 80)
-      ? `<div class="kcr-acao">⚡ <span><b>Próxima ação:</b> ${piorInd.acao} — <a href="${piorInd.link}">ir agora →</a></span></div>`
-      : '';
-    panel.innerHTML = `
-      <div class="kcr-top">
-        <div class="kcr-score-wrap">
-          <div class="kcr-num ${cor}">${kcr}%</div>
-          <div class="kcr-status-lbl ${cor}">${_kcrTxt(kcr)}</div>
-          ${marco ? `<div class="kcr-marco" style="color:${marco.cor}">★ ${marco.msg}</div>` : ''}
-        </div>
-        <div class="kcr-barra-wrap">
-          <div class="kcr-barra"><div class="kcr-barra-fill ${cor}" style="width:0%"></div></div>
-          <div class="kcr-barra-sub">Índice de Captura de Conhecimento — quanto do que você sabe já está no sistema</div>
-          ${_kcrTrendHTML(hist, kcr)}
-        </div>
-      </div>
-      ${_kcrCapsHTML(d)}
-      <details class="kcr-details">
-        <summary>Ver todos os indicadores</summary>
-        <div class="kcr-grid" style="margin-top:.6rem">${itens}</div>
-      </details>
-      ${acao}`;
-    requestAnimationFrame(() => { const f = panel.querySelector('.kcr-barra-fill'); if(f) f.style.width = kcr+'%'; });
-  } catch(e) {
-    panel.innerHTML = '<div class="vazio">Não foi possível carregar o índice.</div>';
-  }
-}
+// O indice de Capital de Conhecimento saiu do Painel em 28/set: era
+// cobranca de preenchimento, nao informacao do dia. O dado continua
+// no endpoint (?saude=1) se um dia voltar a fazer sentido.
 
 // ══════════════════════════════════════════════════════════════
 // AGENDA DE AVALIAÇÕES  (09/set/2026)
@@ -1370,11 +1075,9 @@ function agParaCelular(id) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-carregarKCR();
 agCarregar();
 carregarCatalogo();
 carregarVendas();
-carregarCompradores();
 carregarRelatorio();
 carregarNegociacoes();
 
