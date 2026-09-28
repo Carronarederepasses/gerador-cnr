@@ -6704,3 +6704,179 @@ o feed continua sem dizer para quem o carro foi reservado.
   manhã). Pergunta ainda sem resposta.
 
 *Registrado em 27 de setembro de 2026, noite.*
+
+### 27/set (madrugada) — a tela Rede vira conversa de verdade
+
+Onze commits depois do aviso no celular. O pedido que guiou tudo foi dele:
+*"quero ainda mais parecido com as msgs do whatsapp"*.
+
+#### O defeito que eu insisti em não ver
+
+Ele disse duas vezes que só enxergava **dois carros e mais nada**. Eu
+respondi duas vezes *"está abaixo da dobra, é só rolar"* — e fui medir só na
+terceira.
+
+**No celular a coluna da esquerda nunca se escondia.** A regra
+`.coluna{display:none}` do bloco de celular está escrita ANTES da regra base
+`.coluna{display:flex}`; mesmo peso, ganha quem vem depois. A lista e o
+painel ficavam empilhados, o painel sobrava com um pedaço da tela, e cabiam
+exatamente dois carros. **Não havia para onde rolar.**
+
+| | antes | depois |
+|---|---|---|
+| área útil da conversa | 585 px | **744 px** |
+| carros sem rolar | 2 | **4** |
+
+Corrigido com `.tela .coluna` (peso maior, independe da ordem). Junto foram
+dois da mesma família: `100vh` → `100dvh`, porque no celular o `vh` conta a
+barra do navegador como se ela não existisse; e o `min-height:0` que faltava,
+sem o qual a lista estica em vez de rolar.
+
+> É o mesmo tropeço do `display:` de classe vencendo o `hidden`, que já
+> estava comentado **dez linhas acima no mesmo arquivo**. E a lição maior é
+> outra: ele descreveu o sintoma com exatidão — *"e mais nada"* — e eu li
+> como impaciência.
+
+#### O cartão estava pior que a notificação
+
+Ao olhar de perto, achei o buraco: **o cartão não mostrava a distância da
+FIPE.** O aviso no celular dizia *"8% abaixo da FIPE"* e a tela, não. A oferta
+já carregava `dados.fotos` e `dados.fipe` desde que nasceu; ninguém usava.
+
+Agora o cartão tem foto (primeiro, porque é assim que se olha carro) e o
+preço com a FIPE **na mesma linha** — separados, obrigariam a conta de cabeça
+que o app existe para poupar. A distância usa a pastilha `.selo`, que já é o
+vocabulário do projeto: a identidade é preto e branco, então destaque vem de
+forma, não de cor.
+
+#### Forma de mensagem, e não de cartão
+
+O que fazia o carro ler como bloco de texto solto era o balão recebido ter
+**fundo transparente**. Mensagem é coisa pousada sobre a conversa: precisa de
+fundo, canto e bico.
+
+- fundo próprio de cada lado — é o que distingue "meu" de "dele" sem ler
+- três cantos arredondados, o do lado de quem falou quase reto
+- bico em **dois** triângulos: o de fora faz a borda, o de dentro o
+  preenchimento. Com um só, sai sem contorno e parece colado errado
+- foto colada nas bordas do balão
+- **hora miúda no canto**, e nada ao lado dela
+- **✋ Quero em linha cheia**, depois de uma régua fina — é a forma das
+  mensagens de empresa do WhatsApp, e no celular é o alvo que o polegar acerta
+- **tarja HOJE / ONTEM / data** entre os dias
+
+`acaoDoCarro` saiu de dentro do markup: eram quatro estados decididos por
+ternários aninhados, e mexer em um obrigava a reler os quatro.
+
+#### Os vistinhos
+
+Hoje o dono manda para 30 lojas e não sabe nada. **"Ninguém quer" e "ninguém
+viu" pedem decisões opostas** — a primeira é baixar o preço, a segunda é
+mandar de novo ou por outra lista.
+
+Coluna `visto_em` em `oferta_destinos` (`supabase/rede-visto.sql`, rodada por
+ele). O feed marca só as que está mostrando **e só as ainda não vistas**:
+reescrever a hora a cada abertura apagaria quando foi a primeira vez, que é o
+dado que interessa.
+
+**4 de 4 contra produção**, e o teste 2 é o que vale: a segunda abertura
+preserva a hora da primeira. Também provado que abrir por outra loja não
+marca o destino desta.
+
+Duas decisões de produto embutidas: vem **o número junto** do vistinho (num
+grupo de 30, `✓✓` sozinho mentiria), e sai **só o número, nunca quem** — se
+dissesse quem, viraria uma lista de quem está olhando o mercado, e a loja
+pararia de abrir carro para não se entregar.
+
+> Erro meu: escrevi a marcação sem `await`. Na Vercel isso é **cancelado** ao
+> enviar a resposta — nada seria marcado, em silêncio. Está documentado no
+> projeto desde 19/ago, com dois casos idênticos. Corrigido antes de subir.
+
+#### Abertura mais rápida
+
+Medido, não suposto. E a primeira medição derrubou a minha própria
+afirmação: eu disse que as seis chamadas eram em sequência — **já eram em
+paralelo** (`Promise.all`). O custo real era outro.
+
+| | |
+|---|---|
+| duas viagens em fila (quem é você → carregar) | agora saem juntas |
+| `feed`: ofertas + interesses + reservas | **1554 ms → 381 ms** |
+| `transmissao`: listas + contatos | agora juntas |
+
+O importante não é o tempo: **o resultado montado é idêntico byte a byte.**
+Consulta mais rápida que devolve outra coisa é bug novo.
+
+> E quase "consertei" o que estava certo: meu script de medir fazia uma
+> consulta por lista em `transmissao`, e o código real já busca todas de uma
+> vez. Os 2203 ms que eu mostrei eram artefato meu.
+
+#### A estampa, em quatro rodadas
+
+Pedido dele. Três vezes eu escolhi a intensidade olhando o **meu monitor**, e
+três vezes ele não viu nada no celular. **O aparelho de quem usa é que
+decide** — eu devia ter ido direto para um valor alto e descido.
+
+9% → **20%**, traço 1,3 → 1,6. Medido de passagem: **46% da área da conversa
+é fundo**, então lugar sempre houve; era intensidade.
+
+Depois: *"os desenhos parecem de criança"*. **A causa não era o desenho, era a
+técnica** — contorno de espessura única com canto arredondado sempre lê como
+adesivo de aplicativo. Trocado por **silhueta preenchida com proporção real**.
+
+Os quatro motivos são escolha dele: carro de perfil, roda de liga, banda de
+pneu e **placa Mercosul com `ABC1D23` legível**. Dois detalhes decidem se
+parece objeto ou brinquedo: o pneu é um **anel**, não círculo cheio (cheio
+vira bola), e a moldura da placa também (cheia viraria tijolo).
+
+O ladrilho é gerado por `scratchpad/estampa-final.js` e colado por script:
+são 3.858 caracteres de endereço, e uma vírgula errada faz a estampa sumir
+**sem erro nenhum** — `url()` inválido não avisa, só não pinta.
+
+#### Criptografia — a resposta que ele precisava ter antes de prometer
+
+Pergunta dele, no meio da tela. A resposta exata:
+
+| | |
+|---|---|
+| no caminho (celular ↔ servidor) | **criptografado** — é o HTTPS |
+| guardado no banco | **texto legível** |
+| ponta a ponta, como o WhatsApp | **não** |
+
+Quem lê o banco hoje: eu e ele. É a mesma correção que ele me fez em 25/set,
+quando eu ia dizer ao Bruno que "nada que tu cadastrar aparece pra mim".
+
+**E tem custo real:** ponta a ponta significa que o servidor não lê — e aí
+morrem juntos o aviso no celular com preço e FIPE (o servidor monta o texto),
+a busca nas conversas, e a recuperação de quem troca de aparelho.
+
+Recomendação registrada: anunciar **"conversa privada entre as lojas, fora do
+WhatsApp"**, que é verdade, e **não usar a palavra ponta a ponta**. O risco
+real aqui não é o servidor — é uma loja ver o negócio da outra, e isso já
+está resolvido pelo dono em cada linha.
+
+#### Decisões dele nesta rodada
+
+- **O app terá cara de Facebook** — card com foto grande, o dado que decide,
+  ação embaixo. Mas o feed é **pessoal**: cai nele o que foi mandado para as
+  listas e grupos dele, mais a vitrine. Feed aberto seria o grupo de 188
+  pessoas de novo, onde metade silencia porque quem compra popular recebe SUV.
+- **Curtida e comentário públicos ficam de fora.** ✋ Quero é informação de
+  negócio.
+- **`na_fila` continua público** — eu tinha recomendado esconder e me
+  retratei: o argumento dele de 25/set vale (*"o estado do carro é público, o
+  mercado já resolve mostrando"*). Saber que tem gente na fila é o que faz
+  decidir rápido. **Número sim, nomes não.**
+- **[RESOLVIDO] Mandar o mesmo carro duas vezes é legítimo** — *"pode mandar
+  o carro quantas vezes quiser"*. Nenhuma trava. Estava aberto desde 27/set
+  de manhã.
+
+#### Em aberto
+
+- **Falta algum dado no cartão?** E **a foto tem o tamanho certo?** As duas
+  só ele responde — é o olho dele que faz isso todo dia.
+- Demo no banco: a loja **DEMO Serra Motors** com 4 carros (Polo, Argo,
+  HB20S, Renegade), fotos **emprestadas** do estoque real dele. Apagar com
+  `scratchpad/limpa-demo.js` quando ele mandar.
+
+*Registrado em 27 de setembro de 2026, madrugada.*
