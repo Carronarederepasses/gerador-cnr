@@ -117,10 +117,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
    as duas, o espaço dobrava. */
 .balao .preco{font-weight:700;font-size:1.05rem}
 .balao .msg{font-size:.86rem;line-height:1.5;margin-top:.5rem;white-space:pre-wrap}
-/* Sem linha separando e com a hora miúda no canto, como no WhatsApp. A
-   régua existia para separar o cartão da ação; num balão ela vira uma
-   divisão a mais numa coisa que já é um objeto só. A ordem também muda:
-   a ação fica à direita, onde o polegar chega. */
+/* A hora miúda no canto de baixo, como no WhatsApp — e nada mais ao lado
+   dela. Antes era uma faixa com a hora à esquerda e o botão à direita, o
+   que não existe em mensagem nenhuma de lá. */
+.balao .hora{font-size:.68rem;color:var(--text-faint);text-align:right;margin-top:.4rem}
+/* Tarja de data, centrada e pousada sobre a conversa — igual ao WhatsApp.
+   `align-self:center` porque o `.thread` é uma coluna flex e o padrão
+   alinharia a tarja com os balões. */
+.tarja-dia{align-self:center;margin:.35rem 0}
+.tarja-dia span{display:inline-block;background:var(--surface-raise);
+  border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;
+  font-size:.66rem;font-weight:700;letter-spacing:.04em;color:var(--text-mid)}
+/* A ação depois de uma régua fina, ocupando a largura do balão: é a forma
+   das mensagens de empresa do WhatsApp. No celular também é o alvo mais
+   fácil de acertar com o polegar. As margens negativas levam a régua até
+   a borda, senão ela flutua com um respiro dos dois lados. */
+.balao .acao{margin:.35rem -.7rem -.45rem;padding:.1rem .25rem;
+  border-top:1px solid var(--line);display:flex;align-items:center;gap:.4rem}
+.balao .acao .estado{flex:1;text-align:center;font-size:.76rem;font-weight:700;
+  color:var(--text-mid);padding:.5rem 0}
+.balao .acao button.cheio{flex:1;background:none;border:none;color:var(--text);
+  font-weight:700;font-size:.85rem;padding:.55rem 0;cursor:pointer;border-radius:0}
+.balao .acao button.cheio:hover{background:var(--surface)}
 .balao .rodape{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
   margin-top:.45rem;font-size:.7rem;color:var(--text-faint)}
 /* Recebido: do outro lado, com o canto quase reto na esquerda e o bico
@@ -353,6 +371,33 @@ function fipeDoCarro(o) {
   return '<span class="selo fipe acima">na FIPE</span>';
 }
 
+// A tarja de data entre os dias, como no WhatsApp. Sem ela, uma conversa
+// de semanas vira um rolo contínuo e "agora" se confunde com "terça".
+function tarjaDeDia(iso, anterior) {
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d)) return '';
+  const dia = (x) => new Date(x).toDateString();
+  if (anterior && dia(anterior) === dia(iso)) return '';
+  const hoje = new Date();
+  const ontem = new Date(hoje.getTime() - 86400e3);
+  let texto;
+  if (dia(d) === dia(hoje)) texto = 'HOJE';
+  else if (dia(d) === dia(ontem)) texto = 'ONTEM';
+  else texto = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return `<div class="tarja-dia"><span>${texto}</span></div>`;
+}
+
+// Monta a lista já com as tarjas no meio. A ordem que entra é a ordem que
+// aparece — quem chama decide se é do mais novo para o mais velho.
+function comTarjas(itens, desenhar) {
+  let anterior = null;
+  return itens.map((o) => {
+    const t = tarjaDeDia(o.criado_em, anterior);
+    anterior = o.criado_em;
+    return t + desenhar(o);
+  }).join('');
+}
+
 function balaoDoCarro(o, comFila) {
   const fila = comFila && o.fila ? o.fila : null;
   const foto = (o.dados && Array.isArray(o.dados.fotos) && o.dados.fotos[0]) || '';
@@ -369,17 +414,26 @@ function balaoDoCarro(o, comFila) {
           ${o.reserva ? '' : `<button class="leve" onclick="reservar('${o.id}','${f.conta_id}')">Reservar</button>`}
         </div>`).join('')}</div>` : ''}
       ${comFila && fila && !fila.length ? '<div class="fila"><div class="quem"><span style="color:var(--text-faint)">Ninguém levantou a mão ainda</span></div></div>' : ''}
-      <div class="rodape">
-        <span>${quando(o.criado_em)}</span>
-        <span>
-          ${o.reserva || o.reservado
-            ? `<span class="selo res">🔒 Reservado ${(o.reserva?.com_sinal || o.reservado === 'sinal') ? '— sinal' : 'na palavra'}</span>`
-            : comFila ? '' : (o.eu_quero ? '<span class="selo">✋ na fila</span>'
-                                         : `<button onclick="quero('${o.id}')">✋ Quero</button>`)}
-          ${o.reserva && comFila ? `<button class="leve" onclick="desfazer('${o.id}')">Desfazer</button>` : ''}
-        </span>
-      </div>
+      <div class="hora">${quando(o.criado_em)}</div>
+      ${acaoDoCarro(o, comFila)}
     </div>`;
+}
+
+// A ação vai numa faixa própria, em linha cheia e depois de uma régua
+// fina — é a forma das mensagens de empresa do WhatsApp, onde o botão
+// ocupa a largura do balão em vez de ficar espremido num canto. Num
+// celular isso também é o alvo mais fácil de acertar com o polegar.
+function acaoDoCarro(o, comFila) {
+  const reservado = o.reserva || o.reservado;
+  if (reservado) {
+    const sinal = (o.reserva && o.reserva.com_sinal) || o.reservado === 'sinal';
+    return `<div class="acao"><span class="estado">🔒 Reservado ${sinal ? '— sinal' : 'na palavra'}</span>${
+      o.reserva && comFila ? `<button class="leve" onclick="desfazer('${o.id}')">Desfazer</button>` : ''
+    }</div>`;
+  }
+  if (comFila) return '';                      // do lado do dono, a fila já está acima
+  if (o.eu_quero) return '<div class="acao"><span class="estado">✋ Você está na fila</span></div>';
+  return `<div class="acao"><button class="cheio" onclick="quero('${o.id}')">✋ Quero</button></div>`;
 }
 
 function desenharPainel() {
@@ -427,7 +481,7 @@ function desenharPainel() {
   if (aberto.tipo === 'recebidos') {
     $('pan-sub').textContent = `${dados.recebidas.length} carro(s)`;
     $('thread').innerHTML = dados.recebidas.length
-      ? dados.recebidas.map((o) => balaoDoCarro(o, false)).join('')
+      ? comTarjas(dados.recebidas, (o) => balaoDoCarro(o, false))
       : '<div class="vazio">Nada chegou ainda. Aparece aqui quando alguém que tem você na lista mandar um carro.</div>';
     return;
   }
@@ -441,7 +495,7 @@ function desenharPainel() {
 
   const mandadas = dados.minhas.filter((o) => aberto.tipo === 'todos' ? !o.lista_id : o.lista_id === aberto.id);
   $('thread').innerHTML = mandadas.length
-    ? mandadas.slice().reverse().map((o) => balaoDoCarro(o, true)).join('')
+    ? comTarjas(mandadas.slice().reverse(), (o) => balaoDoCarro(o, true))
     : '<div class="vazio">Nada mandado por aqui ainda. Escolha um carro embaixo e envie.</div>';
   $('thread').scrollTop = $('thread').scrollHeight;
 }
