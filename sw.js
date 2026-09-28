@@ -83,44 +83,22 @@ self.addEventListener('push', (e) => {
         }
       }
     } catch (err) {
-      // Sem rede: avisa assim mesmo. Aviso genérico é pior que aviso
-      // completo, e MUITO melhor que aviso nenhum — a pessoa perderia o
-      // carro sem saber que ele existiu. Mas diz que foi falha, não que
-      // não havia nada.
+      // Sem rede ou pedido recusado: avisa assim mesmo. Aviso genérico é
+      // pior que aviso completo, e MUITO melhor que aviso nenhum — a
+      // pessoa perderia o carro sem saber que ele existiu. Mas diz que
+      // foi falha, não que não havia nada: foi por dizer as duas coisas
+      // igual que o primeiro teste real (27/set) não explicou nada.
       //
-      // O nome do erro vai junto: "não consegui falar" cabe em rede caída,
-      // em endereço errado e em permissão negada, que se consertam em
-      // lugares diferentes. Sem o nome, a investigação recomeça do zero.
-      motivo = `falhou — ${String((err && (err.name + ': ' + err.message)) || err).slice(0, 60)}`;
-      // Separa "este aparelho está sem rede agora" de "este pedido
-      // específico não passa". São defeitos em lugares opostos: o
-      // primeiro é o Android segurando dado em segundo plano, o segundo é
-      // nosso. Uma busca a um arquivo estático responde isso em uma linha.
-      // O estático carrega e o nosso pedido não: a diferença entre os dois
-      // são os cabeçalhos. Três sondas no MESMO disparo dizem qual deles —
-      // uma por vez custaria três idas e voltas, e cada uma depende do
-      // Yuri estar com o celular na mão.
-      const sondar = async (nome, cab) => {
-        try {
-          const t = await fetch('/api/fetch-anuncio?rede=novidades',
-            { cache: 'no-store', headers: cab });
-          return `${nome}${t.status}`;
-        } catch (e2) { return `${nome}X`; }
-      };
-      try {
-        const { sessao, chave } = await lerCredenciais();
-        const partes = [
-          `s${sessao ? sessao.length : 0}k${chave ? chave.length : 0}`,
-          await sondar('nu', undefined),
-          await sondar('ch', chave  ? { 'x-cnr-key': chave } : undefined),
-          await sondar('se', sessao ? { 'x-cnr-sessao': sessao } : undefined),
-          await (async () => {
-            try { const t = await fetch('/assets/icon-512.png', { cache: 'no-store' }); return 'est' + t.status; }
-            catch (e3) { return 'estX'; }
-          })(),
-        ];
-        motivo += ' / ' + partes.join(' ');
-      } catch (e4) { motivo += ' / sondas falharam'; }
+      // Uma sonda a um arquivo estático separa "este aparelho está sem
+      // rede agora" de "este pedido não passa" — defeitos em lugares
+      // opostos. Foi ela que encurtou a investigação daquele dia. As
+      // outras sondas saíram: diagnóstico no balão de um cliente é ruído,
+      // e o nome do erro no console já diz por onde começar.
+      let semRede = false;
+      try { await fetch("/assets/icon-512.png", { cache: "no-store" }); }
+      catch (e2) { semRede = true; }
+      motivo = semRede ? "o aparelho está sem rede" : "não consegui ler as novidades";
+      console.warn("[aviso] falhou:", err && err.name, err && err.message);
     }
     if (motivo) corpo = `Toque para ver — ${motivo}.`;
     await self.registration.showNotification(titulo, {
