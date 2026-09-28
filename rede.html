@@ -93,8 +93,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 /* `min-height:0` num filho de flex não é detalhe: sem ele o padrão é
    `auto`, o `.thread` cresce com o conteúdo em vez de rolar, e empurra o
    campo de digitar para fora da tela. */
+/* Fundo estampado atrás da conversa, como o do WhatsApp. Serve para os
+   balões parecerem POUSADOS sobre alguma coisa, em vez de recortados no
+   vazio — é metade do que faz aquilo parecer conversa.
+   Desenhado em SVG embutido, não em imagem: pesa ~600 bytes, não custa um
+   pedido a mais e acompanha o tema. A estampa é a marca do projeto — o
+   losango do preto e branco — bem apagada, para não competir com foto de
+   carro, que é o que a pessoa veio ver. */
 .thread{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:1rem .95rem;display:flex;flex-direction:column;gap:.7rem}
+  padding:1rem .95rem;display:flex;flex-direction:column;gap:.7rem;
+  background-color:var(--surface);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.035' stroke-width='1.2'%3E%3Cpath d='M28 6 L50 28 L28 50 L6 28 Z'/%3E%3Ccircle cx='28' cy='28' r='3.5'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat:repeat}
 /* ── Balão, na forma do WhatsApp ─────────────────────────────
    O que fazia o cartão ler como bloco de texto solto e não como mensagem
    era o balão recebido ter fundo TRANSPARENTE. Mensagem é uma coisa
