@@ -6595,3 +6595,112 @@ iPhone dele já está liberado, e trocar agora significaria pedir para o
 piloto refazer aquilo justo antes de testar.
 
 *Registrado em 25 de setembro de 2026.*
+
+### 27/set (noite) — o aviso no celular chegou inteiro
+
+Provado no Android do Yuri, com o app fechado:
+
+> **Volkswagen Polo Highline 200 TSI · 2022**
+> R$ 70.990 — 8% abaixo da FIPE · Garopaba
+
+É a tela 3 do desenho cumprindo o que prometia: **decidir sem abrir o app.**
+
+#### A chave, conferida sem ser impressa
+
+Antes de qualquer disparo, quatro perguntas medidas (`scratchpad/checa-vapid.js`):
+o Node lê a chave, ela é **o par da pública que está no código**, a assinatura
+sai em 64 bytes crus, e confere. O segundo item é o que mais derruba Web Push:
+chave privada de um par com pública de outro faz o serviço da Google recusar
+com **401 sem dizer o motivo**. A chave mora fora do repositório e não foi
+impressa em lugar nenhum — em 03/set uma vazou num print.
+
+#### Três defeitos, e o pior era o meu de sempre
+
+1. **O 🔔 dizia "Pronto, você será avisado" mesmo sem a chave no servidor.**
+   O aparelho ficava assinado e nada saía. `?rede=assinar` passou a devolver
+   `ligado`, e a tela separa os dois casos.
+
+2. **"Você tem novidade na rede" é também o que o aviso diz quando NÃO há
+   nada.** Duas situações com a mesma cara. Foi por isso que as três primeiras
+   tentativas não explicaram nada — o mesmo engano da tarja da caixa de entrada
+   em 02/set, que eu tinha corrigido e reproduzi aqui. O balão passou a dizer o
+   motivo, e **o aviso seguinte virou o diagnóstico**.
+
+3. **`Access-Control-Allow-Headers` não listava `x-cnr-sessao`** nos quatro
+   endpoints. A sessão da fase 1 nasceu de fora dessa lista, invisível enquanto
+   tudo era mesma origem.
+
+#### Meu diagnóstico estava errado, e o banco desmentiu
+
+Afirmei que o celular dele estava liberado por **chave de aparelho** e que por
+isso o service worker não se identificava. Fui conferir: a linha em
+`push_assinaturas` tem `usuario_id` — **ele tinha sessão válida**. `assinar`
+exige sessão, e gravou.
+
+> Eu tinha uma explicação coerente e comecei a consertar por ela. O que
+> derrubou foi uma consulta de dez segundos ao banco. **Quando a resposta está
+> nos dados, medir vem antes de consertar** — e eu já sabia disso: está escrito
+> em 05/set com estas palavras.
+
+Ficaram do episódio duas mudanças que **não eram a causa** mas valem por si: a
+chave de aparelho agora é espelhada para o service worker (aparelho liberado só
+por chave não tinha como se identificar — é o caso do Bruno), e
+`?rede=novidades` atende conta-nível sem sessão, com o motivo escrito no
+código: a rota já passou por `exigirChave`, lê só `conta_id`, e a chave já abre
+catálogo e vendas — recusar ali não protegeria nada.
+
+#### O que encurtou a investigação
+
+Uma sonda a um **arquivo estático** dentro do `catch`. Ela separa "o aparelho
+está sem rede" de "este pedido não passa" — defeitos em lugares opostos.
+`estático 200` matou de uma vez a hipótese do Android segurando dados em
+segundo plano, que eu ia perseguir. Ficou no código; as outras sondas saíram,
+porque diagnóstico no balão de um cliente é ruído.
+
+#### Falso alarme registrado
+
+Um aviso chegou só quando ele abriu o app, e eu tratei como restrição de
+bateria do Android — cheguei a escrever o roteiro de configuração. **Era
+atraso de entrega**: o seguinte chegou com o app fechado. Quase mandei ele
+mexer em configuração de celular por um problema que não existia.
+
+#### Erro meu, sétima vez a mesma forma
+
+O escape do shell comeu as barras de um caminho do Windows (`C:\Users\...`
+virou `UsersYuri...`). A regra está escrita desde 04/set: **texto longo vai por
+arquivo, com a ferramenta de escrever.** Resolveu na hora em que segui.
+
+#### Decisão do Yuri: o app tem cara de Facebook
+
+> *"minha ideia para o app é ter o layout do facebook… a galera vai postando e
+> vai aparecendo no feed"*
+
+Aceito o **formato** — card com foto grande, preço, quem postou, ação embaixo.
+É o que todo mundo usa sem explicação, e carro se decide olhando foto e preço.
+
+Com uma ressalva que veio do argumento dele mesmo: **feed aberto, onde todos
+veem tudo, é o grupo de 188 pessoas de novo** — metade silencia porque quem
+compra popular recebe SUV. Então o feed **parece** Facebook e **se comporta**
+como transmissão: cada um rola o próprio, com o que foi mandado para as listas
+e grupos dele, mais a vitrine. É o Facebook de verdade, aliás — ninguém vê o
+mural inteiro, vê o próprio.
+
+**Fora do padrão Facebook, de propósito:** curtida e comentário públicos. ✋
+Quero é informação de negócio — "3 pessoas quiseram" faz o vendedor segurar o
+preço e tira a vantagem de quem chegou primeiro. A fila continua só do dono, e
+o feed continua sem dizer para quem o carro foi reservado.
+
+#### Anotado, não feito
+
+- **`/rede.html` demora alguns segundos** para abrir. Duas causas conhecidas:
+  função fria na Vercel (1,2s a 4,5s, já medido em 02/set) e a tela fazendo
+  várias chamadas **em sequência** em vez de em paralelo. A segunda é minha e
+  tem conserto direto.
+- **Deixado no banco:** o **Polo da DEMO Serra Motors** (veículo + oferta +
+  destino), semeado para o aviso ter o que mostrar. Nasceu na conta da DEMO,
+  então **não aparece no catálogo do Yuri** — só na Rede, como carro que chegou
+  para ele. Apagar quando ele disser.
+- **[ABERTO]** nada impede mandar o mesmo carro duas vezes (aberto em 27/set,
+  manhã). Pergunta ainda sem resposta.
+
+*Registrado em 27 de setembro de 2026, noite.*
