@@ -149,6 +149,18 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:.5rem}
 .atalho{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.7rem .6rem;text-decoration:none;color:var(--text);display:flex;flex-direction:column;align-items:center;text-align:center;gap:.3rem;transition:border-color .15s}
 .atalho .desc{display:none}
+/* Sobrando um sozinho na ultima linha, ele ocupa a linha inteira. Dez
+   atalhos em tres colunas deixavam a Busca orfa, o que le como
+   esquecimento em vez de escolha. A regra se corrige sozinha se o
+   numero de atalhos mudar — e vai mudar. */
+/* SO no celular, onde a grade e de tres colunas. Sem o cerco, em 1280px
+   a grade vira oito por linha,  continua verdadeiro para o decimo
+   e a Busca esticava para 962px atravessando a tela — medido, nao
+   suposto. Regra de layout baseada em CONTAGEM tem de ser cercada pela
+   largura onde aquela contagem vale. */
+@media (max-width:460px){
+  .atalhos > :last-child:nth-child(3n+1){grid-column:1/-1;flex-direction:row;justify-content:center;gap:.5rem}
+}
 .atalho:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:var(--accent)}
 .atalho .ico{font-size:1.4rem}
 .atalho .nome{font-size:.82rem;font-weight:600}
@@ -266,6 +278,14 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
         <div class="ico">📝</div>
         <div class="nome">Captação</div>
         <div class="desc">Carro captado por você</div>
+      </a>
+      <!-- A Rede fica logo depois das duas telas de entrada de carro: é
+           para onde o carro vai depois de cadastrado. Antes só existia
+           na barra lateral. -->
+      <a class="atalho" href="/rede.html" title="Mandar carro para lojas, feed e conversas">
+        <div class="ico">🕸️</div>
+        <div class="nome">Rede</div>
+        <div class="desc">Mandar carro para lojas, feed e conversas</div>
       </a>
       <a class="atalho" href="/catalogo.html" title="Veículos em estoque e status de cada um">
         <div class="ico">📂</div>
