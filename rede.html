@@ -751,7 +751,6 @@ async function enviar() {
       // levanta a mão. Nos outros, abre para o feed depois de 6h.
       publico:  aberto.tipo === 'vitrine',
       mensagem: $('texto').value,
-      horas_antes_da_vitrine: 6,
     } });
     tirarCarro(); $('texto').value = '';
     await carregar();

@@ -140,7 +140,7 @@ async function ofertar(sb, req, res) {
   // mandado para quem se escolheu; o feed é o carro que não saiu na hora
   // e segue disponível, aberto para todo mundo (decisão do Yuri, 28/set:
   // "tipo um autoavaliar, que as pessoas publiquem pra geral").
-  const { veiculo_id, horas_antes_da_vitrine, lista_id, grupo_id, mensagem, publico } = req.body || {};
+  const { veiculo_id, lista_id, grupo_id, mensagem, publico } = req.body || {};
   if (!UUID.test(String(veiculo_id || ''))) {
     return res.status(400).json({ error: 'veiculo_id inválido.' });
   }
@@ -191,7 +191,6 @@ async function ofertar(sb, req, res) {
 
   // A FOTOGRAFIA. Só o que pode atravessar: nada de placa, renavam,
   // chassi, valor de compra, avaliação ou documentos.
-  const horas = Number(horas_antes_da_vitrine);
   const oferta = (await rsb('ofertas', {
     method: 'POST', prefer: 'return=representation',
     body: JSON.stringify({
@@ -220,13 +219,13 @@ async function ofertar(sb, req, res) {
         // chegou.
         grupo: alvo.grupo ? { id: alvo.grupo.id, nome: alvo.grupo.nome } : null,
       },
-      // `null` = não abrir para a vitrine (é uma das opções da tela).
-      // Publicado no feed abre AGORA: é o movimento inteiro do gesto.
-      vitrine_em: publico
-        ? new Date().toISOString()
-        : (Number.isFinite(horas) && horas > 0
-            ? new Date(Date.now() + horas * 3600e3).toISOString()
-            : null),
+      // SÓ o publicar coloca carro no feed. A graduação automática —
+      // "abre para a vitrine em 6 horas" — foi desligada em 28/set por
+      // decisão do Yuri: o feed é ato da loja, não consequência de ter
+      // mandado para uma lista. Com ela ligada, o carro mandado para a
+      // lista de confiança virava público sozinho, e a loja descobria
+      // depois.
+      vitrine_em: publico ? new Date().toISOString() : null,
       // De qual lista saiu. O NOME fica gravado junto: a lista pode ser
       // renomeada ou apagada, e o histórico tem de continuar explicando
       // por que aquele carro chegou.
