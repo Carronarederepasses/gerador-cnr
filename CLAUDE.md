@@ -6996,3 +6996,100 @@ lembrança, e o raciocínio (o que a lei pede virando coluna, e o contrato ter
 de ser congelado em texto) foi para o `IDEIAS.md`.
 
 *Registrado em 28 de setembro de 2026.*
+
+### 28/set (noite) — o Painel enxuga, e a opinião que ele pediu
+
+#### A pergunta dele, e a resposta que eu dei
+
+> *"Acabei criando um sistema de loja, e junto dele quero transformar em
+> uma rede social. Tu acha que é muita coisa?"*
+
+Fui conferir um fato antes de responder: **o banco do piloto do Bruno está
+vazio** — zero veículos, zero vendas, zero clientes, zero anúncios, desde que
+ele liberou o iPhone em 24/set.
+
+A resposta: **não é muita coisa na direção; é muita coisa ao mesmo tempo.** E
+o problema não é a ambição — é que a gente vinha decorando um cômodo vazio.
+Nesta sessão foram quatro rodadas na intensidade da estampa e três no formato
+do balão, numa rede cuja única outra loja eu inventei.
+
+O que sustenta a direção, e vale lembrar: **rede social precisa de multidão;
+rede de negócio funciona com duas.** Ele e o Bruno trocando um carro já é a
+rede inteira. E ele não está criando uma rede do zero — 188 pessoas no grupo,
++200 compradores na carteira. A parte difícil já está resolvida, fora do
+computador.
+
+O risco estrutural que apontei **não é a rede**: é a captação depender da
+extensão, que só roda em Chrome de computador. A captação é o diferencial —
+o que nenhum dos sete sistemas pesquisados faz — e ela não funciona no celular.
+
+**Depois ele falou com o Bruno:** não é desinteresse, é falta de tempo, e ele
+precisa **lançar carros na OLX**. Daí a pergunta do integrador. Isso importa:
+o que o Bruno pediu é exatamente o que o Gerador já faz, e funciona no iPhone
+dele. Sugerido lançar **um carro só** pelo Gerador esta semana — resolve o
+problema dele e responde se o sistema serve para alguém que não seja o Yuri.
+
+#### Painel: 10 blocos viram 5
+
+Pedido dele: *"a tela inicial tem muita informação"*. Medido antes de opinar,
+e o pior achado não era quantidade — era **repetição**: o bloco Pipeline
+mostrava Disponíveis, Reservados e Vendidos, que são os três primeiros KPIs.
+Os mesmos números, duas vezes, na mesma tela.
+
+| | antes | depois |
+|---|---|---|
+| Blocos | 10 | **5** |
+| KPIs | 7 | **3** (+ travados, quando houver) |
+| Atalhos | 683 px, 38% da página | **311 px** |
+| Rolagem até "Carros parados" | 1159 px | **787 px** |
+| Página | 1818 px | **1446 px** |
+| `home.html` | 1383 linhas | ~1050 |
+
+Saíram: Pipeline (repetia), Últimas vendas (mora em Vendas), Rede de
+compradores (mora em Clientes), Capital de Conhecimento (123 linhas, cobrança
+de preenchimento), e os KPIs Reservados, Compradores e Negociações.
+
+**A cor estava contra a decisão dele de 03/set:** números em verde, amarelo,
+azul e roxo — o roxo com `#a78bfa` cravado, fora dos tokens. Sobrou cor só
+onde ela **significa**: dias parado, chips de status, e o cartão de carros
+travados, que é dinheiro parado.
+
+As descrições dos atalhos viraram `title` — texto de quem está conhecendo o
+app, não de quem usa todo dia.
+
+#### Ordem alfabética, e a correção dele
+
+Pedido dele. A barra lateral ficou alfabética dentro de Captar, Vender e
+Apoio. **No Acesso rápido eu ampliei sem pedido** — acrescentei as quatro
+telas que faltavam e os títulos de grupo. Ele corrigiu: *"poderia ter deixado
+os botões que estavam antes, só colocá-los em ordem alfabética"*. Revertido
+para os dez.
+
+Ordenado com `localeCompare('pt-BR')`, não por texto cru: em ASCII o **Á vem
+depois do Z**, e nome acentuado sairia no fim da lista sem motivo.
+
+**Custo assumido, para ele avaliar no uso:** "Parceiros" era a primeira de
+Captar por ser a mais usada (decisão dele em 07/set) e virou a quarta.
+
+#### Três vezes o verificador mentiu, e uma regra quase virou bug
+
+- O detector de CSS órfão deu **falso positivo por causa do meu próprio
+  comentário**, onde eu tinha escrito que o roxo estava cravado.
+- Depois deu **falso negativo** em `kpi amarelo`, que estava em uso — a
+  conferência direta salvou.
+- A regra "último atalho sozinho ocupa a linha" conta atalhos, mas o número de
+  colunas muda com a largura: em 1280px a grade vira oito por linha e a Busca
+  **esticou para 962px atravessando a tela**. Cercada por `@media`.
+
+> Regra que saiu daí: **regra de layout baseada em CONTAGEM precisa do cerco
+> da largura onde aquela contagem vale.**
+
+#### Outras decisões dele nesta parte
+
+- **"Rede (prova)" virou "Rede"** — a tela foi provada. O que falta não é
+  função, é gente dentro; está escrito no código para não confundirmos as
+  duas coisas daqui a um mês.
+- **Atalho da Rede no Acesso rápido** — era a única tela que só existia na
+  barra lateral.
+
+*Registrado em 28 de setembro de 2026, noite.*
