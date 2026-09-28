@@ -131,6 +131,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
    dela. Antes era uma faixa com a hora à esquerda e o botão à direita, o
    que não existe em mensagem nenhuma de lá. */
 .balao .hora{font-size:.68rem;color:var(--text-faint);text-align:right;margin-top:.4rem}
+/* No WhatsApp o segundo vistinho muda de cor quando leram. Aqui a cor é
+   uma só — preto e branco —, então quem muda é o brilho: entregue fica
+   apagado como a hora, lido acende no branco do texto. */
+.balao .visto{margin-left:.15rem;font-weight:700;letter-spacing:-.02em}
+.balao .visto.lido{color:var(--text, #f5f5f5)}
 /* Tarja de data, centrada e pousada sobre a conversa — igual ao WhatsApp.
    `align-self:center` porque o `.thread` é uma coluna flex e o padrão
    alinharia a tarja com os balões. */
@@ -408,6 +413,23 @@ function comTarjas(itens, desenhar) {
   }).join('');
 }
 
+// Os vistinhos, ao lado da hora — só no balão de quem MANDOU, como no
+// WhatsApp (ninguém vê o próprio recibo de leitura).
+//
+// Aqui um carro vai para VÁRIAS lojas, então o vistinho sozinho não
+// bastaria: com 30 destinos e 4 leituras, "✓✓" mentiria. Por isso vem o
+// número junto — e só o número. QUEM viu é da loja que viu.
+function vistinhos(o) {
+  const total = Number(o.destinos || 0);
+  if (!total) return '';
+  const vistos = Number(o.vistos || 0);
+  const titulo = vistos
+    ? `${vistos} de ${total} abriram`
+    : `entregue para ${total}, ninguém abriu ainda`;
+  return ` <span class="visto ${vistos ? 'lido' : ''}" title="${titulo}">`
+    + `${vistos ? '✓✓' : '✓'} ${vistos || total}</span>`;
+}
+
 function balaoDoCarro(o, comFila) {
   const fila = comFila && o.fila ? o.fila : null;
   const foto = (o.dados && Array.isArray(o.dados.fotos) && o.dados.fotos[0]) || '';
@@ -424,7 +446,7 @@ function balaoDoCarro(o, comFila) {
           ${o.reserva ? '' : `<button class="leve" onclick="reservar('${o.id}','${f.conta_id}')">Reservar</button>`}
         </div>`).join('')}</div>` : ''}
       ${comFila && fila && !fila.length ? '<div class="fila"><div class="quem"><span style="color:var(--text-faint)">Ninguém levantou a mão ainda</span></div></div>' : ''}
-      <div class="hora">${quando(o.criado_em)}</div>
+      <div class="hora">${quando(o.criado_em)}${comFila ? vistinhos(o) : ''}</div>
       ${acaoDoCarro(o, comFila)}
     </div>`;
 }

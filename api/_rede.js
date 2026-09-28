@@ -241,6 +241,32 @@ async function feed(req, res) {
     rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,com_sinal`),
   ]);
 
+  // ── O visto ──────────────────────────────────────────────────
+  // Marca as que ESTE pedido está de fato mostrando, e só as ainda não
+  // vistas — reescrever a hora a cada abertura apagaria quando foi a
+  // primeira vez, que é o dado que interessa.
+  //
+  // COM `await`, e não solto: a Vercel encerra o worker assim que a
+  // resposta sai, então trabalho sem espera é cancelado e não acontece —
+  // em silêncio. Foi o que derrubou o `VEICULO_EXCLUIDO` em 19/ago e o
+  // `NEGOCIACAO_CONVERTIDA` em 20/ago. O padrão do projeto é este.
+  //
+  // O `try` existe porque o visto é acessório: se falhar, o feed já está
+  // montado e a tela não pode parar por causa disso. Mas o erro vai para
+  // o registro em vez de sumir — "não marcou" é diferente de "não abriu",
+  // e confundir as duas é o que custou caro aqui a semana inteira.
+  const mostradas = ofertas.map((o) => o.id);
+  if (mostradas.length) {
+    try {
+      await rsb(`oferta_destinos?conta_id=eq.${eu.conta_id}&oferta_id=in.(${mostradas.join(',')})&visto_em=is.null`, {
+        method: 'PATCH', body: JSON.stringify({ visto_em: new Date().toISOString() }),
+      });
+    } catch (e) {
+      // Coluna ausente (migration não rodada) cai aqui e não quebra nada.
+      console.error('[rede] não consegui marcar como visto:', e.message);
+    }
+  }
+
   const fila = {}; const meu = {}; const reservada = {};
   for (const i of interesses) {
     if (i.estado !== 'quer') continue;
@@ -335,7 +361,7 @@ async function minhasOfertas(req, res) {
   const [interesses, reservas, destinos] = await Promise.all([
     rsb(`interesses?oferta_id=in.(${ids.join(',')})&estado=eq.quer&select=oferta_id,conta_id,criado_em&order=criado_em.asc`),
     rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,para_conta_id,com_sinal,valor_sinal,motivo,criado_em`),
-    rsb(`oferta_destinos?oferta_id=in.(${ids.join(',')})&select=oferta_id`),
+    rsb(`oferta_destinos?oferta_id=in.(${ids.join(',')})&select=oferta_id,visto_em`),
   ]);
 
   const nomes = await nomesDe([...new Set(interesses.map((i) => i.conta_id))]);
@@ -352,6 +378,12 @@ async function minhasOfertas(req, res) {
       preco: o.preco, mensagem: o.mensagem, lista_id: o.lista_id, lista_nome: o.lista_nome,
       criado_em: o.criado_em, vitrine_em: o.vitrine_em,
       destinos: (dest[o.id] || []).length,
+      // Quantos ABRIRAM. "Ninguém quer" e "ninguém viu" pedem decisões
+      // opostas — a primeira é baixar o preço, a segunda é mandar de novo
+      // ou por outra lista. Só o NÚMERO sai daqui: QUEM viu é da loja que
+      // viu, e entregar isso transformaria o aviso de leitura numa lista
+      // de quem está olhando o mercado.
+      vistos: (dest[o.id] || []).filter((d) => d.visto_em).length,
       fila: (fila[o.id] || []).map((f) => ({
         conta_id: f.conta_id, nome: nomes[f.conta_id] || '—', criado_em: f.criado_em,
       })),
