@@ -13,6 +13,10 @@ o que ainda não foi feito.
 
 <!-- Escreva abaixo. Uma linha já basta. -->
 
+- **Catálogo de repasses para lojas**, separado do catálogo de estoque de
+  venda (ideia de 28/set, conversando com um amigo)
+- **RENAVE no sistema** — entrada e saída de veículo no estoque pelo
+  registro eletrônico do governo (28/set)
 
 
 ---

@@ -721,6 +721,7 @@ module.exports = async (req, res) => {
     const acao = String(req.query.rede || '');
     if (acao === 'ofertar' && req.method === 'POST') return rede.ofertar(sb, req, res);
     if (acao === 'feed'    && req.method === 'GET')  return rede.feed(req, res);
+    if (acao === 'vitrine' && req.method === 'GET')  return rede.vitrine(req, res);
     if (acao === 'quero'   && req.method === 'POST') return rede.quero(req, res);
     if (acao === 'fila'    && req.method === 'GET')  return rede.filaDaOferta(req, res);
     if (acao === 'minhas'  && req.method === 'GET')  return rede.minhasOfertas(req, res);

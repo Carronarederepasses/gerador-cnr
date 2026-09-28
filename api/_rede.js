@@ -98,7 +98,22 @@ const semSessao = (res) => res.status(401).json({
 //
 // Regra: a lista tem de ser minha. Mandar pela lista de outro seria usar
 // a agenda alheia.
-async function destinatarios(contaId, listaId) {
+async function destinatarios(contaId, listaId, grupoId) {
+  // ── Grupo ────────────────────────────────────────────────────────
+  // Caminho próprio, e ANTES do de contatos, porque num grupo o filtro
+  // "é meu contato?" não se aplica: no grupo as lojas se alcançam por
+  // estarem no grupo, não por se conhecerem. Exigir contato ali
+  // esvaziaria o grupo em silêncio para quem acabou de entrar.
+  if (grupoId) {
+    const g = await rsb(`grupos?id=eq.${grupoId}&select=id,nome&limit=1`);
+    if (!g.length) return { erro: 'Grupo não encontrado.' };
+    if (!(await souDoGrupo(grupoId, contaId))) return { erro: 'Grupo não encontrado.' };
+    const membros = await rsb(`grupo_membros?grupo_id=eq.${grupoId}&saiu_em=is.null&select=conta_id`);
+    // Os ids ficam aqui dentro e não saem em resposta nenhuma — a lista
+    // de participantes continua oculta, que é o diferencial do produto.
+    return { contas: membros.map((m) => m.conta_id).filter((c) => c !== contaId), grupo: g[0] };
+  }
+
   const contatos = await rsb(`contatos?conta_id=eq.${contaId}&estado=eq.ativo&select=contato_conta_id`);
   const ativos = new Set(contatos.map((x) => x.contato_conta_id));
   if (!listaId) return { contas: [...ativos], lista: null };
@@ -120,12 +135,23 @@ async function ofertar(sb, req, res) {
     return res.status(403).json({ error: 'Você não tem permissão para mandar carro para a lista.' });
   }
 
-  const { veiculo_id, horas_antes_da_vitrine, lista_id, mensagem } = req.body || {};
+  // `publico`: vai direto para o FEED da rede, sem destinatário nenhum.
+  // É outro movimento do negócio — a lista e o grupo são o carro quente,
+  // mandado para quem se escolheu; o feed é o carro que não saiu na hora
+  // e segue disponível, aberto para todo mundo (decisão do Yuri, 28/set:
+  // "tipo um autoavaliar, que as pessoas publiquem pra geral").
+  const { veiculo_id, horas_antes_da_vitrine, lista_id, grupo_id, mensagem, publico } = req.body || {};
   if (!UUID.test(String(veiculo_id || ''))) {
     return res.status(400).json({ error: 'veiculo_id inválido.' });
   }
   if (lista_id && !UUID.test(String(lista_id))) {
     return res.status(400).json({ error: 'lista_id inválido.' });
+  }
+  if (grupo_id && !UUID.test(String(grupo_id))) {
+    return res.status(400).json({ error: 'grupo_id inválido.' });
+  }
+  if (lista_id && grupo_id) {
+    return res.status(400).json({ error: 'Escolha a lista OU o grupo, não os dois.' });
   }
 
   // O carro é meu? Quem responde é o funil — `sb` já filtra por dono.
@@ -146,14 +172,19 @@ async function ofertar(sb, req, res) {
     });
   }
 
-  const alvo = await destinatarios(eu.conta_id, lista_id);
+  // No feed não há destinatário: o carro fica aberto e quem quiser
+  // levanta a mão. Por isso a checagem de "ninguém receberia" é pulada —
+  // ali ela impediria justamente o que se quer fazer.
+  const alvo = publico ? { contas: [], publico: true } : await destinatarios(eu.conta_id, lista_id, grupo_id);
   if (alvo.erro) return res.status(404).json({ error: alvo.erro });
   const destinos = alvo.contas;
-  if (!destinos.length) {
+  if (!publico && !destinos.length) {
     return res.status(400).json({
-      error: lista_id
-        ? 'Essa lista não tem ninguém que ainda seja seu contato.'
-        : 'Você ainda não tem contatos — ninguém receberia este carro.',
+      error: grupo_id
+        ? 'Você é o único no grupo — ninguém receberia este carro.'
+        : lista_id
+          ? 'Essa lista não tem ninguém que ainda seja seu contato.'
+          : 'Você ainda não tem contatos — ninguém receberia este carro.',
       codigo: 'lista_vazia',
     });
   }
@@ -180,11 +211,22 @@ async function ofertar(sb, req, res) {
         fipe:         Number(veic.fipe) || null,
         fotos:        Array.isArray(veic.fotos) ? veic.fotos.slice(0, 10) : [],
         observacoes:  veic.observacoes  || '',
+        // De qual GRUPO saiu, quando saiu de um. Vai em `dados` e não
+        // numa coluna porque é o primeiro caso que pede isso — texto
+        // primeiro, estrutura quando a ausência começar a limitar
+        // (Princípio da Estrutura Emergente, §6). O nome viaja junto
+        // pelo mesmo motivo do `lista_nome`: o grupo pode ser renomeado,
+        // e o histórico tem de continuar explicando por que o carro
+        // chegou.
+        grupo: alvo.grupo ? { id: alvo.grupo.id, nome: alvo.grupo.nome } : null,
       },
       // `null` = não abrir para a vitrine (é uma das opções da tela).
-      vitrine_em: Number.isFinite(horas) && horas > 0
-        ? new Date(Date.now() + horas * 3600e3).toISOString()
-        : null,
+      // Publicado no feed abre AGORA: é o movimento inteiro do gesto.
+      vitrine_em: publico
+        ? new Date().toISOString()
+        : (Number.isFinite(horas) && horas > 0
+            ? new Date(Date.now() + horas * 3600e3).toISOString()
+            : null),
       // De qual lista saiu. O NOME fica gravado junto: a lista pode ser
       // renomeada ou apagada, e o histórico tem de continuar explicando
       // por que aquele carro chegou.
@@ -198,10 +240,34 @@ async function ofertar(sb, req, res) {
 
   // Destino linha a linha, e não "foi para a lista": a lista muda, e o
   // feed de ontem de quem saiu não pode mudar junto.
-  await rsb('oferta_destinos', {
-    method: 'POST',
-    body: JSON.stringify(destinos.map((c) => ({ oferta_id: oferta.id, conta_id: c }))),
-  });
+  // Publicado no feed não tem destino nenhum — o PostgREST recusa lista
+  // vazia, então nem se chama.
+  if (destinos.length) {
+    await rsb('oferta_destinos', {
+      method: 'POST',
+      body: JSON.stringify(destinos.map((c) => ({ oferta_id: oferta.id, conta_id: c }))),
+    });
+  }
+
+  // No grupo, o carro também aparece NA CONVERSA do grupo, não só no
+  // feed de cada um — senão o grupo ficaria mudo justamente quando
+  // alguém posta um carro, que é para o que ele serve.
+  if (alvo.grupo) {
+    await rsb('mensagens_rede', {
+      method: 'POST',
+      body: JSON.stringify({
+        grupo_id: alvo.grupo.id,
+        de_conta_id: eu.conta_id,
+        de_usuario_id: eu.usuario_id,
+        texto: String(mensagem || '').trim().slice(0, 500)
+          || `${veic.marca || ''} ${veic.modelo || ''}`.trim() || 'Carro',
+        oferta_id: oferta.id,
+      }),
+    });
+    await rsb(`grupos?id=eq.${alvo.grupo.id}`, {
+      method: 'PATCH', body: JSON.stringify({ ultima_em: new Date().toISOString() }),
+    });
+  }
 
   // Avisa quem recebeu. Com  e nao fire-and-forget: a Vercel
   // encerra o worker ao responder, e o aviso morreria pela metade —
@@ -210,7 +276,79 @@ async function ofertar(sb, req, res) {
   const { avisarConta } = require('./_aviso');
   for (const c of destinos) await avisarConta(rsb, c, null);
 
-  return res.status(201).json({ ok: true, oferta_id: oferta.id, enviada_para: destinos.length });
+  return res.status(201).json({
+    ok: true, oferta_id: oferta.id, enviada_para: destinos.length,
+    publico: Boolean(publico),
+  });
+}
+
+// ── O FEED DA REDE ────────────────────────────────────────────────
+//
+// Esta é a ÚNICA leitura da rede que atravessa contas de propósito: o
+// feed é público dentro da rede, e é para isso que ele existe. Decisão
+// do Yuri em 28/set — "tipo um autoavaliar, que as pessoas publiquem pra
+// geral… os carros que não são vendidos na hora e estão disponíveis".
+//
+// A diferença para a lista e o grupo é o movimento do negócio, não a
+// tela: lista e grupo são o carro quente, mandado para quem se escolheu;
+// o feed é o carro parado, aberto para todos.
+//
+// O que atravessa é a MESMA fotografia que a lista já entrega — placa,
+// renavam, chassi e valor de compra não têm sequer coluna em `ofertas`,
+// então não vazam nem por descuido de um `select *`.
+//
+// Vai o NOME e a CIDADE da loja, decisão dele: sem saber de quem é o
+// carro, ninguém fecha negócio, e o feed viraria enfeite.
+async function vitrine(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeVerRede) {
+    return res.status(403).json({ error: 'Seu acesso não inclui o feed da rede.' });
+  }
+
+  const agora = new Date().toISOString();
+  const ofertas = await rsb(
+    `ofertas?estado=eq.aberta&vitrine_em=not.is.null&vitrine_em=lte.${agora}` +
+    `&select=id,conta_id,marca,modelo,ano,km,preco,cidade,uf,dados,mensagem,criado_em,vitrine_em` +
+    `&order=vitrine_em.desc&limit=100`
+  );
+  if (!ofertas.length) return res.status(200).json({ ofertas: [] });
+
+  const ids = ofertas.map((o) => o.id);
+  const [interesses, reservas, lojas] = await Promise.all([
+    rsb(`interesses?oferta_id=in.(${ids.join(',')})&estado=eq.quer&select=oferta_id,conta_id`),
+    rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,com_sinal`),
+    // `contas` não tem cidade — conferido, não suposto. A cidade que
+    // aparece é a DO CARRO (`ofertas.cidade`), que é a que interessa a
+    // quem vai buscar. Cidade da loja viraria coluna no dia em que uma
+    // loja anunciar carro de outra praça.
+    rsb(`contas?id=in.(${[...new Set(ofertas.map((o) => o.conta_id))].join(',')})&select=id,nome`),
+  ]);
+
+  const loja = {};
+  for (const l of lojas) loja[l.id] = l;
+  const fila = {}; const meu = {}; const reservada = {};
+  for (const i of interesses) {
+    fila[i.oferta_id] = (fila[i.oferta_id] || 0) + 1;
+    if (i.conta_id === eu.conta_id) meu[i.oferta_id] = true;
+  }
+  for (const r of reservas) reservada[r.oferta_id] = r.com_sinal ? 'sinal' : 'palavra';
+
+  return res.status(200).json({
+    ofertas: ofertas.map((o) => ({
+      id: o.id, marca: o.marca, modelo: o.modelo, ano: o.ano, km: o.km,
+      preco: o.preco, cidade: o.cidade, uf: o.uf, dados: o.dados,
+      mensagem: o.mensagem, criado_em: o.vitrine_em,
+      loja: (loja[o.conta_id] || {}).nome || '—',
+      // Para a tela saber se é meu: carro próprio não mostra "Quero",
+      // mostra quem levantou a mão.
+      minha: o.conta_id === eu.conta_id,
+      conta_id: o.conta_id === eu.conta_id ? o.conta_id : undefined,
+      na_fila: fila[o.id] || 0,
+      eu_quero: !!meu[o.id],
+      reservado: reservada[o.id] || null,
+    })),
+  });
 }
 
 // ── Chegou para ti ────────────────────────────────────────────────
@@ -301,12 +439,32 @@ async function quero(req, res) {
   const { oferta_id } = req.body || {};
   if (!UUID.test(String(oferta_id || ''))) return res.status(400).json({ error: 'oferta_id inválido.' });
 
+  // Dois caminhos legítimos para levantar a mão:
+  //   1. o carro foi mandado PARA MIM (lista ou grupo) — há linha em
+  //      `oferta_destinos`;
+  //   2. o carro está NO FEED, aberto para a rede toda.
+  // O segundo é a razão de o feed existir: sem ele, ver o carro no feed
+  // e não poder querer seria uma vitrine com a porta trancada.
+  // O carro é meu? Levantar a mão para o próprio carro não é erro de
+  // digitação — é o feed deixando a loja entrar na própria fila e
+  // estragar a ordem de chegada, que é o que a fila existe para guardar.
+  const dono = await rsb(`ofertas?id=eq.${oferta_id}&conta_id=eq.${eu.conta_id}&select=id&limit=1`);
+  if (dono.length) {
+    return res.status(400).json({ error: 'Este carro é seu.', codigo: 'carro_proprio' });
+  }
+
   const destino = await rsb(
     `oferta_destinos?oferta_id=eq.${oferta_id}&conta_id=eq.${eu.conta_id}&select=oferta_id&limit=1`
   );
-  // Mesma resposta de "não existe": dizer "não é para você" confirmaria
-  // que a oferta existe.
-  if (!destino.length) return res.status(404).json({ error: 'Oferta não encontrada.' });
+  if (!destino.length) {
+    const publica = await rsb(
+      `ofertas?id=eq.${oferta_id}&estado=eq.aberta&vitrine_em=not.is.null` +
+      `&vitrine_em=lte.${new Date().toISOString()}&select=id&limit=1`
+    );
+    // Mesma resposta de "não existe": dizer "não é para você" confirmaria
+    // que a oferta existe.
+    if (!publica.length) return res.status(404).json({ error: 'Oferta não encontrada.' });
+  }
 
   // `on_conflict` porque a mesma loja levantando a mão duas vezes é toque
   // repetido, não erro — e a hora que vale é a primeira.
@@ -376,6 +534,10 @@ async function minhasOfertas(req, res) {
     ofertas: ofertas.map((o) => ({
       id: o.id, marca: o.marca, modelo: o.modelo, ano: o.ano, km: o.km,
       preco: o.preco, mensagem: o.mensagem, lista_id: o.lista_id, lista_nome: o.lista_nome,
+      // Para quem MANDOU: de qual grupo saiu. Só o nome do grupo, nunca
+      // quem está nele.
+      grupo_id:   o.dados && o.dados.grupo ? o.dados.grupo.id   : null,
+      grupo_nome: o.dados && o.dados.grupo ? o.dados.grupo.nome : null,
       criado_em: o.criado_em, vitrine_em: o.vitrine_em,
       destinos: (dest[o.id] || []).length,
       // Quantos ABRIRAM. "Ninguém quer" e "ninguém viu" pedem decisões
@@ -1011,6 +1173,25 @@ async function abrirGrupo(req, res) {
   // pode vazar.
   const quantos = (await rsb(`grupo_membros?grupo_id=eq.${id}&saiu_em=is.null&select=grupo_id`)).length;
 
+  // Carro postado no grupo aparece COMO CARRO na conversa, não como uma
+  // linha de texto. A fotografia é a mesma que o feed já mostra a quem
+  // recebeu — nada além dela atravessa, e quem está no grupo já recebeu
+  // este carro de qualquer forma.
+  const idsOferta = [...new Set(msgs.map((m) => m.oferta_id).filter(Boolean))];
+  const carros = {};
+  if (idsOferta.length) {
+    const os = await rsb(`ofertas?id=in.(${idsOferta.join(',')})&select=id,marca,modelo,ano,km,preco,cidade,dados,estado`);
+    const meusInteresses = await rsb(`interesses?oferta_id=in.(${idsOferta.join(',')})&conta_id=eq.${eu.conta_id}&estado=eq.quer&select=oferta_id`);
+    const quero = new Set(meusInteresses.map((i) => i.oferta_id));
+    for (const o of os) {
+      carros[o.id] = {
+        id: o.id, marca: o.marca, modelo: o.modelo, ano: o.ano, km: o.km,
+        preco: o.preco, cidade: o.cidade, dados: o.dados,
+        eu_quero: quero.has(o.id),
+      };
+    }
+  }
+
   await rsb(`mensagens_rede?grupo_id=eq.${id}&de_conta_id=neq.${eu.conta_id}&lida_em=is.null`, {
     method: 'PATCH', body: JSON.stringify({ lida_em: new Date().toISOString() }),
   }).catch(() => {});
@@ -1020,6 +1201,7 @@ async function abrirGrupo(req, res) {
     participantes: quantos,     // só o número. A lista não sai daqui.
     mensagens: msgs.map((m) => ({
       id: m.id, texto: m.texto, oferta_id: m.oferta_id, criado_em: m.criado_em,
+      carro: m.oferta_id ? (carros[m.oferta_id] || null) : null,
       minha: m.de_conta_id === eu.conta_id,
       // O autor aparece — é o que permite chamar no privado. Quem nunca
       // fala nunca aparece, e é essa a proteção.
@@ -1232,7 +1414,7 @@ async function novidades(req, res) {
 }
 
 module.exports = {
-  ofertar, feed, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
+  ofertar, feed, vitrine, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
   assinarAviso, novidades,
   listas, solicitar, responder, sairOuRemover,
   verListasTransmissao, mexerNaLista, membrosDaLista,
