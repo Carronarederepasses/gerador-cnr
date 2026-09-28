@@ -6880,3 +6880,119 @@ está resolvido pelo dono em cada linha.
   `scratchpad/limpa-demo.js` quando ele mandar.
 
 *Registrado em 27 de setembro de 2026, madrugada.*
+
+## Checkpoint — 28 de setembro de 2026
+
+### O feed da rede — e a correção do Yuri no meio do caminho
+
+Eu tinha entendido "feed" como a tela **Chegou para mim**, e comecei a fazer
+carro de grupo cair lá. Ele corrigiu no meio:
+
+> *"As postagens do feed devem ser o estoque da galera, não carros de
+> grupo/lista de transmissão."*
+
+E depois explicou o modelo: *"tipo um autoavaliar, que as pessoas publiquem
+pra geral… os carros que não são vendidos na hora e estão disponíveis."*
+
+**São dois movimentos diferentes do negócio, não duas telas:**
+
+| | |
+|---|---|
+| **Lista e grupo** | o carro quente, mandado para quem se escolheu. Privado |
+| **Feed** | o carro parado, que segue disponível. Aberto para a rede |
+
+Construído: `?rede=vitrine` (a **única** leitura da rede que atravessa contas,
+com o porquê escrito no código), publicar via `ofertar({publico:true})`, e o
+`quero` passando a aceitar carro do feed — antes exigia linha em
+`oferta_destinos`, então dava para ver o carro e não dava para querer, uma
+vitrine de porta trancada. E recusa o **carro próprio**: o dono entrar na
+própria fila estragaria a ordem de chegada, que é o que a fila guarda.
+
+**8 de 8 contra produção, com duas lojas.** Os dois que valem: carro **não
+publicado** não aparece no feed de ninguém, e **placa, renavam e valor de
+compra não atravessam** — conferido procurando o valor e a placa do carro de
+teste dentro do JSON cru, não só nos campos.
+
+#### Manual, não automático — segunda decisão dele
+
+Testando, descobri que **4 carros já estavam no feed sozinhos**: toda oferta
+nascia com "abre para a vitrine em 6 horas". Ele escolheu **manual**.
+
+O motivo importa mais que o conserto: com a regra automática, um carro mandado
+para a **lista de confiança** virava público sozinho e a loja descobria depois.
+O feed passou a ser **ato da loja**, nunca consequência de ter mandado para
+alguém. `horas_antes_da_vitrine` saiu inteiro — parâmetro morto é armadilha
+para quem mexer nisso depois achando que ainda liga alguma coisa.
+
+As 4 ofertas voltaram a `vitrine_em = null`. Só isso: destinos, fila e
+histórico intactos, conferido **depois** de escrever e não pelo HTTP 204.
+
+#### Veio junto: carro em grupo
+
+Mandar carro dentro de um grupo passou a existir — reusa destinos, fila,
+vistos e aviso, e a lista de participantes continua só no servidor. No grupo o
+carro aparece como **cartão**, não como linha de texto.
+
+### CNPJ: parado por decisão dele
+
+> *"Preciso esperar as eleições, muita coisa mudará em janeiro… talvez abra um
+> CNPJ somente para as consultas."*
+
+**Não voltar ao assunto.** Ficam travadas por isso, e está tudo bem:
+consulta veicular camada 2, integrador de anúncios e RENAVE.
+
+### O que eu tinha registrado errado sobre o integrador
+
+Em 03/set escrevi que *"a documentação não menciona exigência de CNPJ"* para o
+integrador da OLX. **Está errado.** A regra está na central de ajuda deles:
+anunciante que precise de integração tem de contratar **plano para Empresas**,
+e para **vendedor autônomo não é permitido** usar a API. Não é exigência no
+cadastro do integrador — é o **plano da conta** que libera ou não.
+
+**RENAVE**, pesquisado no mesmo dia: CNPJ ativo com atividade de comércio de
+veículos, **certificado digital e-CNPJ A1** (ICP-Brasil), credenciamento pelo
+portal Credencia, e a loja ainda precisa **contratar um integrador autorizado
+pelo Senatran** — ela não fala direto com o RENAVE.
+
+### O sistema do amigo (SIG / Litoral Car) — o que dá para aproveitar
+
+Ele mandou um print. A tela de abertura é **"Veículos entrando na troca
+(COMPLETAR CADASTRO)"**: 17 carros parados, com datas de **26/10/2024 a
+22/05/2025**. Carro parado há sete meses, alguns sem cor, um com placa `0000`.
+
+**Terceira confirmação, agora por dentro**, do que a pesquisa de 05/set e a
+Auto Avaliar em 12/set já diziam: o mercado inteiro começa com o carro **já
+dentro da loja**. Ninguém capta de pessoa física.
+
+Preço: o SIG **não publica**. O amigo acha que paga ~R$ 400 e não sabe o que
+está incluso. A régua de quem publica: Moovyi R$ 150 / 433 / 580, Autoconf a
+partir de R$ 299, faixa alta R$ 700–1.200. **Os R$ 400 caem no meio.**
+Observação que pode explicar a dúvida dele: **Litoral Car é o portal de
+classificados de SC, não a fabricante** — o boleto provavelmente junta
+sistema + portal + mídia social.
+
+**A lição da tela é ao contrário do que ela mostra.** Aquela lista é o sistema
+acumulando dívida e exibindo a fatura; ela só cresce. O Gerador já faz melhor
+num ponto, por acidente: ao tentar mandar carro sem preço de repasse, ele
+**recusa e diz o que falta** — pede o dado no momento em que ele importa. O
+que vale copiar não é a tela, é a pergunta que ela responde, mostrando **três
+linhas no Painel, não dezessete**.
+
+### Assinador de contrato: começado e parado por ele
+
+Eu tinha recomendado como próximo passo. Ele parou:
+
+> *"A parte de contrato é particular de cada loja. Acho que isso temos que
+> deixar à parte."*
+
+**Ele está certo**, e o argumento é o do produto: as cláusulas, quem responde
+pelo quê e como a comissão entra mudam de loja para loja. Construído agora, o
+mecanismo nasceria colado **no contrato do Yuri**, e o Bruno usaria o texto
+dele com outro nome em cima. Some-se que contrato é prioridade baixa declarada
+por ele desde 15/ago (§9.3) — ele opera como PF.
+
+Nada foi rodado. O arquivo de banco foi **apagado** em vez de ficar de
+lembrança, e o raciocínio (o que a lei pede virando coluna, e o contrato ter
+de ser congelado em texto) foi para o `IDEIAS.md`.
+
+*Registrado em 28 de setembro de 2026.*
