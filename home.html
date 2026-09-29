@@ -208,6 +208,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .parado-dias.crit{background:color-mix(in srgb,var(--severity-crit) 15%,transparent);color:var(--severity-crit)}
 .parado-link{font-size:.72rem;color:var(--accent);text-decoration:none;flex-shrink:0}
 
+/* Resolver antes — mesma linha dos carros parados, com o motivo embaixo.
+   No celular o motivo cai para a linha de baixo em vez de espremer o nome. */
+.pend-row{display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.pend-row:last-child{border-bottom:none}
+.pend-txt{flex:1;min-width:0}
+.pend-tit{font-size:.84rem;font-weight:600}
+.pend-sub{font-size:.72rem;color:var(--text-mid);margin-top:.1rem}
+.pend-link{font-size:.72rem;color:var(--accent);text-decoration:none;flex-shrink:0}
+.pend-link:hover{text-decoration:underline}
+
 /* Capital de Conhecimento */
 .kcr-grid{display:flex;flex-direction:column;gap:.15rem}
 
@@ -270,6 +280,17 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   <!-- Atalho para marcar quando ainda não há nada na agenda -->
   <div style="text-align:center;margin-bottom:1.4rem" id="ag-atalho-vazio">
     <button class="ag-add solto" onclick="agAbrirForm()">📅 Marcar uma avaliação</button>
+  </div>
+
+  <!-- Resolver antes (29/set) — só BLOQUEIO, nunca cobrança de
+       preenchimento. A diferença é o que separa isto da lista de 17 carros
+       "COMPLETAR CADASTRO" do sistema do amigo do Yuri: aquela lista só
+       cresce e vira paisagem; esta some quando não há nada travado.
+       Foi por isso também que o bloco "Capital de Conhecimento" saiu do
+       Painel em 28/set — campo vazio não é pendência. -->
+  <div class="secao" id="secao-pendencias" style="display:none">
+    <div class="secao-titulo">⚠️ Resolver antes</div>
+    <div id="pendencias-lista"></div>
   </div>
 
   <!-- Acesso rápido — subiu para cá em 11/set, a pedido do Yuri.
@@ -600,6 +621,86 @@ async function carregarCatalogo() {
       secao.style.display = '';
       listaEl.innerHTML = '<div class="vazio">Não consegui ler o catálogo agora.</div>';
     }
+  }
+}
+
+// ── Resolver antes (29/set) ──────────────────────────────────────
+// Ideia do Yuri, olhando a tela de abertura do sistema de um amigo: 17
+// carros listados como "COMPLETAR CADASTRO", parados desde 2024. Aquela
+// lista só cresce, e por isso ninguém olha mais.
+//
+// A regra aqui é uma só: entra o que IMPEDE uma ação, nunca o que está
+// apenas vazio. Carro sem preço de repasse não pode ir para a rede — isso
+// é bloqueio. Cliente sem faixa de preço é campo vazio, e campo vazio não
+// é pendência (foi o motivo de o bloco "Capital de Conhecimento" sair do
+// Painel em 28/set).
+//
+// Não faz chamada nova: `buscar` guarda a promessa, então reaproveita o
+// catálogo e as vendas que o resto da tela já pede.
+async function carregarPendencias() {
+  const secao = document.getElementById('secao-pendencias');
+  const lista = document.getElementById('pendencias-lista');
+  try {
+    const [carros, negs] = await Promise.all([
+      buscar('/api/catalogo'),
+      fetch('/api/compradores?neg=1').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
+    ]);
+
+    const disp = (Array.isArray(carros) ? carros : []).filter(v => v.status === 'disponivel');
+    const nomeDe = v => [v.marca, v.versao || v.modelo].filter(Boolean).join(' ') || 'Veículo';
+
+    // Um carro: diz QUAL é e leva direto nele — é a diferença entre avisar e
+    // resolver. Vários: leva para a lista, porque nomear seis não cabe.
+    const linha = (itens, tit1, titN, motivo, href) => {
+      if (!itens.length) return '';
+      const um = itens.length === 1;
+      return `<div class="pend-row">
+        <div class="pend-txt">
+          <div class="pend-tit">${um ? tit1(itens[0]) : titN(itens.length)}</div>
+          <div class="pend-sub">${motivo}</div>
+        </div>
+        <a class="pend-link" href="${um ? href(itens[0]) : href(null)}">resolver →</a>
+      </div>`;
+    };
+
+    const semPreco = disp.filter(v => v.valor == null || v.valor === '' || Number(v.valor) === 0);
+    const semFoto  = disp.filter(v => !Array.isArray(v.fotos) || v.fotos.length === 0);
+    const semProva = (Array.isArray(negs) ? negs : []).filter(n =>
+      n.status === 'reservado' && n.valor_sinal != null && Number(n.valor_sinal) > 0 &&
+      (!Array.isArray(n.anexos) || n.anexos.length === 0)
+    );
+
+    const html = [
+      linha(semPreco,
+        v => `${nomeDe(v)} está sem preço de repasse`,
+        n => `${n} carros sem preço de repasse`,
+        'Sem ele o carro não pode ser mandado para a rede nem virar story',
+        v => v ? `/catalogo.html?id=${v.id}` : '/catalogo.html'),
+      linha(semFoto,
+        v => `${nomeDe(v)} está sem foto`,
+        n => `${n} carros sem foto`,
+        'O cartão da rede e o story precisam de pelo menos uma',
+        v => v ? `/catalogo.html?id=${v.id}` : '/catalogo.html'),
+      linha(semProva,
+        n => `${n.veiculo_nome || 'Carro'} está travado sem comprovante`,
+        n => `${n} carros travados sem comprovante`,
+        'O sinal foi recebido e a prova da reserva não está anexada',
+        () => '/negociacoes.html'),
+    ].join('');
+
+    if (html) { secao.style.display = ''; lista.innerHTML = html; }
+    // Esvazia ao esconder: bloco oculto com linha velha dentro reaparece
+    // mentindo no dia em que alguém mostrar a seção por outro motivo.
+    else      { secao.style.display = 'none'; lista.innerHTML = ''; }
+  } catch (e) {
+    // "Não consegui conferir" é diferente de "não há nada travado", e
+    // esconder o bloco diria a segunda coisa. Este é o falso sucesso que
+    // mais custou caro neste projeto.
+    secao.style.display = '';
+    lista.innerHTML = '<div class="pend-row"><div class="pend-txt">'
+      + '<div class="pend-tit">Não consegui conferir as pendências agora</div>'
+      + '<div class="pend-sub">Recarregue a página. Isto não quer dizer que não há nada travado.</div>'
+      + '</div></div>';
   }
 }
 
@@ -1121,6 +1222,7 @@ function agParaCelular(id) {
 
 agCarregar();
 carregarCatalogo();
+carregarPendencias();
 carregarVendas();
 carregarRelatorio();
 carregarNegociacoes();
