@@ -24,6 +24,11 @@ o que ainda não foi feito.
   não dá para mandar para a rede", com link. Poucas linhas e no lugar
   certo, ao contrário da lista de 17 carros parados do SIG (28/set)
 
+- **Cidade vem suja da extensão** — em 13 de 200 anúncios a `localizacao`
+  veio com a data grudada ("GaropabaHoje, 13:13"). A TELA já limpa desde
+  29/set, então não atrapalha o uso; consertar em `olx-search.js` evitaria
+  a sujeira na origem, mas exige recarregar a extensão nas duas máquinas.
+
 - **Assinar o contrato dentro do sistema** — ADIADO por decisão do Yuri
   em 28/set: *"a parte de contrato é particular de cada loja"*. Começou
   a ser desenhado e parou antes de rodar qualquer coisa.

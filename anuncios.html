@@ -68,6 +68,12 @@
   .filtro-btn:hover{border-color:var(--text);color:var(--text)}
   .filtro-btn.ativo{background:var(--text);color:var(--surface);border-color:var(--text)}
   .filtro-btn .cnt{font-size:.72rem;margin-left:.3rem;opacity:.75}
+  /* A segunda linha de filtros é mais discreta que a de status: ela
+     ajusta a vista, não escolhe o trabalho. */
+  .filtro-bar-2{margin-top:-.7rem;margin-bottom:.9rem;align-items:center}
+  .filtro-bar-2 .filtro-btn{font-size:.73rem;padding:.3rem .7rem}
+  .filtro-rot{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--text-faint);font-weight:700;margin-right:.15rem}
   .filtro-btn.fila-dia-btn{border-color:var(--accent);color:var(--accent)}
   /* color: var(--surface), não #fff. No tema escuro o acento é branco, e
      branco sobre branco some. Mesmo defeito da faixa de vendas.html. */
@@ -208,6 +214,21 @@
     <button class="filtro-btn" data-status="autorizado">Autorizados<span class="cnt" id="cnt-autorizado"></span></button>
     <button class="filtro-btn" data-status="morto">Ignorados<span class="cnt" id="cnt-morto"></span></button>
   </div>
+
+  <!-- Segunda linha: ORDEM e CIDADE. Separada da de status de propósito —
+       a de cima diz QUAIS anúncios aparecem, esta diz em que ordem e de
+       onde. Misturar as duas numa fila só faria parecer que "Garopaba" e
+       "Novos" são a mesma escolha, e elas se combinam. -->
+  <div class="filtro-bar filtro-bar-2" id="ordem-bar">
+    <span class="filtro-rot">Ordem</span>
+    <button class="filtro-btn ativo" data-ordem="recente">Mais recente</button>
+    <button class="filtro-btn" data-ordem="barato">Mais barato</button>
+    <button class="filtro-btn" data-ordem="km">Menos km</button>
+  </div>
+  <!-- As cidades saem dos próprios anúncios, não de uma lista escrita à
+       mão: o Yuri cria e apaga busca no Radar, e uma lista fixa aqui
+       envelheceria calada. -->
+  <div class="filtro-bar filtro-bar-2" id="busca-bar"></div>
 
   <div class="meta-linha">
     <span id="meta-total"></span>
@@ -659,7 +680,7 @@ function cardHTML(a) {
       <div class="card-meta">
         ${chipHoje ? `<span>${chipHoje}</span>` : ''}
         ${fichaChips}
-        ${a.localizacao ? `<span>📍 ${esc(a.localizacao)}</span>` : ''}
+        ${a.localizacao ? `<span>📍 ${esc(soCidade(a.localizacao))}</span>` : ''}
         ${a.operador ? `<span class="meta-operador">👤 ${esc(a.operador)}</span>` : ''}
         <span>OLX</span>
         <span>Encontrado ${foundAgo}</span>
@@ -675,6 +696,67 @@ function cardHTML(a) {
 }
 
 // ── Renderizar grid ───────────────────────────────────────────────
+// A cidade vem suja em 13 dos 200 anúncios: a extensão capturou a data
+// grudada no nome — "GaropabaHoje, 13:13", "Garopaba, 19:36". É defeito
+// de captura, mas limpar aqui conserta os que JÁ estão no banco, e o
+// banco guarda o que a OLX mostrou, que é o certo para o histórico.
+//
+// Corta no primeiro sinal de data ou hora. Conservador de propósito: se
+// não reconhecer, devolve o texto como veio — cidade escrita de um jeito
+// que eu não previ é melhor inteira do que cortada pela metade.
+function soCidade(txt) {
+  return String(txt || '')
+    .split(/Hoje|Ontem|\b(?:seg|ter|qua|qui|sex|sáb|dom)[a-zç-]*\b|\d{1,2}\/\d{1,2}|,?\s*\d{1,2}:\d{2}/i)[0]
+    .replace(/[,\s]+$/, '')
+    .trim() || String(txt || '');
+}
+
+// ── Ordem e cidade (29/set) ───────────────────────────────────────
+// O radar traz mais do que dá para abordar num dia: em 29/set eram 200
+// anúncios, 166 ainda intocados. A lista precisava de ordem e de recorte
+// por cidade — sem isso, escolher qual abrir é olhar um por um.
+let ordem = 'recente';
+let buscaSel = 'todas';
+
+// `preco` é TEXTO no banco ("R$ 33.000"), de origem: é o que a OLX
+// mostra, e guardar o texto preserva o que foi visto. Para ordenar, lê-se
+// o número aqui — sem número, o anúncio vai para o fim em vez de virar
+// zero e fingir que é o mais barato do mundo.
+function precoNum(a) {
+  const n = String(a.preco || '').replace(/[^\d]/g, '');
+  return n ? Number(n) : Infinity;
+}
+function kmNum(a) {
+  return Number.isFinite(Number(a.km)) && a.km !== null ? Number(a.km) : Infinity;
+}
+
+function ordenar(lista) {
+  const copia = [...lista];
+  if (ordem === 'barato') return copia.sort((a, b) => precoNum(a) - precoNum(b));
+  if (ordem === 'km')     return copia.sort((a, b) => kmNum(a) - kmNum(b));
+  return copia.sort((a, b) =>                       // mais recente primeiro
+    String(b.first_seen_at || '').localeCompare(String(a.first_seen_at || '')));
+}
+
+// Os botões de cidade nascem dos anúncios que existem. Busca apagada no
+// Radar some daqui sozinha; busca nova aparece sem eu tocar em nada.
+function desenharBuscas() {
+  const contagem = {};
+  for (const a of TODOS) {
+    if (a.status === 'morto') continue;            // "Todos" já os esconde
+    const nome = a.search_name || '(sem busca)';
+    contagem[nome] = (contagem[nome] || 0) + 1;
+  }
+  const nomes = Object.keys(contagem).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  // Com uma cidade só, a fileira não oferece escolha nenhuma — some.
+  const bar = document.getElementById('busca-bar');
+  if (nomes.length < 2) { bar.innerHTML = ''; return; }
+  bar.innerHTML = '<span class="filtro-rot">Cidade</span>'
+    + `<button class="filtro-btn ${buscaSel === 'todas' ? 'ativo' : ''}" data-busca="todas">Todas</button>`
+    + nomes.map((n) => `<button class="filtro-btn ${buscaSel === n ? 'ativo' : ''}" data-busca="${esc(n)}">`
+        + `${esc(n)}<span class="cnt">${contagem[n]}</span></button>`).join('');
+}
+
 function renderGrid() {
   // Fix 43.7: ao re-renderizar, seções de resposta somem — resetar cache de msgs
   replyMsgCarregado.clear();
@@ -695,6 +777,13 @@ function renderGrid() {
   let lista = filtro === 'todos'    ? TODOS.filter((a) => a.status !== 'morto')
             : filtro === 'fila-dia' ? TODOS.filter((a) => a.status === 'novo' && isRecente(a))
             : TODOS.filter((a) => a.status === filtro);
+
+  // Cidade, depois ordem. Nessa sequência: ordenar o que vai ser
+  // descartado logo em seguida é trabalho jogado fora.
+  if (buscaSel !== 'todas') {
+    lista = lista.filter((a) => (a.search_name || '(sem busca)') === buscaSel);
+  }
+  lista = ordenar(lista);
 
   // 🔥 Cards com RESPOSTA NOVA sobem ao topo no filtro Responderam
   if (filtro === 'respondeu' && AUTO_RESPONDIDOS.size > 0) {
@@ -791,6 +880,7 @@ async function carregar() {
   atualizarContadores();
   atualizarMetricas();
   atualizarDesempenho();
+  desenharBuscas();     // as cidades saem dos anúncios que chegaram
   renderGrid();
 
   const total = TODOS.length;
@@ -1512,14 +1602,27 @@ function _traduzirErroResposta(err) {
 }
 
 // ── Filtros ──────────────────────────────────────────────────────
-document.getElementById('filtro-bar').addEventListener('click', (e) => {
-  const btn = e.target.closest('.filtro-btn');
-  if (!btn) return;
-  document.querySelectorAll('.filtro-btn').forEach((b) => b.classList.remove('ativo'));
-  btn.classList.add('ativo');
-  filtro = btn.dataset.status;
-  renderGrid();
-});
+// `barra.querySelectorAll` e não `document.querySelectorAll`: com três
+// fileiras de botões na tela, limpar o `ativo` do documento inteiro
+// apagaria o destaque das outras duas a cada clique. Elas são escolhas
+// independentes e se combinam — "Novos, de Garopaba, mais barato".
+function ligarBarra(id, aplicar) {
+  const barra = document.getElementById(id);
+  barra.addEventListener('click', (e) => {
+    const btn = e.target.closest('.filtro-btn');
+    if (!btn) return;
+    barra.querySelectorAll('.filtro-btn').forEach((b) => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    aplicar(btn);
+    renderGrid();
+  });
+}
+
+ligarBarra('filtro-bar', (btn) => { filtro = btn.dataset.status; });
+ligarBarra('ordem-bar',  (btn) => { ordem  = btn.dataset.ordem; });
+// A fileira de cidades é redesenhada a cada carga, então o clique fica
+// nela mesma e não nos botões — eles vão e vêm.
+ligarBarra('busca-bar',  (btn) => { buscaSel = btn.dataset.busca; });
 
 // ── Init ─────────────────────────────────────────────────────────
 // Antes de carregar a lista: se o servidor responder, a mensagem vem de lá.
