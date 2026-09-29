@@ -127,7 +127,25 @@
     }
 
     return original(entrada, init).then(function (r) {
-      if (r.status === 401) avisar();
+      // NEM TODO 401 É "aparelho não liberado". São dois:
+      //
+      //   sem_chave  → este navegador não tem liberação. O aviso serve.
+      //   sem_sessao → tem liberação, mas a tela pede entrada por
+      //                telefone. A Rede é assim de propósito: a chave de
+      //                aparelho não diz de que loja a pessoa é.
+      //
+      // Tratar os dois igual fez a tela da Rede dizer ao Yuri, no
+      // notebook dele, que o aparelho não estava liberado — e estava
+      // (29/set). Ele tinha entrado pelo telefone no CELULAR, então a
+      // sessão vivia lá. O aviso mandava resolver o problema errado.
+      //
+      // `clone()` porque ler o corpo aqui consumiria a resposta e quem
+      // chamou receberia um corpo vazio.
+      if (r.status === 401) {
+        r.clone().json()
+          .then(function (d) { if (!d || d.codigo !== 'sem_sessao') avisar(); })
+          .catch(function () { avisar(); });   // 401 sem corpo: trata como falta de chave
+      }
       return r;
     });
   };
