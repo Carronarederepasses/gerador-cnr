@@ -701,14 +701,27 @@ function cardHTML(a) {
 // de captura, mas limpar aqui conserta os que JÁ estão no banco, e o
 // banco guarda o que a OLX mostrou, que é o certo para o histórico.
 //
+// GÊMEA DECLARADA de `cidadeDoCard()` em `content/olx-search.js` da
+// extensão, desde 29/set: esta limpa o que já está gravado, aquela limpa
+// na origem. `scripts/checa-cidade.js` roda as duas lado a lado e falha se
+// discordarem. Mexeu numa, mexe na outra.
+//
 // Corta no primeiro sinal de data ou hora. Conservador de propósito: se
 // não reconhecer, devolve o texto como veio — cidade escrita de um jeito
 // que eu não previ é melhor inteira do que cortada pela metade.
+// O dia da semana só conta ESCRITO POR INTEIRO e com fronteira dos dois
+// lados. A regra antiga era `(?:seg|ter|qua|qui|sex|sáb|dom)[a-zç-]*` e
+// comia cidade de verdade: **"Porto Seguro" virava "Porto"**. Achado pelo
+// `scripts/checa-cidade.js` ao comparar as duas metades, não em uso — e o
+// app é nacional por decisão do Yuri, então cidade de fora da região dele
+// é caso normal, não exceção.
 function soCidade(txt) {
-  return String(txt || '')
-    .split(/Hoje|Ontem|\b(?:seg|ter|qua|qui|sex|sáb|dom)[a-zç-]*\b|\d{1,2}\/\d{1,2}|,?\s*\d{1,2}:\d{2}/i)[0]
+  const cru = String(txt || '').replace(/[·•|]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const cortado = cru
+    .split(/Hoje|Ontem|\b(?:segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)\b|\d{1,2}\/\d{1,2}|,?\s*\d{1,2}:\d{2}/i)[0]
     .replace(/[,\s]+$/, '')
-    .trim() || String(txt || '');
+    .trim();
+  return cortado || cru;
 }
 
 // ── Ordem e cidade (29/set) ───────────────────────────────────────
