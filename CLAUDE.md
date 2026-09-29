@@ -7093,3 +7093,106 @@ Captar por ser a mais usada (decisão dele em 07/set) e virou a quarta.
   barra lateral.
 
 *Registrado em 28 de setembro de 2026, noite.*
+
+---
+
+## Checkpoint — 29 de setembro de 2026
+
+### O modelo do anúncio deixou de ser meu
+
+Pedido dele: *"temos como criar um jeito de que cada usuário padronize seus
+textos de anúncios do whatsapp?"* — e a decisão do formato foi dele:
+*"deve ser livre, cada um padroniza do jeito que achar melhor. E dentro do
+que eles escolherem, faz a leitura e salva como padrão do usuário."*
+
+Não é um formulário com opções ligadas e desligadas: é **texto livre com
+marcadores**. `{veiculo}`, `{valor}`, `{fipe}`, `{opcionais}`… O lojista
+escreve a abertura, a ordem e o fecho que quiser, e o sistema preenche.
+
+| | |
+|---|---|
+| `assets/modelo-anuncio.js` (novo) | o motor: `montar`, `normalizar`, `PADRAO`, `MARCADORES` |
+| `api/utils.js?type=modelo` | GET/POST por loja, coluna `contas.modelo_anuncio` |
+| `modelo.html` (novo) | a tela |
+| `captacao.html` / `parceiros.html` | os dois montadores passam a entregar **blocos**, e o motor decide a ordem |
+
+**A regra que faz o texto livre funcionar:** marcador sem valor **apaga a
+linha inteira**, não deixa buraco nem `{gastos}` solto. Sem isso, carro sem
+gastos sairia com uma linha em branco no meio ou com a etiqueta crua.
+
+**O campo nasce vazio de propósito.** Vazio quer dizer *"uso o padrão do
+sistema"*. Escrever o padrão dentro da caixa faria a pessoa achar que já
+personalizou quando não personalizou — e aí "Voltar ao padrão" não teria
+sentido nenhum.
+
+#### A regressão que o teste pegou antes de subir
+
+O `PADRAO` que escrevi omitia a linha em branco entre o veículo e a
+localização. **2 dos 7 casos saíram diferentes do texto de hoje.** Corrigido,
+10/10. É o motivo de existir teste comparando com a saída antiga: a tela nova
+não pode mudar o anúncio de quem não pediu para mudar nada.
+
+#### A tela, e o que ele especificou
+
+> *"Talvez colocar um campo 'Digite aqui seu padrão de anuncio para ser
+> memorizado', aí coloca um ícone que clicando e/ou passando o mouse por
+> cima, se torna autoexplicativo."*
+
+Feito assim: `title` no mouse, e o **clique abre o texto inteiro** — porque
+no celular não existe passar o mouse, então o clique tem de bastar sozinho.
+Marcadores entram **onde o cursor está**, não no fim: quem escreve no meio do
+texto não quer o marcador lá embaixo. Prévia ao vivo ao lado, com o negrito
+renderizado como o WhatsApp mostra.
+
+**Atalho "Modelo" no cabeçalho do preview** da Captação e do Parceiros. Só no
+menu ninguém acharia — o lugar de achar é onde o formato é visto.
+
+Conferido no navegador, incluindo **o caminho até a tela**: ajuda abre no
+clique, marcador entra na posição do cursor, prévia muda enquanto digita,
+salvar volta na recarga e **chega em `CNR_MODELO_LOJA` do Parceiros** (gerei
+um anúncio com o padrão inventado e ele saiu no formato novo), sem rolagem
+horizontal a 420px, e as duas telas abrem o Modelo pelo atalho e pelo menu.
+
+> Foi por causa de quatro tropeços meus nesta sessão — testar a função e não
+> o caminho até ela. Aqui o caminho foi exercitado clique a clique.
+
+#### Para quem é, de fato
+
+Ele fechou a questão: *"meu padrão já está montado"*. Está certo — **o padrão
+que está no código é o dele**, montado a partir dos anúncios dele. A tela não
+muda nada para ele enquanto o campo ficar vazio.
+
+Ela existe para o Bruno e para quem vier, que é exatamente o pedido original.
+E serve a ele no dia de um ajuste pontual, sem mexer em código.
+
+Commits: `bd7bb5c` (motor + endpoint), `275765b` (tela + atalhos).
+
+### O resto do dia
+
+- **Convite por link** — `?type=convite` cria conta, usuário e sessão de uma
+  vez. `podeConvidar()` restringe à loja dona da instalação por enquanto.
+  Link do **Fabio Nogueira** gerado e enviado.
+- **Painel** — 10 blocos viraram 5, menus em ordem alfabética, bloco de
+  convite. (Registrado em 28/set, noite.)
+- **Anúncios** — barra de ORDEM (recente/barato/km) e filtro por CIDADE.
+  `precoNum`/`kmNum` devolvem `Infinity` quando falta o dado, para o carro sem
+  preço ir para o **fim** da lista e não para o topo.
+- **Rede** — feed da vitrine, publicação manual, carro em grupo, vistinhos,
+  aviso no celular. (Registrado em 27 e 28/set.)
+
+### Estado do banco, conferido hoje
+
+| conta | veículos | ofertas | vendas | clientes | anúncios |
+|---|---|---|---|---|---|
+| Carro na Rede | 7 | 4 | 114 | 18 | 200 |
+| DEMO Serra Motors | 0 | 0 | 0 | 0 | 0 |
+| Fabio Nogueira | 0 | 0 | 0 | 0 | 0 |
+
+**O Fabio ainda não abriu o link.** A sessão dele tem `ultimo_uso` igual ao
+`criado_em` (29/09 15:27) — ou seja, nasceu com o convite e não foi usada
+nenhuma vez desde então.
+
+A conta **DEMO Serra Motors** ficou como casca vazia: os 4 carros foram
+apagados a pedido dele, a conta não.
+
+*Registrado em 29 de setembro de 2026.*
