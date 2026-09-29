@@ -348,6 +348,26 @@ $('tel').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); $('btn-codigo').click(); }
 });
 
+// ── Convite por link (29/set) ─────────────────────────────────────
+// O convite chega como `/entrar.html#sessao=<token>`. O token vem no
+// FRAGMENTO e não na query: fragmento não é enviado ao servidor, então
+// não entra no registro de acesso da Vercel nem no Referer de terceiros
+// — mesma decisão da chave de aparelho, em 03/set.
+//
+// Sai da barra de endereço assim que é guardado, para não ficar em
+// print, histórico ou aba compartilhada.
+(function convite() {
+  var h = (location.hash || '').replace(/^#/, '');
+  var m = /(?:^|&)sessao=([^&]+)/.exec(h);
+  if (!m) return;
+  try {
+    window.CNR_AUTH.guardarSessao(decodeURIComponent(m[1]));
+    history.replaceState(null, '', location.pathname);
+  } catch (e) { /* modo privado: segue sem guardar, e o aviso abaixo aparece */ }
+  mostrar('ok', 'Bem-vindo!', 'Abrindo o Gerador…');
+  setTimeout(function () { location.replace('/home.html'); }, 1200);
+})();
+
 conferir();
 </script>
 </body>

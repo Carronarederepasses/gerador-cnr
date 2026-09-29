@@ -176,6 +176,35 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Convidar uma loja. Só quem já está dentro convida — a rota está
+    // atrás do portão como todas, e isso basta hoje: o sistema tem um
+    // dono. No dia em que houver loja de cliente, aqui entra "só o dono
+    // da PRÓPRIA loja convida, e para a própria loja".
+    if (type === 'convite') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
+      const { convidarLoja } = require('./_sessao');
+      const c = req.body || {};
+      const r = await convidarLoja({
+        loja: c.loja, pessoa: c.pessoa, telefone: c.telefone, esconder: c.esconder,
+      });
+      if (!r.ok) {
+        return res.status(400).json({
+          error: r.erro === 'telefone_em_uso'
+            ? 'Esse telefone já está em outra loja.'
+            : 'Informe o nome da loja e o nome da pessoa.',
+          codigo: r.erro,
+        });
+      }
+      // O link é montado aqui para o token nunca voltar solto e acabar
+      // colado num lugar errado. O `#` mantém o token fora do registro
+      // de acesso do servidor.
+      const base = `https://${req.headers['x-forwarded-host'] || req.headers.host}`;
+      return res.status(201).json({
+        ok: true, loja: r.loja, pessoa: r.pessoa,
+        link: `${base}/entrar.html#sessao=${r.token}`,
+      });
+    }
+
     // Encerrar a sessão no servidor, não só sumir do navegador. Sair que
     // só apaga daqui deixa o token valendo para quem o tiver copiado.
     if (type === 'sair') {

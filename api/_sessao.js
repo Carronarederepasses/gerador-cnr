@@ -200,6 +200,69 @@ async function conferirCodigo(telefone, codigo, { ip, aparelho } = {}) {
   return { ok: true, token, nome: usuarios[0].nome };
 }
 
+// ── Convidar uma loja ─────────────────────────────────────────────
+//
+// Cria a loja, a pessoa e o vínculo, e devolve um link pronto. Existe
+// porque o SMS está desligado: sem isto, convidar alguém é o dono ler um
+// código de seis dígitos no registro da Vercel e repassar no WhatsApp —
+// péssima primeira impressão, justo na hora em que se quer que a pessoa
+// ache o sistema bom.
+//
+// ⚠️ O LINK É A CREDENCIAL. Ele carrega uma sessão pronta: quem abrir,
+// entra. Vale o mesmo cuidado da chave de aparelho — manda para a pessoa
+// e para mais ninguém. Se vazar, `encerrarSessao` derruba só aquela.
+//
+// O token vai no FRAGMENTO (#) do endereço, nunca na query: fragmento
+// não é enviado ao servidor, então não entra no registro de acesso da
+// Vercel nem no Referer de terceiros. Mesma decisão de 03/set.
+async function convidarLoja({ loja, pessoa, telefone, esconder }) {
+  const nomeLoja = String(loja || '').trim().slice(0, 80);
+  const nomePessoa = String(pessoa || '').trim().slice(0, 80);
+  if (!nomeLoja || !nomePessoa) return { ok: false, erro: 'faltou_nome' };
+
+  const tel = telefone ? normalizar(telefone) : null;
+  if (tel) {
+    // Telefone já usado seria a pessoa entrando na loja errada pelo
+    // código de SMS no dia em que ele ligar.
+    const jaTem = await sb(`usuarios?telefone=eq.${tel}&select=id&limit=1`);
+    if (jaTem.length) return { ok: false, erro: 'telefone_em_uso' };
+  }
+
+  const conta = (await sb('contas', {
+    method: 'POST', prefer: 'return=representation',
+    body: JSON.stringify({
+      nome: nomeLoja,
+      // Sem Instagram nem e-mail herdados: seriam os contatos da Carro na
+      // Rede indo no anúncio de outra loja (decisão de 22/set).
+      esconder: String(esconder || '').trim() || null,
+    }),
+  }))[0];
+
+  const usuario = (await sb('usuarios', {
+    method: 'POST', prefer: 'return=representation',
+    body: JSON.stringify({ nome: nomePessoa, telefone: tel }),
+  }))[0];
+
+  await sb('conta_membros', {
+    method: 'POST',
+    body: JSON.stringify({ conta_id: conta.id, usuario_id: usuario.id, papel: 'dono' }),
+  });
+
+  const token = crypto.randomBytes(32).toString('base64url');
+  await sb('sessoes', {
+    method: 'POST',
+    body: JSON.stringify({
+      usuario_id: usuario.id,
+      hash:       hash(token),
+      expira_em:  new Date(Date.now() + VIDA_SESSAO_DIAS * 864e5).toISOString(),
+      aparelho:   'convite',
+    }),
+  });
+
+  return { ok: true, token, conta_id: conta.id, usuario_id: usuario.id,
+           loja: nomeLoja, pessoa: nomePessoa };
+}
+
 // ── Quem é quem está pedindo ──────────────────────────────────────
 /**
  * Lê o cabeçalho `x-cnr-sessao`, e devolve { usuario_id, nome, conta_id,
@@ -275,6 +338,7 @@ async function encerrarSessao(req) {
 
 module.exports = {
   pedirCodigo,
+  convidarLoja,
   conferirCodigo,
   sessaoDoPedido,
   contaDaSessao,
