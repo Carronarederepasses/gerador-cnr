@@ -263,6 +263,40 @@ async function convidarLoja({ loja, pessoa, telefone, esconder }) {
            loja: nomeLoja, pessoa: nomePessoa };
 }
 
+// ── Entrar neste aparelho, sendo o dono ───────────────────────────
+//
+// Quem tem a chave mestra JÁ lê e escreve tudo desta loja — catálogo,
+// vendas, clientes com CPF. Recusar-lhe uma sessão da própria loja não
+// protege nada; só obriga a um código de SMS que hoje nem é enviado.
+//
+// O que a sessão acrescenta é IDENTIDADE: com ela o sistema sabe de que
+// loja a pessoa é, e a Rede passa a funcionar. Sem ela, a chave diz "é
+// alguém desta instalação" e nada mais.
+//
+// Abre a sessão do DONO da conta, nunca de um membro qualquer: é o único
+// papel que a chave mestra representa sem ambiguidade.
+async function sessaoDoDono(contaId, aparelho) {
+  const membros = await sb(
+    `conta_membros?conta_id=eq.${contaId}&papel=eq.dono&select=usuario_id&limit=1`
+  );
+  if (!membros.length) return { ok: false, erro: 'sem_dono' };
+
+  const usuarios = await sb(`usuarios?id=eq.${membros[0].usuario_id}&select=id,nome&limit=1`);
+  if (!usuarios.length) return { ok: false, erro: 'sem_dono' };
+
+  const token = crypto.randomBytes(32).toString('base64url');
+  await sb('sessoes', {
+    method: 'POST',
+    body: JSON.stringify({
+      usuario_id: usuarios[0].id,
+      hash:       hash(token),
+      expira_em:  new Date(Date.now() + VIDA_SESSAO_DIAS * 864e5).toISOString(),
+      aparelho:   (aparelho || '').slice(0, 120) || 'chave mestra',
+    }),
+  });
+  return { ok: true, token, nome: usuarios[0].nome };
+}
+
 // ── Quem é quem está pedindo ──────────────────────────────────────
 /**
  * Lê o cabeçalho `x-cnr-sessao`, e devolve { usuario_id, nome, conta_id,
@@ -339,6 +373,7 @@ async function encerrarSessao(req) {
 module.exports = {
   pedirCodigo,
   convidarLoja,
+  sessaoDoDono,
   conferirCodigo,
   sessaoDoPedido,
   contaDaSessao,

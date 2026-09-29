@@ -176,6 +176,26 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Abrir a própria sessão neste aparelho, usando a chave mestra.
+    // Existe porque o SMS está desligado e, sem isto, a Rede não abre no
+    // notebook de quem entrou pelo telefone só no celular — foi o que
+    // aconteceu com o Yuri em 29/set.
+    if (type === 'entrar-aqui') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
+      // Já passou pelo portão acima. Quem tem a chave lê e escreve tudo
+      // desta loja de qualquer forma; a sessão acrescenta identidade, não
+      // acesso.
+      const { sessaoDoDono } = require('./_sessao');
+      const { contaDoPedido } = require('./_conta');
+      const r = await sessaoDoDono(contaDoPedido(req), req.headers['user-agent']);
+      if (!r.ok) {
+        return res.status(400).json({
+          error: 'Esta instalação ainda não tem dono cadastrado.', codigo: r.erro,
+        });
+      }
+      return res.status(200).json({ ok: true, token: r.token, nome: r.nome });
+    }
+
     // Convidar uma loja. Só quem já está dentro convida — a rota está
     // atrás do portão como todas, e isso basta hoje: o sistema tem um
     // dono. No dia em que houver loja de cliente, aqui entra "só o dono

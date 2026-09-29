@@ -861,9 +861,18 @@ async function carregar() {
   try {
     const d = await (await fetch('/api/utils?type=quem', { cache: 'no-store' })).json();
     if (!d.sessao) {
-      $('col').innerHTML = '<div class="aviso"><strong>Entre com o seu telefone.</strong> '
-        + 'A rede precisa saber de que loja você é — a chave do aparelho não diz isso.<br><br>'
-        + '<a href="/entrar.html" style="color:var(--accent)">Entrar agora</a></div>';
+      // Antes isto era um beco: a tela dizia "entre com o telefone" e o
+      // único caminho era um código de SMS que está desligado. E o botão
+      // de convidar loja ficava aqui dentro, ou seja, inalcançável de um
+      // aparelho sem sessão. (29/set)
+      $('col').innerHTML = '<div class="aviso">'
+        + '<strong>A rede precisa saber de que loja você é.</strong><br>'
+        + 'A chave deste aparelho não diz isso — ela só abre a porta.'
+        + '<div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.9rem">'
+        + '<button id="btn-aqui" onclick="entrarAqui()">Entrar neste aparelho</button>'
+        + '<button class="leve" onclick="convidarLoja()">🏪 Convidar uma loja</button>'
+        + '<a href="/entrar.html" style="color:var(--text-mid);font-size:.8rem;text-align:center">'
+        + 'ou entrar com o telefone</a></div></div>';
       return;
     }
     // Já está a caminho desde o começo; aqui só se espera terminar. Se
@@ -887,6 +896,24 @@ $('btn-nova').addEventListener('click', () => {
     '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
   $('dlg').showModal();
 });
+
+// Abre a sessão do dono neste aparelho, a partir da chave mestra. Quem
+// tem a chave já lê e escreve tudo desta loja — a sessão não dá acesso
+// novo, dá identidade, que é o que a Rede precisa.
+async function entrarAqui() {
+  const btn = document.getElementById('btn-aqui');
+  if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
+  try {
+    const r = await fetch('/api/utils?type=entrar-aqui', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.token) throw new Error(d.error || `HTTP ${r.status}`);
+    window.CNR_AUTH.guardarSessao(d.token);
+    location.reload();
+  } catch (e) {
+    alert('Não consegui entrar: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Entrar neste aparelho'; }
+  }
+}
 
 // ── Convidar uma loja ───────────────────────────────────────
 // O SMS está desligado, então sem isto convidar alguém seria ler um
