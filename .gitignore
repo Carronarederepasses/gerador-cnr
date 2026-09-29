@@ -15,3 +15,9 @@ Celular - CNR Vendas/
 *senha*.txt
 *.key
 *.pem
+
+# Documentos do Yuri que moram na pasta mas nao sao do repositorio.
+# Entrou por engano num `git add -A` em 29/set.
+*.docx
+*.xlsx
+*.pdf
