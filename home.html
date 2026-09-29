@@ -495,19 +495,7 @@ function mudarMes(dir) {
   if (_relMes > 11) { _relMes = 0; _relAno++; }
   const emAtual = _relMes === _hoje.getMonth() && _relAno === _hoje.getFullYear();
   document.getElementById('btn-mes-prox').disabled = emAtual;
-  // Só a loja dona da instalação convida. A seção nasce escondida e só
-// aparece se o servidor disser que pode — botão que aparece e depois
-// recusa é pior que botão que não aparece.
-(async () => {
-  try {
-    const r = await fetch("/api/utils?type=quem", { cache: "no-store" });
-    if (!r.ok) return;
-    const d = await r.json();
-    if (d.podeConvidar) document.getElementById("secao-convite").style.display = "";
-  } catch (e) { /* sem resposta: a seção fica escondida, que é o lado seguro */ }
-})();
-
-carregarRelatorio();
+  carregarRelatorio();
 }
 
 function exportarRelatorioCSV() {
@@ -1136,6 +1124,23 @@ carregarCatalogo();
 carregarVendas();
 carregarRelatorio();
 carregarNegociacoes();
+
+// Só a loja dona da instalação convida. A seção nasce escondida e só
+// aparece se o servidor disser que pode — botão que aparece e depois
+// recusa é pior que botão que não aparece.
+//
+// Fica AQUI, entre as chamadas de partida, e não dentro de uma função: na
+// primeira tentativa ela caiu dentro de `mudarMes`, porque o meu script
+// trocou a primeira ocorrência de `carregarRelatorio();`, que está lá
+// dentro. O bloco só rodava se alguém clicasse nas setas do mês.
+(async () => {
+  try {
+    const r = await fetch('/api/utils?type=quem', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.podeConvidar) document.getElementById('secao-convite').style.display = '';
+  } catch (e) { /* sem resposta: a seção fica escondida, que é o lado seguro */ }
+})();
 
 </script>
 </body>
