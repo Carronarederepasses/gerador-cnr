@@ -74,6 +74,19 @@ summary:hover{color:var(--text)}
     </div>
   </div>
 
+  <!-- Aparelho já liberado, mas sem sessão. A tela sabe quem é e ainda
+       assim pedia telefone — e o código de SMS está desligado, então o
+       caminho não existia. Um toque resolve. -->
+  <div id="dono-wrap" style="display:none">
+    <div class="linha" style="margin-top:0">
+      <button id="btn-dono">Entrar como <span id="dono-nome">dono</span></button>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-mid);line-height:1.5;margin:.5rem 0 1.1rem">
+      Este aparelho já está liberado. Isto só diz ao sistema <strong>de que loja
+      você é</strong> — é o que a tela da Rede precisa saber, e a chave não informa.
+    </p>
+  </div>
+
   <div id="tel-passo1">
     <label for="tel">Seu telefone</label>
     <input id="tel" type="tel" inputmode="numeric" autocomplete="tel"
@@ -164,6 +177,13 @@ async function conferir() {
         temSessao ? 'Entrou pelo telefone. Vale neste navegador até você sair.'
                   : (temChave ? 'Pode usar o Gerador normalmente.'
                               : 'O portão ainda está desligado no servidor — todo mundo passa.'));
+      // Aparelho liberado mas SEM sessão: a tela já sabe quem é e mesmo
+      // assim pedia telefone. A Rede é a única que exige sessão, e o
+      // caminho para consegui-la era um código de SMS desligado. Um
+      // toque resolve — e a explicação fica junto, porque "entrar" logo
+      // abaixo de "já está liberado" parece contradição. (29/set)
+      $('dono-wrap').style.display = (temChave && !temSessao) ? 'block' : 'none';
+      if (temChave && !temSessao && quem) $('dono-nome').textContent = quem;
       $('campo').style.display = 'block';
       $('btn-esquecer').style.display = temChave ? 'inline-block' : 'none';
       // Entrou pelo telefone: some o formulário de entrar e aparece o sair.
@@ -367,6 +387,25 @@ $('tel').addEventListener('keydown', (e) => {
   mostrar('ok', 'Bem-vindo!', 'Abrindo o Gerador…');
   setTimeout(function () { location.replace('/home.html'); }, 1200);
 })();
+
+// Abre a sessão do dono a partir da chave que este aparelho já tem.
+$('btn-dono').addEventListener('click', async () => {
+  const b = $('btn-dono');
+  b.disabled = true;
+  const antes = b.innerHTML;
+  b.textContent = 'Entrando…';
+  try {
+    const r = await fetch('/api/utils?type=entrar-aqui', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.token) throw new Error(d.error || `HTTP ${r.status}`);
+    window.CNR_AUTH.guardarSessao(d.token);
+    mostrar('ok', 'Entrou como ' + (d.nome || 'você'), 'Abrindo o Gerador…');
+    setTimeout(() => { location.replace('/rede.html'); }, 1000);
+  } catch (e) {
+    mostrar('neutro', 'Não consegui entrar', e.message);
+    b.disabled = false; b.innerHTML = antes;
+  }
+});
 
 conferir();
 </script>
