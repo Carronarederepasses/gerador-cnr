@@ -56,6 +56,25 @@ async function handleMercado(q, res) {
   });
 }
 
+/**
+ * É a loja DONA desta instalação que está pedindo?
+ *
+ * `contaDoPedido(req)` lê a sessão quando há uma; `contaDoPedido(null)`
+ * ignora a sessão e devolve a conta configurada no ambiente — a casa.
+ * Iguais quer dizer que quem pede é a casa, e não uma loja convidada.
+ *
+ * Vale igual no site do piloto, onde a casa é outra: a regra é "a dona
+ * da instalação", não "a Carro na Rede".
+ */
+function podeConvidar(req) {
+  try {
+    const { contaDoPedido } = require('./_conta');
+    return contaDoPedido(req) === contaDoPedido(null);
+  } catch (e) {
+    return false;   // sem conta resolvida, ninguém convida
+  }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
@@ -173,6 +192,9 @@ module.exports = async (req, res) => {
           nome:  req.cnrSessao.nome,
           papel: req.cnrSessao.papel,
         } : null,
+        // A tela esconde o que não vai funcionar. Botão que aparece e
+        // depois recusa é pior que botão que não aparece.
+        podeConvidar: podeConvidar(req),
       });
     }
 
@@ -202,6 +224,18 @@ module.exports = async (req, res) => {
     // da PRÓPRIA loja convida, e para a própria loja".
     if (type === 'convite') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
+      // Só a loja DONA desta instalação convida. Quem foi convidado não
+      // convida ninguém — por ora (decisão do Yuri, 29/set: "depois que
+      // estiver tudo ok, disponibilizamos para os demais").
+      //
+      // `contaDoPedido(req)` lê a sessão; `contaDoPedido(null)` ignora a
+      // sessão e devolve a conta da instalação. Iguais = é a casa.
+      // Assim a regra vale igual no site do piloto, onde a casa é outra.
+      if (!podeConvidar(req)) {
+        return res.status(403).json({
+          error: 'Só a loja desta instalação pode convidar.', codigo: 'nao_e_a_casa',
+        });
+      }
       const { convidarLoja } = require('./_sessao');
       const c = req.body || {};
       const r = await convidarLoja({

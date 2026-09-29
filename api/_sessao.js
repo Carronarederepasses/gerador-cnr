@@ -216,9 +216,14 @@ async function conferirCodigo(telefone, codigo, { ip, aparelho } = {}) {
 // não é enviado ao servidor, então não entra no registro de acesso da
 // Vercel nem no Referer de terceiros. Mesma decisão de 03/set.
 async function convidarLoja({ loja, pessoa, telefone, esconder }) {
-  const nomeLoja = String(loja || '').trim().slice(0, 80);
   const nomePessoa = String(pessoa || '').trim().slice(0, 80);
-  if (!nomeLoja || !nomePessoa) return { ok: false, erro: 'faltou_nome' };
+  if (!nomePessoa) return { ok: false, erro: 'faltou_nome' };
+
+  // A loja é OPCIONAL. Repassador em geral não tem loja — é ele e o
+  // telefone —, e exigir um nome de loja obrigava a inventar um
+  // (decisão do Yuri, 29/set). Sem loja, a conta leva o nome da pessoa,
+  // que é como ele já é conhecido no mercado.
+  const nomeLoja = String(loja || '').trim().slice(0, 80) || nomePessoa;
 
   const tel = telefone ? normalizar(telefone) : null;
   if (tel) {

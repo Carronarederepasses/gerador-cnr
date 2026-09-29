@@ -24,6 +24,19 @@ o que ainda não foi feito.
   não dá para mandar para a rede", com link. Poucas linhas e no lugar
   certo, ao contrário da lista de 17 carros parados do SIG (28/set)
 
+- **Grupo e transmissão de graça, o resto pago** (29/set) — a parte de
+  rede (grupo, transmissão, conversa) seria a porta de entrada gratuita,
+  e catálogo, vendas, captação, FIPE e consulta ficariam no plano pago.
+  Faz sentido com o que a gente viu: **a rede só vale com gente dentro**,
+  e cobrar pela porta atrasa isso. O sistema de loja é o que o lojista
+  paga; a rede é o que o traz.
+  Depende de decidir cobrança, que depende do CNPJ — parado até depois
+  das eleições.
+
+- **Convidar liberado para os outros usuários** (29/set) — hoje só a loja
+  dona da instalação convida (`podeConvidar` em `api/utils.js`). Quando o
+  piloto estiver de pé, soltar para cada loja convidar a própria rede.
+
 - **Cidade vem suja da extensão** — em 13 de 200 anúncios a `localizacao`
   veio com a data grudada ("GaropabaHoje, 13:13"). A TELA já limpa desde
   29/set, então não atrapalha o uso; consertar em `olx-search.js` evitaria

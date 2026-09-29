@@ -303,6 +303,7 @@ async function rede(acao, opcoes = {}) {
 }
 
 // Estado da tela: o que está aberto à direita.
+let PODE_CONVIDAR = false;   // só a loja dona da instalação convida
 let aberto = null;            // { tipo: 'lista'|'todos'|'recebidos'|'conversa', id, nome }
 let carroEscolhido = null;
 let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: [], grupos: [], vitrine: [] };
@@ -860,6 +861,7 @@ async function carregar() {
   const jaCarregando = carregar().catch(() => null);
   try {
     const d = await (await fetch('/api/utils?type=quem', { cache: 'no-store' })).json();
+    PODE_CONVIDAR = d.podeConvidar !== false;
     if (!d.sessao) {
       // Antes isto era um beco: a tela dizia "entre com o telefone" e o
       // único caminho era um código de SMS que está desligado. E o botão
@@ -870,7 +872,7 @@ async function carregar() {
         + 'A chave deste aparelho não diz isso — ela só abre a porta.'
         + '<div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.9rem">'
         + '<button id="btn-aqui" onclick="entrarAqui()">Entrar neste aparelho</button>'
-        + '<button class="leve" onclick="convidarLoja()">🏪 Convidar uma loja</button>'
+        + (PODE_CONVIDAR ? '<button class="leve" onclick="convidarLoja()">🏪 Convidar uma loja</button>' : '')
         + '<a href="/entrar.html" style="color:var(--text-mid);font-size:.8rem;text-align:center">'
         + 'ou entrar com o telefone</a></div></div>';
       return;
@@ -891,8 +893,8 @@ $('btn-nova').addEventListener('click', () => {
       '<button onclick="novaTransmissao()">Criar</button></div>' +
     '<div class="op"><span>👥 <strong>Grupo</strong><br><span style="font-size:.78rem;color:var(--text-mid)">todos conversam — e a lista de participantes fica oculta</span></span>' +
       '<button onclick="novoGrupo()">Criar</button></div>' +
-    '<div class="op"><span>🏪 <strong>Convidar loja</strong><br><span style="font-size:.78rem;color:var(--text-mid)">cria a loja dela e gera um link de entrada</span></span>' +
-      '<button onclick="convidarLoja()">Convidar</button></div>' +
+    (PODE_CONVIDAR ? '<div class="op"><span>🏪 <strong>Convidar loja</strong><br><span style="font-size:.78rem;color:var(--text-mid)">cria a loja dela e gera um link de entrada</span></span>' +
+      '<button onclick="convidarLoja()">Convidar</button></div>' : '') +
     '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
   $('dlg').showModal();
 });
@@ -924,12 +926,16 @@ function convidarLoja() {
     + '<p style="font-size:.84rem;color:var(--text-mid);line-height:1.5;margin:.2rem 0 .8rem">'
     + 'Cria a loja no sistema e gera um link. Quem abrir o link entra direto — '
     + 'mande só para a pessoa, como se fosse uma chave.</p>'
-    + '<label style="display:block;font-size:.78rem;color:var(--text-mid);margin-bottom:.15rem">Nome da loja</label>'
-    + '<input id="cv-loja" placeholder="ex: Nogueira Veículos" maxlength="80" '
-    + 'style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:var(--r, 8px);'
-    + 'background:var(--surface-raise);color:var(--text);font-family:inherit;font-size:.92rem;margin-bottom:.6rem">'
+    // A pessoa vem PRIMEIRO, e a loja é opcional: repassador em geral
+    // não tem loja — é ele e o telefone. Pedir loja obrigava a inventar
+    // um nome (correção do Yuri, 29/set).
     + '<label style="display:block;font-size:.78rem;color:var(--text-mid);margin-bottom:.15rem">Nome da pessoa</label>'
     + '<input id="cv-pessoa" placeholder="ex: Fabio Nogueira" maxlength="80" '
+    + 'style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:var(--r, 8px);'
+    + 'background:var(--surface-raise);color:var(--text);font-family:inherit;font-size:.92rem;margin-bottom:.6rem">'
+    + '<label style="display:block;font-size:.78rem;color:var(--text-mid);margin-bottom:.15rem">'
+    + 'Nome da loja <span style="color:var(--text-faint)">— se tiver</span></label>'
+    + '<input id="cv-loja" placeholder="deixe vazio se for repassador" maxlength="80" '
     + 'style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:var(--r, 8px);'
     + 'background:var(--surface-raise);color:var(--text);font-family:inherit;font-size:.92rem;margin-bottom:.9rem">'
     + '<div id="cv-saida"></div>'
@@ -937,13 +943,13 @@ function convidarLoja() {
     + '<button class="leve" onclick="dlg.close()">Fechar</button>'
     + '<button id="cv-ok" onclick="gerarConvite()">Gerar link</button></div>';
   $('dlg').showModal();
-  setTimeout(() => $('cv-loja').focus(), 50);
+  setTimeout(() => $('cv-pessoa').focus(), 50);
 }
 
 async function gerarConvite() {
   const loja = $('cv-loja').value.trim();
   const pessoa = $('cv-pessoa').value.trim();
-  if (!loja || !pessoa) { alert('Preencha o nome da loja e o nome da pessoa.'); return; }
+  if (!pessoa) { alert('Escreva ao menos o nome da pessoa.'); return; }
   const btn = $('cv-ok');
   btn.disabled = true; btn.textContent = 'Criando…';
   try {
