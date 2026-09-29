@@ -882,9 +882,79 @@ $('btn-nova').addEventListener('click', () => {
       '<button onclick="novaTransmissao()">Criar</button></div>' +
     '<div class="op"><span>👥 <strong>Grupo</strong><br><span style="font-size:.78rem;color:var(--text-mid)">todos conversam — e a lista de participantes fica oculta</span></span>' +
       '<button onclick="novoGrupo()">Criar</button></div>' +
+    '<div class="op"><span>🏪 <strong>Convidar loja</strong><br><span style="font-size:.78rem;color:var(--text-mid)">cria a loja dela e gera um link de entrada</span></span>' +
+      '<button onclick="convidarLoja()">Convidar</button></div>' +
     '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
   $('dlg').showModal();
 });
+
+// ── Convidar uma loja ───────────────────────────────────────
+// O SMS está desligado, então sem isto convidar alguém seria ler um
+// código de seis dígitos no registro da Vercel e repassar no WhatsApp.
+// Aqui sai um link pronto.
+function convidarLoja() {
+  $('dlg-corpo').innerHTML = '<h3>Convidar loja</h3>'
+    + '<p style="font-size:.84rem;color:var(--text-mid);line-height:1.5;margin:.2rem 0 .8rem">'
+    + 'Cria a loja no sistema e gera um link. Quem abrir o link entra direto — '
+    + 'mande só para a pessoa, como se fosse uma chave.</p>'
+    + '<label style="display:block;font-size:.78rem;color:var(--text-mid);margin-bottom:.15rem">Nome da loja</label>'
+    + '<input id="cv-loja" placeholder="ex: Nogueira Veículos" maxlength="80" '
+    + 'style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:var(--r, 8px);'
+    + 'background:var(--surface-raise);color:var(--text);font-family:inherit;font-size:.92rem;margin-bottom:.6rem">'
+    + '<label style="display:block;font-size:.78rem;color:var(--text-mid);margin-bottom:.15rem">Nome da pessoa</label>'
+    + '<input id="cv-pessoa" placeholder="ex: Fabio Nogueira" maxlength="80" '
+    + 'style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:var(--r, 8px);'
+    + 'background:var(--surface-raise);color:var(--text);font-family:inherit;font-size:.92rem;margin-bottom:.9rem">'
+    + '<div id="cv-saida"></div>'
+    + '<div class="op" style="justify-content:flex-end;gap:.5rem">'
+    + '<button class="leve" onclick="dlg.close()">Fechar</button>'
+    + '<button id="cv-ok" onclick="gerarConvite()">Gerar link</button></div>';
+  $('dlg').showModal();
+  setTimeout(() => $('cv-loja').focus(), 50);
+}
+
+async function gerarConvite() {
+  const loja = $('cv-loja').value.trim();
+  const pessoa = $('cv-pessoa').value.trim();
+  if (!loja || !pessoa) { alert('Preencha o nome da loja e o nome da pessoa.'); return; }
+  const btn = $('cv-ok');
+  btn.disabled = true; btn.textContent = 'Criando…';
+  try {
+    const r = await fetch('/api/utils?type=convite', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loja, pessoa }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    // O link fica num campo selecionável, e não só num botão de copiar:
+    // se a cópia falhar — e falha, em navegador embutido —, ele ainda
+    // pode marcar e copiar à mão.
+    $('cv-saida').innerHTML =
+      '<div style="border:1px solid var(--line);border-radius:var(--r, 8px);padding:.7rem;margin-bottom:.8rem">'
+      + `<div style="font-size:.78rem;color:var(--text-mid);margin-bottom:.4rem">Link de ${esc(d.pessoa)} — ${esc(d.loja)}</div>`
+      + `<input id="cv-link" readonly value="${esc(d.link)}" onclick="this.select()" `
+      + 'style="width:100%;padding:.5rem;border:1px solid var(--line);border-radius:var(--r, 8px);'
+      + 'background:var(--surface);color:var(--text);font-family:monospace;font-size:.72rem">'
+      + '<div style="display:flex;gap:.5rem;margin-top:.5rem">'
+      + '<button onclick="copiarConvite()">Copiar</button>'
+      + `<a href="https://wa.me/?text=${encodeURIComponent('Entra aqui: ' + d.link)}" target="_blank" `
+      + 'rel="noopener" style="text-decoration:none"><button class="leve">Mandar no WhatsApp</button></a></div>'
+      + '<div style="font-size:.72rem;color:var(--text-faint);margin-top:.5rem;line-height:1.5">'
+      + 'Quem abrir este link entra na loja. Mande só para essa pessoa.</div></div>';
+    btn.textContent = 'Gerar outro';
+  } catch (e) {
+    $('cv-saida').innerHTML = `<div class="aviso">Não consegui criar: ${esc(e.message)}</div>`;
+    btn.textContent = 'Gerar link';
+  } finally { btn.disabled = false; }
+}
+
+function copiarConvite() {
+  const campo = $('cv-link');
+  campo.select();
+  navigator.clipboard.writeText(campo.value)
+    .then(() => alert('Link copiado.'))
+    .catch(() => alert('Não consegui copiar. O link está selecionado — use Ctrl+C.'));
+}
 // ── Ser avisado no celular ──────────────────────────────────
 // A chave pública identifica o remetente do aviso; ela vai para o
 // navegador de qualquer jeito, então não é segredo.
