@@ -50,6 +50,7 @@
     { href: '/busca.html',       emoji: '🔎', label: 'Busca' },
     { href: '/consultas.html',   emoji: '🔍', label: 'Consulta' },
     { href: '/ideias.html',      emoji: '💡', label: 'Ideias' },
+    { href: '/modelo.html',      emoji: '📝', label: 'Modelo' },
   ];
 
   function paginaAtiva(href) {

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Modelo do anúncio — Carro na Rede</title>
+<link rel="manifest" href="/api/utils?type=manifesto">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/auth.js"></script>
+<script src="/assets/marca.js"></script>
+<script src="/assets/modelo-anuncio.js"></script>
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
+  min-height:100vh;padding-bottom:3rem}
+.wrap{max-width:60rem;margin:0 auto;padding:1.5rem 1.1rem 0}
+h1{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900}
+.sub{color:var(--text-mid);font-size:.87rem;margin-top:.3rem;line-height:1.5}
+
+/* Duas colunas no notebook: escrever à esquerda, ver à direita. No
+   celular vira uma só, com a prévia embaixo — é a ordem de quem escreve
+   primeiro e confere depois. */
+.colunas{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:1.4rem;align-items:start}
+@media (max-width:860px){ .colunas{grid-template-columns:1fr} }
+
+.rotulo{display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:700;
+  margin-bottom:.5rem}
+/* O ícone explica o que o modelo faz. Ao passar o mouse aparece o
+   resumo; ao clicar, o texto inteiro fica aberto — no celular não há
+   "passar o mouse", então o clique tem de bastar sozinho. */
+.ajuda{width:1.15rem;height:1.15rem;border-radius:50%;border:1px solid var(--text-mid);
+  color:var(--text-mid);font-size:.72rem;font-weight:700;display:inline-flex;
+  align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;background:none}
+.ajuda:hover{border-color:var(--text);color:var(--text)}
+.explica{display:none;font-size:.8rem;line-height:1.55;color:var(--text-mid);
+  background:var(--surface-raise);border:1px solid var(--line);
+  border-radius:var(--r-md, 12px);padding:.7rem .85rem;margin-bottom:.7rem}
+.explica.aberta{display:block}
+
+textarea{width:100%;min-height:19rem;font-family:'DM Sans',sans-serif;font-size:.9rem;
+  line-height:1.6;padding:.8rem .9rem;border:1px solid var(--line);
+  border-radius:var(--r-md, 12px);background:var(--surface-raise);color:var(--text);
+  resize:vertical}
+textarea:focus{outline:none;border-color:var(--accent)}
+
+.marcadores{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.7rem}
+.marc{font-family:inherit;font-size:.74rem;padding:.3rem .65rem;border-radius:var(--r-lg, 16px);
+  border:1px solid var(--line);background:var(--surface-raise);color:var(--text-mid);cursor:pointer}
+.marc:hover{border-color:var(--text);color:var(--text)}
+.marc-dica{font-size:.75rem;color:var(--text-faint);margin-top:.5rem;line-height:1.5}
+
+/* A prévia imita o balão do WhatsApp: é lá que o texto vai parar, e ver
+   em qualquer outra moldura engana sobre o resultado. */
+.previa{background:var(--surface-raise);border:1px solid var(--line);
+  border-radius:var(--r-md, 12px);padding:.9rem 1rem;font-size:.88rem;line-height:1.55;
+  white-space:pre-wrap;word-break:break-word;min-height:19rem}
+.previa b{font-weight:700}
+
+.linha{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem;align-items:center}
+button{font-family:inherit;font-size:.85rem;font-weight:700;padding:.55rem 1rem;
+  border-radius:var(--r-lg, 16px);border:1px solid var(--accent);background:var(--accent);
+  color:var(--surface);cursor:pointer}
+button.leve{background:none;color:var(--text-mid);border-color:var(--line)}
+button.leve:hover{color:var(--text);border-color:var(--text)}
+button:disabled{opacity:.55;cursor:default}
+.aviso{font-size:.82rem;color:var(--text-mid)}
+.aviso.ok{color:var(--severity-ok)}
+.aviso.erro{color:var(--severity-crit)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Modelo do anúncio</h1>
+  <p class="sub">O texto que sai para o WhatsApp, do seu jeito.</p>
+
+  <div class="colunas">
+    <!-- ── Escrever ─────────────────────────────────────────── -->
+    <div>
+      <div class="rotulo">
+        Digite aqui seu padrão de anúncio para ser memorizado
+        <button class="ajuda" id="btn-ajuda" type="button"
+                title="A partir deste modelo, todo anúncio gerado — copiado ou colado — sai neste padrão."
+                aria-label="O que é isto">i</button>
+      </div>
+      <div class="explica" id="explica">
+        A partir deste modelo, <strong>todo anúncio gerado segue esse padrão</strong> —
+        tanto o que você digita na Captação quanto o que cola de um parceiro.
+        Escreva do seu jeito e use os marcadores abaixo onde quiser que o
+        sistema preencha.<br><br>
+        Deixando em branco, volta ao modelo padrão.
+      </div>
+
+      <textarea id="modelo" spellcheck="false"
+                placeholder="Escreva aqui, ou deixe vazio para usar o padrão…"></textarea>
+
+      <div class="marcadores" id="marcadores"></div>
+      <p class="marc-dica">Clique num marcador para inserir onde o cursor estiver.</p>
+
+      <div class="linha">
+        <button id="btn-salvar">Salvar como meu padrão</button>
+        <button class="leve" id="btn-padrao">Voltar ao padrão</button>
+        <span class="aviso" id="aviso"></span>
+      </div>
+    </div>
+
+    <!-- ── Ver ──────────────────────────────────────────────── -->
+    <div>
+      <div class="rotulo">Como vai ficar</div>
+      <div class="previa" id="previa"></div>
+      <p class="marc-dica">Exemplo com um carro de mentira, só para você ver o formato.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// Um carro de exemplo, com os blocos JÁ montados — é assim que eles
+// chegam do gerador. Serve para a prévia mostrar o formato de verdade,
+// com negrito e emoji, e não um texto cru que engana.
+const EXEMPLO = {
+  veiculo:     '*Polo Highline 200 TSI*, 2022, flex, 48.000km, preta',
+  localizacao: '📍 *LOCALIZAÇÃO:* Garopaba',
+  opcionais:   '✅ Ar-condicionado\n✅ Direção elétrica\n✅ Multimídia',
+  observacoes: 'Único dono',
+  avaliacao:   '*AVALIAÇÃO:*\nCarro inteiro, sem retoque',
+  gastos:      '*GASTOS:*\npintar o capô',
+  valor:       '*VALOR: R$ 70.990,00*',
+  fipe:        '*FIPE: R$ 76.750,00*',
+  instagram:   (window.cnrMarca && window.cnrMarca.linkInstagram) || '@carronarederepasses',
+};
+
+// O WhatsApp mostra *assim* em negrito. A prévia faz o mesmo, senão o
+// que se vê aqui não é o que chega do outro lado.
+function paraHTML(txt) {
+  return String(txt)
+    .replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+    .replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
+}
+
+function desenharPrevia() {
+  const texto = window.CNR_MODELO.montar($('modelo').value, EXEMPLO);
+  $('previa').innerHTML = paraHTML(texto);
+}
+
+// Os marcadores saem de `assets/modelo-anuncio.js`, não de uma lista
+// escrita aqui: marcador novo aparece sozinho nesta tela.
+function desenharMarcadores() {
+  $('marcadores').innerHTML = window.CNR_MODELO.MARCADORES.map((m) =>
+    `<button class="marc" type="button" data-m="${m.nome}" title="${m.desc}">{${m.nome}}</button>`
+  ).join('');
+}
+
+// Insere onde o cursor está, e não no fim: quem está escrevendo no meio
+// do texto não quer o marcador lá embaixo.
+function inserir(nome) {
+  const ta = $('modelo');
+  const i = ta.selectionStart, f = ta.selectionEnd;
+  const marca = '{' + nome + '}';
+  ta.value = ta.value.slice(0, i) + marca + ta.value.slice(f);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = i + marca.length;
+  desenharPrevia();
+}
+
+function avisar(txt, tipo) {
+  const el = $('aviso');
+  el.textContent = txt || '';
+  el.className = 'aviso' + (tipo ? ' ' + tipo : '');
+}
+
+// ── Carregar o que já está salvo ────────────────────────────────
+(async () => {
+  desenharMarcadores();
+  try {
+    const r = await fetch('/api/utils?type=modelo', { cache: 'no-store' });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.modelo) $('modelo').value = d.modelo;
+    // Campo vazio mostra o PADRÃO em cinza no lugar do texto? Não: o
+    // vazio é o próprio estado "uso o padrão", e escrever o padrão
+    // dentro do campo faria a pessoa achar que já personalizou.
+    if (d && d.aviso === 'sem_coluna') {
+      avisar('O banco ainda não tem o campo do modelo — salvar não vai funcionar.', 'erro');
+    }
+  } catch (e) {
+    avisar('Não consegui carregar o modelo salvo.', 'erro');
+  }
+  desenharPrevia();
+})();
+
+$('modelo').addEventListener('input', desenharPrevia);
+
+$('marcadores').addEventListener('click', (e) => {
+  const b = e.target.closest('.marc');
+  if (b) inserir(b.dataset.m);
+});
+
+// No celular não existe passar o mouse, então o clique abre o texto
+// inteiro. No notebook, quem só passa o mouse já lê o resumo no title.
+$('btn-ajuda').addEventListener('click', () => {
+  $('explica').classList.toggle('aberta');
+});
+
+$('btn-padrao').addEventListener('click', () => {
+  $('modelo').value = '';
+  desenharPrevia();
+  avisar('Voltou ao padrão. Salve para valer.', '');
+});
+
+$('btn-salvar').addEventListener('click', async () => {
+  const b = $('btn-salvar');
+  b.disabled = true;
+  avisar('Salvando…');
+  try {
+    const r = await fetch('/api/utils?type=modelo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modelo: $('modelo').value }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    avisar($('modelo').value.trim()
+      ? 'Salvo. Todo anúncio novo já sai neste padrão.'
+      : 'Voltou ao modelo padrão do sistema.', 'ok');
+  } catch (e) {
+    avisar('Não consegui salvar: ' + e.message, 'erro');
+  } finally {
+    b.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
