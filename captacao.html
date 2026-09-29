@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <script src="/assets/auth.js"></script>
 <script src="/assets/marca.js"></script>
+<script src="/assets/modelo-anuncio.js"></script>
 <script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/tokens.css">
@@ -743,7 +744,6 @@ function montarTextoAnuncio() {
   const obsIds = getOnIds('#obs-grid');
   const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
 
-  let linhas = [];
   // A FIPE não é consistente na caixa: manda "VIRTUS 1.6 MSI" e "ASTON MARTIN"
   // ao lado de "Corolla" e "Audi". Sem isto, o anúncio de alguns carros saía
   // gritando enquanto o de outros saía normal.
@@ -757,17 +757,23 @@ function montarTextoAnuncio() {
   if (nomeVeic) l1 += `*${nomeVeic}*`;
   const det = [!badSel(anoNome)?anoNome:'', combustivel, km, cor?cor.toLowerCase():''].filter(Boolean);
   if (det.length) l1 += (nomeVeic ? ', ' : '') + det.join(', ');
-  if (l1) linhas.push(l1);
+  // ── Blocos, e não mais um texto corrido ────────────────────────
+  // Cada pedaço vira um bloco pronto, com negrito, emoji e siglas já
+  // acertados. O MODELO da loja decide a ordem e o que entra
+  // (`assets/modelo-anuncio.js`). Quem não tem modelo recebe o padrão,
+  // que reproduz este texto linha por linha.
+  const bloco = {};
+  if (l1) bloco.veiculo = l1;
   // Rótulo em caixa alta e negrito, como *VALOR:*, *FIPE:* e *GASTOS:*.
   // Só a palavra — a cidade fica em texto normal, senão a linha inteira
   // compete com o preço, que é o que tem de saltar no WhatsApp.
-  if (regiao) linhas.push(`\n📍 *LOCALIZAÇÃO:* ${regiao}`);
+  if (regiao) bloco.localizacao = `📍 *LOCALIZAÇÃO:* ${regiao}`;
   const itensOn = onIds.filter(id => id !== 'blindado');
   const extras = linhasExtras();
   if (itensOn.length || onIds.includes('blindado') || extras.length) {
-    linhas.push('');
-    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
-    extras.forEach(l => linhas.push(l));
+    const op = [];
+    itensOn.forEach(id => op.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
+    extras.forEach(l => op.push(l));
     if (onIds.includes('blindado')) {
       const bM = document.getElementById('blind-marca').value.trim();
       const bN = document.getElementById('blind-nivel').value.trim();
@@ -776,11 +782,18 @@ function montarTextoAnuncio() {
       if (bM) bl += ` — ${bM}`;
       if (bN) bl += `, ${bN}`;
       if (bV) bl += ` (${bV})`;
-      linhas.push(bl);
+      op.push(bl);
     }
+    bloco.opcionais = op.join('\n');
   }
-  if (obsIds.length) { linhas.push(''); obsIds.forEach(id => linhas.push(obsMap[id] || id)); }
-  if (obsCustom) { linhas.push(''); linhas.push(obsCustom); }
+  // Os dois grupos de observação ficam separados por UMA linha em
+  // branco, como sempre estiveram: a lista marcada é uma coisa, o que o
+  // Yuri escreveu à mão é outra. Juntar tudo numa lista só mudaria o
+  // texto de quem já usa.
+  const obs = [];
+  if (obsIds.length) obs.push(obsIds.map(id => obsMap[id] || id).join('\n'));
+  if (obsCustom) obs.push(obsCustom);
+  if (obs.length) bloco.observacoes = obs.join('\n\n');
 
   // Avaliação e gastos eram lidos no topo desta função e nunca usados: o
   // texto ia dos opcionais direto para o VALOR. O Yuri preenchia os dois,
@@ -791,16 +804,19 @@ function montarTextoAnuncio() {
   //
   // O VALOR dos gastos (#gastos-valor) fica de fora de propósito: é custo
   // dele, e no anúncio entregaria a margem.
-  if (avaliacao) { linhas.push(''); linhas.push('*AVALIAÇÃO:*'); linhas.push(avaliacao); }
-  if (gastos)    { linhas.push(''); linhas.push('*GASTOS:*');    linhas.push(gastos); }
+  if (avaliacao) bloco.avaliacao = `*AVALIAÇÃO:*\n${avaliacao}`;
+  if (gastos)    bloco.gastos    = `*GASTOS:*\n${gastos}`;
 
-  linhas.push('');
-  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
-  if (fipeDigit) linhas.push(`*FIPE: ${fmtR(fipeDigit)}*`);
+  if (valor)     bloco.valor = `*VALOR: ${fmtR(valor)}*`;
+  if (fipeDigit) bloco.fipe  = `*FIPE: ${fmtR(fipeDigit)}*`;
   // Instagram do site (assets/marca.js): no piloto é o do lojista, não o da
   // Carro na Rede. Site sem Instagram configurado termina no preço.
-  if (window.cnrMarca.linkInstagram) { linhas.push(''); linhas.push(window.cnrMarca.linkInstagram); }
-  return _normalizarAnuncio(linhas);
+  if (window.cnrMarca.linkInstagram) bloco.instagram = window.cnrMarca.linkInstagram;
+
+  // O modelo da loja decide ordem e conteúdo. Sem modelo, o padrão —
+  // que reproduz este texto linha por linha, e isso está provado por
+  // teste (`scratchpad/checa-modelo.js`): mesmas entradas, mesmo SHA.
+  return window.CNR_MODELO.montar(window.CNR_MODELO_LOJA, bloco);
 }
 
 // ══════════════════════════════════════════════

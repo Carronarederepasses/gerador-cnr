@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <script src="/assets/auth.js"></script>
 <script src="/assets/marca.js"></script>
+<script src="/assets/modelo-anuncio.js"></script>
 <script src="/assets/mascaras.js"></script>
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/tokens.css">
@@ -968,25 +969,29 @@ function montarTextoColetados() {
   const obsIds = getOnIds('#obs-grid');
   const obsMap = {}; OBS.forEach(o => obsMap[o.id] = o.lbl);
 
-  let linhas = [];
 
   let l1 = '';
   if (veiculo) l1 += `*${toTitleCase(veiculo)}*`;
   const det = [ano, combustivel, km, cor ? cor.toLowerCase() : ''].filter(Boolean);
   if (det.length) l1 += (veiculo ? ', ' : '') + det.join(', ');
-  if (l1) linhas.push(l1);
-
-  // Rótulo em caixa alta e negrito, como *VALOR:*, *FIPE:* e *GASTOS:*.
-  // Só a palavra — a cidade fica em texto normal, senão a linha inteira
-  // compete com o preço, que é o que tem de saltar no WhatsApp.
-  if (regiao) linhas.push(`\n📍 *LOCALIZAÇÃO:* ${regiao}`);
+  // ── Blocos, e nao mais um texto corrido ────────────────────────
+  // Igual a Captacao desde 29/set: cada pedaco vira um bloco pronto, e
+  // o MODELO da loja decide ordem e conteudo. Esta tela ganha o modelo
+  // junto porque e a mais usada — deixar so a Captacao seguir o modelo
+  // faria o mesmo carro sair de dois jeitos conforme a porta de entrada.
+  const bloco = {};
+  if (l1) bloco.veiculo = l1;
+  // Rotulo em caixa alta e negrito, como *VALOR:*, *FIPE:* e *GASTOS:*.
+  // So a palavra — a cidade fica em texto normal, senao a linha inteira
+  // compete com o preco, que e o que tem de saltar no WhatsApp.
+  if (regiao) bloco.localizacao = `📍 *LOCALIZAÇÃO:* ${regiao}`;
 
   const itensOn = onIds.filter(id => id !== 'blindado');
   const extras = linhasExtras();
   if (itensOn.length || onIds.includes('blindado') || extras.length) {
-    linhas.push('');
-    itensOn.forEach(id => linhas.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
-    extras.forEach(l => linhas.push(l));
+    const op = [];
+    itensOn.forEach(id => op.push(`${EMOJI_OPC[id] || '✅'} ${getLblById(id)}`));
+    extras.forEach(l => op.push(l));
     if (onIds.includes('blindado')) {
       const bM = document.getElementById('blind-marca').value.trim();
       const bN = document.getElementById('blind-nivel').value.trim();
@@ -995,33 +1000,28 @@ function montarTextoColetados() {
       if (bM) bl += ` — ${bM}`;
       if (bN) bl += `, ${bN}`;
       if (bV) bl += ` (${bV})`;
-      linhas.push(bl);
+      op.push(bl);
     }
+    bloco.opcionais = op.join('\n');
   }
 
-  if (obsIds.length) {
-    linhas.push('');
-    obsIds.forEach(id => linhas.push(obsMap[id] || id));
-  }
-  if (obsCustom) {
-    linhas.push('');
-    linhas.push(obsCustom);
-  }
-  if (gastos) { linhas.push(''); linhas.push('*GASTOS:*'); linhas.push(gastos); }
+  // Os dois grupos de observacao seguem separados por UMA linha em
+  // branco, como sempre estiveram.
+  const obs = [];
+  if (obsIds.length) obs.push(obsIds.map(id => obsMap[id] || id).join('\n'));
+  if (obsCustom) obs.push(obsCustom);
+  if (obs.length) bloco.observacoes = obs.join('\n\n');
 
-  linhas.push('');
-  if (valor) linhas.push(`*VALOR: ${fmtR(valor)}*`);
-  if (fipeVal) linhas.push(`*FIPE: ${fmtR(fipeVal)}*`);
+  if (gastos) bloco.gastos = `*GASTOS:*
+${gastos}`;
+  if (valor)   bloco.valor = `*VALOR: ${fmtR(valor)}*`;
+  if (fipeVal) bloco.fipe  = `*FIPE: ${fmtR(fipeVal)}*`;
 
-  // Instagram do site (assets/marca.js): no piloto é o do lojista, não o da
-  // Carro na Rede. Site sem Instagram configurado termina no preço.
-  if (window.cnrMarca.linkInstagram) { linhas.push(''); linhas.push(window.cnrMarca.linkInstagram); }
+  // Instagram do site (assets/marca.js): no piloto e o do lojista, nao o da
+  // Carro na Rede. Site sem Instagram configurado termina no preco.
+  if (window.cnrMarca.linkInstagram) bloco.instagram = window.cnrMarca.linkInstagram;
 
-  // Mesma normalização do anúncio comum. Este montador não foi unificado
-  // com montarTextoAnuncio() porque de fato difere — só ele tem a seção
-  // *GASTOS:*. As duas cópias já haviam divergido; o que se unifica aqui é
-  // a arrumação final, não a composição.
-  return _normalizarAnuncio(linhas);
+  return window.CNR_MODELO.montar(window.CNR_MODELO_LOJA, bloco);
 }
 
 // Monta e mostra. Separado do montador acima para que o catálogo possa pedir

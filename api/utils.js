@@ -198,6 +198,47 @@ module.exports = async (req, res) => {
       });
     }
 
+    // ── Modelo do anúncio, por loja ───────────────────────────────
+    // GET devolve o modelo desta loja (nulo = usa o padrão do sistema).
+    // POST grava. Fica aqui, e não num arquivo novo, porque o teto de 12
+    // funções da Vercel segue cheio.
+    if (type === 'modelo') {
+      const { db } = require('./_db');
+      const { contaDoPedido } = require('./_conta');
+      const sb = db(contaDoPedido(req));
+
+      if (req.method === 'GET') {
+        const r = await sb('contas?select=modelo_anuncio&limit=1');
+        if (!r.ok) {
+          // Coluna ainda não criada (migration não rodada): responde
+          // "sem modelo" em vez de derrubar a tela. Quem não tem modelo
+          // usa o padrão, que é o texto de sempre.
+          return res.status(200).json({ ok: true, modelo: null, aviso: 'sem_coluna' });
+        }
+        const linha = (await r.json())[0] || {};
+        return res.status(200).json({ ok: true, modelo: linha.modelo_anuncio || null });
+      }
+
+      if (req.method === 'POST') {
+        const texto = String((req.body || {}).modelo || '');
+        // Vazio volta ao padrão do sistema — é como se desfaz, sem
+        // precisar de um botão "restaurar" que ninguém acha.
+        const valor = texto.trim() ? texto.slice(0, 4000) : null;
+        const r = await sb('contas', {
+          method: 'PATCH', body: JSON.stringify({ modelo_anuncio: valor }),
+        });
+        if (!r.ok) {
+          return res.status(400).json({
+            error: 'Não consegui salvar o modelo. A coluna pode não existir ainda.',
+            codigo: 'sem_coluna',
+          });
+        }
+        return res.status(200).json({ ok: true, modelo: valor });
+      }
+
+      return res.status(405).json({ error: 'Use GET ou POST.' });
+    }
+
     // Abrir a própria sessão neste aparelho, usando a chave mestra.
     // Existe porque o SMS está desligado e, sem isto, a Rede não abre no
     // notebook de quem entrou pelo telefone só no celular — foi o que

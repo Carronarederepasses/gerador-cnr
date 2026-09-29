@@ -558,14 +558,12 @@ function toTitleCase(str) {
 // Em vez de acertar cada seção (e voltar a errar na próxima que for criada),
 // o bloco inteiro é normalizado no fim: nunca mais de uma linha em branco
 // seguida, e nada de branco na abertura ou no fecho.
-function _normalizarAnuncio(linhas) {
-  return linhas
-    .join('\n')
-    .replace(/[ \t]+$/gm, '')    // espaço sobrando no fim das linhas
-    .replace(/\n{3,}/g, '\n\n')  // no máximo uma linha em branco seguida
-    .replace(/^\n+/, '')         // não começa em branco
-    .replace(/\n+$/, '');        // nem termina
-}
+// Em 29/set esta limpeza mudou de casa: foi para `CNR_MODELO.normalizar`,
+// em `assets/modelo-anuncio.js`, porque agora ela precisa valer também
+// para o modelo que cada loja escrever — e não só para os dois montadores
+// daqui. A função saiu deste arquivo em vez de ficar como cópia: duas
+// limpezas iguais divergiriam, que é o defeito que ela mesma existe para
+// evitar.
 
 // ───────────────────────────────────────────────────────────────
 // Preview do balão e botão copiar
