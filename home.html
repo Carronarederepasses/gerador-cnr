@@ -149,6 +149,12 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:.5rem}
 .atalho{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.7rem .6rem;text-decoration:none;color:var(--text);display:flex;flex-direction:column;align-items:center;text-align:center;gap:.3rem;transition:border-color .15s}
 .atalho .desc{display:none}
+.convite-linha{display:flex;align-items:center;justify-content:space-between;gap:.9rem;flex-wrap:wrap;
+  background:var(--surface-raise);border:1px solid var(--line);border-radius:var(--r-md, 12px);padding:.85rem 1rem}
+.convite-tit{font-weight:700;font-size:.92rem}
+.convite-sub{font-size:.76rem;color:var(--text-mid);margin-top:.15rem}
+.convite-btn{text-decoration:none;font-size:.82rem;font-weight:700;padding:.45rem .9rem;
+  border-radius:var(--r-lg, 16px);background:var(--accent);color:var(--surface);white-space:nowrap}
 /* Dez atalhos em tres colunas deixam o ultimo sozinho na linha, o que
    le como esquecimento e nao como escolha. Cercado por largura porque
    a regra conta atalhos e o numero de colunas muda: sem o cerco, em
@@ -271,6 +277,22 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
        chegar em Parceiros ou Captação pelo Painel ele rolava a tela
        inteira. Fica logo abaixo da agenda porque avaliação marcada para
        hoje continua sendo a coisa mais acionável da tela. -->
+  <!-- Convidar uma loja. Vive aqui, e não só dentro da Rede, porque é
+       daqui que o Yuri parte — e a Rede exige sessão, então o botão
+       ficava inalcançável justamente de um aparelho que ainda não tem
+       uma (29/set). Nasce escondido: só a loja dona da instalação
+       convida, e quem não pode nem vê. -->
+  <div class="secao" id="secao-convite" style="display:none">
+    <div class="secao-titulo">Convidar</div>
+    <div class="convite-linha">
+      <div>
+        <div class="convite-tit">🏪 Trazer uma loja para a rede</div>
+        <div class="convite-sub">Cria o espaço dela e gera um link de entrada</div>
+      </div>
+      <a class="convite-btn" href="/rede.html#convidar">Convidar →</a>
+    </div>
+  </div>
+
   <div class="secao">
     <div class="secao-titulo">Acesso rápido</div>
     <div class="atalhos">
@@ -473,7 +495,19 @@ function mudarMes(dir) {
   if (_relMes > 11) { _relMes = 0; _relAno++; }
   const emAtual = _relMes === _hoje.getMonth() && _relAno === _hoje.getFullYear();
   document.getElementById('btn-mes-prox').disabled = emAtual;
-  carregarRelatorio();
+  // Só a loja dona da instalação convida. A seção nasce escondida e só
+// aparece se o servidor disser que pode — botão que aparece e depois
+// recusa é pior que botão que não aparece.
+(async () => {
+  try {
+    const r = await fetch("/api/utils?type=quem", { cache: "no-store" });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.podeConvidar) document.getElementById("secao-convite").style.display = "";
+  } catch (e) { /* sem resposta: a seção fica escondida, que é o lado seguro */ }
+})();
+
+carregarRelatorio();
 }
 
 function exportarRelatorioCSV() {

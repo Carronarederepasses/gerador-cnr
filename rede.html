@@ -881,6 +881,13 @@ async function carregar() {
     // tiver falhado, refaz — assim o erro aparece com a mensagem certa em
     // vez de a tela ficar vazia sem explicação.
     if ((await jaCarregando) === null) await carregar();
+    // Chegou pelo atalho do Painel (/rede.html#convidar): abre a janela
+    // direto. Sem isto o botao de la so trocava de tela e deixava a
+    // pessoa procurando o ✚.
+    if (location.hash === "#convidar" && PODE_CONVIDAR) {
+      history.replaceState(null, "", location.pathname);
+      convidarLoja();
+    }
     abrirRecebidos(); verLista();
   } catch (e) {
     $('col').innerHTML = `<div class="aviso">Não consegui carregar: ${esc(e.message)}</div>`;
