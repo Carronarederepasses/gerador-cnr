@@ -13,6 +13,9 @@
     nome: 'Carro na Rede', subtitulo: 'Repasses',
     instagram: 'carronarederepasses', email: 'carronarederepasses@gmail.com',
     logo: '', esconder: [], propria: false,
+    // repassador | lojista | null. Nulo = ainda não escolheu — e isso é
+    // diferente de ser repassador. Ver api/_marca.js.
+    tipo: null,
   };
   var GAVETA = 'cnr_marca';
 
@@ -31,6 +34,10 @@
       var nome = String(href || '').replace(/^\//, '').replace(/\.html.*$/, '').toLowerCase();
       return m.esconder.indexOf(nome) !== -1;
     };
+    // Preparação é coisa de quem tem pátio. Repassador não tem: o carro
+    // nunca entra no estoque dele. Explícito, não `!== 'repassador'` —
+    // senão quem ainda não escolheu passaria a ver a tela de lojista.
+    m.eLojista = (m.tipo === 'lojista');
     return m;
   }
 

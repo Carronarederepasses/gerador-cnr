@@ -41,6 +41,10 @@ const CAMPOS = [
   'km', 'cor', 'combustivel', 'regiao', 'emplacado_em', 'placa', 'valor', 'fipe',
   'opcionais', 'observacoes', 'anuncio_texto', 'status', 'fotos', 'documentos', 'avaliacao',
   'valor_compra', 'gastos', 'gastos_valor', 'renavam', 'vendedor_nome', 'vendedor_telefone',
+  // Serviços da preparação (só lojista usa). Sem esta palavra aqui, o
+  // campo pareceria salvar e seria descartado no servidor em silêncio —
+  // foi o que aconteceu com `emplacado_em` em 04/set.
+  'preparacao',
 ];
 
 // O `sb` local saiu daqui em 23/set: agora vem de `_db.js`, já amarrado à

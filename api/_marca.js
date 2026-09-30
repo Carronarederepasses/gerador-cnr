@@ -37,6 +37,10 @@ function marca(env = process.env) {
     logo:      limpo(env.MARCA_LOGO),
     esconder:  limpo(env.MARCA_ESCONDER).split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
     propria,
+    // Sem sessão não dá para saber de que loja é o pedido, então o tipo é
+    // desconhecido. Não chuta 'repassador' aqui: a tela precisa poder
+    // distinguir "é repassador" de "não sei ainda".
+    tipo: ['repassador', 'lojista'].includes(limpo(env.MARCA_TIPO)) ? limpo(env.MARCA_TIPO) : null,
   };
 }
 
@@ -71,6 +75,12 @@ function marcaDaConta(conta, cnrId) {
     // regras de leitura para a mesma coisa é como elas divergem.
     esconder:  limpa(conta.esconder).split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
     propria,
+    // `tipo` não é marca — é o que a loja É (repassador ou lojista), e muda
+    // o que aparece na tela. Viaja aqui porque este payload já é buscado
+    // por TODA tela, então não custa uma chamada a mais. Nulo quer dizer
+    // "ainda não escolheu", e nulo não é 'repassador': quem não escolheu
+    // não pode receber uma escolha por omissão.
+    tipo: ['repassador', 'lojista'].includes(limpa(conta.tipo)) ? limpa(conta.tipo) : null,
   };
 }
 

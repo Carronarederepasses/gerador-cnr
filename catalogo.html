@@ -312,6 +312,61 @@
   .btn-editar{background:none;border:1px solid var(--line);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.72rem;padding:.35rem .6rem;min-height:32px;border-radius: var(--r, 8px);cursor:pointer;white-space:nowrap}
   .btn-editar:hover{border-color:var(--text-mid)}
 
+  /* ── Preparação (29/set) — só para lojista ──────────────────────
+     A linha no card responde a pergunta do vendedor: ONDE O CARRO ESTÁ.
+     Ela não fica dentro do modal de propósito — quem está procurando o
+     carro não vai abrir modal em seis cards para descobrir. */
+  .prep-linha{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.7rem;
+    padding:.5rem .65rem;border:1px solid var(--line);border-radius: var(--r, 8px)}
+  .prep-onde{display:flex;gap:.35rem;flex-wrap:wrap;flex:1;min-width:0}
+  .prep-chip{font-size:.7rem;font-weight:600;padding:.2rem .5rem;border-radius: var(--r-md, 12px);
+    background:color-mix(in srgb,#e8a000 16%,transparent);color:#e8a000;white-space:nowrap}
+  .prep-chip.pronto{background:color-mix(in srgb,var(--severity-ok) 16%,transparent);color:var(--severity-ok)}
+  .prep-chip.parado{background:var(--line);color:var(--text-mid)}
+  .prep-resumo{font-size:.7rem;color:var(--text-mid);white-space:nowrap}
+
+  .prep-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;
+    justify-content:center;z-index:66;padding:2rem 1rem;overflow-y:auto}
+  .prep-modal.show{display:flex}
+  .prep-box{background:var(--surface-raise);border-radius: var(--r-lg, 16px);max-width:560px;width:100%;
+    padding:1.4rem;margin:auto 0}
+  .prep-box h2{font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:.2rem}
+  .prep-box .sub{font-size:.78rem;color:var(--text-mid);margin-bottom:1rem}
+  .prep-item{display:flex;align-items:flex-start;gap:.6rem;padding:.6rem 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .prep-item:last-of-type{border-bottom:none}
+  .prep-item .txt{flex:1;min-width:0}
+  .prep-item .etapa{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid)}
+  .prep-item .oque{font-size:.88rem;font-weight:600;word-break:break-word}
+  .prep-item .val{font-size:.8rem;color:var(--text-mid);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .prep-item.feito .oque{opacity:.55;text-decoration:line-through}
+  .prep-acoes{display:flex;gap:.3rem;flex-shrink:0}
+  .prep-acoes button{background:none;border:1px solid var(--line);color:var(--text-mid);
+    font-family:'DM Sans',sans-serif;font-size:.68rem;padding:.25rem .45rem;min-height:30px;
+    border-radius: var(--r, 8px);cursor:pointer;white-space:nowrap}
+  .prep-acoes button:hover{border-color:var(--text);color:var(--text)}
+  .prep-acoes button.on{border-color:var(--text);color:var(--text);font-weight:700}
+  .prep-novo{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:1rem;
+    padding-top:1rem;border-top:1px solid var(--line)}
+  .prep-novo .full{grid-column:1/-1}
+  .prep-total{display:flex;justify-content:space-between;align-items:center;margin-top:.9rem;
+    font-size:.84rem;font-weight:700}
+  .prep-vazio{font-size:.82rem;color:var(--text-mid);padding:.8rem 0}
+  .prep-erro{font-size:.78rem;color:var(--severity-crit);margin-top:.5rem;min-height:1em}
+  /* No celular os quatro botões espremiam o texto entre eles e o valor:
+     "pintar para-choque dianteiro" saía uma palavra por linha. O medidor
+     dizia "nada estourando" e a tela estava ruim assim mesmo — quem pegou
+     foi a captura. Mesmo conserto das ações da agenda em 09/set: a linha
+     de botões desce inteira. */
+  @media (max-width:460px){
+    .prep-novo{grid-template-columns:1fr}
+    .prep-item{gap:.35rem}
+    .prep-item .txt{flex:1 1 100%}
+    .prep-item .val{order:3}
+    .prep-acoes{flex:1 1 100%;justify-content:flex-end;margin-top:.15rem}
+    .prep-acoes button{flex:1;min-height:34px}
+    .prep-acoes button:last-child{flex:0 0 auto;min-width:38px}
+  }
+
   /* Modal consulta placa */
   .placa-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:70;padding:1.5rem 1rem}
   .placa-modal.show{display:flex}
@@ -519,6 +574,43 @@
   </div>
 </div>
 
+<!-- Modal Preparação — só aparece para loja do tipo lojista -->
+<div class="prep-modal" id="prep-modal">
+  <div class="prep-box">
+    <h2>🔧 Preparação</h2>
+    <div class="sub" id="prep-carro"></div>
+    <input type="hidden" id="prep-id">
+
+    <div id="prep-lista"></div>
+
+    <div class="prep-total">
+      <span>Total da preparação</span>
+      <span id="prep-total-val">—</span>
+    </div>
+
+    <div class="prep-novo">
+      <div>
+        <label class="ed-label">Onde</label>
+        <select id="prep-etapa"></select>
+      </div>
+      <div>
+        <label class="ed-label">Quanto custou</label>
+        <input id="prep-valor" type="text" inputmode="decimal" placeholder="opcional">
+      </div>
+      <div class="full">
+        <label class="ed-label">O que precisa ser feito</label>
+        <input id="prep-oque" type="text" maxlength="120" placeholder="ex: pintar para-choque dianteiro">
+      </div>
+    </div>
+    <div class="prep-erro" id="prep-erro"></div>
+
+    <div class="ed-acoes">
+      <button class="btn ghost" onclick="fecharPrep()">Fechar</button>
+      <button class="btn" id="prep-add" onclick="prepAdicionar()">+ Acrescentar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Consulta Placa -->
 <div class="placa-modal" id="placa-modal">
   <div class="placa-box">
@@ -705,12 +797,15 @@ function card(v) {
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     ${infoSection('📝','Avaliação da Captação', v.avaliacao?.inspecao||null)}
     ${infoSection('🔧','Gastos', v.gastos||null)}
+    ${prepLinha(v)}
     ${v.status === 'vendido'
       ? `<div class="match-box">${renderVendido(v)}</div>`
       : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)"><span id="match-label-${v.id}">👥 Compradores</span><span class="marrow"> ▾</span></button><div id="matchbody-${v.id}" style="display:none"></div></div>`}
     <div class="timeline" id="hist-${v.id}"></div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
+      ${(window.cnrMarca && window.cnrMarca.eLojista && v.status !== 'vendido')
+        ? `<button onclick="abrirPrep('${v.id}')">🔧 Preparação</button>` : ''}
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="abrirStory('${v.id}')">${ICO_IG} Story</button>
@@ -723,6 +818,195 @@ function card(v) {
       ` : ''}
     </div>
   </div>`;
+}
+
+// ══ Preparação (29/set) ═══════════════════════════════════════════
+// Desenho do Yuri: o carro entra no estoque, passa pelo checklist, e o
+// lojista manda ele para onde precisa ir. O vendedor acompanha onde o
+// carro está "pra não se perder ou esquecerem onde tá".
+//
+// DUAS coisas, não uma — e essa foi a correção dele sobre a minha
+// pergunta: o carro está num lugar, mas pode ter mais de um serviço
+// rolando ("enquanto tá pintando o para-choque, manda trocar os pneus").
+// Por isso não existe campo "local": o lugar é DERIVADO dos serviços em
+// andamento. Duas fontes para a mesma verdade divergiriam na cara de
+// quem está procurando o carro.
+//
+// As cinco etapas são fixas por decisão dele (29/set: "deixamos fixa por
+// hora"). Vira configurável no dia em que um lojista pedir a sexta — não
+// antes, senão nasce uma tela de configuração que ninguém abre.
+const PREP_ETAPAS = [
+  { id: 'oficina',   nome: 'Oficina mecânica' },
+  { id: 'funilaria', nome: 'Funilaria' },
+  { id: 'pneu',      nome: 'Pneu / roda' },
+  { id: 'lavajato',  nome: 'Lava-jato' },
+  { id: 'patio',     nome: 'Pátio da loja' },
+];
+const prepNomeEtapa = (id) => (PREP_ETAPAS.find(e => e.id === id) || {}).nome || id;
+const prepItens = (v) => (Array.isArray(v && v.preparacao) ? v.preparacao : []);
+
+// A linha do card: responde "onde o carro está" sem abrir nada.
+function prepLinha(v) {
+  if (!(window.cnrMarca && window.cnrMarca.eLojista)) return '';
+  if (v.status === 'vendido') return '';
+  const itens = prepItens(v);
+  if (!itens.length) return '';
+
+  const andando = itens.filter(i => i.status === 'andando');
+  const faltam  = itens.filter(i => i.status !== 'feito');
+  const gasto   = itens.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+
+  let chips;
+  if (andando.length) {
+    chips = andando.map(i => `<span class="prep-chip">${esc(prepNomeEtapa(i.etapa))}</span>`).join('');
+  } else if (!faltam.length) {
+    chips = '<span class="prep-chip pronto">Pronto para vender</span>';
+  } else {
+    // Tem serviço a fazer e nenhum andando: o carro está parado esperando
+    // alguém levar. É informação, não enfeite — é o carro que some.
+    chips = `<span class="prep-chip parado">Parado · ${faltam.length} a fazer</span>`;
+  }
+
+  const feitos = itens.length - faltam.length;
+  const resumo = `${feitos}/${itens.length}` + (gasto > 0 ? ` · ${fmtR(gasto)}` : '');
+  return `<div class="prep-linha">
+    <div class="prep-onde">${chips}</div>
+    <span class="prep-resumo">${resumo}</span>
+  </div>`;
+}
+
+function abrirPrep(id) {
+  const v = CACHE[id]; if (!v) return;
+  $('prep-id').value = id;
+  $('prep-carro').textContent = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ') || 'Veículo';
+  $('prep-etapa').innerHTML = PREP_ETAPAS.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  $('prep-oque').value = '';
+  $('prep-valor').value = '';
+  prepErro('');
+  prepRender();
+  $('prep-modal').classList.add('show');
+}
+// Redesenhar o catálogo a cada clique foi a primeira versão, e o teste
+// mostrou por que não serve: cada mudança de status recarregava os sete
+// cards, e dois cliques seguidos pegavam a tela no meio do redesenho. No
+// pátio, pelo celular, isso é a tela piscando a cada toque. O card só
+// precisa estar certo quando ele fecha o modal e volta a olhar a lista.
+let _prepMudou = false;
+function fecharPrep() {
+  $('prep-modal').classList.remove('show');
+  if (_prepMudou) { _prepMudou = false; carregar(); }
+}
+$('prep-modal').addEventListener('click', e => { if (e.target === $('prep-modal')) fecharPrep(); });
+function prepErro(msg) { $('prep-erro').textContent = msg || ''; }
+
+function prepRender() {
+  const v = CACHE[$('prep-id').value];
+  const itens = prepItens(v);
+  const lista = $('prep-lista');
+
+  if (!itens.length) {
+    lista.innerHTML = '<div class="prep-vazio">Nenhum serviço ainda. Acrescente abaixo para onde o carro precisa ir.</div>';
+  } else {
+    lista.innerHTML = itens.map((i, n) => `
+      <div class="prep-item ${i.status === 'feito' ? 'feito' : ''}">
+        <div class="txt">
+          <div class="etapa">${esc(prepNomeEtapa(i.etapa))}</div>
+          <div class="oque">${esc(i.oque || '—')}</div>
+        </div>
+        ${i.valor != null ? `<span class="val">${fmtR(i.valor)}</span>` : ''}
+        <div class="prep-acoes">
+          <button class="${i.status === 'fazer'   ? 'on' : ''}" onclick="prepStatus(${n},'fazer')"   title="Ainda não saiu">A fazer</button>
+          <button class="${i.status === 'andando' ? 'on' : ''}" onclick="prepStatus(${n},'andando')" title="O carro está lá agora">Está lá</button>
+          <button class="${i.status === 'feito'   ? 'on' : ''}" onclick="prepStatus(${n},'feito')"   title="Serviço concluído">Feito</button>
+          <button onclick="prepApagar(${n})" title="Apagar">✕</button>
+        </div>
+      </div>`).join('');
+  }
+
+  const gasto = itens.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+  // O total NÃO sobrescreve `gastos_valor` sozinho. Os dois podem divergir
+  // por motivo real (despesa fora do sistema, desconto), e sobrescrever
+  // apagaria o que o dono digitou. Mostra a diferença e deixa ele decidir —
+  // mesma regra da dica de lucro em vendas.html (02/set).
+  let dica = '';
+  if (gasto > 0 && v && v.gastos_valor != null && Math.abs(Number(v.gastos_valor) - gasto) > 0.5) {
+    dica = ` <span style="font-weight:400;color:var(--text-mid);font-size:.76rem">(gastos do carro: ${fmtR(v.gastos_valor)})</span>`;
+  }
+  $('prep-total-val').innerHTML = (gasto > 0 ? fmtR(gasto) : '—') + dica;
+}
+
+// Toda mudança grava na hora: a lista é curta e o lojista está no pátio,
+// com o celular na mão. Botão "Salvar" aqui seria mais um passo para
+// esquecer, e a lição de 02/set é que gravação que não acontece parece
+// que aconteceu.
+async function prepGravar(itens) {
+  const id = $('prep-id').value;
+  prepErro('');
+  try {
+    const r = await fetch('/api/catalogo?id=' + id, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preparacao: itens }),
+    });
+    if (!r.ok) {
+      let msg = 'HTTP ' + r.status;
+      try { msg = (await r.json()).error || msg; } catch (e) {}
+      throw new Error(msg);
+    }
+    CACHE[id].preparacao = itens;   // a tela e o banco passam a dizer o mesmo
+    _prepMudou = true;              // o card do fundo se redesenha ao fechar
+    prepRender();
+    return true;
+  } catch (e) {
+    // Sem isto a mudança sumiria da tela na próxima renderização e ninguém
+    // saberia por quê.
+    prepErro('Não consegui salvar: ' + e.message);
+    prepRender();
+    return false;
+  }
+}
+
+function prepAdicionar() {
+  const oque = $('prep-oque').value.trim();
+  if (!oque) { prepErro('Escreva o que precisa ser feito.'); $('prep-oque').focus(); return; }
+
+  const cru = $('prep-valor').value.trim();
+  let valor = null;
+  if (cru) {
+    valor = parseFloat(cru.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.'));
+    if (isNaN(valor) || valor < 0) { prepErro('Valor inválido.'); return; }
+  }
+
+  const v = CACHE[$('prep-id').value];
+  const itens = prepItens(v).concat([{
+    id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+    etapa: $('prep-etapa').value,
+    oque, valor,
+    status: 'fazer',
+    criado_em: new Date().toISOString(),
+    feito_em: null,
+  }]);
+
+  $('prep-oque').value = '';
+  $('prep-valor').value = '';
+  prepGravar(itens);
+}
+
+function prepStatus(n, status) {
+  const v = CACHE[$('prep-id').value];
+  const itens = prepItens(v).map((i, k) => k !== n ? i : {
+    ...i, status,
+    // A hora do "feito" é registrada uma vez. Reescrever a cada clique
+    // apagaria quando o serviço ficou pronto de verdade.
+    feito_em: status === 'feito' ? (i.feito_em || new Date().toISOString()) : null,
+  });
+  prepGravar(itens);
+}
+
+function prepApagar(n) {
+  const v = CACHE[$('prep-id').value];
+  const itens = prepItens(v);
+  if (!confirm('Apagar "' + (itens[n] && itens[n].oque) + '"?')) return;
+  prepGravar(itens.filter((_, k) => k !== n));
 }
 
 function registrarVenda(id) {
