@@ -7196,3 +7196,109 @@ A conta **DEMO Serra Motors** ficou como casca vazia: os 4 carros foram
 apagados a pedido dele, a conta não.
 
 *Registrado em 29 de setembro de 2026.*
+
+---
+
+### 29/set (tarde/noite) — quatro pendências fechadas e a preparação
+
+**Tudo em produção. Os dois SQL foram rodados pelo Yuri e conferidos.**
+
+#### Alarme de pendências no Painel — "Resolver antes"
+
+Ideia dele, da tela do sistema do amigo (17 carros em "COMPLETAR
+CADASTRO" desde 2024). A regra que separa um do outro: **só entra o que
+IMPEDE uma ação**, nunca campo vazio. Três regras — carro disponível sem
+preço de repasse, sem foto, e reservado com sinal sem comprovante. Some
+quando não há nada. Um item nomeia o carro e linka com `?id=`; vários
+levam à lista. Zero chamada nova (reaproveita o que a tela já pede).
+Falha de leitura **não esconde o bloco** — diz que não conseguiu conferir.
+
+Achou os 2 carros reais sem preço (Aircross e Voyage).
+
+#### Cidade suja — e um bug antigo na tela
+
+`cidadeDoCard()` na extensão + `soCidade()` no Gerador viraram **gêmeas
+declaradas**, com `scripts/checa-cidade.js` rodando as duas recortadas
+dos arquivos reais.
+
+**O verificador achou na primeira execução um defeito que ninguém
+procurava:** a regra `(?:seg|ter|qua|qui|sex|sáb|dom)[a-zç-]*` comia
+cidade de verdade — **"Porto Seguro" virava "Porto"**. Nunca apareceu
+porque as cidades dele são Garopaba, Imbituba, Paulo Lopes e Imaruí.
+Importa porque o app é nacional por decisão dele. Agora o dia da semana
+só conta escrito por inteiro. 29 casos batendo nos dois lados.
+
+#### Logs DIAG — e os que ficaram
+
+Saíram os de agosto. **Meu primeiro grep deixou passar quatro**: os
+`43.1/43.2` são marcados `DEBUG`, não `DIAG`.
+
+Dois NÃO saíram, e o motivo é o mesmo: o callback vazio do bridge
+(**ler** `lastError` é o que desliga o aviso do Chrome) e
+`diagnosticarDOM()` (só roda quando a coleta volta vazia, ou seja,
+quando a OLX reconstruiu a página). Um terceiro virou aviso de verdade:
+"resposta detectada com conteúdo vazio".
+
+#### Compliance — a pendência estava errada
+
+Eu carregava desde 02/set "reescrever a cópia do repo". **Conferido no
+histórico dos dois repositórios: essa cópia nunca existiu.** Agora existe
+`COMPLIANCE.md` no repositório da extensão. Corrigido nele: integração
+oficial da OLX **exige plano Empresas** (corrige o registro de 03/set),
+pegada de ~192 para ~96 páginas/dia, e "enquanto é o Yuri sozinho"
+deixou de ser verdade inteira.
+
+#### Fase 0 fechada
+
+`conta_id` obrigatório nas 12 tabelas. Conferido antes: zero linhas sem
+dono, funil passa, `columns=` do Radar leva o dono.
+
+#### Lojista × repassador + preparação
+
+Desenho do Yuri. **A correção dele mudou a modelagem:** são duas coisas —
+o carro está num lugar, mas pode ter mais de um serviço rolando. Por isso
+**não existe campo "local"**: o lugar é derivado dos itens em andamento.
+
+- `contas.tipo` (repassador|lojista), **sem default** — nulo é "ainda não
+  escolheu", e `eLojista` é `tipo === 'lojista'` explícito
+- `veiculos.preparacao` jsonb; cinco etapas fixas (decisão dele)
+- linha no card responde "onde o carro está" sem abrir nada
+- total NÃO sobrescreve `gastos_valor`: mostra a divergência
+- o convite passou a perguntar o tipo, sem nenhum marcado por padrão
+
+**Dois defeitos meus achados testando:** eu recarregava o catálogo
+inteiro a cada clique de status (tela piscando no celular), e a 420px o
+texto saía **uma palavra por linha** — o medidor disse "nada estourando"
+e quem pegou foi a captura.
+
+**E um erro de teste que quase virou diagnóstico errado:** declarei
+`var card` num exec do navegador e sobrescrevi a função `card()` da
+página. O sintoma foi "o catálogo não renderiza". Era o teste.
+
+#### Erro meu de processo
+
+Usei `git add -A` e **commitei o `Roadmap_Executivo_CRR.docx` do Yuri**,
+sem perguntar e sem ter lido. Tirado do versionamento (segue no disco) e
+`*.docx/*.xlsx/*.pdf` no `.gitignore`. Continua no histórico do commit
+`e1708fc`; repositório é privado, e apagar do histórico passa por ele.
+
+#### Estado das contas
+
+```
+Carro na Rede      repassador
+Fabio Nogueira     repassador   (ainda não abriu o link)
+DEMO Serra Motors  (sem tipo)   conta de teste, vazia
+```
+
+BHM Autos vive no projeto `cnr-piloto` — para o Bruno ver a preparação, o
+SQL tem de rodar lá, com `tipo = 'lojista'`.
+
+#### Fila combinada com ele, nesta ordem
+
+1. Telas da Rede (o motor está pronto; só a `/rede.html` de prova existe)
+2. Financeiro — o que tenho a receber
+3. Catálogo de repasses separado do estoque
+4. Cidade suja na origem: **feito**; falta só recarregar a extensão na
+   máquina da mãe (a do Yuri já foi)
+
+*Registrado em 29 de setembro de 2026, noite.*
