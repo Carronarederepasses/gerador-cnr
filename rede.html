@@ -945,24 +945,58 @@ function convidarLoja() {
     + '<input id="cv-loja" placeholder="deixe vazio se for repassador" maxlength="80" '
     + 'style="width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:var(--r, 8px);'
     + 'background:var(--surface-raise);color:var(--text);font-family:inherit;font-size:.92rem;margin-bottom:.9rem">'
+    // O que a pessoa É. Muda o que ela vê: lojista tem pátio e preparação,
+    // repassador não — o carro nunca entra no estoque dele.
+    //
+    // Nenhum vem marcado de propósito. Um padrão aqui escolheria pela
+    // pessoa, e ela descobriria depois — mesmo defeito que tirou o
+    // `horas_antes_da_vitrine` da vitrine em 28/set.
+    //
+    // Hoje o convite É o cadastro (ninguém entra sozinho), então é aqui
+    // que a pergunta cabe.
+    + '<label style="display:block;font-size:.78rem;color:var(--text-mid);margin-bottom:.3rem">O que ela é</label>'
+    + '<div class="cv-tipo" style="display:flex;gap:.5rem;margin-bottom:.9rem">'
+    + '<button type="button" class="leve" data-tipo="repassador" onclick="cvTipo(this)" style="flex:1">'
+    + 'Repassador<br><span style="font-size:.7rem;opacity:.7">não tem pátio</span></button>'
+    + '<button type="button" class="leve" data-tipo="lojista" onclick="cvTipo(this)" style="flex:1">'
+    + 'Lojista<br><span style="font-size:.7rem;opacity:.7">tem estoque e preparação</span></button>'
+    + '</div>'
     + '<div id="cv-saida"></div>'
     + '<div class="op" style="justify-content:flex-end;gap:.5rem">'
     + '<button class="leve" onclick="dlg.close()">Fechar</button>'
     + '<button id="cv-ok" onclick="gerarConvite()">Gerar link</button></div>';
+  // Zera a escolha a cada abertura: sem isto, o segundo convite da sessão
+  // nasceria com o tipo do primeiro já marcado, e ninguém veria.
+  _cvTipo = null;
   $('dlg').showModal();
   setTimeout(() => $('cv-pessoa').focus(), 50);
+}
+
+// Escolha única, e sem nenhum marcado ao abrir.
+let _cvTipo = null;
+function cvTipo(btn) {
+  _cvTipo = btn.dataset.tipo;
+  document.querySelectorAll('.cv-tipo button').forEach((b) => {
+    const eu = (b === btn);
+    b.classList.toggle('leve', !eu);
+    b.style.outline = eu ? '1px solid var(--text)' : '';
+  });
 }
 
 async function gerarConvite() {
   const loja = $('cv-loja').value.trim();
   const pessoa = $('cv-pessoa').value.trim();
   if (!pessoa) { alert('Escreva ao menos o nome da pessoa.'); return; }
+  // Perguntar aqui e deixar passar em branco seria o mesmo que não
+  // perguntar: sem tipo, a loja abre sem saber que metade do sistema
+  // existe, e não há tela para ela corrigir isso sozinha.
+  if (!_cvTipo) { alert('Marque se é repassador ou lojista.'); return; }
   const btn = $('cv-ok');
   btn.disabled = true; btn.textContent = 'Criando…';
   try {
     const r = await fetch('/api/utils?type=convite', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ loja, pessoa }),
+      body: JSON.stringify({ loja, pessoa, tipo: _cvTipo }),
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);

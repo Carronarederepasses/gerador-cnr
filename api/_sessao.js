@@ -215,7 +215,7 @@ async function conferirCodigo(telefone, codigo, { ip, aparelho } = {}) {
 // O token vai no FRAGMENTO (#) do endereço, nunca na query: fragmento
 // não é enviado ao servidor, então não entra no registro de acesso da
 // Vercel nem no Referer de terceiros. Mesma decisão de 03/set.
-async function convidarLoja({ loja, pessoa, telefone, esconder }) {
+async function convidarLoja({ loja, pessoa, telefone, esconder, tipo }) {
   const nomePessoa = String(pessoa || '').trim().slice(0, 80);
   if (!nomePessoa) return { ok: false, erro: 'faltou_nome' };
 
@@ -240,6 +240,14 @@ async function convidarLoja({ loja, pessoa, telefone, esconder }) {
       // Sem Instagram nem e-mail herdados: seriam os contatos da Carro na
       // Rede indo no anúncio de outra loja (decisão de 22/set).
       esconder: String(esconder || '').trim() || null,
+      // Repassador ou lojista — muda o que a loja vê. Valor fora dos dois
+      // não vira 'repassador' por omissão: vira nulo, que quer dizer
+      // "ainda não escolheu". O banco também recusa (CHECK), e este
+      // filtro existe para o erro não chegar lá como 400 no meio do
+      // convite. Só entra no corpo quando é válido, porque a coluna pode
+      // ainda não existir — a migration é manual e o deploy é automático,
+      // a mesma janela de 08/set com `operador`.
+      ...(['repassador', 'lojista'].includes(String(tipo || '')) ? { tipo } : {}),
     }),
   }))[0];
 

@@ -281,6 +281,7 @@ module.exports = async (req, res) => {
       const c = req.body || {};
       const r = await convidarLoja({
         loja: c.loja, pessoa: c.pessoa, telefone: c.telefone, esconder: c.esconder,
+        tipo: c.tipo,
       });
       if (!r.ok) {
         return res.status(400).json({

@@ -40,6 +40,16 @@ comment on column contas.tipo is
 -- A Carro na Rede é repassador — dito pelo Yuri, não deduzido.
 update contas set tipo = 'repassador' where nome = 'Carro na Rede' and tipo is null;
 
+-- As contas que já existiam ficam SEM tipo, e é o certo: eu não sei o que
+-- elas são. Daqui pra frente o convite pergunta. Para as de trás, descomente
+-- a linha que servir — trocando o nome — quando souber:
+--
+--   update contas set tipo = 'lojista'     where nome = 'BHM Autos';
+--   update contas set tipo = 'repassador'  where nome = 'Fabio Nogueira';
+--
+-- Sem tipo a loja não vê a preparação, e nada quebra. Ela só não sabe que
+-- essa metade existe — por isso vale marcar quando ele confirmar.
+
 -- ── 2. A preparação ──────────────────────────────────────────────
 --
 -- Uma coluna jsonb no veículo, e não tabela própria: são poucos itens por
