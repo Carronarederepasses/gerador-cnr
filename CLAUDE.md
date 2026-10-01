@@ -7302,3 +7302,40 @@ SQL tem de rodar lá, com `tipo = 'lojista'`.
    máquina da mãe (a do Yuri já foi)
 
 *Registrado em 29 de setembro de 2026, noite.*
+
+---
+
+### 01/out — Corolla parou de virar Corolla Cross
+
+Relato dele: colou o card do Corolla no Parceiros para conferir a FIPE e
+voltou a do **Corolla Cross**, com o nome certo no texto.
+**Confirmado corrigido por ele no mesmo dia.**
+
+**A pontuação estava CERTA** — reproduzido contra a FIPE real antes de
+mexer: "Corolla XEi 2.0 Flex 16V Aut." dá 22 no XEi e 19 nos quatro
+Cross. Quem errava era a **janela de família**.
+
+A âncora (`baseModelo`) corta na PRIMEIRA palavra, então os 43 modelos
+Toyota com "corolla" — Corolla, Corolla Cross, Corolla Fielder, Corolla
+Altis — são a mesma família para a trava. O Cross ficava na janela e o
+desempate por preço (07/set) podia pular para ele. É primo do T-Cross e
+do F-250 de 16/set, ao contrário: lá a âncora era curta demais, aqui é
+**incompleta**.
+
+**Trava nova:** dentro da família, a SEGUNDA palavra do nome da FIPE é a
+sub-linha; se não aparece no texto, o carro não é esse. Só a segunda, e
+só quando é palavra de verdade (≥3 letras, sem dígito).
+
+**E ela só vale quando o texto nomeia alguma sub-linha da família.** Sem
+essa condição ela mordia o caso vago: medido, em "Corolla 2023" sem
+versão sobravam só os trims curtos (DX, LE, GR) — carro mais velho e
+mais caro para quem apenas não escreveu a versão.
+
+`baseModelo` **não foi tocada** — é gêmea declarada da cascata em
+`assets/mascaras.js`.
+
+`scripts/checa-sublinha.js`: 20 checagens contra a FIPE real, função
+recortada do arquivo. Duas falhas da primeira rodada eram **do teste** —
+usei o código 13 para a Ford, que é a Citroën.
+
+*Registrado em 1º de outubro de 2026.*
