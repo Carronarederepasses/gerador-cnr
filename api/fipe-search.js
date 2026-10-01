@@ -91,6 +91,24 @@ const BRAND_ALIASES = [
   [/\bland\s*rover\b/g,'land rover'],
   [/\bjourney\b/g,     'dodge journey'], // "Journey" sem marca → Dodge
   [/\bdurango\b/g,     'dodge durango'], // "Durango" sem marca → Dodge
+
+  // ── Nome de MODELO que o mercado escreve diferente da FIPE (01/out) ──
+  // Caso real: um parceiro mandou "Toyota SW4 Diamond" e a busca não
+  // achou nada. Na FIPE o carro é "Hilux SW4 Diamond 2.8 TB 4x4 Die.
+  // Aut." — começa com "Hilux", que o anúncio não traz. Como a pontuação
+  // penaliza em 8 quando o modelo-base não aparece no texto, TODOS os SW4
+  // ficavam com nota negativa e eram descartados: "sem candidato".
+  //
+  // Ninguém no mercado escreve "Hilux SW4": o carro é o SW4. Então o
+  // apelido entra aqui, no mesmo lugar e no mesmo formato dos de marca.
+  //
+  // Levantado contra a FIPE real antes de escrever (`scratchpad/apelidos.js`,
+  // 14 modelos conferidos): SW4 é o único caso em que TODOS os nomes da
+  // FIPE trazem um prefixo que o mercado não usa. Tracker, Spin, L200,
+  // CrossFox, T-Cross, Pulse, Fastback, Territory, Bronco, Creta, Kicks e
+  // Oroch já começam pelo nome popular — não precisam de apelido, e
+  // inventar apelido para eles só criaria chance de errar.
+  [/\bsw\s*-?\s*4\b/g, 'hilux sw4'],
 ];
 
 // Roda `fn` sobre os itens com no máximo `limite` chamadas ao mesmo tempo.
