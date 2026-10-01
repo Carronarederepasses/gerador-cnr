@@ -13,6 +13,40 @@ o que ainda não foi feito.
 
 <!-- Escreva abaixo. Uma linha já basta. -->
 
+- **"O sistema se adapta à loja, não a loja ao sistema"** (01/out) —
+  frase de um amigo do Yuri, trazida por ele. **Para amadurecer, não é
+  decisão fechada.**
+
+  Boa parte disso o projeto já faz sem ter dado nome: modelo de anúncio
+  por loja (29/set), telas escondidas por conta, lojista × repassador,
+  marca vinda de `contas`. E na importação de planilha é obrigatório —
+  ler o que a loja tem, não exigir o nosso formato.
+
+  **Onde o princípio é perigoso, e é o que falta amadurecer:** existe um
+  esqueleto que não pode ser da loja — o que É um carro, uma venda, um
+  cliente. Se cada uma redefinir isso, morrem três coisas:
+  - o **relatório**, porque não se soma o que cada um definiu diferente
+  - a **Rede**, porque o carro só atravessa de uma loja para outra
+    quando significa a mesma coisa nas duas. Campo inventado não viaja
+  - o **Match** e a **FIPE**, que leem campos que precisam existir
+
+  E a armadilha prática: *tudo configurável* vira um sistema em que cada
+  tela tem uma tela de configuração atrás. A loja abre, vê 40 opções e
+  fecha. É a mesma razão pela qual o Yuri decidiu em 29/set que as cinco
+  etapas da preparação ficam fixas por ora.
+
+  **Régua proposta (a amadurecer):** a loja manda na FORMA, o sistema
+  manda no ESQUELETO — e o esqueleto é o menor possível (carro, venda,
+  cliente, negociação). Campo que a loja inventar dá para guardar, mas
+  não entra em relatório, Rede nem Match: vira anotação, não
+  inteligência. E isso se diz a ela ANTES, não depois.
+
+  **Primeiro passo concreto, se for em frente:** não construir um motor
+  de configuração. Fazer a importação adaptável e aprender, com dado
+  real, quais campos as lojas têm que a gente não tem. Aí decidir o que
+  vira campo de verdade — que é a Estrutura Emergente já escrita no
+  §6 do CLAUDE.md: estrutura nasce de fricção, não de hipótese.
+
 - **Importar as vendas do lojista, por ele mesmo** (01/out) — ideia do
   Yuri depois de falar com o Bruno e o Nogueira: nenhum dos dois mexeu no
   sistema ainda, "por falta de tempo", e o sistema vazio não puxa
