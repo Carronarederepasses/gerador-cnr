@@ -7339,3 +7339,80 @@ recortada do arquivo. Duas falhas da primeira rodada eram **do teste** —
 usei o código 13 para a Ford, que é a Citroën.
 
 *Registrado em 1º de outubro de 2026.*
+
+### 01/out — Clientes: copiar dado fiscal, e o CNPJ perdendo campo
+
+Pedido dele: um botão para copiar os dados do cliente, "tipo o botão
+que temos no catálogo".
+
+**Conferi o que já existia antes de construir** e achei o "📋 Banco" —
+mas ele copia conta, agência e Pix, para pagar alguém. O que faltava era
+outra coisa.
+
+#### Eu entendi errado na primeira versão
+
+Fiz um botão de **contato** (nome, cidade, marcas, faixa de preço). Ele
+corrigiu, e a correção é o desenho inteiro:
+
+> *"endereço, CNPJ, I.E., razão social e os dados bancários (...) usados
+> para preenchimento de ATPV-e/DUT, e para pagamento"*
+
+É dado **fiscal**, não contato. Marca, faixa e observação saíram —
+ninguém preenche recibo de transferência com elas. Particular troca CNPJ
+e I.E. por CPF e RG.
+
+Quando falta campo, o aviso **diz qual**: "Copiado — falta I.E., dados
+bancários". Descobrir a falta na hora de preencher o documento é o pior
+momento possível.
+
+O bloco bancário virou `linhasBanco()`, usado pelo botão novo **e** pelo
+"Banco": eram duas escritas do mesmo dado, e duas escritas divergem —
+estas divergiriam dentro de um pagamento.
+
+#### Três defeitos que apareceram por conferir a saída com dado real
+
+1. **`fmtTel` cortava pela esquerda.** `slice(0,11)` em telefone gravado
+   com o 0 da operadora dava DDD inexistente: `017997033666` virava
+   `(01)79970-3366`. **4 dos 18 cadastros**, e o erro aparecia na TELA
+   TODA, não só no botão novo. Agora descarta o 55 do país e o 0 antes do
+   DDD — e o 55 só acima de 11 dígitos, senão quebraria DDD 55 (Santa
+   Maria, Uruguaiana), que é real. Conferido nos 18: 17 certos, o 18º é
+   número incompleto no cadastro.
+2. **Eu tinha escrito um segundo mapa de rótulos de tipo**, com valores
+   que o banco não usa (grava `loja`, `revendedor`, `parceiro`, não
+   `lojista`/`repassador`). Saía "loja · GAROPABA". Virou `ROTULO_TIPO`,
+   num lugar só.
+3. **Número do endereço duplicado:** cadastros com o número dentro do
+   logradouro E no campo próprio davam "Jovino Piucco, 803, 803".
+
+#### E a causa que ele apontou — conferida na fonte
+
+Ele disse que a API de CNPJ "puxa e não preenche os campos corretos".
+Busquei a resposta crua da BrasilAPI **antes de mexer**: ela vem
+**certa** (`logradouro: "JOVINO PIUCCO"`, `numero: "803"` separados). O
+`803, 803` foi digitado à mão.
+
+**Mas ele estava certo sobre o preenchimento** — dois campos que a API
+manda eram descartados:
+
+- `descricao_tipo_de_logradouro` ("RODOVIA") — o endereço era gravado
+  sem o tipo. Num ATPV-e, endereço incompleto.
+- `complemento` ("SALA") — nunca chegava no campo.
+
+E a **I.E. não existe na BrasilAPI** (conferido na resposta crua, não há
+campo). O aviso antes dizia só "dados preenchidos", o que fazia o campo
+vazio parecer que a empresa não tem inscrição. Agora diz que a consulta
+não traz.
+
+Conferido no ar com o CNPJ real:
+`Rodovia Jovino Piucco, 803, Sala - Ferraz - Garopaba/SC`
+
+> A lição é a de sempre, do outro lado: eu conferi o que já existia
+> antes de construir (acertei), mas **construí sem perguntar para que
+> servia o texto** — e o conteúdo inteiro estava errado. Saber que já
+> existe um botão parecido não é saber o que ele precisa copiar.
+
+**Anotado como ideia, não feito:** buscador de FIPE na tela inicial
+(`IDEIAS.md`). O motor já existe; é tela, não lógica nova.
+
+*Registrado em 1º de outubro de 2026, noite.*
