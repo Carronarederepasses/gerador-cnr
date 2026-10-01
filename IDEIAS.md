@@ -13,40 +13,6 @@ o que ainda não foi feito.
 
 <!-- Escreva abaixo. Uma linha já basta. -->
 
-- **"O sistema se adapta à loja, não a loja ao sistema"** (01/out) —
-  frase de um amigo do Yuri, trazida por ele. **Para amadurecer, não é
-  decisão fechada.**
-
-  Boa parte disso o projeto já faz sem ter dado nome: modelo de anúncio
-  por loja (29/set), telas escondidas por conta, lojista × repassador,
-  marca vinda de `contas`. E na importação de planilha é obrigatório —
-  ler o que a loja tem, não exigir o nosso formato.
-
-  **Onde o princípio é perigoso, e é o que falta amadurecer:** existe um
-  esqueleto que não pode ser da loja — o que É um carro, uma venda, um
-  cliente. Se cada uma redefinir isso, morrem três coisas:
-  - o **relatório**, porque não se soma o que cada um definiu diferente
-  - a **Rede**, porque o carro só atravessa de uma loja para outra
-    quando significa a mesma coisa nas duas. Campo inventado não viaja
-  - o **Match** e a **FIPE**, que leem campos que precisam existir
-
-  E a armadilha prática: *tudo configurável* vira um sistema em que cada
-  tela tem uma tela de configuração atrás. A loja abre, vê 40 opções e
-  fecha. É a mesma razão pela qual o Yuri decidiu em 29/set que as cinco
-  etapas da preparação ficam fixas por ora.
-
-  **Régua proposta (a amadurecer):** a loja manda na FORMA, o sistema
-  manda no ESQUELETO — e o esqueleto é o menor possível (carro, venda,
-  cliente, negociação). Campo que a loja inventar dá para guardar, mas
-  não entra em relatório, Rede nem Match: vira anotação, não
-  inteligência. E isso se diz a ela ANTES, não depois.
-
-  **Primeiro passo concreto, se for em frente:** não construir um motor
-  de configuração. Fazer a importação adaptável e aprender, com dado
-  real, quais campos as lojas têm que a gente não tem. Aí decidir o que
-  vira campo de verdade — que é a Estrutura Emergente já escrita no
-  §6 do CLAUDE.md: estrutura nasce de fricção, não de hipótese.
-
 - **Importar as vendas do lojista, por ele mesmo** (01/out) — ideia do
   Yuri depois de falar com o Bruno e o Nogueira: nenhum dos dois mexeu no
   sistema ainda, "por falta de tempo", e o sistema vazio não puxa
@@ -94,14 +60,13 @@ o que ainda não foi feito.
 
 - **Catálogo de repasses para lojas**, separado do catálogo de estoque de
   venda (ideia de 28/set, conversando com um amigo)
+
 - **RENAVE no sistema** — entrada e saída de veículo no estoque pelo
   registro eletrônico do governo (28/set)
+
 - **Financeiro: o que tenho a receber** — a venda é registrada, mas a
   comissão que ainda não entrou não aparece em lugar nenhum (28/set,
   vendo o menu do SIG)
-- **Alarme de pendências no Painel** — "3 carros sem preço de repasse,
-  não dá para mandar para a rede", com link. Poucas linhas e no lugar
-  certo, ao contrário da lista de 17 carros parados do SIG (28/set)
 
 - **Grupo e transmissão de graça, o resto pago** (29/set) — a parte de
   rede (grupo, transmissão, conversa) seria a porta de entrada gratuita,
@@ -115,11 +80,6 @@ o que ainda não foi feito.
 - **Convidar liberado para os outros usuários** (29/set) — hoje só a loja
   dona da instalação convida (`podeConvidar` em `api/utils.js`). Quando o
   piloto estiver de pé, soltar para cada loja convidar a própria rede.
-
-- **Cidade vem suja da extensão** — em 13 de 200 anúncios a `localizacao`
-  veio com a data grudada ("GaropabaHoje, 13:13"). A TELA já limpa desde
-  29/set, então não atrapalha o uso; consertar em `olx-search.js` evitaria
-  a sujeira na origem, mas exige recarregar a extensão nas duas máquinas.
 
 - **Assinar o contrato dentro do sistema** — ADIADO por decisão do Yuri
   em 28/set: *"a parte de contrato é particular de cada loja"*. Começou
@@ -141,6 +101,41 @@ o que ainda não foi feito.
 
 ---
 
+- **"O sistema se adapta à loja, não a loja ao sistema"** (01/out) —
+  frase de um amigo do Yuri, trazida por ele. **Para amadurecer, não é
+  decisão fechada.**
+
+  Boa parte disso o projeto já faz sem ter dado nome: modelo de anúncio
+  por loja (29/set), telas escondidas por conta, lojista × repassador,
+  marca vinda de `contas`. E na importação de planilha é obrigatório —
+  ler o que a loja tem, não exigir o nosso formato.
+
+  **Onde o princípio é perigoso, e é o que falta amadurecer:** existe um
+  esqueleto que não pode ser da loja — o que É um carro, uma venda, um
+  cliente. Se cada uma redefinir isso, morrem três coisas:
+  - o **relatório**, porque não se soma o que cada um definiu diferente
+  - a **Rede**, porque o carro só atravessa de uma loja para outra
+    quando significa a mesma coisa nas duas. Campo inventado não viaja
+  - o **Match** e a **FIPE**, que leem campos que precisam existir
+
+  E a armadilha prática: *tudo configurável* vira um sistema em que cada
+  tela tem uma tela de configuração atrás. A loja abre, vê 40 opções e
+  fecha. É a mesma razão pela qual o Yuri decidiu em 29/set que as cinco
+  etapas da preparação ficam fixas por ora.
+
+  **Régua proposta (a amadurecer):** a loja manda na FORMA, o sistema
+  manda no ESQUELETO — e o esqueleto é o menor possível (carro, venda,
+  cliente, negociação). Campo que a loja inventar dá para guardar, mas
+  não entra em relatório, Rede nem Match: vira anotação, não
+  inteligência. E isso se diz a ela ANTES, não depois.
+
+  **Primeiro passo concreto, se for em frente:** não construir um motor
+  de configuração. Fazer a importação adaptável e aprender, com dado
+  real, quais campos as lojas têm que a gente não tem. Aí decidir o que
+  vira campo de verdade — que é a Estrutura Emergente já escrita no
+  §6 do CLAUDE.md: estrutura nasce de fricção, não de hipótese.
+
+
 ## Já viraram trabalho
 
 <!-- O Claude move para cá quando a ideia sai do papel, com a data e onde
@@ -154,3 +149,5 @@ o que ainda não foi feito.
   leitura da caixa de entrada
 - **Busca na lista de vendas** → feito em 02/set/2026
 - **Venda em andamento de parceiros** (sinal recebido, aguardando fechar) → feito em 16/set/2026: campos de sinal em `vendas.html`, cartao no painel, `supabase/migration-venda-sinal.sql`
+- **Alarme de pendências no Painel** → feito em 29/set/2026, bloco "⚠️ Resolver antes" em `home.html`. Só entra o que IMPEDE uma ação (carro sem preço de repasse, sem foto, reservado sem comprovante); some quando não há nada.
+- **Cidade vem suja da extensão** → feito em 01/out/2026, `cidadeDoCard()` em `content/olx-search.js` limpa na origem, gêmea declarada de `soCidade()` do Gerador. O verificador achou de brinde um defeito antigo na tela: "Porto Seguro" virava "Porto".
