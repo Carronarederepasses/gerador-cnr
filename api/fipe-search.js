@@ -239,9 +239,54 @@ module.exports = async (req, res) => {
     // hífen fazia "F-250" e "F-1000" virarem a mesma âncora "f", e a trava
     // deixava de travar — pulava para outra caminhonete com o ano certo.
     const ancora = baseModelo(top.modelo.nome).toLowerCase();
-    const topCands = candidatos.filter(c =>
+
+    // ── Sub-linha (01/out) ────────────────────────────────────────────────
+    // A âncora é só a PRIMEIRA palavra, então "Corolla", "Corolla Cross" e
+    // "Corolla Fielder" são a mesma família para a trava — e o desempate por
+    // preço pulava do Corolla XEi para um Corolla Cross.
+    //
+    // Caso real do Yuri (01/out): colou o card do Corolla no Parceiros e
+    // voltou a FIPE do Corolla Cross. A pontuação estava CERTA (XEi 22,
+    // Cross 19) — quem errou foi a janela, que deixou o Cross concorrer.
+    //
+    // Regra: dentro da família, a SEGUNDA palavra do nome da FIPE é a
+    // sub-linha. Se ela não aparece no texto, o carro não é esse. Só a
+    // segunda, e só quando é palavra de verdade (≥3 letras, sem dígito):
+    // mais que isso começaria a recusar versão por causa de "1.8" ou "16V".
+    //
+    // Se a regra esvaziar a lista, ela não vale. É o caso de quem escreve
+    // só "Corolla 2023", sem versão: aí não há sub-linha pedida, e recusar
+    // tudo responderia "não encontrei" para um carro que a FIPE tem.
+    const subLinha = (nome) => {
+      const p = normalize(String(nome).toLowerCase()).split(/[\s\/.]+/).filter(Boolean);
+      const w = p[1];
+      return (w && w.length >= 3 && !/\d/.test(w)) ? w : null;
+    };
+    const textoBusca = normalize(veiculo.toLowerCase());
+    const mesmaFamilia = candidatos.filter(c =>
       c.marca.codigo === top.marca.codigo &&
       baseModelo(c.modelo.nome).toLowerCase() === ancora
+    );
+    // A trava só vale quando o texto NOMEIA alguma sub-linha da família.
+    // Sem isto ela mordia o caso vago: em "Corolla 2023", sem versão, as
+    // sub-linhas todas saíam e sobravam só os trims curtos (DX, LE, GR) —
+    // ou seja, a busca passava a responder com um carro mais velho e mais
+    // caro para quem só não escreveu a versão. Medido contra a FIPE real.
+    const pedidas = mesmaFamilia
+      .map(c => subLinha(c.modelo.nome))
+      .filter(s => s && textoBusca.includes(s));
+    const semSubLinhaEstranha = pedidas.length
+      ? mesmaFamilia.filter(c => {
+          const sub = subLinha(c.modelo.nome);
+          return !sub || textoBusca.includes(sub);
+        })
+      : mesmaFamilia;
+    if (semSubLinhaEstranha.length && semSubLinhaEstranha.length < mesmaFamilia.length) {
+      console.log(`fipe-search: "${veiculo}" — ${mesmaFamilia.length - semSubLinhaEstranha.length} `
+        + `candidato(s) de outra sub-linha fora da janela (ex: ${
+          mesmaFamilia.filter(c => !semSubLinhaEstranha.includes(c))[0].modelo.nome})`);
+    }
+    const topCands = (semSubLinhaEstranha.length ? semSubLinhaEstranha : mesmaFamilia)
     // Janela de 30, não de 12.
     //
     // Medido em 07/set: para "HB20S 1.0 Manual" 2021, os primeiros modelos que
@@ -253,7 +298,7 @@ module.exports = async (req, res) => {
     // O custo é a busca dos anos, que já é paralela (6 por vez): passa de 2
     // para 5 rodadas. A concorrência segue em 6 de propósito — a Parallelum
     // devolve 429 quando se abusa, e isso já aconteceu aqui em 04/set.
-    ).slice(0, 30);
+    .slice(0, 30);
 
     // A FIPE lista o mesmo ano separado por combustível (ex: "2020 Gasolina",
     // "2020 Diesel"), cada um com código e valor próprios. Sem essa
