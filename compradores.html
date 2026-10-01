@@ -595,7 +595,7 @@ function renderLista(lista) {
       ${c.ativo ? `<div class="card-acoes" onclick="event.stopPropagation()">
         ${wa ? `<a class="btn-acao verde" href="https://wa.me/55${wa}" target="_blank">💬 WhatsApp</a>` : ''}
         ${wa ? `<a class="btn-acao" href="tel:+55${wa}">📞 Ligar</a>` : ''}
-        <button class="btn-acao" onclick="copiarContato('${c.id}')">📋 Copiar</button>
+        <button class="btn-acao" onclick="copiarDadosCliente('${c.id}')">📋 Copiar dados</button>
         ${(c.banco || c.pix_chave) ? `<button class="btn-acao" onclick="copiarDadosBancarios('${c.id}')">📋 Banco</button>` : ''}
         <button class="btn-acao" onclick="abrirModal('${c.id}')">✏️ Editar</button>
       </div>` : '<div style="font-size:.68rem;color:var(--text-faint);text-align:center;padding:.3rem 0">Inativo</div>'}
@@ -959,53 +959,100 @@ const ROTULO_TIPO = {
   concessionaria: 'Concessionária',
 };
 
-// ── Copiar o contato (01/out) ─────────────────────────────────────────
-// Pedido do Yuri: um botão para mandar os dados do cliente por mensagem,
-// como o "Copiar texto" do catálogo faz com o carro.
+// ── Copiar dados do cliente (01/out) ──────────────────────────────────
+// Pedido do Yuri, e a PRIMEIRA versão deste botão estava errada: eu
+// entendi "contato" e mandei nome, cidade, marcas e faixa de preço. Ele
+// corrigiu — o que se copia na prática é dado FISCAL:
 //
-// O "📋 Banco", que já existia, NÃO serve para isso: ele copia conta,
-// agência e Pix, e existe para pagar alguém. Mandar aquilo quando a
-// pergunta é "quem é esse comprador?" seria passar dado bancário de
-// terceiro para quem não precisa dele.
+//   "endereço, CNPJ, I.E., razão social e os dados bancários (...)
+//    usados para preenchimento de ATPV-e/DUT, e para pagamento"
 //
-// Por isso aqui vai SÓ contato: nome, o que é, telefone, cidade e o que
-// ele compra. CPF, CNPJ e banco ficam de fora de propósito — quando
-// forem necessários, o botão deles está do lado.
-function copiarContato(id) {
+// Então é isso e só isso. Marca, faixa de preço e observação ficam de
+// fora: ninguém preenche recibo de transferência com elas.
+//
+// O bloco bancário é o MESMO do botão "Banco" (`linhasBanco`), não uma
+// segunda escrita — dois textos para o mesmo dado divergem, e aqui
+// divergiriam num pagamento.
+function copiarDadosCliente(id) {
   const c = TODOS.find(x => x.id === id);
   if (!c) return;
 
-  const linhas = [c.nome];
-  const quem = [ROTULO_TIPO[c.tipo] || c.tipo, c.cidade].filter(Boolean).join(' · ');
-  if (quem) linhas.push(quem);
-  // O proprietário só acrescenta quando é outra pessoa — em repassador o
-  // nome do cadastro e o do dono costumam ser o mesmo, e repetir polui.
-  if (c.proprietario && c.proprietario.trim() && c.proprietario.trim() !== (c.nome || '').trim()) {
-    linhas.push(`Responsável: ${c.proprietario}`);
-  }
-  if (c.telefone) linhas.push(`📞 ${fmtTel(c.telefone)}`);
+  const pf = c.tipo === 'pessoa_fisica';
+  const linhas = [];
 
-  // Teto de 6: há cadastro com 18 marcas, e a linha inteira numa mensagem
-  // de WhatsApp vira parede de texto que ninguém lê.
-  const marcas = Array.isArray(c.marcas) ? c.marcas.filter(Boolean) : [];
-  if (marcas.length) {
-    linhas.push('Compra: ' + marcas.slice(0, 6).join(', ')
-      + (marcas.length > 6 ? ` +${marcas.length - 6}` : ''));
-  }
-  if (c.preco_min != null || c.preco_max != null) {
-    const n = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-    linhas.push('Faixa: ' + (
-      c.preco_min != null && c.preco_max != null ? `${n(c.preco_min)} a ${n(c.preco_max)}`
-      : c.preco_min != null ? `a partir de ${n(c.preco_min)}`
-      : `até ${n(c.preco_max)}`
-    ));
+  // Quem é, para o documento: razão social quando há; senão o nome.
+  linhas.push(c.razao_social || c.nome);
+  if (!pf && c.nome && c.razao_social && c.nome.trim() !== c.razao_social.trim()) {
+    linhas.push(`Nome fantasia: ${c.nome}`);
   }
 
-  const texto = linhas.join('\n');
-  // `clipboard` falha em navegador embutido e em página sem HTTPS, e falhar
-  // calado aqui seria ele colar a mensagem anterior sem perceber.
+  const falta = [];
+  if (pf) {
+    if (c.cpf) linhas.push(`CPF: ${fmtCPF(c.cpf)}`); else falta.push('CPF');
+    if (c.rg) linhas.push(`RG: ${c.rg}`);
+  } else {
+    if (c.cnpj) linhas.push(`CNPJ: ${fmtCNPJ(c.cnpj)}`); else falta.push('CNPJ');
+    if (c.ie) linhas.push(`I.E.: ${c.ie}`); else falta.push('I.E.');
+  }
+
+  // Endereço em duas linhas, como se escreve num documento.
+  // Vários cadastros antigos têm o número DENTRO do logradouro ("Jovino
+  // Piucco, 803") e também no campo próprio — juntar os dois dava
+  // "Jovino Piucco, 803, 803" colado num recibo. Só acrescenta o número
+  // quando ele ainda não está lá.
+  const jaTemNumero = c.numero
+    && new RegExp(`(^|\\D)${String(c.numero).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
+         .test(String(c.logradouro || '').trim());
+  const rua = [c.logradouro, jaTemNumero ? null : c.numero].filter(Boolean).join(', ');
+  const l1 = [rua, c.complemento_end].filter(Boolean).join(' - ');
+  const cidadeUf = [c.cidade, c.estado].filter(Boolean).join('/');
+  const l2 = [c.bairro, cidadeUf].filter(Boolean).join(' - ');
+  if (l1 || l2) {
+    linhas.push('');
+    if (l1) linhas.push(l1);
+    if (l2) linhas.push(l2);
+    if (c.cep) linhas.push(`CEP: ${fmtCEP(c.cep)}`);
+  }
+  if (!c.logradouro) falta.push('endereço');
+
+  const banco = linhasBanco(c);
+  if (banco.length) linhas.push('', ...banco);
+  else falta.push('dados bancários');
+
+  copiarTexto(
+    linhas.join('\n'),
+    falta.length ? `📋 Copiado — falta ${falta.join(', ')}` : '📋 Dados copiados!'
+  );
+}
+
+// O bloco bancário, num lugar só: usado pelo botão "Copiar" e pelo "Banco".
+function linhasBanco(c) {
+  const linhas = [];
+  if (c.banco) {
+    linhas.push(`Banco: ${c.banco}`);
+    const tipo = c.tipo_conta === 'poupanca' ? 'Poupança' : 'Corrente';
+    const partes = [c.agencia && `Ag: ${c.agencia}`, c.conta && `Conta: ${c.conta} (${tipo})`].filter(Boolean);
+    if (partes.length) linhas.push(partes.join(' / '));
+  }
+  if (c.pix_chave) {
+    const mapa = { cpf:'CPF', cnpj:'CNPJ', email:'E-mail', telefone:'Telefone', aleatoria:'Aleatória' };
+    const rotulo = c.pix_tipo ? ` (${mapa[c.pix_tipo] || c.pix_tipo})` : '';
+    linhas.push(`Pix: ${c.pix_chave}${rotulo}`);
+  }
+  return linhas;
+}
+
+function fmtCEP(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  return d.length === 8 ? d.slice(0,5) + '-' + d.slice(5) : (v || '');
+}
+
+// `clipboard` falha em navegador embutido e em página sem HTTPS. Falhar
+// calado aqui seria ele colar o que estava na área de transferência
+// antes — num recibo de transferência, com os dados de outro cliente.
+function copiarTexto(texto, msgOk) {
   navigator.clipboard.writeText(texto)
-    .then(() => toast('📋 Contato copiado!'))
+    .then(() => toast(msgOk))
     .catch(() => {
       try {
         const t = document.createElement('textarea');
@@ -1013,7 +1060,7 @@ function copiarContato(id) {
         document.body.appendChild(t); t.select();
         const deu = document.execCommand('copy');
         t.remove();
-        toast(deu ? '📋 Contato copiado!' : 'Não consegui copiar', !deu);
+        toast(deu ? msgOk : 'Não consegui copiar', !deu);
       } catch (e) { toast('Não consegui copiar', true); }
     });
 }
@@ -1021,26 +1068,15 @@ function copiarContato(id) {
 function copiarDadosBancarios(id) {
   const c = TODOS.find(x => x.id === id);
   if (!c) return;
-  const lines = [`Dados bancários — ${c.nome}`, ''];
-  if (c.banco) {
-    lines.push(`Banco: ${c.banco}`);
-    const tipo = c.tipo_conta === 'poupanca' ? 'Poupança' : 'Corrente';
-    const parts = [c.agencia && `Ag: ${c.agencia}`, c.conta && `Conta: ${c.conta} (${tipo})`].filter(Boolean);
-    if (parts.length) lines.push(parts.join(' / '));
-  }
-  if (c.pix_chave) {
-    const tipoMap = {cpf:'CPF',cnpj:'CNPJ',email:'E-mail',telefone:'Telefone',aleatoria:'Aleatória'};
-    const label = c.pix_tipo ? ` (${tipoMap[c.pix_tipo] || c.pix_tipo})` : '';
-    lines.push(`Pix: ${c.pix_chave}${label}`);
-  }
-  lines.push('');
+  // O bloco bancário vem de `linhasBanco`, o mesmo do botão "Copiar
+  // dados": eram duas escritas do mesmo dado, e duas escritas divergem —
+  // aqui divergiriam dentro de um pagamento.
+  const lines = [`Dados bancários — ${c.nome}`, '', ...linhasBanco(c), ''];
   if (c.razao_social) lines.push(`Razão social: ${c.razao_social}`);
   else lines.push(`Nome: ${c.proprietario || c.nome}`);
   if (c.cnpj) lines.push(`CNPJ: ${fmtCNPJ(c.cnpj)}`);
   else if (c.cpf) lines.push(`CPF: ${fmtCPF(c.cpf)}`);
-  navigator.clipboard.writeText(lines.join('\n'))
-    .then(() => toast('📋 Dados bancários copiados!'))
-    .catch(() => toast('Erro ao copiar', true));
+  copiarTexto(lines.join('\n'), '📋 Dados bancários copiados!');
 }
 
 async function buscarCep(cep) {
