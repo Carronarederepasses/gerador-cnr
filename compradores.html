@@ -934,8 +934,22 @@ async function buscarCNPJ() {
     if (!r.ok) { st.textContent = '✗ CNPJ não encontrado.'; return; }
     const d = await r.json();
     if (d.razao_social) document.getElementById('m-razao_social').value = toTitleCase(d.razao_social);
-    if (d.logradouro)   document.getElementById('m-logradouro').value   = toTitleCase(d.logradouro);
+    // O TIPO do logradouro vem num campo separado ("RODOVIA" + "JOVINO
+    // PIUCCO") e estava sendo jogado fora: o endereço era gravado como
+    // "Jovino Piucco", sem o "Rodovia". Num ATPV-e isso é endereço
+    // incompleto. Conferido na resposta real da BrasilAPI em 01/out.
+    if (d.logradouro) {
+      const tipo = String(d.descricao_tipo_de_logradouro || '').trim();
+      // Não repete quando o tipo já está escrito no nome da rua.
+      const jaTem = tipo && new RegExp('^' + tipo, 'i').test(String(d.logradouro).trim());
+      document.getElementById('m-logradouro').value =
+        toTitleCase([!jaTem ? tipo : '', d.logradouro].filter(Boolean).join(' '));
+    }
     if (d.numero)       document.getElementById('m-numero').value        = d.numero;
+    // O complemento também vinha e se perdia ("SALA", "LOJA 2", "FUNDOS").
+    if (d.complemento && !document.getElementById('m-complemento_end').value) {
+      document.getElementById('m-complemento_end').value = toTitleCase(d.complemento);
+    }
     if (d.bairro)       document.getElementById('m-bairro').value       = toTitleCase(d.bairro);
     if (d.municipio) {
       document.getElementById('m-cidade2').value = toTitleCase(d.municipio);
@@ -944,7 +958,14 @@ async function buscarCNPJ() {
     if (d.cep)          document.getElementById('m-cep').value          = d.cep.replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2');
     if (d.nome_fantasia && !document.getElementById('m-nome').value)
                         document.getElementById('m-nome').value         = toTitleCase(d.nome_fantasia);
-    st.textContent = '✓ Dados preenchidos automaticamente.';
+    // A BrasilAPI NÃO devolve inscrição estadual — conferido na resposta
+    // crua em 01/out, não há campo nenhum de I.E. Dizer só "dados
+    // preenchidos" fazia o campo em branco parecer que a empresa não tem,
+    // e a I.E. é justamente um dos dados do ATPV-e.
+    const temIE = !!document.getElementById('m-ie').value.trim();
+    st.textContent = temIE
+      ? '✓ Dados preenchidos automaticamente.'
+      : '✓ Preenchido. A I.E. não vem nesta consulta — digite à mão.';
   } catch(_) { st.textContent = '✗ Erro ao buscar. Tente novamente.'; }
 }
 
