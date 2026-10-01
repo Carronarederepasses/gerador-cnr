@@ -13,6 +13,15 @@ o que ainda não foi feito.
 
 <!-- Escreva abaixo. Uma linha já basta. -->
 
+- **Buscador de FIPE na tela inicial** (01/out) — consultar a FIPE de um
+  carro qualquer direto do Painel, sem precisar criar anúncio nem abrir
+  Captação/Parceiros. Hoje a FIPE só é alcançável dentro do fluxo de um
+  carro que ele está cadastrando.
+  Nota para quando virar trabalho: o motor já existe e está bom
+  (`api/fipe-search.js` + a cascata), inclusive com a trava de sub-linha
+  de 01/out — é tela, não lógica nova. E vale decidir se mostra a versão
+  que casou (como o MasterFipe faz), que foi o que evitou erro em 03/set.
+
 - **Catálogo de repasses para lojas**, separado do catálogo de estoque de
   venda (ideia de 28/set, conversando com um amigo)
 - **RENAVE no sistema** — entrada e saída de veículo no estoque pelo
