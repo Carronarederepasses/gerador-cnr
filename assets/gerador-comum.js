@@ -343,6 +343,16 @@ function cascataAno(cfg) {
   cSetSt(cfg, `${n} versão(ões) em ${anoNum}`, 'ok');
 }
 
+// Preenche um campo SÓ se ele estiver vazio, e dispara o `input` para o
+// auto-save e a prévia enxergarem — valor posto por script não avisa
+// ninguém sozinho, e o campo voltaria vazio no recarregar.
+function cPreencherVazio(id, valor) {
+  const el = document.getElementById(id);
+  if (!el || !valor || el.value.trim()) return;
+  el.value = valor;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 async function cascataVersao(cfg) {
   const marca = document.getElementById(cfg.marca).value;
   const v = document.getElementById(cfg.versao).value;
@@ -357,7 +367,27 @@ async function cascataVersao(cfg) {
     const limpo = (data.Valor || '').replace('R$', '').trim();
     document.getElementById(cfg.fipe).value = limpo;
     // Marca que o usuário selecionou a FIPE manualmente pela cascata
-    if (cfg.fipe === 'colet-fipe') _coletFipeManual = true;
+    if (cfg.fipe === 'colet-fipe') {
+      _coletFipeManual = true;
+      // ── O nome do carro (01/out) ────────────────────────────────
+      // A cascata gravava SÓ o valor. Quem preenchia a FIPE à mão ficava
+      // com `#colet-veiculo` vazio, e aí a primeira linha do anúncio não
+      // existia: saía só o texto colado, sem o carro. Relato do Yuri.
+      //
+      // O nome sai da própria escolha dele — marca + versão da FIPE —,
+      // que é a descrição mais exata que o sistema tem do carro.
+      //
+      // SÓ quando o campo está vazio. Ele pode ter digitado o nome ou a
+      // IA ter lido do anúncio do parceiro, e sobrescrever trocaria o
+      // que ele escolheu por um nome de tabela.
+      cPreencherVazio('colet-veiculo', [
+        document.getElementById(cfg.marca).selectedOptions[0]?.text || '',
+        document.getElementById(cfg.versao).selectedOptions[0]?.text || '',
+      ].map(s => s.trim()).filter(Boolean).join(' '));
+      // O ano também: ele acabou de escolher na cascata, e anúncio sem
+      // ano é anúncio pela metade.
+      cPreencherVazio('colet-ano', document.getElementById(cfg.ano).value.split('::')[0]);
+    }
     cSetSt(cfg, `✓ FIPE ${data.MesReferencia || 'atual'}: ${data.Valor}`, 'ok');
     // Busca preços no Mercado Livre para contexto de mercado
     const marcaNome = document.getElementById(cfg.marca).selectedOptions[0]?.text || '';
