@@ -13,6 +13,42 @@ o que ainda não foi feito.
 
 <!-- Escreva abaixo. Uma linha já basta. -->
 
+- **Importar as vendas do lojista, por ele mesmo** (01/out) — ideia do
+  Yuri depois de falar com o Bruno e o Nogueira: nenhum dos dois mexeu no
+  sistema ainda, "por falta de tempo", e o sistema vazio não puxa
+  ninguém. Com o histórico dentro, o Painel diz algo verdadeiro no
+  primeiro dia.
+
+  **A correção dele é o desenho inteiro:** eu tinha imaginado "eles te
+  mandam o arquivo e eu importo". Não existe —
+  *"jamais passariam o relatório, assim como eu tb não. Isso é muito
+  pessoal."* Ele diz que a maioria tem em Excel ou planilha do Google;
+  caderno ficou para trás, mas ainda deve existir.
+
+  Então tem de ser **autoatendimento**: o lojista escolhe a planilha
+  dele, na conta dele, e o arquivo não passa pela mão de ninguém.
+
+  O que isso exige, e é onde está o trabalho:
+  - **não dá para exigir o nosso formato** — a planilha é dele, com as
+    colunas dele. A tela mostra as colunas que vieram e ele diz qual é
+    qual, uma vez
+  - **mostrar antes de gravar** — as primeiras linhas já traduzidas, para
+    ele conferir. Importação que grava direto, num dado que ele considera
+    pessoal, é pedir para ele nunca mais mexer
+  - o `📥 CSV` de `vendas.html` já define um formato de saída; serve de
+    referência, não de exigência
+
+  **O que NÃO prometer:** autoatendimento tira o constrangimento de
+  entregar o arquivo a uma pessoa, mas **não torna o dado invisível para
+  o Yuri** — ele é o administrador do banco. É a mesma correção que ele
+  me fez em 25/set sobre o Bruno. As duas coisas são verdade e a segunda
+  não se esconde.
+
+  **Dúvida honesta antes de construir:** quem não teve tempo de lançar um
+  carro pode não ter tempo de arrumar uma planilha. O teste mais barato
+  continua sendo **um carro só**, e ele responde se o sistema serve para
+  alguém que não seja o Yuri.
+
 - **Buscador de FIPE na tela inicial** (01/out) — consultar a FIPE de um
   carro qualquer direto do Painel, sem precisar criar anúncio nem abrir
   Captação/Parceiros. Hoje a FIPE só é alcançável dentro do fluxo de um
