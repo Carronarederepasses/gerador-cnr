@@ -568,7 +568,7 @@ function renderLista(lista) {
   empty.style.display = 'none';
   el.innerHTML = lista.map(c => {
     const badge = {loja:'badge-loja',pessoa_fisica:'badge-pf',investidor:'badge-inv',revendedor:'badge-rev',parceiro:'badge-rev',franquia:'badge-rev',concessionaria:'badge-rev'}[c.tipo] || 'badge-rev';
-    const label = {loja:'Lojista',pessoa_fisica:'Particular',investidor:'Investidor',revendedor:'Repassador',parceiro:'Parceiro',franquia:'Franquia',concessionaria:'Concessionária'}[c.tipo] || c.tipo;
+    const label = ROTULO_TIPO[c.tipo] || c.tipo;
     const preco = c.preco_min && c.preco_max
       ? `R$ ${fmt(c.preco_min)} – R$ ${fmt(c.preco_max)}`
       : c.preco_max ? `até R$ ${fmt(c.preco_max)}` : '';
@@ -595,6 +595,7 @@ function renderLista(lista) {
       ${c.ativo ? `<div class="card-acoes" onclick="event.stopPropagation()">
         ${wa ? `<a class="btn-acao verde" href="https://wa.me/55${wa}" target="_blank">💬 WhatsApp</a>` : ''}
         ${wa ? `<a class="btn-acao" href="tel:+55${wa}">📞 Ligar</a>` : ''}
+        <button class="btn-acao" onclick="copiarContato('${c.id}')">📋 Copiar</button>
         ${(c.banco || c.pix_chave) ? `<button class="btn-acao" onclick="copiarDadosBancarios('${c.id}')">📋 Banco</button>` : ''}
         <button class="btn-acao" onclick="abrirModal('${c.id}')">✏️ Editar</button>
       </div>` : '<div style="font-size:.68rem;color:var(--text-faint);text-align:center;padding:.3rem 0">Inativo</div>'}
@@ -896,10 +897,23 @@ function fmtCNPJ(v) {
     ? d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5,8) + '/' + d.slice(8,12) + '-' + d.slice(12)
     : v || '';
 }
+// Corrigido em 01/out: `slice(0,11)` cortava pela ESQUERDA, então telefone
+// gravado com o 0 da operadora virava lixo — "017997033666" saía como
+// "(01)79970-3366", com DDD 01, que não existe. Achado ao conferir o botão
+// de copiar contato; são 4 dos 18 cadastros, todos antigos.
+//
+// Antes de formatar, tira o que não é o número: o 55 do país e o 0 que
+// alguns operadores põem antes do DDD. DDD brasileiro nunca começa com 0.
 function fmtTel(v) {
-  const d = (v || '').replace(/\D/g,'').slice(0,11);
+  let d = (v || '').replace(/\D/g, '');
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  while (d.length > 11 && d.startsWith('0')) d = d.slice(1);
+  if (d.length === 12 && d.startsWith('0')) d = d.slice(1);
+  if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+  d = d.slice(0, 11);
   if (d.length === 11) return '(' + d.slice(0,2) + ')' + d.slice(2,7) + '-' + d.slice(7);
   if (d.length === 10) return '(' + d.slice(0,2) + ')' + d.slice(2,6) + '-' + d.slice(6);
+  // Não reconheceu: devolve como está, em vez de inventar um número.
   return v || '';
 }
 
@@ -932,6 +946,76 @@ async function buscarCNPJ() {
                         document.getElementById('m-nome').value         = toTitleCase(d.nome_fantasia);
     st.textContent = '✓ Dados preenchidos automaticamente.';
   } catch(_) { st.textContent = '✗ Erro ao buscar. Tente novamente.'; }
+}
+
+// Os valores que o cadastro grava de verdade — `loja`, `revendedor`,
+// `parceiro`… — não são os quatro do rótulo. O mapa vive AQUI, num lugar
+// só: o card e o botão de copiar liam a mesma coisa de duas listas, e
+// lista repetida é como elas divergem (aconteceu quatro vezes neste
+// projeto).
+const ROTULO_TIPO = {
+  loja: 'Lojista', pessoa_fisica: 'Particular', investidor: 'Investidor',
+  revendedor: 'Repassador', parceiro: 'Parceiro', franquia: 'Franquia',
+  concessionaria: 'Concessionária',
+};
+
+// ── Copiar o contato (01/out) ─────────────────────────────────────────
+// Pedido do Yuri: um botão para mandar os dados do cliente por mensagem,
+// como o "Copiar texto" do catálogo faz com o carro.
+//
+// O "📋 Banco", que já existia, NÃO serve para isso: ele copia conta,
+// agência e Pix, e existe para pagar alguém. Mandar aquilo quando a
+// pergunta é "quem é esse comprador?" seria passar dado bancário de
+// terceiro para quem não precisa dele.
+//
+// Por isso aqui vai SÓ contato: nome, o que é, telefone, cidade e o que
+// ele compra. CPF, CNPJ e banco ficam de fora de propósito — quando
+// forem necessários, o botão deles está do lado.
+function copiarContato(id) {
+  const c = TODOS.find(x => x.id === id);
+  if (!c) return;
+
+  const linhas = [c.nome];
+  const quem = [ROTULO_TIPO[c.tipo] || c.tipo, c.cidade].filter(Boolean).join(' · ');
+  if (quem) linhas.push(quem);
+  // O proprietário só acrescenta quando é outra pessoa — em repassador o
+  // nome do cadastro e o do dono costumam ser o mesmo, e repetir polui.
+  if (c.proprietario && c.proprietario.trim() && c.proprietario.trim() !== (c.nome || '').trim()) {
+    linhas.push(`Responsável: ${c.proprietario}`);
+  }
+  if (c.telefone) linhas.push(`📞 ${fmtTel(c.telefone)}`);
+
+  // Teto de 6: há cadastro com 18 marcas, e a linha inteira numa mensagem
+  // de WhatsApp vira parede de texto que ninguém lê.
+  const marcas = Array.isArray(c.marcas) ? c.marcas.filter(Boolean) : [];
+  if (marcas.length) {
+    linhas.push('Compra: ' + marcas.slice(0, 6).join(', ')
+      + (marcas.length > 6 ? ` +${marcas.length - 6}` : ''));
+  }
+  if (c.preco_min != null || c.preco_max != null) {
+    const n = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    linhas.push('Faixa: ' + (
+      c.preco_min != null && c.preco_max != null ? `${n(c.preco_min)} a ${n(c.preco_max)}`
+      : c.preco_min != null ? `a partir de ${n(c.preco_min)}`
+      : `até ${n(c.preco_max)}`
+    ));
+  }
+
+  const texto = linhas.join('\n');
+  // `clipboard` falha em navegador embutido e em página sem HTTPS, e falhar
+  // calado aqui seria ele colar a mensagem anterior sem perceber.
+  navigator.clipboard.writeText(texto)
+    .then(() => toast('📋 Contato copiado!'))
+    .catch(() => {
+      try {
+        const t = document.createElement('textarea');
+        t.value = texto; t.style.position = 'fixed'; t.style.opacity = '0';
+        document.body.appendChild(t); t.select();
+        const deu = document.execCommand('copy');
+        t.remove();
+        toast(deu ? '📋 Contato copiado!' : 'Não consegui copiar', !deu);
+      } catch (e) { toast('Não consegui copiar', true); }
+    });
 }
 
 function copiarDadosBancarios(id) {
