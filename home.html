@@ -173,7 +173,31 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
    nao ha orfao a corrigir. */
 
 .atalho:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:var(--accent)}
-.atalho .ico{font-size:1.4rem}
+/* Altura fixa: o emoji ocupa 31px e uma imagem ocupava 22, deixando o
+   ladrilho da FIPE 9px mais baixo que os vizinhos. Numa grade isso lê como
+   erro, não como escolha. Medido, não suposto. */
+.atalho .ico{font-size:1.4rem;height:31px;display:flex;align-items:center;justify-content:center}
+/* O logo da FIPE é preto sobre fundo transparente — no escuro do app ele
+   sumiria. Vai sobre uma pastilha branca em vez de ser invertido: inverter
+   trocaria o vermelho do pingo por ciano, e marca de terceiro não se
+   recolore. Mesmo raciocínio da placa (cores fixas porque no mundo real
+   são aquelas).
+   NOTA para quando o Gerador virar produto: é a marca institucional da
+   FIPE. Aqui ela identifica a fonte do dado numa ferramenta interna; num
+   produto vendido, logo de terceiro pode ler como vínculo. Mesma nota que
+   ficou no ícone do Instagram em 10/set. */
+/* Mostra só a palavra "fipe", não o arquivo inteiro. O logo oficial tem
+   "Fundação Instituto de Pesquisas Econômicas" embaixo, em duas linhas
+   miúdas: no tamanho de ícone aquilo vira mancha cinza ilegível — o Yuri
+   viu na tela antes de mim.
+   Medido, não chutado: varrendo as linhas do PNG (140×118), a palavra
+   ocupa as linhas 0–78 e o texto miúdo começa na 84. Daí a proporção
+   140:80 = 1.75, que é a da caixa aqui.
+   Recortado por CSS e não por arquivo novo: mesmo resultado, sem gerar
+   nem versionar outra imagem. */
+.ico-fipe{width:35px;height:20px;display:block;background:#fff;
+  object-fit:cover;object-position:top;
+  border-radius:var(--r-sm, 4px);padding:.1rem .22rem}
 .atalho .nome{font-size:.82rem;font-weight:600}
 .atalho .desc{font-size:.7rem;color:var(--text-mid);line-height:1.4}
 
@@ -346,6 +370,11 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
         <div class="ico">🔍</div>
         <div class="nome">Consulta</div>
         <div class="desc">Histórico veicular por placa</div>
+      </a>
+      <a class="atalho" href="/fipe.html" title="Consulta rápida: marca, modelo, ano e o valor">
+        <div class="ico"><img class="ico-fipe" src="/assets/fipe-logo.png" alt="FIPE"></div>
+        <div class="nome">FIPE</div>
+        <div class="desc">Consulta rápida de valor</div>
       </a>
       <a class="atalho" href="/negociacoes.html" title="Acompanhar propostas em andamento">
         <div class="ico">🤝</div>
