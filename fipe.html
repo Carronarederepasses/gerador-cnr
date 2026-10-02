@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Consulta FIPE — Carro na Rede</title>
+<link rel="manifest" href="/api/utils?type=manifesto">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/auth.js"></script>
+<script src="/assets/marca.js"></script>
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
+  min-height:100vh;padding-bottom:3rem}
+.wrap{max-width:34rem;margin:0 auto;padding:1.5rem 1.1rem 0}
+h1{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900}
+.sub{color:var(--text-mid);font-size:.87rem;margin-top:.3rem}
+
+.campos{margin-top:1.4rem;display:flex;flex-direction:column;gap:.9rem}
+label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-mid);margin-bottom:.3rem;font-weight:500}
+select{width:100%;padding:.7rem .8rem;font-family:inherit;font-size:.95rem;
+  border:1px solid var(--line);border-radius:var(--r, 8px);
+  background:var(--surface-raise);color:var(--text)}
+select:disabled{opacity:.5}
+select:focus{outline:none;border-color:var(--accent)}
+
+/* O status da cascata usa a classe `fipe-st`, que o código comum já escreve. */
+.fipe-st{font-size:.78rem;color:var(--text-mid);min-height:1.2em;margin-top:.2rem}
+.fipe-st.loading{color:var(--text-mid)}
+.fipe-st.ok{color:var(--severity-ok)}
+.fipe-st.err{color:var(--severity-crit)}
+
+/* O valor. É a razão da tela existir, então é o que domina. */
+.resultado{margin-top:1.4rem;border:1px solid var(--line);border-radius:var(--r-md, 12px);
+  padding:1.2rem;text-align:center}
+.resultado .rotulo{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-mid)}
+.resultado .valor{font-family:'Playfair Display',serif;font-size:2.1rem;font-weight:900;
+  margin-top:.25rem;line-height:1.1;font-variant-numeric:lining-nums tabular-nums}
+.resultado .carro{font-size:.84rem;color:var(--text-mid);margin-top:.5rem;line-height:1.4}
+.resultado.vazio .valor{color:var(--text-faint);font-size:1.4rem}
+
+.btn-limpar{margin-top:1rem;background:none;border:1px solid var(--line);color:var(--text-mid);
+  font-family:inherit;font-size:.8rem;padding:.5rem .9rem;border-radius:var(--r-lg, 16px);
+  cursor:pointer}
+.btn-limpar:hover{border-color:var(--text);color:var(--text)}
+
+/* O campo que o código comum preenche com o valor. Ele escreve num input,
+   então o input existe — só não é ele que o Yuri olha. */
+#fipe-valor{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Consulta FIPE</h1>
+  <p class="sub">Marca, modelo e ano. Só para olhar o valor.</p>
+
+  <div class="campos">
+    <div>
+      <label for="fsel-marca">Marca</label>
+      <select id="fsel-marca" onchange="onMarcaAvulsa()"><option value="">Carregando…</option></select>
+    </div>
+    <div>
+      <label for="fsel-modelo">Modelo</label>
+      <select id="fsel-modelo" onchange="onModeloAvulsa()" disabled><option value="">— selecione a marca</option></select>
+    </div>
+    <div>
+      <label for="fsel-ano">Ano</label>
+      <select id="fsel-ano" onchange="onAnoAvulsa()" disabled><option value="">— selecione o modelo</option></select>
+    </div>
+    <div>
+      <label for="fsel-versao">Versão</label>
+      <select id="fsel-versao" onchange="onVersaoAvulsa()" disabled><option value="">— selecione o ano</option></select>
+    </div>
+    <div class="fipe-st" id="fipe-status"></div>
+  </div>
+
+  <!-- A cascata escreve o valor aqui dentro; a tela mostra em outro lugar. -->
+  <input type="text" id="fipe-valor" tabindex="-1" aria-hidden="true">
+
+  <div class="resultado vazio" id="resultado">
+    <div class="rotulo">Valor FIPE</div>
+    <div class="valor" id="res-valor">—</div>
+    <div class="carro" id="res-carro"></div>
+  </div>
+
+  <div style="text-align:center">
+    <button class="btn-limpar" onclick="limpar()">Nova consulta</button>
+  </div>
+</div>
+
+<!-- A cascata vem do mesmo arquivo que a Captação e o Parceiros usam.
+     Copiar seria a quarta cópia divergente deste projeto. -->
+<script src="/assets/mascaras.js"></script>
+<script>
+// ANTES do gerador-comum: ele lê `currentMode` já na carga, e sem isto a
+// página sobe com "currentMode is not defined" no console. A Captação e o
+// Parceiros fazem igual; aqui eu tinha posto depois, e o teste pegou.
+var currentMode = 'avulsa';
+function setMode() {}
+function montarTextoAnuncio() { return ''; }
+</script>
+<script src="/assets/gerador-comum.js"></script>
+<script>
+// A cascata escreve no input escondido. Em vez de reescrever a cascata,
+// a tela OUVE o input: assim nada do código compartilhado muda, e no dia
+// em que ele mudar, esta tela acompanha sozinha.
+const alvo = document.getElementById('fipe-valor');
+const obs = new MutationObserver(mostrar);
+obs.observe(alvo, { attributes: true, attributeFilter: ['value'] });
+alvo.addEventListener('input', mostrar);
+// `value` posto por script não dispara evento nem mutação de atributo, então
+// também se confere a cada mudança de versão. É cinto e suspensório de
+// propósito: o valor aparecer é a única coisa que esta tela faz.
+setInterval(mostrar, 400);
+
+let _ultimo = null;
+function mostrar() {
+  const v = alvo.value.trim();
+  if (v === _ultimo) return;
+  _ultimo = v;
+  const caixa = document.getElementById('resultado');
+  if (!v) {
+    caixa.classList.add('vazio');
+    document.getElementById('res-valor').textContent = '—';
+    document.getElementById('res-carro').textContent = '';
+    return;
+  }
+  caixa.classList.remove('vazio');
+  document.getElementById('res-valor').textContent = 'R$ ' + v;
+  // Dizer QUAL carro casou é o que evita levar o valor do carro errado —
+  // é como o app que o Yuri usava fazia, e foi o conserto de 03/set.
+  const nome = (id) => {
+    const s = document.getElementById(id);
+    return s && s.selectedOptions[0] && s.value ? s.selectedOptions[0].text : '';
+  };
+  document.getElementById('res-carro').textContent =
+    [nome('fsel-marca'), nome('fsel-versao'), nome('fsel-ano')].filter(Boolean).join(' · ');
+}
+
+function limpar() {
+  const s = document.getElementById('fsel-marca');
+  s.value = '';
+  onMarcaAvulsa();
+  mostrar();
+  s.focus();
+}
+
+loadMarcas();
+</script>
+</body>
+</html>

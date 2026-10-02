@@ -198,11 +198,18 @@ async function fipeGet(path) {
   return r.json();
 }
 
+// A lista de campos sai do próprio CASCATA, não escrita à mão: era
+// `['sel-marca','csel-marca']`, e um contexto novo ficava de fora em
+// silêncio — o campo de marca ficava em "Carregando..." para sempre.
+// Já aconteceu uma vez, com o Parceiros, e está contado no `catch` aqui
+// embaixo. Agora contexto novo entra sozinho.
+const idsDeCascata = (campo) => Object.values(CASCATA).map(c => c[campo]).filter(Boolean);
+
 async function loadMarcas() {
   setSt('Carregando marcas...', 'loading');
   try {
     const marcas = await fipeGet('/marcas');
-    ['sel-marca', 'csel-marca'].forEach(id => {
+    idsDeCascata('marca').forEach(id => {
       const sel = document.getElementById(id);
       if (!sel) return;
       sel.innerHTML = '<option value="">Selecione a marca</option>';
@@ -217,13 +224,20 @@ async function loadMarcas() {
     // Antes só consertava 'sel-marca', que é da Captação. Na tela de
     // Parceiros o campo ficava em "Carregando..." para sempre, e o aviso ia
     // para um elemento que não existe ali — falha muda, que é o pior tipo.
-    ['sel-marca', 'csel-marca'].forEach(id => {
+    idsDeCascata('marca').forEach(id => {
       const sel = document.getElementById(id);
       if (sel) sel.innerHTML = '<option value="">Indisponível — recarregue a página</option>';
     });
     setSt('API FIPE indisponível — preencha a FIPE manualmente abaixo', 'err');
-    const cSt = document.getElementById('cfipe-st');
-    if (cSt) { cSt.textContent = 'API FIPE indisponível — preencha a FIPE manualmente.'; cSt.className = 'fipe-st err'; }
+    // O aviso vai para TODOS os contextos que existirem na página, pelo
+    // mesmo motivo: campo parado sem explicação é falha muda.
+    idsDeCascata('st').forEach(id => {
+      const el = document.getElementById(id);
+      if (el && id !== 'fipe-st') {
+        el.textContent = 'API FIPE indisponível — tente de novo em alguns minutos.';
+        el.className = 'fipe-st err';
+      }
+    });
   }
 }
 
@@ -232,6 +246,10 @@ async function loadMarcas() {
 const CASCATA = {
   cap: { marca:'sel-marca',  modelo:'sel-modelo',  ano:'sel-ano',  versao:'sel-versao',  fipe:'fipe-val',   st:'fipe-st',  ml:'ml-st',  data:null },
   col: { marca:'csel-marca', modelo:'csel-modelo', ano:'csel-ano', versao:'csel-versao', fipe:'colet-fipe', st:'cfipe-st', ml:'cml-st', data:null },
+  // Consulta avulsa (/fipe.html): só olhar o valor, sem formulário atrás.
+  // `ml` nulo de propósito — a busca de preços no Mercado Livre serve para
+  // decidir repasse, e aqui ninguém está decidindo nada.
+  avulsa: { marca:'fsel-marca', modelo:'fsel-modelo', ano:'fsel-ano', versao:'fsel-versao', fipe:'fipe-valor', st:'fipe-status', ml:null, data:null },
 };
 
 function resetSel(id, txt) {
@@ -408,6 +426,11 @@ function onModelo() { cascataModelo(CASCATA.cap); }
 function onAno()    { cascataAno(CASCATA.cap); }
 function onVersao() { cascataVersao(CASCATA.cap); }
 // Wrappers — Coletados (fallback manual)
+function onMarcaAvulsa()  { cascataMarca(CASCATA.avulsa); }
+function onModeloAvulsa() { cascataModelo(CASCATA.avulsa); }
+function onAnoAvulsa()    { cascataAno(CASCATA.avulsa); }
+function onVersaoAvulsa() { cascataVersao(CASCATA.avulsa); }
+
 function onMarcaCol()  { cascataMarca(CASCATA.col); }
 function onModeloCol() { cascataModelo(CASCATA.col); }
 function onAnoCol()    { cascataAno(CASCATA.col); }
