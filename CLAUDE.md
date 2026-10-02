@@ -7416,3 +7416,110 @@ Conferido no ar com o CNPJ real:
 (`IDEIAS.md`). O motor já existe; é tela, não lógica nova.
 
 *Registrado em 1º de outubro de 2026, noite.*
+
+### 01/out (noite) — SW4, consulta de FIPE avulsa, e duas ideias grandes
+
+#### "Não acha a FIPE" — e não era regressão
+
+Ele colou um anúncio de parceiro (Toyota SW4 Diamond 2024) e a busca não
+achou nada, logo depois de eu mexer na busca pela manhã. Parecia que eu
+tinha piorado.
+
+**Reproduzi antes de concluir.** Rodei o handler real contra a FIPE real
+com 18 títulos do estoque: 18/18 acharam, com a trava de sub-linha
+ligada. Não era quebra geral.
+
+A causa, com o anúncio dele na mão: **na FIPE o carro se chama "Hilux
+SW4"**. Os 20 modelos trazem o prefixo; o mercado escreve só "SW4". Como
+a pontuação pune em 8 quando o nome-base não aparece no texto, todos
+ficavam negativos — o log dizia "sem candidato". Esse carro **nunca**
+teria funcionado.
+
+Apelido de modelo na lista que já existia para marcas. Levantei 14
+modelos contra a FIPE antes de escrever: **SW4 é o único** caso em que
+todos os nomes trazem prefixo que o mercado não usa. Tracker, Spin,
+L200, CrossFox, T-Cross, Pulse, Fastback, Territory, Bronco, Creta,
+Kicks e Oroch já começam pelo nome popular — inventar apelido para eles
+só criaria chance de errar.
+
+> Ele disse "SW4 é específico da Toyota, não precisa apelidar", e eu
+> tinha explicado mal: ele entendeu que eu ia misturar marcas. Expliquei
+> de novo sem termo técnico, com a medida, e ele decidiu manter. **Dar a
+> informação antes de insistir** é o que fez a conversa render.
+
+#### `scripts/checa-fipe-busca.js`
+
+Roda o handler inteiro contra a FIPE real, com 20 títulos de verdade. A
+busca já quebrou três vezes em lugares diferentes e o sintoma na tela foi
+sempre o mesmo — "não encontrei".
+
+**Cota estourada reporta INCONCLUSIVO, não FALHOU.** Rodar o script
+algumas vezes esgota o limite por IP (aconteceu em 10/set e de novo
+aqui), e marcar isso como falha faria o guarda acusar código certo — mas
+também não devolve sucesso: "passou" sem ter conferido é pior que não ter
+conferido.
+
+#### `/fipe.html` — consulta avulsa
+
+Pedido dele, e com escopo que ele cortou: *"quero igual ao site, somente
+para consulta rápida"*. Marca, modelo, ano, versão, valor. Recusou os
+extras que eu propus.
+
+Barato porque **não é recurso, é tela**: `CASCATA` já era um mapa de
+contextos (`cap`, `col`), ganhou `avulsa`. A tela OUVE o campo que a
+cascata preenche, em vez de a cascata aprender a falar com a tela — o
+código compartilhado não muda.
+
+Conserto de brinde no compartilhado: `loadMarcas` tinha a lista de campos
+escrita à mão, então contexto novo ficava de fora **em silêncio** (campo
+em "Carregando…" para sempre). Já tinha acontecido com o Parceiros. Agora
+a lista sai do próprio `CASCATA`.
+
+Atalho no Painel com a marca da FIPE como ícone. Dois ajustes de medir:
+o ladrilho ficava 9px mais baixo que os vizinhos (emoji 31px × imagem
+22px), e o logo oficial traz o nome da fundação em duas linhas miúdas que
+no tamanho de ícone viram mancha — **quem viu primeiro foi ele**, na
+tela. Mostra só a palavra, recortado por CSS.
+
+#### Clientes: copiar dado fiscal (e um erro meu de escopo)
+
+Ele pediu um botão de copiar; eu fiz de **contato** e estava errado. A
+correção dele: *"endereço, CNPJ, I.E., razão social e os dados bancários
+— usados para ATPV-e/DUT e para pagamento"*.
+
+Três defeitos apareceram só por conferir a saída com dado real:
+`fmtTel` cortava pela esquerda e estragava 4 dos 18 telefones **na tela
+toda**; eu tinha escrito um segundo mapa de rótulos com valores que o
+banco não usa; e o número do endereço saía duplicado.
+
+E a causa que ele apontou: a API de CNPJ **jogava fora** o tipo do
+logradouro ("RODOVIA") e o complemento. A I.E. não existe na BrasilAPI —
+o aviso agora diz isso em vez de deixar o campo vazio parecer "não tem".
+
+#### Parceiros: FIPE manual passa a preencher o nome
+
+`cascataVersao` gravava só o valor. Quem usava a cascata — justamente
+quem a IA não conseguiu ler — ficava sem a primeira linha do anúncio.
+Agora preenche nome e ano, **só quando vazios**.
+
+#### Duas ideias grandes, anotadas e não construídas
+
+**Importar as vendas do lojista.** Nem o Bruno nem o Nogueira mexeram no
+sistema ("falta de tempo"), e sistema vazio não puxa ninguém. **A
+correção dele é o desenho inteiro:** eu imaginei "eles te mandam o
+arquivo" — *"jamais passariam o relatório, assim como eu tb não. Isso é
+muito pessoal."* Tem de ser autoatendimento, lendo a planilha deles, com
+as colunas deles. E **não prometer invisibilidade**: ele é o
+administrador do banco (mesma correção de 25/set).
+
+**"O sistema se adapta à loja, não a loja ao sistema"** — frase de um
+amigo dele. Régua proposta, a amadurecer: a loja manda na FORMA, o
+sistema manda no ESQUELETO, e o esqueleto é o menor possível. Se cada
+loja redefinir o que é um carro, morrem o relatório, a Rede (o carro só
+atravessa porque significa o mesmo nos dois lados) e o Match.
+
+Fila do `IDEIAS.md` reordenada a pedido dele: importar vendas → FIPE na
+tela inicial → catálogo de repasses → … → "se adapta à loja" por último.
+Alarme de pendências e cidade suja saíram para "já viraram trabalho".
+
+*Registrado em 1º de outubro de 2026, noite.*
