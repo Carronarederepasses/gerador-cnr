@@ -49,15 +49,6 @@ o que ainda não foi feito.
   continua sendo **um carro só**, e ele responde se o sistema serve para
   alguém que não seja o Yuri.
 
-- **Buscador de FIPE na tela inicial** (01/out) — consultar a FIPE de um
-  carro qualquer direto do Painel, sem precisar criar anúncio nem abrir
-  Captação/Parceiros. Hoje a FIPE só é alcançável dentro do fluxo de um
-  carro que ele está cadastrando.
-  Nota para quando virar trabalho: o motor já existe e está bom
-  (`api/fipe-search.js` + a cascata), inclusive com a trava de sub-linha
-  de 01/out — é tela, não lógica nova. E vale decidir se mostra a versão
-  que casou (como o MasterFipe faz), que foi o que evitou erro em 03/set.
-
 - **Catálogo de repasses para lojas**, separado do catálogo de estoque de
   venda (ideia de 28/set, conversando com um amigo)
 
@@ -151,3 +142,5 @@ o que ainda não foi feito.
 - **Venda em andamento de parceiros** (sinal recebido, aguardando fechar) → feito em 16/set/2026: campos de sinal em `vendas.html`, cartao no painel, `supabase/migration-venda-sinal.sql`
 - **Alarme de pendências no Painel** → feito em 29/set/2026, bloco "⚠️ Resolver antes" em `home.html`. Só entra o que IMPEDE uma ação (carro sem preço de repasse, sem foto, reservado sem comprovante); some quando não há nada.
 - **Cidade vem suja da extensão** → feito em 01/out/2026, `cidadeDoCard()` em `content/olx-search.js` limpa na origem, gêmea declarada de `soCidade()` do Gerador. O verificador achou de brinde um defeito antigo na tela: "Porto Seguro" virava "Porto".
+- **Buscador de FIPE na tela inicial** → feito em 01/out/2026, tela /fipe.html e atalho no Painel. A cascata ja existia e era feita para reuso: ganhou o contexto `avulsa`.
+- **FIPE do catalogo nao virava com o mes** → feito em 02-03/out/2026: `veiculos.fipe_ref` guarda qual linha da tabela deu o valor, e o servidor atualiza sozinho no GET do catalogo. Carro antigo mostra "nao atualiza — religar".
