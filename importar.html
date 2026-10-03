@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Importar vendas — Carro na Rede</title>
+<link rel="manifest" href="/api/utils?type=manifesto">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="apple-touch-icon" href="/assets/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/tokens.css">
+<script src="/assets/auth.js"></script>
+<script src="/assets/marca.js"></script>
+<script src="/assets/theme-toggle.js"></script>
+<link rel="stylesheet" href="/assets/sidebar.css">
+<script src="/assets/sidebar.js" defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
+  min-height:100vh;padding-bottom:4rem}
+.wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.1rem 0}
+h1{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:900}
+.sub{color:var(--text-mid);font-size:.87rem;margin-top:.3rem;line-height:1.55}
+
+.passo{margin-top:1.6rem;border:1px solid var(--line);border-radius:var(--r-md, 12px);padding:1.1rem}
+.passo[hidden]{display:none}
+.passo h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-mid);
+  font-weight:700;margin-bottom:.8rem}
+
+.solta{border:1px dashed var(--line);border-radius:var(--r-md, 12px);padding:2rem 1rem;text-align:center}
+.solta.sobre{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.solta input{display:block;margin:.8rem auto 0}
+.dica{font-size:.78rem;color:var(--text-faint);margin-top:.8rem;line-height:1.6}
+
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th,td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);font-weight:600}
+.rolar{overflow-x:auto}
+select{font-family:inherit;font-size:.82rem;padding:.35rem .4rem;border:1px solid var(--line);
+  border-radius:var(--r, 8px);background:var(--surface-raise);color:var(--text);max-width:100%}
+.amostra{color:var(--text-faint);font-size:.76rem;word-break:break-word}
+
+button{font-family:inherit;font-size:.86rem;font-weight:700;padding:.6rem 1.1rem;
+  border-radius:var(--r-lg, 16px);border:1px solid var(--accent);background:var(--accent);
+  color:var(--surface);cursor:pointer}
+button.leve{background:none;color:var(--text-mid);border-color:var(--line)}
+button.leve:hover{color:var(--text);border-color:var(--text)}
+button:disabled{opacity:.5;cursor:default}
+.acoes{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-top:1rem}
+
+.aviso{font-size:.84rem;line-height:1.5;padding:.7rem .85rem;border-radius:var(--r, 8px);
+  border:1px solid var(--line);margin-top:.8rem}
+.aviso.erro{border-color:var(--severity-crit);color:var(--severity-crit)}
+.aviso.ok{border-color:var(--severity-ok);color:var(--severity-ok)}
+.aviso.atencao{border-color:var(--severity-warn);color:var(--severity-warn)}
+tr.dup{opacity:.5}
+.aviso-dup{color:var(--severity-warn);font-size:.72rem;white-space:nowrap}
+.privado{font-size:.8rem;color:var(--text-mid);line-height:1.6;margin-top:.9rem;
+  border-left:2px solid var(--line);padding-left:.8rem}
+@media (max-width:560px){ th,td{padding:.4rem .3rem} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Importar vendas</h1>
+  <p class="sub">Traga o histórico da sua planilha. O arquivo é lido aqui no seu
+     aparelho e vira registro na sua conta.</p>
+
+  <!-- ── 1. Arquivo ────────────────────────────────────────── -->
+  <div class="passo" id="p-arquivo">
+    <h2>1 · A planilha</h2>
+    <div class="solta" id="solta">
+      <div style="font-size:1.6rem">📄</div>
+      <div style="margin-top:.4rem">Escolha o arquivo, ou arraste ele aqui</div>
+      <input type="file" id="arquivo" accept=".xlsx,.xls,.csv,.txt">
+      <div class="dica">Excel (<b>.xlsx</b>) ou CSV. Do Google Planilhas:
+        Arquivo → Baixar → Microsoft Excel.</div>
+    </div>
+    <div class="privado">
+      A planilha não é enviada para ninguém: ela é aberta no seu navegador e só
+      as vendas que você confirmar são gravadas, na sua conta.
+      <br><br>
+      Sendo claro sobre o resto: quem administra o sistema tem acesso ao banco,
+      como em qualquer sistema que você contrata.
+    </div>
+    <div id="erro-arquivo"></div>
+  </div>
+
+  <!-- ── 2. De-para ────────────────────────────────────────── -->
+  <div class="passo" id="p-mapa" hidden>
+    <h2>2 · O que é cada coluna</h2>
+    <p class="sub" style="margin:0 0 .9rem">
+      Chutei pelo nome das colunas. Confira — chute errado vira venda errada.
+      O que não interessar, deixe em “ignorar”.</p>
+    <div class="rolar">
+      <table>
+        <thead><tr><th>Coluna da sua planilha</th><th>Exemplo</th><th>Vira</th></tr></thead>
+        <tbody id="mapa-corpo"></tbody>
+      </table>
+    </div>
+    <div id="erro-mapa"></div>
+    <div class="acoes">
+      <button onclick="verPrevia()">Ver como vai ficar →</button>
+      <button class="leve" onclick="recomecar()">Trocar arquivo</button>
+    </div>
+  </div>
+
+  <!-- ── 3. Conferência ────────────────────────────────────── -->
+  <div class="passo" id="p-previa" hidden>
+    <h2>3 · Conferir antes de gravar</h2>
+    <div id="resumo"></div>
+    <div class="rolar" style="margin-top:.8rem">
+      <table>
+        <thead id="previa-cab"></thead>
+        <tbody id="previa-corpo"></tbody>
+      </table>
+    </div>
+    <div class="acoes">
+      <button id="btn-importar" onclick="importar()">Gravar na minha conta</button>
+      <button class="leve" onclick="voltarMapa()">Voltar e corrigir</button>
+      <span id="progresso" style="font-size:.84rem;color:var(--text-mid)"></span>
+    </div>
+    <div id="erro-previa"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ── Para onde cada coluna pode ir ───────────────────────────────
+// Só o que faz sentido num histórico de vendas. `valor_venda` NÃO é
+// obrigatório: a planilha do Yuri, que é real, não tem essa coluna — ela
+// tem "Lucro". Exigir valor de venda recusaria a planilha de quem mais
+// precisa importar.
+const DESTINOS = [
+  { id: '',                   rotulo: '— ignorar' },
+  { id: 'veiculo',            rotulo: 'Veículo (marca e modelo)' },
+  { id: 'data_venda',         rotulo: 'Data da venda' },
+  { id: 'placa',              rotulo: 'Placa' },
+  { id: 'ano',                rotulo: 'Ano' },
+  { id: 'cor',                rotulo: 'Cor' },
+  { id: 'km',                 rotulo: 'Km' },
+  { id: 'vendedor_nome',      rotulo: 'De quem veio (vendedor / origem)' },
+  { id: 'comprador_nome',     rotulo: 'Para quem foi (comprador / destino)' },
+  { id: 'valor_venda',        rotulo: 'Valor da venda' },
+  { id: 'valor_compra',       rotulo: 'Valor de compra' },
+  { id: 'taxa_intermediacao', rotulo: 'Comissão / lucro' },
+  { id: 'forma_pagamento',    rotulo: 'Forma de pagamento' },
+  { id: 'data_retirada',      rotulo: 'Entrega / retirada' },
+  { id: 'doc_status',         rotulo: 'Documentação' },
+  { id: 'observacoes',        rotulo: 'Observações' },
+];
+
+// Palpite por nome. Inclui o vocabulário REAL da planilha do Yuri —
+// "Origem" e "Destino" para vendedor e comprador, "Lucro" para comissão —
+// porque foi dali que veio a prova de que ninguém nomeia coluna como o
+// banco nomeia campo.
+//
+// É palpite, e a tela diz isso: "Relação Carros na Rede Repasses", que na
+// planilha dele é a coluna do CARRO, nenhum palpite acerta.
+const PALPITES = [
+  [/^(ve[ií]culo|carro|modelo|ve[ií]culos|rela[çc][ãa]o)/i, 'veiculo'],
+  [/data.*(venda|sa[íi]da)|^data$/i,                        'data_venda'],
+  [/placa/i,                                                'placa'],
+  [/^ano/i,                                                 'ano'],
+  [/^cor/i,                                                 'cor'],
+  [/^km|quilometragem/i,                                    'km'],
+  [/origem|vendedor|fornecedor|de quem/i,                   'vendedor_nome'],
+  [/destino|comprador|cliente|para quem/i,                  'comprador_nome'],
+  [/valor.*venda|pre[çc]o.*venda|venda.*valor/i,            'valor_venda'],
+  [/valor.*compra|custo|captad/i,                           'valor_compra'],
+  [/lucro|comiss|taxa|ganho/i,                              'taxa_intermediacao'],
+  [/pagamento|forma/i,                                      'forma_pagamento'],
+  [/entrega|retirada/i,                                     'data_retirada'],
+  [/document/i,                                             'doc_status'],
+  [/observa|obs\b|coment/i,                                 'observacoes'],
+];
+
+let LINHAS = [];   // matriz da planilha
+let CAB = [];      // títulos das colunas
+let MAPA = [];     // destino escolhido por coluna
+let PRONTAS = [];  // vendas montadas, prontas para gravar
+
+function msg(onde, texto, tipo) {
+  $(onde).innerHTML = texto ? `<div class="aviso ${tipo || ''}">${texto}</div>` : '';
+}
+
+// ── 1. Ler o arquivo ────────────────────────────────────────────
+$('arquivo').addEventListener('change', (e) => abrir(e.target.files[0]));
+const solta = $('solta');
+['dragenter','dragover'].forEach(ev => solta.addEventListener(ev, (e) => {
+  e.preventDefault(); solta.classList.add('sobre');
+}));
+['dragleave','drop'].forEach(ev => solta.addEventListener(ev, (e) => {
+  e.preventDefault(); solta.classList.remove('sobre');
+}));
+solta.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) abrir(e.dataTransfer.files[0]); });
+
+async function abrir(arq) {
+  if (!arq) return;
+  msg('erro-arquivo', 'Lendo a planilha…');
+  try {
+    const nome = arq.name.toLowerCase();
+    LINHAS = /\.(xlsx|xls)$/.test(nome) ? await lerExcel(arq) : await lerCSV(arq);
+    if (!LINHAS.length) throw new Error('a planilha veio vazia');
+    montarMapa();
+    msg('erro-arquivo', '');
+    $('p-mapa').hidden = false;
+    $('p-mapa').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    msg('erro-arquivo', 'Não consegui ler: ' + e.message, 'erro');
+  }
+}
+
+// A biblioteca de Excel só é baixada se o arquivo for Excel — quem manda
+// CSV não paga por ela.
+let _xlsx = null;
+function carregarXLSX() {
+  if (_xlsx) return _xlsx;
+  _xlsx = new Promise((ok, erro) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => ok(window.XLSX);
+    s.onerror = () => { _xlsx = null; erro(new Error('não consegui baixar o leitor de Excel — confira a internet')); };
+    document.head.appendChild(s);
+  });
+  return _xlsx;
+}
+
+async function lerExcel(arq) {
+  const XLSX = await carregarXLSX();
+  const buf = await arq.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  const aba = wb.Sheets[wb.SheetNames[0]];
+  // `header:1` devolve matriz crua, que é o que permite achar o cabeçalho
+  // sozinho — a planilha do Yuri tem a primeira linha de dados na 3ª.
+  return XLSX.utils.sheet_to_json(aba, { header: 1, blankrows: false, raw: false, defval: '' });
+}
+
+async function lerCSV(arq) {
+  const txt = (await arq.text()).replace(/^﻿/, '');
+  // Separador: o Excel brasileiro salva CSV com ponto e vírgula. Decide
+  // pelo que aparece mais na primeira linha, em vez de supor.
+  const l1 = txt.split(/\r?\n/)[0] || '';
+  const sep = (l1.split(';').length > l1.split(',').length) ? ';' : ',';
+  const linhas = [];
+  let campo = '', linha = [], aspas = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (aspas) {
+      if (c === '"' && txt[i + 1] === '"') { campo += '"'; i++; }
+      else if (c === '"') aspas = false;
+      else campo += c;
+    } else if (c === '"') aspas = true;
+    else if (c === sep) { linha.push(campo); campo = ''; }
+    else if (c === '\n') { linha.push(campo); linhas.push(linha); linha = []; campo = ''; }
+    else if (c !== '\r') campo += c;
+  }
+  if (campo || linha.length) { linha.push(campo); linhas.push(linha); }
+  return linhas.filter(l => l.some(c => String(c).trim()));
+}
+
+// ── 2. Cabeçalho e palpites ─────────────────────────────────────
+// O cabeçalho nem sempre é a primeira linha, e pode ter linha em branco
+// no meio. Procura a primeira linha com 3+ textos que não sejam números.
+function acharCabecalho() {
+  for (let i = 0; i < Math.min(LINHAS.length, 10); i++) {
+    const t = LINHAS[i].map(c => String(c == null ? '' : c).trim());
+    if (t.filter(x => x && isNaN(Number(x.replace(',', '.')))).length >= 3) return i;
+  }
+  return 0;
+}
+
+// Linha de enfeite: o Excel, ao "formatar como tabela", cria uma segunda
+// linha "Coluna1, Coluna2…". Sem tirar, ela virava uma venda com placa
+// "COLUNA3" — apareceu na planilha real do Yuri.
+const linhaDeEnfeite = (l) => {
+  const c = l.map(x => String(x == null ? '' : x).trim()).filter(Boolean);
+  return c.length >= 3 && c.every(x => /^coluna\s*\d+$/i.test(x));
+};
+function linhasDeDados() {
+  return LINHAS.slice(IDX_CAB + 1)
+    .filter(l => l.some(c => String(c).trim()) && !linhaDeEnfeite(l));
+}
+
+// Ordem das datas: 'dmy' (21/02/24, brasileiro) ou 'mdy' (2/21/24,
+// americano — é o que o Google Planilhas devolve em conta configurada em
+// inglês, e é o caso da planilha do Yuri).
+//
+// NÃO é chute: decide pelo número que não cabe em mês. Quando a coluna
+// inteira é ambígua (todo dia ≤ 12), fica no brasileiro e a tela DIZ que
+// não deu para saber — data trocada em silêncio seria pior que perguntar.
+let ORDEM_DATA = 'dmy';
+let ORDEM_CERTA = true;
+function detectarOrdemData() {
+  if (ORDEM_MANUAL) return null;
+  const cols = MAPA.map((d, i) => (d === 'data_venda' || d === 'data_retirada') ? i : -1).filter(i => i >= 0);
+  let primeiroAlto = 0, segundoAlto = 0;
+  for (const l of linhasDeDados()) {
+    for (const i of cols) {
+      const m = String(l[i] == null ? '' : l[i]).trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+      if (!m) continue;
+      if (Number(m[1]) > 12) primeiroAlto++;
+      if (Number(m[2]) > 12) segundoAlto++;
+    }
+  }
+  if (primeiroAlto && !segundoAlto) { ORDEM_DATA = 'dmy'; ORDEM_CERTA = true; }
+  else if (segundoAlto && !primeiroAlto) { ORDEM_DATA = 'mdy'; ORDEM_CERTA = true; }
+  else { ORDEM_DATA = 'dmy'; ORDEM_CERTA = false; }
+  return { primeiroAlto, segundoAlto };
+}
+
+// Escolha dele vence a detecção, e não é desfeita na reconferência.
+let ORDEM_MANUAL = false;
+function trocarOrdemData() {
+  ORDEM_DATA = ORDEM_DATA === 'dmy' ? 'mdy' : 'dmy';
+  ORDEM_MANUAL = true;
+  verPrevia();
+}
+
+let IDX_CAB = 0;
+function montarMapa() {
+  IDX_CAB = acharCabecalho();
+  CAB = LINHAS[IDX_CAB].map((c, i) => String(c == null ? '' : c).trim() || `Coluna ${i + 1}`);
+  MAPA = CAB.map(nome => {
+    const p = PALPITES.find(([re]) => re.test(nome));
+    return p ? p[1] : '';
+  });
+  // Mesmo destino em duas colunas não pode: a segunda apagaria a primeira.
+  const vistos = new Set();
+  MAPA = MAPA.map(d => (d && vistos.has(d)) ? '' : (d && vistos.add(d), d));
+
+  const corpo = linhasDeDados();
+  $('mapa-corpo').innerHTML = CAB.map((nome, i) => {
+    const ex = corpo.slice(0, 3).map(l => String(l[i] == null ? '' : l[i]).trim()).filter(Boolean)[0] || '—';
+    return `<tr>
+      <td><b>${esc(nome)}</b></td>
+      <td class="amostra">${esc(ex.slice(0, 40))}</td>
+      <td><select onchange="MAPA[${i}]=this.value">
+        ${DESTINOS.map(d => `<option value="${d.id}"${d.id === MAPA[i] ? ' selected' : ''}>${d.rotulo}</option>`).join('')}
+      </select></td>
+    </tr>`;
+  }).join('');
+}
+
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ── 3. Montar e conferir ────────────────────────────────────────
+// ── O que já está no sistema ────────────────────────────────────
+// Sem isto, importar a mesma planilha duas vezes dobra o histórico — e o
+// Yuri ia descobrir com 228 vendas na tela. A chave forte é placa + data;
+// sem placa, cai em data + carro + comissão.
+//
+// Dedupe é contra o acidente, não contra a vontade: linha marcada como
+// repetida aparece na conferência e ele pode mandar gravar assim mesmo.
+// Três respostas, não duas — porque placa+data é estrito demais: na
+// planilha real do Yuri, duas vendas já existentes passavam por novas só
+// porque a data divergia em um dia ou não foi lida.
+//
+//   'exata'   placa e data batem (ou, sem placa, data+carro+comissão)
+//   'duvida'  bate por um lado e não por outro — placa igual em outra data,
+//             ou mesma data/carro/comissão com placa diferente (uma letra
+//             digitada errada num dos dois lados: aconteceu em 2 das 113).
+//             Pulada por padrão, mas NOMEADA na tela com os dois lados:
+//             pode ser a mesma venda, pode ser o carro repassado de novo.
+//             Quem sabe é ele
+//   false     não achei
+let JA_TEM = null;
+const chaveFraca = (v) => `${v.data_venda || ''}|${(v.modelo || '').toLowerCase().trim()}|${v.taxa_intermediacao ?? ''}`;
+
+async function carregarExistentes() {
+  if (JA_TEM) return JA_TEM;
+  const r = await fetch('/api/vendas');
+  if (!r.ok) throw new Error('não consegui ler as vendas que já existem');
+  const v = await r.json();
+  JA_TEM = { exatas: new Set(), placas: new Map(), fracas: new Set(), diaTaxa: new Set() };
+  (Array.isArray(v) ? v : []).forEach(x => {
+    const placa = (x.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const data = (x.data_venda || '').slice(0, 10);
+    if (placa) {
+      JA_TEM.exatas.add(`${placa}|${data}`);
+      if (!JA_TEM.placas.has(placa)) JA_TEM.placas.set(placa, []);
+      JA_TEM.placas.get(placa).push(data || 'sem data');
+    }
+    JA_TEM.fracas.add(chaveFraca({ data_venda: data, modelo: x.modelo, taxa_intermediacao: x.taxa_intermediacao }));
+    if (data && x.taxa_intermediacao != null) JA_TEM.diaTaxa.add(`${data}|${Number(x.taxa_intermediacao)}`);
+  });
+  return JA_TEM;
+}
+
+function jaExiste(v) {
+  if (!JA_TEM) return false;
+  if (v.placa && JA_TEM.exatas.has(`${v.placa}|${v.data_venda || ''}`)) return 'exata';
+  if (!v.placa && JA_TEM.fracas.has(chaveFraca(v))) return 'exata';
+  if (v.placa && JA_TEM.placas.has(v.placa)) {
+    v._motivo = `placa já gravada em ${JA_TEM.placas.get(v.placa).join(', ')}`;
+    return 'duvida';
+  }
+  if (JA_TEM.fracas.has(chaveFraca(v))) {
+    v._motivo = 'mesma data, carro e comissão de uma venda já gravada, com placa diferente';
+    return 'duvida';
+  }
+  // Nome do carro não serve de chave: o banco guarda "X1 2.0 25i Sport" e a
+  // planilha "X1 2.0 25i Sport - 2021". Data + comissão pegou as duas que
+  // tinham UMA letra de diferença na placa. Pode dar falso positivo (duas
+  // vendas no mesmo dia pela mesma comissão) — e é por isso que isto é
+  // dúvida nomeada na tela, não descarte silencioso.
+  if (v.data_venda && v.taxa_intermediacao != null
+      && JA_TEM.diaTaxa.has(`${v.data_venda}|${Number(v.taxa_intermediacao)}`)) {
+    v._motivo = 'mesma data e mesma comissão de uma venda já gravada — confira a placa';
+    return 'duvida';
+  }
+  return false;
+}
+
+// Ele decidiu: as duvidosas entram também.
+let _liberouDuvida = false;
+function mandarDuvidosas() {
+  _liberouDuvida = true;
+  verPrevia();
+}
+
+async function verPrevia() {
+  if (!MAPA.includes('veiculo') && !MAPA.includes('data_venda')) {
+    msg('erro-mapa', 'Marque ao menos o <b>veículo</b> ou a <b>data da venda</b> — '
+      + 'sem um dos dois a venda não dá para identificar.', 'erro');
+    return;
+  }
+  msg('erro-mapa', '');
+
+  const corpo = linhasDeDados();
+  detectarOrdemData();
+  PRONTAS = [];
+  let semData = 0;
+  for (const linha of corpo) {
+    const v = { status: 'concluido', canal_origem: 'historico' };
+    MAPA.forEach((destino, i) => {
+      if (!destino) return;
+      const cru = String(linha[i] == null ? '' : linha[i]).trim();
+      if (!cru) return;
+      if (destino === 'veiculo') {
+        // "Fiat Argo Drive" → marca Fiat, resto modelo. Mesmo corte que o
+        // anúncio já faz no Parceiros.
+        const p = cru.split(/\s+/);
+        v.marca = p[0]; v.modelo = p.slice(1).join(' ') || p[0];
+      } else if (destino === 'data_venda' || destino === 'data_retirada') {
+        const d = paraData(cru); if (d) v[destino] = d;
+      } else if (['valor_venda','valor_compra','taxa_intermediacao','km','ano'].includes(destino)) {
+        const n = paraNumero(cru); if (n != null) v[destino] = n;
+      } else if (destino === 'placa') {
+        v.placa = cru.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      } else {
+        v[destino] = cru.slice(0, 500);
+      }
+    });
+    if (!v.data_venda) semData++;
+    if (v.marca || v.data_venda) PRONTAS.push(v);
+  }
+
+  // Marca o que já está no sistema. Falha de leitura NÃO bloqueia a
+  // importação, mas é dita: melhor ele saber que a conferência de
+  // repetidas não rodou do que achar que rodou.
+  let avisoDup = '';
+  try {
+    await carregarExistentes();
+    PRONTAS.forEach(v => {
+      const r = jaExiste(v);
+      v._repetida = (r === 'duvida' && _liberouDuvida) ? false : r;
+    });
+  } catch (e) {
+    avisoDup = `Não consegui conferir o que já existe (${esc(e.message)}) — `
+      + 'importar agora pode duplicar.';
+  }
+  const exatas = PRONTAS.filter(v => v._repetida === 'exata');
+  const duvidosas = PRONTAS.filter(v => v._repetida === 'duvida');
+  const repetidas = exatas.length + duvidosas.length;
+
+  const campos = [...new Set(MAPA.filter(Boolean))];
+  const cols = campos.filter(c => c !== 'veiculo').slice(0, 6);
+  $('previa-cab').innerHTML = '<tr><th>Veículo</th>'
+    + cols.map(c => `<th>${esc(rotuloDe(c))}</th>`).join('') + '</tr>';
+  // Mostra primeiro o que VAI entrar: numa planilha já importada, as 10
+  // primeiras linhas seriam todas repetidas e a conferência não mostraria
+  // nada do que ele está mandando gravar.
+  const amostra = [...PRONTAS.filter(v => !v._repetida),
+                   ...PRONTAS.filter(v => v._repetida === 'duvida'),
+                   ...PRONTAS.filter(v => v._repetida === 'exata')];
+  $('previa-corpo').innerHTML = amostra.slice(0, 10).map(v => `<tr${v._repetida ? ' class="dup"' : ''}>
+    <td>${esc([v.marca, v.modelo].filter(Boolean).join(' ')) || '—'}${
+      v._repetida === 'exata' ? ' <span class="aviso-dup">já existe</span>'
+      : v._repetida === 'duvida' ? ' <span class="aviso-dup">parece já existir</span>' : ''}</td>
+    ${cols.map(c => `<td class="amostra">${esc(mostrar(v, c))}</td>`).join('')}
+  </tr>`).join('');
+
+  const novas = PRONTAS.length - repetidas;
+  const partes = [`<b>${novas}</b> venda(s) novas para gravar.`];
+  partes.push(linhaDaOrdemDeData());
+  if (exatas.length) {
+    partes.push(`<b>${exatas.length}</b> já estão no sistema e serão <b>puladas</b> — `
+      + 'conferidas por placa e data.');
+  }
+  if (duvidosas.length) {
+    // Nomeadas, não só contadas: são poucas e a decisão é dele. Contar sem
+    // dizer quais obrigaria a caçar na tabela.
+    const quais = duvidosas.slice(0, 6).map(v =>
+      `${esc([v.marca, v.modelo].filter(Boolean).join(' ') || v.placa || 'sem nome')}`
+      + ` — ${esc(v._motivo || '')}`
+    ).join('<br>&nbsp;&nbsp;');
+    partes.push(`<b>${duvidosas.length}</b> <b>parecem já estar no sistema</b> e também `
+      + 'serão puladas:<br>&nbsp;&nbsp;'
+      + quais + (duvidosas.length > 6 ? `<br>&nbsp;&nbsp;… e mais ${duvidosas.length - 6}` : '')
+      + '<br><a href="#" onclick="mandarDuvidosas();return false" style="color:inherit">'
+      + 'são vendas diferentes, gravar essas também</a>');
+  }
+  if (semData) partes.push(`${semData} sem data reconhecida — vão entrar sem data.`);
+  if (avisoDup) partes.push(avisoDup);
+  partes.push('Elas entram como <b>histórico</b>: não contam no faturamento do mês '
+    + 'nem aparecem na lista do dia a dia, igual às vendas antigas.');
+  msg('resumo', partes.join('<br>'),
+    (semData || repetidas || avisoDup || !ORDEM_CERTA) ? 'atencao' : '');
+  $('btn-importar').textContent = novas ? `Gravar ${novas} na minha conta` : 'Nada novo para gravar';
+  $('btn-importar').disabled = !novas;
+
+  $('p-previa').hidden = false;
+  $('p-previa').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Diz como as datas foram lidas, com um exemplo da planilha DELE — "mdy"
+// não quer dizer nada; "2/21/24 → 21/02/2024" quer.
+function linhaDaOrdemDeData() {
+  const i = MAPA.indexOf('data_venda');
+  let cru = '', virou = '';
+  if (i >= 0) {
+    for (const l of linhasDeDados()) {
+      const t = String(l[i] == null ? '' : l[i]).trim();
+      if (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}/.test(t)) {
+        const d = paraData(t);
+        if (d) { cru = t; virou = d.slice(8) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4); break; }
+      }
+    }
+  }
+  const como = ORDEM_DATA === 'mdy' ? 'mês/dia/ano' : 'dia/mês/ano';
+  // Só mostra o exemplo quando a leitura MUDA alguma coisa: "21/02/2024
+  // virou 21/02/2024" é ruído.
+  const exemplo = (cru && cru !== virou) ? ` — <b>${esc(cru)}</b> virou <b>${esc(virou)}</b>` : '';
+  const botao = ' <a href="#" onclick="trocarOrdemData();return false" style="color:inherit">'
+    + 'está trocado, inverter</a>';
+  if (ORDEM_MANUAL) return `Datas lidas como <b>${como}</b>${exemplo}.${botao}`;
+  if (!ORDEM_CERTA) {
+    return `<b>Confira as datas:</b> não deu para saber se a planilha usa dia/mês `
+      + `ou mês/dia (nenhum dia passa de 12). Estou lendo como <b>${como}</b>${exemplo}.${botao}`;
+  }
+  return `Datas lidas como <b>${como}</b>${exemplo}.${botao}`;
+}
+
+const rotuloDe = (id) => (DESTINOS.find(d => d.id === id) || {}).rotulo || id;
+function mostrar(v, c) {
+  const x = v[c];
+  if (x == null || x === '') return '—';
+  if (['valor_venda','valor_compra','taxa_intermediacao'].includes(c)) {
+    return Number(x).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  return String(x);
+}
+function voltarMapa() { $('p-previa').hidden = true; $('p-mapa').scrollIntoView({ behavior: 'smooth' }); }
+function recomecar() { location.reload(); }
+
+// "12/03/2024", "2024-03-12", "12-03-24" e o número de série do Excel.
+// A ordem dia/mês vem de `ORDEM_DATA`, detectada na planilha inteira.
+function paraData(s) {
+  const t = String(s).trim();
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if (m) {
+    let a = m[3]; if (a.length === 2) a = (Number(a) > 70 ? '19' : '20') + a;
+    const dia = ORDEM_DATA === 'mdy' ? m[2] : m[1];
+    const mes = ORDEM_DATA === 'mdy' ? m[1] : m[2];
+    // Mês acima de 12 é leitura errada, não data esquisita: melhor entrar
+    // sem data (e a tela conta quantas) do que entrar com data inventada.
+    if (Number(mes) > 12 || Number(mes) < 1 || Number(dia) > 31 || Number(dia) < 1) return null;
+    return `${a}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+  }
+  // Excel conta dias desde 30/12/1899.
+  const n = Number(t);
+  if (Number.isFinite(n) && n > 20000 && n < 60000) {
+    return new Date(Date.UTC(1899, 11, 30) + n * 86400000).toISOString().slice(0, 10);
+  }
+  return null;
+}
+
+// "R$ 1.234,56" → 1234.56. Trata o ponto como milhar só quando é milhar.
+function paraNumero(s) {
+  let t = String(s).replace(/[R$\s]/gi, '').replace(/[^\d.,-]/g, '');
+  if (!t) return null;
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+// ── 4. Gravar ───────────────────────────────────────────────────
+// Uma por vez, com o andamento na tela. Lote seria mais rápido, mas uma
+// linha ruim derrubaria o lote inteiro e ele não saberia qual foi.
+async function importar() {
+  const btn = $('btn-importar');
+  btn.disabled = true;
+  msg('erro-previa', '');
+  let ok = 0; const falhas = [];
+
+  // Só o que a conferência marcou como novo. O `_repetida` é marca de tela
+  // e não vai para o servidor.
+  const enviar = PRONTAS.filter(v => !v._repetida).map(v => {
+    const c = { ...v }; delete c._repetida; delete c._motivo; return c;
+  });
+  const puladas = PRONTAS.length - enviar.length;
+
+  for (let i = 0; i < enviar.length; i++) {
+    $('progresso').textContent = `gravando ${i + 1} de ${enviar.length}…`;
+    try {
+      const r = await fetch('/api/vendas', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(enviar[i]),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error || 'HTTP ' + r.status);
+      }
+      ok++;
+    } catch (e) {
+      const quem = [enviar[i].marca, enviar[i].modelo].filter(Boolean).join(' ')
+        || enviar[i].placa || enviar[i].data_venda || `item ${i + 1}`;
+      falhas.push(`${quem}: ${e.message}`);
+    }
+  }
+
+  $('progresso').textContent = '';
+  // O que já existe mudou: se ele conferir de novo, tem de ser contra o
+  // banco de agora, não contra a leitura de antes de gravar.
+  JA_TEM = null;
+  PRONTAS.forEach(v => { v._repetida = true; });
+  btn.textContent = 'Nada novo para gravar';
+  btn.disabled = true;
+
+  const pulou = puladas ? ` ${puladas} já estava(m) no sistema e foram puladas.` : '';
+  if (!falhas.length) {
+    msg('erro-previa', `<b>${ok} venda(s) gravadas.</b>${pulou} `
+      + 'Veja em <a href="/vendas.html" style="color:inherit">Vendas</a> — marque '
+      + '“mostrar histórico” para encontrá-las.', 'ok');
+  } else {
+    // Nunca engolir: ele precisa saber o que entrou e o que não entrou,
+    // senão importa de novo e duplica.
+    msg('erro-previa', `<b>${ok} gravadas, ${falhas.length} falharam.</b>${pulou}<br>`
+      + falhas.slice(0, 5).map(esc).join('<br>')
+      + (falhas.length > 5 ? `<br>… e mais ${falhas.length - 5}<br>` : '<br>')
+      + 'Para tentar as que falharam, clique em <b>Voltar</b> e confira de novo — '
+      + 'o que já entrou será pulado.', 'atencao');
+  }
+}
+</script>
+</body>
+</html>
