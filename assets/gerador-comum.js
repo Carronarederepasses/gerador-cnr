@@ -384,6 +384,19 @@ async function cascataVersao(cfg) {
     const data = await fipeGet(`/marcas/${marca}/modelos/${modeloCod}/anos/${anoCod}`);
     const limpo = (data.Valor || '').replace('R$', '').trim();
     document.getElementById(cfg.fipe).value = limpo;
+    // A cascata já SABE qual linha é — não precisa adivinhar como a busca
+    // por texto. Registrar aqui é o caminho mais exato dos dois.
+    if (typeof registrarFipeRef === 'function') {
+      const num = parseFloat(limpo.replace(/\./g, '').replace(',', '.'));
+      registrarFipeRef({
+        marcaCod: marca, modeloCod, anoCod,
+        codigoFipe: data.CodigoFipe || null,
+        nome: `${document.getElementById(cfg.marca).selectedOptions[0]?.text || ''} `
+            + `${document.getElementById(cfg.versao).selectedOptions[0]?.text || ''}`.trim(),
+        mes: data.MesReferencia || null,
+        em: new Date().toISOString(),
+      }, Number.isFinite(num) ? num : null);
+    }
     // Marca que o usuário selecionou a FIPE manualmente pela cascata
     if (cfg.fipe === 'colet-fipe') {
       _coletFipeManual = true;
@@ -654,6 +667,27 @@ function copiar() {
 // CATÁLOGO DE OPORTUNIDADES
 // ══════════════════════════════════════════════
 // Lê os mesmos campos do gerar() e monta a ficha estruturada do veículo.
+// ── Referência da FIPE (02/out) ────────────────────────────────────────
+// Guarda qual linha da tabela produziu o valor que está na tela. Quem
+// preenche é a busca automática (`/api/fipe-search`) ou a cascata manual.
+// O veículo leva isto para o banco e, com ele, o servidor atualiza o valor
+// todo mês sem precisar adivinhar o carro pelo nome.
+let _fipeRef = null;
+
+// Marca a referência como válida só enquanto o número na tela for o que a
+// FIPE devolveu. Ele pode digitar outro valor por cima — e aí a referência
+// mente sobre o que está gravado.
+function registrarFipeRef(ref, valorNumerico) {
+  _fipeRef = ref ? { ...ref, valor: valorNumerico } : null;
+}
+function fipeRefCoerente(valorAtual) {
+  if (!_fipeRef || !_fipeRef.marcaCod) return false;
+  if (valorAtual == null || _fipeRef.valor == null) return false;
+  // Tolerância de um real: a tela mostra "124.399,00" e o banco guarda
+  // 124399 — comparar com igualdade exata quebraria por arredondamento.
+  return Math.abs(Number(_fipeRef.valor) - Number(valorAtual)) < 1;
+}
+
 function coletarFichaVeiculo() {
   const numFromR = v => {
     if (!v) return null;
@@ -707,6 +741,16 @@ function coletarFichaVeiculo() {
     placa:        (txtOrNull(val('placa')) || '').toUpperCase() || null,
     valor:        numFromR(val(PARC ? 'colet-valor' : 'valor')),
     fipe:         numFromR(val(PARC ? 'colet-fipe'  : 'fipe-val')),
+    // Qual linha da FIPE deu esse número (02/out). É o que permite o
+    // servidor atualizar o valor na virada do mês sem adivinhar o carro
+    // pelo nome de novo — e adivinhar pelo nome já errou quatro vezes aqui.
+    //
+    // Só vai junto quando o valor na tela AINDA é o que a FIPE devolveu:
+    // se ele digitou outro número por cima, a referência deixaria de
+    // descrever o que está gravado, e no mês seguinte o sistema
+    // sobrescreveria o número dele achando que estava atualizando.
+    ...(fipeRefCoerente(numFromR(val(PARC ? 'colet-fipe' : 'fipe-val')))
+          ? { fipe_ref: _fipeRef } : { fipe_ref: null }),
     valor_compra:      numFromR(document.getElementById('valor-compra')?.value),
     gastos_valor:      numFromR(document.getElementById('gastos-valor')?.value),
     vendedor_nome:     txtOrNull(document.getElementById('vendedor-nome')?.value),

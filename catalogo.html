@@ -788,7 +788,7 @@ function card(v) {
     <div class="doc-section" id="docs-${v.id}">${renderDocItems(v.id, Array.isArray(v.documentos) ? v.documentos : [])}</div>
     <div class="precos">
       <div><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Repasse</div><span class="v">${fmtR(v.valor)}</span></div>
-      ${v.fipe != null ? `<div><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span></div>` : ''}
+      ${v.fipe != null ? `<div><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span>${selinhoFipe(v)}</div>` : ''}
       ${(v.valor_compra != null) ? `<div style="cursor:pointer" title="Clique para editar" onclick="editarValorCompra('${v.id}')"><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Captado por</div><span style="font-size:.92rem;font-weight:700;color:var(--text-mid)">${fmtR(v.valor_compra)}</span></div>` : `<button style="font-size:.72rem;padding:.2rem .5rem;opacity:.55" onclick="editarValorCompra('${v.id}')">+ Custo</button>`}
       ${(v.valor != null && v.valor_compra != null) ? (() => { const m = v.valor - v.valor_compra; const pct = v.valor_compra > 0 ? ((m/v.valor_compra)*100).toFixed(0) : 0; const cor = m >= 0 ? 'var(--severity-ok)' : '#e55'; return `<div><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Margem</div><span style="font-size:.92rem;font-weight:700;color:${cor}">${fmtR(m)} (${pct}%)</span></div>`; })() : ''}
     </div>
@@ -818,6 +818,80 @@ function card(v) {
       ` : ''}
     </div>
   </div>`;
+}
+
+// ══ FIPE do mês (02/out) ══════════════════════════════════════════
+// O servidor atualiza sozinho, na virada do mês, todo carro à venda que
+// tenha a referência da FIPE gravada (ver `api/_fipe-atualiza.js`).
+//
+// Carro ANTIGO não tem essa referência: foi salvo quando o sistema
+// guardava só o número. Esse não é atualizado — atualizar exigiria
+// adivinhar o carro pelo nome, e adivinhar já errou quatro vezes aqui.
+//
+// Mas ficar quieto seria o pior dos dois mundos: ele acharia que o valor
+// está em dia. Então o card DIZ — e oferece religar, que é o que resolve
+// de uma vez por todas naquele carro.
+function selinhoFipe(v) {
+  const mes = v.fipe_ref && v.fipe_ref.mes;
+  if (mes) {
+    // Em dia: só o mês, discreto. Serve para ele conferir sem perguntar.
+    return `<div style="font-size:.66rem;color:var(--text-faint);margin-top:.1rem">${esc(mesCurto(mes))}</div>`;
+  }
+  if (v.status === 'vendido') return '';
+  return `<div style="font-size:.66rem;margin-top:.1rem">
+    <button onclick="religarFipe('${v.id}')"
+      title="Este valor não atualiza sozinho: o sistema não sabe qual versão da FIPE ele é"
+      style="background:none;border:none;padding:0;font:inherit;color:#e8a000;cursor:pointer;text-decoration:underline">
+      não atualiza — religar
+    </button></div>`;
+}
+
+// "outubro de 2026" → "out/2026"
+function mesCurto(m) {
+  const t = String(m || '').toLowerCase().match(/^([a-zç]+)\D+(\d{4})$/);
+  return t ? t[1].slice(0, 3) + '/' + t[2] : m;
+}
+
+// Religar: busca na FIPE pelo nome do carro e MOSTRA o que casou antes de
+// gravar. A confirmação é o que torna o palpite seguro — é a mesma ideia
+// de 03/set, quando a tela passou a dizer qual versão casou em vez de só
+// o valor.
+async function religarFipe(id) {
+  const v = CACHE[id]; if (!v) return;
+  const nome = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ');
+  const ano  = v.ano_int || v.ano || '';
+  if (!nome || !ano) { alert('Precisa do nome do carro e do ano para religar.'); return; }
+
+  try {
+    const r = await fetch('/api/fipe-search', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ veiculo: nome, ano: String(ano), combustivel: v.combustivel || '' }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.found || !d.ref) {
+      alert('Não achei esse carro na FIPE' + (d.reason ? `: ${d.reason}` : '.')
+        + '\n\nO valor atual fica como está.');
+      return;
+    }
+    const antigo = v.fipe != null ? fmtR(v.fipe) : '—';
+    const ok = confirm(
+      `A FIPE casou com:\n\n${d.marca} ${d.modelo}\n${d.ano}\n\n`
+      + `${d.valor}   (${d.mesReferencia})\n`
+      + `Valor guardado hoje: ${antigo}\n\n`
+      + `É esse carro? Depois de confirmar, ele passa a atualizar sozinho todo mês.`
+    );
+    if (!ok) return;
+
+    const valor = parseFloat(String(d.valorNumerico).replace(/\./g, '').replace(',', '.'));
+    const p = await fetch('/api/catalogo?id=' + id, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fipe: valor, fipe_ref: { ...d.ref, valor } }),
+    });
+    if (!p.ok) throw new Error((await p.json().catch(() => ({}))).error || 'HTTP ' + p.status);
+    carregar();
+  } catch (e) {
+    alert('Não consegui religar: ' + e.message);
+  }
 }
 
 // ══ Preparação (29/set) ═══════════════════════════════════════════

@@ -33,6 +33,30 @@ const BUCKET = 'veiculos';
 const EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const EXT_DOC = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/webp': 'webp' };
 
+// Regrava sem a coluna que o banco ainda não tem.
+//
+// O deploy é automático no push e a migration é manual: existe um intervalo
+// em que o código manda `fipe_ref` e a coluna não existe. Sem isto, salvar
+// um carro voltaria 400 no meio de uma captação.
+//
+// Só recua para ESTE erro (`PGRST204` / "column ... does not exist"). Erro
+// de verdade continua estourando — recuo largo demais esconderia defeito.
+const COLUNAS_NOVAS = ['fipe_ref'];
+async function semColunaNova(resposta, payload, refazer) {
+  if (resposta.ok) return resposta;
+  let txt = '';
+  try { txt = await resposta.clone().text(); } catch (e) { return resposta; }
+  const culpada = COLUNAS_NOVAS.find(c =>
+    txt.includes(`'${c}' column`) || txt.includes(`"${c}" column`) || txt.includes(`column "${c}"`)
+  );
+  if (!culpada) return resposta;
+  console.error(`catalogo: coluna \`${culpada}\` ainda não existe no banco — regravando sem ela. `
+    + 'Rodar supabase/fipe-ref.sql.');
+  const limpo = { ...payload };
+  delete limpo[culpada];
+  return refazer(limpo);
+}
+
 // Campos aceitos no POST/PATCH (whitelist — ignora o resto)
 const CAMPOS = [
   'marca', 'modelo', 'versao', 'complemento', 'ano', 'ano_int',
@@ -45,6 +69,9 @@ const CAMPOS = [
   // campo pareceria salvar e seria descartado no servidor em silêncio —
   // foi o que aconteceu com `emplacado_em` em 04/set.
   'preparacao',
+  // Qual linha da FIPE produziu o valor. É o que permite atualizar no mês
+  // seguinte sem adivinhar o carro pelo nome.
+  'fipe_ref',
 ];
 
 // O `sb` local saiu daqui em 23/set: agora vem de `_db.js`, já amarrado à
@@ -333,8 +360,23 @@ module.exports = async (req, res) => {
       const r = await sb(`${TABLE}?${parts.join('&')}`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
-      if (q.id) return res.status(200).json(data[0] || null);
-      return res.status(200).json(data);
+      // FIPE do mês corrente (02/out). Acontece AQUI, no servidor, e não na
+      // tela do catálogo: o número também sai no texto do anúncio, no story
+      // e na Rede, e deixar a atualização na tela significaria valor certo
+      // só para quem abriu aquela tela.
+      //
+      // Só mexe em carro que tem a referência da FIPE gravada — ver
+      // `_fipe-atualiza.js` para o porquê de não adivinhar pelo nome.
+      let lista = Array.isArray(data) ? data : (data ? [data] : []);
+      try {
+        const { atualizarFipe } = require('./_fipe-atualiza');
+        lista = await atualizarFipe(sb, lista);
+      } catch (e) {
+        // Catálogo que não abre é pior que FIPE velha.
+        console.error('[catalogo] atualização de FIPE falhou:', e.message);
+      }
+      if (q.id) return res.status(200).json(lista[0] || null);
+      return res.status(200).json(lista);
     }
 
     // ── CRIAR ───────────────────────────────────────────────────
@@ -344,11 +386,20 @@ module.exports = async (req, res) => {
       if (!nome && !payload.anuncio_texto) {
         return res.status(400).json({ error: 'Informe ao menos o veículo.' });
       }
-      const r = await sb(TABLE, {
+      let r = await sb(TABLE, {
         method: 'POST',
         headers: { Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
+      // Janela entre o deploy (automático) e a migration (na mão): existe um
+      // intervalo em que o código manda `fipe_ref` e o banco ainda não tem a
+      // coluna. Sem esta rede, salvar carro voltaria 400 e ele descobriria
+      // no meio de uma captação. Mesmo caso de 08/set (`operador`) e 16/set
+      // (colunas de sinal) — a janela é conhecida, então é tratada.
+      // Pode sair depois que `supabase/fipe-ref.sql` tiver rodado.
+      r = await semColunaNova(r, payload, (p) => sb(TABLE, {
+        method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(p),
+      }));
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       const veiculo = data[0] || data;
@@ -380,11 +431,14 @@ module.exports = async (req, res) => {
         const rSt = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}&select=status`);
         if (rSt.ok) statusAnterior = (await rSt.json())[0]?.status;
       }
-      const r = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
+      let r = await sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=representation' },
         body: JSON.stringify(payload),
       });
+      r = await semColunaNova(r, payload, (p) => sb(`${TABLE}?id=eq.${encodeURIComponent(q.id)}`, {
+        method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(p),
+      }));
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       const veiculoDepois = data[0] || data;

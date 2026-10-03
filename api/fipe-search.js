@@ -476,6 +476,19 @@ module.exports = async (req, res) => {
       combustivel: fipeData.Combustivel || anoObj.nome.replace(/\b(19|20)\d{2}\b/, '').trim() || null,
       mesReferencia: fipeData.MesReferencia,
       anoFallback,
+      // Qual LINHA da FIPE deu esse número (02/out). Sem isto, atualizar no
+      // mês seguinte exigiria adivinhar o carro pelo nome de novo — e
+      // adivinhar pelo nome já errou quatro vezes aqui. Guardado no veículo
+      // como `fipe_ref`, vira consulta exata todo mês.
+      ref: {
+        marcaCod:   escolhido.marca.codigo,
+        modeloCod:  escolhido.modelo.codigo,
+        anoCod:     anoObj.codigo,
+        codigoFipe: fipeData.CodigoFipe || null,
+        nome:       `${escolhido.marca.nome} ${escolhido.modelo.nome}`,
+        mes:        fipeData.MesReferencia || null,
+        em:         new Date().toISOString(),
+      },
     };
     console.log(`fipe-search: "${veiculo}" ${ano} → ${result.marca} ${result.modelo} ${result.ano} score=${escolhido.score}`);
     return res.status(200).json(result);
