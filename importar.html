@@ -543,18 +543,25 @@ function linhaDaOrdemDeData() {
       }
     }
   }
-  const como = ORDEM_DATA === 'mdy' ? 'mês/dia/ano' : 'dia/mês/ano';
-  // Só mostra o exemplo quando a leitura MUDA alguma coisa: "21/02/2024
-  // virou 21/02/2024" é ruído.
-  const exemplo = (cru && cru !== virou) ? ` — <b>${esc(cru)}</b> virou <b>${esc(virou)}</b>` : '';
+  // A frase fala da PLANILHA, não do sistema: o sistema é dia/mês/ano
+  // sempre. Dizer só "datas lidas como mês/dia/ano" dava a entender que o
+  // Gerador tinha virado americano.
   const botao = ' <a href="#" onclick="trocarOrdemData();return false" style="color:inherit">'
-    + 'está trocado, inverter</a>';
-  if (ORDEM_MANUAL) return `Datas lidas como <b>${como}</b>${exemplo}.${botao}`;
+    + 'li errado, inverter</a>';
+  const vira = cru ? ` Aqui dentro vira <b>${esc(virou)}</b>, como no resto do sistema.` : '';
   if (!ORDEM_CERTA) {
-    return `<b>Confira as datas:</b> não deu para saber se a planilha usa dia/mês `
-      + `ou mês/dia (nenhum dia passa de 12). Estou lendo como <b>${como}</b>${exemplo}.${botao}`;
+    return `<b>Confira as datas:</b> não deu para saber se a sua planilha escreve `
+      + `dia/mês ou mês/dia — nenhum dia passa de 12. Estou lendo como `
+      + `<b>dia/mês/ano</b>.${vira}${botao}`;
   }
-  return `Datas lidas como <b>${como}</b>${exemplo}.${botao}`;
+  if (ORDEM_DATA === 'mdy') {
+    return `<b>Sua planilha está em mês/dia/ano</b> (padrão americano — é a `
+      + `configuração do arquivo, no Google Planilhas ou Excel)`
+      + (cru ? `: <b>${esc(cru)}</b>` : '')
+      + `. Estou convertendo para <b>dia/mês/ano</b>${cru ? `, vira <b>${esc(virou)}</b>` : ''}.`
+      + botao;
+  }
+  return `Datas da planilha em <b>dia/mês/ano</b>, como aqui dentro.${botao}`;
 }
 
 const rotuloDe = (id) => (DESTINOS.find(d => d.id === id) || {}).rotulo || id;
@@ -563,6 +570,11 @@ function mostrar(v, c) {
   if (x == null || x === '') return '—';
   if (['valor_venda','valor_compra','taxa_intermediacao'].includes(c)) {
     return Number(x).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  // Data na conferência sai como o resto do sistema: dia/mês/ano. O
+  // ISO (2024-02-21) é como o banco guarda, não é o que ele lê.
+  if (['data_venda','data_retirada'].includes(c) && /^\d{4}-\d{2}-\d{2}$/.test(String(x))) {
+    return `${String(x).slice(8)}/${String(x).slice(5, 7)}/${String(x).slice(0, 4)}`;
   }
   return String(x);
 }
