@@ -7523,3 +7523,71 @@ tela inicial → catálogo de repasses → … → "se adapta à loja" por últi
 Alarme de pendências e cidade suja saíram para "já viraram trabalho".
 
 *Registrado em 1º de outubro de 2026, noite.*
+
+---
+
+## Checkpoint — 3 de outubro de 2026
+
+### FIPE do catálogo passou a virar com o mês
+
+Relato dele: *"o valor da FIPE dos carros do catálogo não é atualizado na
+virada do mês"*. Resolvido com `veiculos.fipe_ref` guardando **qual linha da
+tabela FIPE deu aquele valor** (marca, modelo, ano, código) e o mês em que foi
+lida. No GET do catálogo o servidor atualiza sozinho os que ficaram para trás
+— `api/_fipe-atualiza.js`, teto de 12 carros por chamada, só `disponivel` e
+`reservado`.
+
+**O mês vem da resposta da FIPE, não do relógio**: a tabela nova sai alguns
+dias depois da virada, e o calendário diria "outubro" quando a FIPE ainda
+publica setembro.
+
+Carro antigo, sem referência, mostra **"não atualiza — religar"** em vez de um
+valor que finge estar certo. Religar busca e **mostra o que casou** antes de
+gravar. Confirmado por ele no Corolla: 125.829 → 124.399, *"Bateu"*.
+
+### Importar as vendas da planilha — e o que a planilha real ensinou
+
+`/importar.html`: ele escolhe o arquivo (.xlsx ou CSV), diz o que é cada
+coluna, confere as primeiras linhas e grava. **O arquivo não sai do aparelho
+dele** — é a correção dele de 01/out (*"jamais passariam o relatório"*).
+
+Os oito palpites de coluna acertaram a planilha dele de primeira. O que só
+apareceu testando contra as 114 vendas de verdade:
+
+1. **As datas são americanas.** `2/21/24` é 21/02/2024. Lendo como dia/mês,
+   110 vendas entrariam com data errada, e muitas com **mês 21** — data
+   inventada no lugar do histórico inteiro dele. A ordem agora é detectada na
+   coluna toda (pelo número que não cabe em mês), **dita na tela com um exemplo
+   da planilha dele** — "2/21/24 virou 21/02/2024" — e invertível num clique.
+   Coluna ambígua (todo dia ≤ 12) fica no brasileiro e a tela DIZ que não deu
+   para saber. Mês inválido entra **sem data**, nunca com data chutada.
+2. **O Excel cria uma linha "Coluna1, Coluna2…"** ao formatar como tabela.
+   Virava uma venda com placa `COLUNA3`.
+3. **A trava contra duplicata.** Era o acidente caro: importar duas vezes
+   dobraria o histórico. Placa+data pega 108 das 113. As outras 4 **parecem**
+   já existir — placa igual em outra data (BYD, um dia de diferença), ou mesma
+   data e comissão com **uma letra diferente na placa** (BMW X1, Palio). São
+   puladas, **nomeadas na tela com os dois lados**, e tem link para gravar
+   assim mesmo. Sobra **1 venda genuinamente nova**.
+
+Nome do carro não serve de chave: o banco guarda "X1 2.0 25i Sport" e a
+planilha "X1 2.0 25i Sport - 2021".
+
+Conferido com a planilha real servida localmente, com o POST dublado: **1
+enviado, 112 pulados**, e nenhuma marca de tela no corpo da requisição.
+
+> **A ordem importou mais que o conserto.** A trava foi escrita antes de
+> qualquer teste de gravação, justamente porque o erro aqui não dá erro — ele
+> abriria Vendas com 228 linhas e não teria como desfazer. E foi a trava que
+> **achou o bug das datas**: só 4 de 114 bateram, e isso não fazia sentido.
+> Sem ela eu teria gravado 110 vendas com data errada e chamado de sucesso.
+
+### Pendente
+
+- Telas da Rede (o motor está pronto; só a `/rede.html` de prova existe)
+- Recarregar a extensão no notebook da mãe — cidade limpa e logs só valem
+  depois disso
+- Códigos de recuperação do 2FA fora do celular
+- CNPJ: parado por decisão dele até depois das eleições
+
+*Registrado em 3 de outubro de 2026.*
