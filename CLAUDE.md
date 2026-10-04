@@ -7591,3 +7591,74 @@ enviado, 112 pulados**, e nenhuma marca de tela no corpo da requisição.
 - CNPJ: parado por decisão dele até depois das eleições
 
 *Registrado em 3 de outubro de 2026.*
+
+### 03/out (noite) — financeiro, varejo×repasse, e uma loja = uma conta
+
+**Financeiro: o que tenho a receber.** `vendas.comissao_recebida_em`, nulo
+= não entrou. É data e não sim/não: "quando entrou" responde quanto o
+dinheiro demora a cair. Botão 💰 Recebi no card (desfaz nos dois sentidos)
+e cartão "A receber" no Painel, escondido quando não há nada — como o
+"Carros travados" ao lado. O **histórico entra** nessa conta, ao contrário
+dos números do mês: dívida não tem mês. Venda cancelada ou em negociação
+fica fora.
+
+> Premissa escrita na migration: as 114 antigas entram como RECEBIDAS, com
+> a data da própria venda. Não há informação de pagamento nelas, e deixá-las
+> nulas faria a tela abrir dizendo **R$ 170 mil a receber**. Rodada por ele:
+> 114 recebidas, 0 a receber.
+
+**Catálogo: varejo × repasse** (ideia dele de 28/set). O caso é do
+**lojista**: o mesmo carro no pátio para o cliente final e também para
+repasse, por preço menor. `valor` continua sendo o de REPASSE — anúncio,
+Rede, Match e story leem dele. Entra `valor_varejo` ao lado, e
+`destino_venda` (varejo|repasse|ambos) marcado **pelo dono, carro a carro**:
+decisão dele, contra adivinhar pela origem ou pelo tempo parado. Filtro
+"Catálogo" no topo é o que faz as duas listas existirem; "ambos" aparece
+nas duas. **Tudo escondido para repassador** — a tela do Yuri não muda.
+
+Achado no teste: "ainda não marcados" contava carros **vendidos**, que
+apareceriam nessa lista para sempre. É como a tela do sistema do amigo
+acumulou 17 pendências desde 2024.
+
+**Documentação.** Ele: *"tenho zero pendências de doctos"*. As 8 em aberto
+(3 pendente, 5 procuração, a mais velha de 31/01/2025) vieram da planilha.
+Marcadas como entregues, com o estado anterior guardado e as 8 edições na
+Caixa Preta.
+
+> A Caixa Preta **recusou** os 8 registros na primeira tentativa:
+> `conta_id` é NOT NULL. Não era defeito — era a fase 0 funcionando. A API
+> carimba o dono pelo funil; meu script falava direto com o banco.
+
+**Uma loja = uma conta.** O Bruno saiu do projeto próprio. Conferido antes:
+o banco do piloto tinha **zero** carros, vendas, clientes e anúncios (os 13
+do histórico eram testes meus de 23/set). Logo e ícone copiados byte a byte
+para a produção — conta não pode depender de projeto que um dia será
+apagado. **A terceira loja que entrar não pede SQL nenhum.**
+
+> Erro meu de ordem: criei a conta à mão primeiro. O link de entrada é
+> assinado com `SESSAO_PIMENTA`, que só existe na Vercel — link feito aqui
+> nunca abriria. Desfiz e fui pela ordem certa: o convite faz a identidade,
+> eu completo a marca.
+>
+> E `contas.icone` existia e **ninguém lia**. No site compartilhado não há
+> variável por loja, então ele instalaria no iPhone com o logo retangular —
+> virando mancha no quadrado, que é por que o quadrado de 1024 foi feito em
+> 22/set. `_marca.js` passa a devolver `icone`, e `marca.js` o usa no
+> `apple-touch-icon` (o iPhone ignora o manifesto).
+
+**Rede: a posição na fila.** Era um `alert` que sumia; depois o card só
+dizia "Você está na fila". A fila é o mecanismo central da Rede, e estava
+invisível para quem está dentro dela. Agora: **"✋ Você é o 2º de 3 da
+fila"**. As consultas não pediam `criado_em` nem ordenavam — a contagem
+existia e a posição não.
+
+### Pendente
+
+- **Link novo do Bruno** — ele entra em `gerador-cnr.vercel.app`, pelo
+  **Safari** (não pelo WhatsApp). Confirmado que entrou, dá para apagar o
+  projeto `cnr-piloto` e liberar espaço no Supabase
+- Recarregar a extensão no notebook da mãe
+- Códigos de recuperação do 2FA fora do celular
+- CNPJ: parado por decisão dele até depois das eleições
+
+*Registrado em 3 de outubro de 2026, noite.*
