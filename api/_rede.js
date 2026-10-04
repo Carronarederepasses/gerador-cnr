@@ -315,7 +315,10 @@ async function vitrine(req, res) {
 
   const ids = ofertas.map((o) => o.id);
   const [interesses, reservas, lojas] = await Promise.all([
-    rsb(`interesses?oferta_id=in.(${ids.join(',')})&estado=eq.quer&select=oferta_id,conta_id`),
+    // `criado_em` e a ordem vêm junto porque a POSIÇÃO na fila é o dado que
+    // faz a pessoa agir: ser o 1º é correr, ser o 5º é deixar passar. Sem
+    // ordenar aqui, a contagem existe e a posição não.
+    rsb(`interesses?oferta_id=in.(${ids.join(',')})&estado=eq.quer&select=oferta_id,conta_id,criado_em&order=criado_em.asc`),
     rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,com_sinal`),
     // `contas` não tem cidade — conferido, não suposto. A cidade que
     // aparece é a DO CARRO (`ofertas.cidade`), que é a que interessa a
@@ -329,7 +332,9 @@ async function vitrine(req, res) {
   const fila = {}; const meu = {}; const reservada = {};
   for (const i of interesses) {
     fila[i.oferta_id] = (fila[i.oferta_id] || 0) + 1;
-    if (i.conta_id === eu.conta_id) meu[i.oferta_id] = true;
+    // A posição é a contagem no momento em que a MINHA mão aparece — a
+    // lista já vem na ordem de chegada, que é a ordem que vale.
+    if (i.conta_id === eu.conta_id) meu[i.oferta_id] = fila[i.oferta_id];
   }
   for (const r of reservas) reservada[r.oferta_id] = r.com_sinal ? 'sinal' : 'palavra';
 
@@ -345,6 +350,7 @@ async function vitrine(req, res) {
       conta_id: o.conta_id === eu.conta_id ? o.conta_id : undefined,
       na_fila: fila[o.id] || 0,
       eu_quero: !!meu[o.id],
+      minha_posicao: meu[o.id] || null,
       reservado: reservada[o.id] || null,
     })),
   });
@@ -374,7 +380,9 @@ async function feed(req, res) {
   // de cartões.
   const [ofertas, interesses, reservas] = await Promise.all([
     rsb(`ofertas?id=in.(${ids.join(',')})&estado=neq.encerrada&select=*&order=criado_em.desc`),
-    rsb(`interesses?oferta_id=in.(${ids.join(',')})&select=oferta_id,conta_id,estado`),
+    // Ordenado pela chegada: é o que permite dizer a POSIÇÃO, e não só
+    // quantos são. Mesma razão do feed da vitrine.
+    rsb(`interesses?oferta_id=in.(${ids.join(',')})&select=oferta_id,conta_id,estado,criado_em&order=criado_em.asc`),
     rsb(`reservas?oferta_id=in.(${ids.join(',')})&desfeita_em=is.null&select=oferta_id,com_sinal`),
   ]);
 
@@ -408,7 +416,7 @@ async function feed(req, res) {
   for (const i of interesses) {
     if (i.estado !== 'quer') continue;
     fila[i.oferta_id] = (fila[i.oferta_id] || 0) + 1;
-    if (i.conta_id === eu.conta_id) meu[i.oferta_id] = true;
+    if (i.conta_id === eu.conta_id) meu[i.oferta_id] = fila[i.oferta_id];
   }
   for (const r of reservas) reservada[r.oferta_id] = r.com_sinal ? 'sinal' : 'palavra';
 
@@ -419,6 +427,7 @@ async function feed(req, res) {
       mensagem: o.mensagem, lista_nome: o.lista_nome, criado_em: o.criado_em,
       na_fila: fila[o.id] || 0,
       eu_quero: !!meu[o.id],
+      minha_posicao: meu[o.id] || null,
       reservado: reservada[o.id] || null,   // null | 'palavra' | 'sinal'
     })),
   });

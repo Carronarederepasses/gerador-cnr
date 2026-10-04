@@ -506,7 +506,15 @@ function acaoDoCarro(o, comFila) {
       ? `✋ ${o.na_fila} ${o.na_fila === 1 ? 'loja quer' : 'lojas querem'}`
       : 'Publicado · ninguém levantou a mão ainda'}</span></div>`;
   }
-  if (o.eu_quero) return '<div class="acao"><span class="estado">✋ Você está na fila</span></div>';
+  // A POSIÇÃO fica no card, não num alerta que some. Ser o 1º é correr;
+  // ser o 5º é deixar passar — e quem não sabe qual é, ignora os dois.
+  if (o.eu_quero) {
+    const p = o.minha_posicao;
+    const quantos = o.na_fila > 1 ? ` de ${o.na_fila}` : '';
+    return `<div class="acao"><span class="estado">${
+      p ? `✋ Você é o <b>${p}º</b>${quantos} da fila` : '✋ Você está na fila'
+    }</span></div>`;
+  }
   return `<div class="acao"><button class="cheio" onclick="quero('${o.id}')">✋ Quero</button></div>`;
 }
 
@@ -768,7 +776,9 @@ async function enviar() {
 
 // ── Ações ───────────────────────────────────────────────────
 async function quero(id) {
-  try { const r = await rede('quero', { body: { oferta_id: id } }); await carregar(); alert(`Você é o ${r.posicao}º da fila.`); }
+  // Sem alerta: a posição já aparece no card depois do recarregamento, e
+  // fica lá. Alerta só para o que a tela não consegue dizer sozinha.
+  try { await rede('quero', { body: { oferta_id: id } }); await carregar(); }
   catch (e) { alert(e.message); }
 }
 async function reservar(ofertaId, contaId) {
