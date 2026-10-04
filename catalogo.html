@@ -325,15 +325,8 @@
   .prep-chip.parado{background:var(--line);color:var(--text-mid)}
   .prep-resumo{font-size:.7rem;color:var(--text-mid);white-space:nowrap}
 
-  /* Varejo × repasse (03/out). Chip apagado = não é este; aceso = é.
-     Sem cor de significado: aqui a escolha não pede atenção, só mostra. */
-  .dest-linha{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.5rem}
-  .dest-vazio{font-size:.7rem;color:var(--text-mid);margin-right:.15rem}
-  .dest-chip{font-size:.7rem;font-weight:600;padding:.22rem .55rem;cursor:pointer;
-    border-radius: var(--r-md, 12px);border:1px solid var(--line);
-    background:none;color:var(--text-mid);font-family:inherit;white-space:nowrap}
-  .dest-chip:hover{color:var(--text);border-color:var(--text-mid)}
-  .dest-chip.on{background:var(--text);color:var(--surface);border-color:var(--text)}
+  /* Varejo × repasse (03/out): a escolha virou cascata no rodapé, com o
+     visual do menu de Status — não tem estilo próprio de propósito. */
 
   .prep-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;
     justify-content:center;z-index:66;padding:2rem 1rem;overflow-y:auto}
@@ -532,6 +525,14 @@
   <div class="st-menu-item" onclick="aplicarStatus('disponivel')"><span class="dot disponivel"></span>Disponível</div>
   <div class="st-menu-item" onclick="aplicarStatus('reservado')"><span class="dot reservado"></span>Reservado</div>
   <div class="st-menu-item" onclick="aplicarStatus('vendido')"><span class="dot vendido"></span>Vendido</div>
+</div>
+
+<!-- Para onde o carro vai (só lojista). Mesma cascata do Status: a escolha
+     mora num menu, não em botões parados no card. -->
+<div class="st-menu" id="dest-menu">
+  <div class="st-menu-item" onclick="aplicarDestino('varejo')">🏷️ Varejo</div>
+  <div class="st-menu-item" onclick="aplicarDestino('repasse')">🤝 Repasse</div>
+  <div class="st-menu-item" onclick="aplicarDestino('ambos')">🏷️🤝 Os dois</div>
 </div>
 
 <!-- Modal Edição de Dados -->
@@ -820,16 +821,17 @@ function card(v) {
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     ${infoSection('📝','Avaliação da Captação', v.avaliacao?.inspecao||null)}
     ${infoSection('🔧','Gastos', v.gastos||null)}
-    ${destinoLinha(v)}
     ${prepLinha(v)}
     ${v.status === 'vendido'
       ? `<div class="match-box">${renderVendido(v)}</div>`
-      : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)"><span id="match-label-${v.id}">👥 Compradores</span><span class="marrow"> ▾</span></button><div id="matchbody-${v.id}" style="display:none"></div></div>`}
+      : (semCompradores(v) ? ''
+        : `<div class="match-box"><button class="match-coll-btn" onclick="toggleMatch('${v.id}',this)"><span id="match-label-${v.id}">👥 Compradores</span><span class="marrow"> ▾</span></button><div id="matchbody-${v.id}" style="display:none"></div></div>`)}
     <div class="timeline" id="hist-${v.id}"></div>
     <div class="rodape">
       <button class="aval" onclick="abrirAval('${v.id}')">📋 Avaliação</button>
       ${(window.cnrMarca && window.cnrMarca.eLojista && v.status !== 'vendido')
         ? `<button onclick="abrirPrep('${v.id}')">🔧 Preparação</button>` : ''}
+      ${destinoBotao(v)}
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
       <button onclick="abrirStory('${v.id}')">${ICO_IG} Story</button>
@@ -972,35 +974,53 @@ function precoVarejo(v) {
 // A linha que diz para onde o carro vai. Sem marcação, convida a marcar —
 // não assume, porque assumir pelo tipo de carro ou pela origem foi
 // justamente o que ele recusou no desenho.
-function destinoLinha(v) {
-  if (!ehLojista() || v.status === 'vendido') return '';
-  const atual = v.destino_venda;
+// A escolha vive no RODAPÉ, numa cascata, junto dos outros controles —
+// desenho do Yuri (03/out) depois de ver o card no celular: decidido, os
+// botões somem. Num card de 1016px e 23 botões, três controles parados são
+// ruído, e depois de escolher as outras opções não são informação.
+//
+// Sem marcar o botão convida ("Destino ▾"); marcado, ele É a resposta
+// ("🤝 Repasse ▾") — assim a informação não some junto com os botões.
+// Carro de VAREJO não tem Match: o Motor oferece a outras lojas, em preço
+// de atacado. Oferecer a elas um carro que é para o cliente final é entregar
+// a margem a quem compraria no varejo — observação do Yuri, 03/out.
+//
+// Só esconde quando ele DECIDIU que é varejo. Sem marcação, o bloco fica:
+// esconder por omissão tiraria o Match de quem nunca mexeu nisso.
+const semCompradores = (v) => ehLojista() && v.destino_venda === 'varejo';
 
-  // Decidido, o card mostra a DECISÃO — um selo, não três botões. Três
-  // controles parados num card que já tem 23 é o que o Yuri chamou de
-  // poluído, e ele estava certo: depois de escolher, as outras duas opções
-  // não são informação, são ruído. Tocar no selo abre a escolha de novo.
-  if (atual) {
-    return `<div class="dest-linha"><button class="dest-chip on" title="Clique para mudar"
-      onclick="abrirDestino('${v.id}')">${rotuloDestino(atual)}</button></div>`;
-  }
-  const chips = DESTINOS_VENDA.map(([id, rotulo, dica]) =>
-    `<button class="dest-chip" title="${esc(dica)}"
-      onclick="marcarDestino('${v.id}','${id}')">${rotulo}</button>`).join('');
-  return `<div class="dest-linha"><span class="dest-vazio">Este carro é de:</span>${chips}</div>`;
+function destinoBotao(v) {
+  if (!ehLojista() || v.status === 'vendido') return '';
+  const r = rotuloDestino(v.destino_venda);
+  return `<button onclick="abrirDestinoMenu(event,'${v.id}')"
+    title="Para onde este carro vai">${r || 'Destino'} ▾</button>`;
 }
 
-// Reabre a escolha num card já decidido, sem desmarcar: desmarcar para
-// depois marcar deixaria o carro sem destino se ele desistir no meio.
-function abrirDestino(id) {
-  const card = document.getElementById('vcard-' + id);
-  const linha = card && card.querySelector('.dest-linha');
-  if (!linha) return;
-  const v = CACHE[id] || {};
-  linha.innerHTML = '<span class="dest-vazio">Este carro é de:</span>'
-    + DESTINOS_VENDA.map(([d, rotulo, dica]) =>
-      `<button class="dest-chip${v.destino_venda === d ? ' on' : ''}" title="${esc(dica)}"
-        onclick="marcarDestino('${id}','${d}')">${rotulo}</button>`).join('');
+let destinoMenuId = null;
+function abrirDestinoMenu(event, id) {
+  event.stopPropagation();
+  destinoMenuId = id;
+  const menu = document.getElementById('dest-menu');
+  const rect = event.currentTarget.getBoundingClientRect();
+  const menuH = 150;
+  menu.style.top = ((rect.bottom + menuH > window.innerHeight) ? rect.top - menuH : rect.bottom + 4) + 'px';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 170) + 'px';
+  menu.classList.add('show');
+}
+
+async function aplicarDestino(destino) {
+  const id = destinoMenuId;
+  document.getElementById('dest-menu').classList.remove('show');
+  destinoMenuId = null;
+  if (!id) return;
+  const v = CACHE[id];
+  // Escolher o que já está escolhido desmarca: é como ele desfaz sem um
+  // quarto item "nenhum" no menu.
+  const novo = (v && v.destino_venda === destino) ? null : destino;
+  try {
+    await gravarCampo(id, { destino_venda: novo });
+    carregar();
+  } catch (e) { alert('Não consegui marcar: ' + e.message); }
 }
 
 // Filtra no cliente, não no servidor: a marcação é do lojista e muda a toda
@@ -1031,17 +1051,6 @@ async function gravarCampo(id, campo) {
     throw new Error(msg);
   }
   if (CACHE[id]) Object.assign(CACHE[id], campo);
-}
-
-async function marcarDestino(id, destino) {
-  const v = CACHE[id];
-  // Clicar no que já está marcado desmarca: é como ele desfaz sem precisar
-  // de um quarto botão "nenhum".
-  const novo = (v && v.destino_venda === destino) ? null : destino;
-  try {
-    await gravarCampo(id, { destino_venda: novo });
-    carregar();
-  } catch (e) { alert('Não consegui marcar: ' + e.message); }
 }
 
 async function editarVarejo(id) {
@@ -2494,6 +2503,12 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#st-menu') && !e.target.closest('[onclick*="abrirStatusMenu"]')) {
     document.getElementById('st-menu').classList.remove('show');
     statusMenuId = null;
+  }
+  // A cascata do destino fecha pela mesma regra. Sem isto ela ficaria
+  // aberta por cima do card depois de um toque fora.
+  if (!e.target.closest('#dest-menu') && !e.target.closest('[onclick*="abrirDestinoMenu"]')) {
+    document.getElementById('dest-menu').classList.remove('show');
+    destinoMenuId = null;
   }
 });
 
