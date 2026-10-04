@@ -13,15 +13,8 @@ o que ainda não foi feito.
 
 <!-- Escreva abaixo. Uma linha já basta. -->
 
-- **Catálogo de repasses para lojas**, separado do catálogo de estoque de
-  venda (ideia de 28/set, conversando com um amigo)
-
 - **RENAVE no sistema** — entrada e saída de veículo no estoque pelo
   registro eletrônico do governo (28/set)
-
-- **Financeiro: o que tenho a receber** — a venda é registrada, mas a
-  comissão que ainda não entrou não aparece em lugar nenhum (28/set,
-  vendo o menu do SIG)
 
 - **Grupo e transmissão de graça, o resto pago** (29/set) — a parte de
   rede (grupo, transmissão, conversa) seria a porta de entrada gratuita,
@@ -107,6 +100,14 @@ o que ainda não foi feito.
 - **Alarme de pendências no Painel** → feito em 29/set/2026, bloco "⚠️ Resolver antes" em `home.html`. Só entra o que IMPEDE uma ação (carro sem preço de repasse, sem foto, reservado sem comprovante); some quando não há nada.
 - **Cidade vem suja da extensão** → feito em 01/out/2026, `cidadeDoCard()` em `content/olx-search.js` limpa na origem, gêmea declarada de `soCidade()` do Gerador. O verificador achou de brinde um defeito antigo na tela: "Porto Seguro" virava "Porto".
 - **Buscador de FIPE na tela inicial** → feito em 01/out/2026, tela /fipe.html e atalho no Painel. A cascata ja existia e era feita para reuso: ganhou o contexto `avulsa`.
+- **Financeiro: o que tenho a receber** → feito em 03/out/2026,
+  `vendas.comissao_recebida_em`. Botão 💰 Recebi no card da venda e cartão
+  "A receber" no Painel, escondido quando não há nada. O histórico entra na
+  conta: dívida não tem mês.
+- **Catálogo de repasses separado do estoque** → feito em 03/out/2026. É do
+  **lojista**: `valor_varejo` ao lado do preço de repasse e `destino_venda`
+  (varejo / repasse / os dois), marcado por ele carro a carro, com filtro no
+  topo do catálogo. Escondido para repassador.
 - **Importar as vendas do lojista, por ele mesmo** → feito em 03/out/2026,
   tela `/importar.html`. Autoatendimento, como ele corrigiu: o arquivo é
   aberto no navegador dele e nada é enviado para ninguém. Lê as colunas
