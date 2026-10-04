@@ -35,6 +35,7 @@ function marca(env = process.env) {
     instagram: vazioOu(env.MARCA_INSTAGRAM, PADRAO.instagram).replace(/^@+/, ''),
     email:     vazioOu(env.MARCA_EMAIL, PADRAO.email),
     logo:      limpo(env.MARCA_LOGO),
+    icone:     limpo(env.MARCA_ICONE) || limpo(env.MARCA_LOGO),
     esconder:  limpo(env.MARCA_ESCONDER).split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
     propria,
     // Sem sessão não dá para saber de que loja é o pedido, então o tipo é
@@ -71,6 +72,11 @@ function marcaDaConta(conta, cnrId) {
     instagram: vazioOu(conta.instagram, PADRAO.instagram).replace(/^@+/, ''),
     email:     vazioOu(conta.email,     PADRAO.email),
     logo:      limpa(conta.logo),
+    // Ícone do app na tela inicial. É separado do logo de propósito: o logo
+    // é retangular e vira mancha no quadrado do celular — por isso o
+    // quadrado de 1024 foi gerado em 22/set. Vazio cai no logo, que é
+    // melhor que o ícone da Carro na Rede no telefone de outra loja.
+    icone:     limpa(conta.icone) || limpa(conta.logo),
     // Mesmo formato do MARCA_ESCONDER, e cortado pelo mesmo código: duas
     // regras de leitura para a mesma coisa é como elas divergem.
     esconder:  limpa(conta.esconder).split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),

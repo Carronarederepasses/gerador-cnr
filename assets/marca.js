@@ -12,7 +12,7 @@
   var PADRAO = {
     nome: 'Carro na Rede', subtitulo: 'Repasses',
     instagram: 'carronarederepasses', email: 'carronarederepasses@gmail.com',
-    logo: '', esconder: [], propria: false,
+    logo: '', icone: '', esconder: [], propria: false,
     // repassador | lojista | null. Nulo = ainda não escolheu — e isso é
     // diferente de ser repassador. Ver api/_marca.js.
     tipo: null,
@@ -70,9 +70,12 @@
     else raiz.style.removeProperty('--marca-logo');
     // Ícone da aba e o do iPhone na tela inicial (o iPhone ignora o
     // manifesto e usa o apple-touch-icon).
-    if (m.propria && m.logo) {
+    // Prefere o ícone quadrado, que existe justamente porque o logo
+    // retangular vira mancha no quadrado do telefone. Sem ele, cai no logo.
+    var arte = m.icone || m.logo;
+    if (m.propria && arte) {
       var icones = document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]');
-      for (var k = 0; k < icones.length; k++) { icones[k].href = m.logo; icones[k].removeAttribute('type'); }
+      for (var k = 0; k < icones.length; k++) { icones[k].href = arte; icones[k].removeAttribute('type'); }
     }
   }
 
