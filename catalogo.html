@@ -975,10 +975,32 @@ function precoVarejo(v) {
 function destinoLinha(v) {
   if (!ehLojista() || v.status === 'vendido') return '';
   const atual = v.destino_venda;
+
+  // Decidido, o card mostra a DECISÃO — um selo, não três botões. Três
+  // controles parados num card que já tem 23 é o que o Yuri chamou de
+  // poluído, e ele estava certo: depois de escolher, as outras duas opções
+  // não são informação, são ruído. Tocar no selo abre a escolha de novo.
+  if (atual) {
+    return `<div class="dest-linha"><button class="dest-chip on" title="Clique para mudar"
+      onclick="abrirDestino('${v.id}')">${rotuloDestino(atual)}</button></div>`;
+  }
   const chips = DESTINOS_VENDA.map(([id, rotulo, dica]) =>
-    `<button class="dest-chip${atual === id ? ' on' : ''}" title="${esc(dica)}"
+    `<button class="dest-chip" title="${esc(dica)}"
       onclick="marcarDestino('${v.id}','${id}')">${rotulo}</button>`).join('');
-  return `<div class="dest-linha">${atual ? '' : '<span class="dest-vazio">Este carro é de:</span>'}${chips}</div>`;
+  return `<div class="dest-linha"><span class="dest-vazio">Este carro é de:</span>${chips}</div>`;
+}
+
+// Reabre a escolha num card já decidido, sem desmarcar: desmarcar para
+// depois marcar deixaria o carro sem destino se ele desistir no meio.
+function abrirDestino(id) {
+  const card = document.getElementById('vcard-' + id);
+  const linha = card && card.querySelector('.dest-linha');
+  if (!linha) return;
+  const v = CACHE[id] || {};
+  linha.innerHTML = '<span class="dest-vazio">Este carro é de:</span>'
+    + DESTINOS_VENDA.map(([d, rotulo, dica]) =>
+      `<button class="dest-chip${v.destino_venda === d ? ' on' : ''}" title="${esc(dica)}"
+        onclick="marcarDestino('${id}','${d}')">${rotulo}</button>`).join('');
 }
 
 // Filtra no cliente, não no servidor: a marcação é do lojista e muda a toda
