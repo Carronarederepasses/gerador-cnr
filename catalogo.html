@@ -935,14 +935,22 @@ async function religarFipe(id) {
 // As cinco etapas são fixas por decisão dele (29/set: "deixamos fixa por
 // hora"). Vira configurável no dia em que um lojista pedir a sexta — não
 // antes, senão nasce uma tela de configuração que ninguém abre.
+// Serviços que o carro ainda precisa. "Pátio da loja" SAIU daqui em
+// 04/out, por observação do Yuri: pátio não é serviço, é o fim da fila —
+// não tem o que fazer nem valor a lançar. Carro no pátio é carro pronto, e
+// isso a linha já diz sozinha quando os serviços acabam.
 const PREP_ETAPAS = [
   { id: 'oficina',   nome: 'Oficina mecânica' },
   { id: 'funilaria', nome: 'Funilaria' },
   { id: 'pneu',      nome: 'Pneu / roda' },
   { id: 'lavajato',  nome: 'Lava-jato' },
-  { id: 'patio',     nome: 'Pátio da loja' },
 ];
-const prepNomeEtapa = (id) => (PREP_ETAPAS.find(e => e.id === id) || {}).nome || id;
+// Etapas que não se cria mais, mas que podem existir em registro antigo ou
+// vir de um aparelho com a tela velha. Sem isto, apareceriam como `patio`
+// cru no card — dado certo com cara de defeito.
+const PREP_ANTIGAS = { patio: 'Pátio da loja' };
+const prepNomeEtapa = (id) =>
+  (PREP_ETAPAS.find(e => e.id === id) || {}).nome || PREP_ANTIGAS[id] || id;
 const prepItens = (v) => (Array.isArray(v && v.preparacao) ? v.preparacao : []);
 
 // ── Varejo × repasse (03/out) ──────────────────────────────────
@@ -1082,7 +1090,10 @@ function prepLinha(v) {
   if (andando.length) {
     chips = andando.map(i => `<span class="prep-chip">${esc(prepNomeEtapa(i.etapa))}</span>`).join('');
   } else if (!faltam.length) {
-    chips = '<span class="prep-chip pronto">Pronto para vender</span>';
+    // Acabaram os serviços: o carro está no pátio, pronto. É o estado que
+    // antes se marcava à mão como "Pátio da loja" — agora ele se conclui
+    // sozinho, e marcar à mão o que o sistema já sabe é trabalho à toa.
+    chips = '<span class="prep-chip pronto">✅ Disponível para venda</span>';
   } else {
     // Tem serviço a fazer e nenhum andando: o carro está parado esperando
     // alguém levar. É informação, não enfeite — é o carro que some.
