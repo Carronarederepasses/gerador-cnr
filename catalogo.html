@@ -1080,6 +1080,11 @@ function prepLinha(v) {
   if (!(window.cnrMarca && window.cnrMarca.eLojista)) return '';
   if (v.status === 'vendido') return '';
   const itens = prepItens(v);
+  // Carro sem serviço não mostra linha. Uma linha "Preparação não lançada"
+  // foi montada e DESCARTADA pelo Yuri em 04/out, depois de ver na tela:
+  // discreta demais para resolver o que a justificava (saber de relance se
+  // alguém lançou) e mais uma entre dez coisas no card. Não refazer sem
+  // motivo novo.
   if (!itens.length) return '';
 
   const andando = itens.filter(i => i.status === 'andando');
