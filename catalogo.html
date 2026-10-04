@@ -325,6 +325,16 @@
   .prep-chip.parado{background:var(--line);color:var(--text-mid)}
   .prep-resumo{font-size:.7rem;color:var(--text-mid);white-space:nowrap}
 
+  /* Varejo × repasse (03/out). Chip apagado = não é este; aceso = é.
+     Sem cor de significado: aqui a escolha não pede atenção, só mostra. */
+  .dest-linha{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.5rem}
+  .dest-vazio{font-size:.7rem;color:var(--text-mid);margin-right:.15rem}
+  .dest-chip{font-size:.7rem;font-weight:600;padding:.22rem .55rem;cursor:pointer;
+    border-radius: var(--r-md, 12px);border:1px solid var(--line);
+    background:none;color:var(--text-mid);font-family:inherit;white-space:nowrap}
+  .dest-chip:hover{color:var(--text);border-color:var(--text-mid)}
+  .dest-chip.on{background:var(--text);color:var(--surface);border-color:var(--text)}
+
   .prep-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;
     justify-content:center;z-index:66;padding:2rem 1rem;overflow-y:auto}
   .prep-modal.show{display:flex}
@@ -442,6 +452,17 @@
     <div class="full">
       <label for="f-q">🔍 Busca por placa, marca, modelo ou versão</label>
       <input id="f-q" type="text" placeholder="ex: ABC1D23, Onix, T-Cross, Hilux..." style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" />
+    </div>
+    <!-- Varejo × repasse: é isto que faz os dois catálogos existirem como
+         listas separadas. Escondido para repassador, que não tem varejo. -->
+    <div id="f-destino-wrap" hidden>
+      <label for="f-destino">Catálogo</label>
+      <select id="f-destino" onchange="carregar()">
+        <option value="">Todos os carros</option>
+        <option value="varejo">🏷️ Varejo (cliente final)</option>
+        <option value="repasse">🤝 Repasse (outras lojas)</option>
+        <option value="sem">Ainda não marcados</option>
+      </select>
     </div>
     <div>
       <label for="f-marca">Marca</label>
@@ -680,6 +701,7 @@ function limparFiltros() {
   $('f-status').value = '';
   $('f-marca').value = '';
   $('f-ordem').value = '';
+  if ($('f-destino')) $('f-destino').value = '';
   carregar();
 }
 
@@ -788,6 +810,7 @@ function card(v) {
     <div class="doc-section" id="docs-${v.id}">${renderDocItems(v.id, Array.isArray(v.documentos) ? v.documentos : [])}</div>
     <div class="precos">
       <div><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Repasse</div><span class="v">${fmtR(v.valor)}</span></div>
+      ${precoVarejo(v)}
       ${v.fipe != null ? `<div><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">FIPE</div><span class="f">${fmtR(v.fipe)}</span>${selinhoFipe(v)}</div>` : ''}
       ${(v.valor_compra != null) ? `<div style="cursor:pointer" title="Clique para editar" onclick="editarValorCompra('${v.id}')"><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Captado por</div><span style="font-size:.92rem;font-weight:700;color:var(--text-mid)">${fmtR(v.valor_compra)}</span></div>` : `<button style="font-size:.72rem;padding:.2rem .5rem;opacity:.55" onclick="editarValorCompra('${v.id}')">+ Custo</button>`}
       ${(v.valor != null && v.valor_compra != null) ? (() => { const m = v.valor - v.valor_compra; const pct = v.valor_compra > 0 ? ((m/v.valor_compra)*100).toFixed(0) : 0; const cor = m >= 0 ? 'var(--severity-ok)' : '#e55'; return `<div><div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Margem</div><span style="font-size:.92rem;font-weight:700;color:${cor}">${fmtR(m)} (${pct}%)</span></div>`; })() : ''}
@@ -797,6 +820,7 @@ function card(v) {
     ${opcTxt ? `<div class="opc">${esc(opcTxt)}</div>` : ''}
     ${infoSection('📝','Avaliação da Captação', v.avaliacao?.inspecao||null)}
     ${infoSection('🔧','Gastos', v.gastos||null)}
+    ${destinoLinha(v)}
     ${prepLinha(v)}
     ${v.status === 'vendido'
       ? `<div class="match-box">${renderVendido(v)}</div>`
@@ -918,6 +942,99 @@ const PREP_ETAPAS = [
 ];
 const prepNomeEtapa = (id) => (PREP_ETAPAS.find(e => e.id === id) || {}).nome || id;
 const prepItens = (v) => (Array.isArray(v && v.preparacao) ? v.preparacao : []);
+
+// ── Varejo × repasse (03/out) ──────────────────────────────────
+// Só lojista: quem repassa não tem varejo, e a escolha não existe para ele.
+// `valor` sempre foi o preço de REPASSE — não renomear, não reaproveitar.
+const DESTINOS_VENDA = [
+  ['varejo',  '🏷️ Varejo',  'só para cliente final'],
+  ['repasse', '🤝 Repasse', 'só para outras lojas'],
+  ['ambos',   '🏷️🤝 Os dois', 'anuncia nos dois, com preços diferentes'],
+];
+const ehLojista = () => !!(window.cnrMarca && window.cnrMarca.eLojista);
+const rotuloDestino = (d) => (DESTINOS_VENDA.find(x => x[0] === d) || [])[1] || '';
+
+// O preço de varejo entra ao lado do de repasse, não no lugar dele. Carro
+// marcado só como repasse não mostra campo de varejo — seria pedir número
+// que não existe naquele negócio.
+function precoVarejo(v) {
+  if (!ehLojista() || v.status === 'vendido') return '';
+  if (v.destino_venda === 'repasse') return '';
+  const rot = '<div style="font-size:.72rem;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em">Varejo</div>';
+  if (v.valor_varejo != null) {
+    return `<div style="cursor:pointer" title="Clique para editar" onclick="editarVarejo('${v.id}')">${rot}`
+      + `<span class="v">${fmtR(v.valor_varejo)}</span></div>`;
+  }
+  if (!v.destino_venda) return '';
+  return `<button style="font-size:.72rem;padding:.2rem .5rem;opacity:.55" onclick="editarVarejo('${v.id}')">+ Preço de varejo</button>`;
+}
+
+// A linha que diz para onde o carro vai. Sem marcação, convida a marcar —
+// não assume, porque assumir pelo tipo de carro ou pela origem foi
+// justamente o que ele recusou no desenho.
+function destinoLinha(v) {
+  if (!ehLojista() || v.status === 'vendido') return '';
+  const atual = v.destino_venda;
+  const chips = DESTINOS_VENDA.map(([id, rotulo, dica]) =>
+    `<button class="dest-chip${atual === id ? ' on' : ''}" title="${esc(dica)}"
+      onclick="marcarDestino('${v.id}','${id}')">${rotulo}</button>`).join('');
+  return `<div class="dest-linha">${atual ? '' : '<span class="dest-vazio">Este carro é de:</span>'}${chips}</div>`;
+}
+
+// Filtra no cliente, não no servidor: a marcação é do lojista e muda a toda
+// hora, e mandar ao PostgREST não traria nada que a lista já não tenha.
+// "ambos" aparece nas DUAS listas — é o sentido de estar marcado assim.
+function filtrarDestino(lista) {
+  const sel = document.getElementById('f-destino');
+  const alvo = sel ? sel.value : '';
+  if (!alvo || !ehLojista()) return lista;
+  // Carro vendido não entra em "ainda não marcados": marcar para onde ele
+  // iria, depois de vendido, não serve para nada — e ele apareceria nessa
+  // lista para sempre, que é como a tela do sistema do amigo acumulou 17
+  // pendências desde 2024.
+  if (alvo === 'sem') return lista.filter(v => !v.destino_venda && v.status !== 'vendido');
+  return lista.filter(v => v.destino_venda === alvo || v.destino_venda === 'ambos');
+}
+
+// Grava e mantém a tela e o banco dizendo a mesma coisa — mesmo caminho do
+// prepGravar, inclusive o erro vindo do corpo da resposta e não só o HTTP.
+async function gravarCampo(id, campo) {
+  const r = await fetch('/api/catalogo?id=' + id, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(campo),
+  });
+  if (!r.ok) {
+    let msg = 'HTTP ' + r.status;
+    try { msg = (await r.json()).error || msg; } catch (e) {}
+    throw new Error(msg);
+  }
+  if (CACHE[id]) Object.assign(CACHE[id], campo);
+}
+
+async function marcarDestino(id, destino) {
+  const v = CACHE[id];
+  // Clicar no que já está marcado desmarca: é como ele desfaz sem precisar
+  // de um quarto botão "nenhum".
+  const novo = (v && v.destino_venda === destino) ? null : destino;
+  try {
+    await gravarCampo(id, { destino_venda: novo });
+    carregar();
+  } catch (e) { alert('Não consegui marcar: ' + e.message); }
+}
+
+async function editarVarejo(id) {
+  const v = CACHE[id];
+  const atual = v && v.valor_varejo != null ? String(v.valor_varejo) : '';
+  const txt = prompt('Preço de venda ao cliente final (varejo):', atual);
+  if (txt === null) return;
+  const limpo = txt.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+  const n = limpo === '' ? null : Number(limpo);
+  if (n !== null && !Number.isFinite(n)) { alert('Não entendi o valor.'); return; }
+  try {
+    await gravarCampo(id, { valor_varejo: n });
+    carregar();
+  } catch (e) { alert('Não consegui salvar: ' + e.message); }
+}
 
 // A linha do card: responde "onde o carro está" sem abrir nada.
 function prepLinha(v) {
@@ -1787,9 +1904,15 @@ function textoContador(lista) {
 
 async function _carregarCatalogo() {
   try {
+    // A marca chega por rede, então pode não estar pronta no primeiro
+    // desenho. Decidir aqui, e não uma vez só na carga, evita o filtro
+    // nascer escondido para um lojista por questão de milissegundos.
+    const wrap = document.getElementById('f-destino-wrap');
+    if (wrap) wrap.hidden = !ehLojista();
+
     const r = await fetch('/api/catalogo?' + montarQuery());
     if (!r.ok) throw new Error((await r.json()).error || 'Erro ao buscar');
-    const listaRaw = await r.json();
+    const listaRaw = filtrarDestino(await r.json());
     const lista = ordenarLista(listaRaw);
     CACHE = {};
     lista.forEach(v => CACHE[v.id] = v);

@@ -41,7 +41,7 @@ const EXT_DOC = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/jpg': 'j
 //
 // Só recua para ESTE erro (`PGRST204` / "column ... does not exist"). Erro
 // de verdade continua estourando — recuo largo demais esconderia defeito.
-const COLUNAS_NOVAS = ['fipe_ref'];
+const COLUNAS_NOVAS = ['fipe_ref', 'valor_varejo', 'destino_venda'];
 async function semColunaNova(resposta, payload, refazer) {
   if (resposta.ok) return resposta;
   let txt = '';
@@ -72,6 +72,11 @@ const CAMPOS = [
   // Qual linha da FIPE produziu o valor. É o que permite atualizar no mês
   // seguinte sem adivinhar o carro pelo nome.
   'fipe_ref',
+  // Varejo × repasse (03/out, só lojista). `valor` sempre foi o preço de
+  // REPASSE; `valor_varejo` é o do cliente final, que é maior. São dois
+  // números e não um com desconto: o lojista mexe neles por motivos
+  // diferentes e em momentos diferentes.
+  'valor_varejo', 'destino_venda',
 ];
 
 // O `sb` local saiu daqui em 23/set: agora vem de `_db.js`, já amarrado à
