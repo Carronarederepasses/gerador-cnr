@@ -123,6 +123,30 @@
   padding: .5rem 0 .8rem;
   border-top: 1px solid var(--line);
 }
+/* "Ver como" — só a loja dona da instalação enxerga. Discreto de
+   propósito: é ferramenta de quem constrói, não de quem usa. */
+.cnr-sb-vercomo {
+  display: block;
+  padding: .3rem 1.1rem .55rem;
+  font-size: var(--fs-xs, .7rem);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.cnr-sb-vercomo select {
+  display: block;
+  width: 100%;
+  margin-top: .25rem;
+  padding: .35rem .4rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--fs-sm, .8rem);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  background: var(--surface-raise);
+  border: 1px solid var(--line);
+  border-radius: var(--r, 8px);
+}
 .cnr-sb-dados {
   display: flex;
   align-items: center;

@@ -16,8 +16,17 @@
     // repassador | lojista | null. Nulo = ainda não escolheu — e isso é
     // diferente de ser repassador. Ver api/_marca.js.
     tipo: null,
+    // É a loja dona desta instalação? Só ela vê o "Ver como" da barra.
+    casa: false,
   };
   var GAVETA = 'cnr_marca';
+  // Troca de VISUALIZAÇÃO, não de conta. Mora só neste aparelho: o banco
+  // não muda, e a conta da mãe do Yuri não é afetada. Pedido dele em
+  // 04/out: "sempre vamos mexer em algo e eu vou querer ver como está".
+  var VER_COMO = 'cnr_ver_como';
+  function verComo() {
+    try { return localStorage.getItem(VER_COMO) || ''; } catch (e) { return ''; }
+  }
 
   function montar(dados) {
     var m = {};
@@ -37,6 +46,17 @@
     // Preparação é coisa de quem tem pátio. Repassador não tem: o carro
     // nunca entra no estoque dele. Explícito, não `!== 'repassador'` —
     // senão quem ainda não escolheu passaria a ver a tela de lojista.
+    // O "Ver como" vence o tipo real — mas SÓ para a casa. Numa loja
+    // cliente, uma chave esquecida no armazenamento não pode mudar o que
+    // ela vê. E `tipoReal` fica guardado para a barra poder dizer a
+    // verdade e para a volta ser exata.
+    m.tipoReal = m.tipo;
+    m.vendoComo = '';
+    var vc = verComo();
+    if (m.casa && (vc === 'lojista' || vc === 'repassador')) {
+      m.vendoComo = vc;
+      m.tipo = vc;
+    }
     m.eLojista = (m.tipo === 'lojista');
     return m;
   }

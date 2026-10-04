@@ -257,6 +257,60 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  // "Ver como" — troca a VISUALIZAÇÃO entre repassador e lojista, só para
+  // a loja dona da instalação. Pedido do Yuri em 04/out: ele mexe no que o
+  // lojista vê e quer conferir sem me pedir para trocar a conta no banco.
+  //
+  // Não toca no banco de propósito: o tipo da conta é o que a loja É, e
+  // mudá-lo mudaria também o que a mãe dele vê. Aqui é só a tela, neste
+  // aparelho.
+  function verComoHTML() {
+    var m = marca();
+    if (!m.casa) return '';
+    var real = m.tipoReal || 'sem tipo';
+    var atual = m.vendoComo || '';
+    function op(v, r) {
+      return '<option value="' + v + '"' + (atual === v ? ' selected' : '') + '>' + r + '</option>';
+    }
+    return '<label class="cnr-sb-vercomo">Ver como'
+      + '<select id="cnr-ver-como">'
+      + op('', 'Minha conta (' + real + ')')
+      + op('repassador', 'Repassador')
+      + op('lojista', 'Lojista')
+      + '</select></label>';
+  }
+
+  function ligarVerComo() {
+    var sel = document.getElementById('cnr-ver-como');
+    if (!sel) return;
+    sel.addEventListener('change', function () {
+      try {
+        if (sel.value) localStorage.setItem('cnr_ver_como', sel.value);
+        else localStorage.removeItem('cnr_ver_como');
+      } catch (e) {
+        alert('Este navegador não deixou guardar a escolha.');
+        return;
+      }
+      // Recarrega porque o tipo decide o que cada tela DESENHA, e várias
+      // já desenharam. Religar tudo na mão seria mais código para errar.
+      location.reload();
+    });
+  }
+
+  // A barra é montada antes de a marca chegar do servidor. Quando ela
+  // chega, o seletor pode ter de aparecer (ou sumir) — sem isto ele só
+  // apareceria no segundo carregamento.
+  document.addEventListener('cnr-marca', function () {
+    var rodape = document.querySelector('.cnr-sb-footer');
+    if (!rodape) return;
+    var atual = document.querySelector('.cnr-sb-vercomo');
+    var html = verComoHTML();
+    if (atual) atual.remove();
+    if (!html) return;
+    rodape.insertAdjacentHTML('afterbegin', html);
+    ligarVerComo();
+  });
+
   function logoHTML() {
     var m = marca();
     return (m.logo ? '<img class="cnr-sb-logo-img" src="' + esc(m.logo) + '" alt="">' : '')
@@ -292,6 +346,7 @@
       + '<a href="/home.html" id="cnr-lembrete" style="display:none"></a>'
       + '<nav class="cnr-sb-nav">' + links + '</nav>'
       + '<div class="cnr-sb-footer">'
+      + verComoHTML()
       + '<button class="cnr-sb-dados" id="cnr-sb-dados-btn">📋&nbsp; Meus dados</button>'
       + '</div>';
 
@@ -387,6 +442,7 @@
       a.addEventListener('click', fechar);
     });
     document.getElementById('cnr-lembrete').addEventListener('click', fechar);
+    ligarVerComo();
 
     // Lembrete de avaliação. Depois da barra montada, e sem travar a página:
     // se a API demorar, a tela já está usável e a faixa aparece quando puder.

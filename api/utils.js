@@ -112,18 +112,22 @@ module.exports = async (req, res) => {
       // variável de ambiente. É o que tira a necessidade de um site por
       // cliente — a sessão já separava os dados; faltava o logo no topo.
       await comSessao(req);
+      // `casa` = é a loja dona desta instalação. Só ela pode usar o
+      // "Ver como" da barra lateral: é ferramenta de quem CONSTRÓI o
+      // sistema, não de quem usa. Mesma régua do convite.
+      const casa = podeConvidar(req);
       if (req.cnrSessao) {
         try {
           const { contaDaSessao } = require('./_sessao');
           const conta = await contaDaSessao(req.cnrSessao.conta_id);
-          if (conta) return res.status(200).json(marcaDaConta(conta, CNR));
+          if (conta) return res.status(200).json({ ...marcaDaConta(conta, CNR), casa });
         } catch (e) {
           // Banco fora ou coluna ainda não criada: cai na variável, que é
           // o comportamento de sempre. Marca é tela — não pode derrubar.
           console.error('[marca] não consegui ler a conta:', e.message);
         }
       }
-      return res.status(200).json(marca());
+      return res.status(200).json({ ...marca(), casa });
     }
     if (type === 'manifesto') {
       res.setHeader('Content-Type', 'application/manifest+json');
