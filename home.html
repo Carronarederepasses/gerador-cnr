@@ -432,6 +432,16 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
       <div class="val" id="kpi-andamento">—</div>
       <div class="sub" id="kpi-andamento-sub">reservados</div>
     </div>
+    <!-- Comissão fechada que ainda não entrou (03/out). Mesma regra do
+         vizinho: nasce escondido e só aparece quando há algo a receber —
+         card que vive mostrando "R$ 0" vira paisagem. A cor significa
+         dinheiro que é dele e ainda não está na conta. -->
+    <div class="kpi amarelo" id="kpi-receber-card" hidden
+         onclick="window.location='/vendas.html'" style="cursor:pointer">
+      <div class="lbl">A receber</div>
+      <div class="val" id="kpi-receber">—</div>
+      <div class="sub" id="kpi-receber-sub">comissões</div>
+    </div>
   </div>
 
   
@@ -735,7 +745,9 @@ async function carregarPendencias() {
 
 async function carregarVendas() {
   try {
-    const vendas = (await buscar('/api/vendas')).filter(v => v.canal_origem !== 'historico').filter(concluida);
+    const todasVendas = await buscar('/api/vendas');
+    renderAReceber(todasVendas);
+    const vendas = todasVendas.filter(v => v.canal_origem !== 'historico').filter(concluida);
 
     const agora = new Date();
     const mes = agora.getMonth();
@@ -759,6 +771,32 @@ async function carregarVendas() {
     document.getElementById('kpi-vend').textContent = '—';
     document.getElementById('kpi-taxa').textContent = '—';
   }
+}
+
+// Comissão de venda fechada que ainda não entrou.
+//
+// Entra o HISTÓRICO também, ao contrário dos outros números do mês: dinheiro
+// a receber não tem mês, e uma comissão de dois meses atrás é justamente a
+// que ele precisa cobrar.
+//
+// Enquanto a migration não rodar, a coluna não vem na resposta — e aí o
+// cartão fica escondido em vez de dizer que está tudo recebido.
+function renderAReceber(vendas) {
+  const card = document.getElementById('kpi-receber-card');
+  if (!card) return;
+  const temColuna = vendas.some(v => v.comissao_recebida_em !== undefined);
+  if (!temColuna) { card.hidden = true; return; }
+
+  const aReceber = vendas.filter(v =>
+    !v.comissao_recebida_em && v.status !== 'cancelado' && v.status !== 'negociando'
+  );
+  const total = aReceber.reduce((s, v) => s + (Number(v.taxa_intermediacao) || 0), 0);
+
+  card.hidden = !aReceber.length;
+  if (!aReceber.length) return;
+  document.getElementById('kpi-receber').textContent = moeda(total);
+  document.getElementById('kpi-receber-sub').textContent =
+    aReceber.length === 1 ? '1 comissão' : `${aReceber.length} comissões`;
 }
 
 //  saiu em 28/set: a lista e o numero de

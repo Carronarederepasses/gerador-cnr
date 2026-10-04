@@ -1054,14 +1054,58 @@ function cardHTML(v) {
       <span>📦 Entrega: <b>${dataBR(v.data_retirada)}</b></span>
       <span>📄 Doc: <b>${DOC_ROTULO[v.doc_status] || '—'}</b></span>
       ${v.forma_pagamento ? '<span>💳 '+esc(v.forma_pagamento)+'</span>' : ''}
+      ${comissaoLinha(v)}
     </div>
     ${v.observacoes ? '<div style="font-size:.84rem;color:var(--text-mid)">📝 '+esc(v.observacoes)+'</div>' : ''}
     <div class="anexos">${gruposAnexo}</div>
     <div class="rodape">
+      ${comissaoBotao(v)}
       <button onclick="editar('${v.id}')">✏️ Editar</button>
       <button class="del" onclick="apagar('${v.id}')">🗑️ Excluir</button>
     </div>
   </div>`;
+}
+
+// ── Comissão recebida ──────────────────────────────────────────
+// Nulo = ainda não entrou. Venda cancelada/em negociação não tem comissão a
+// receber — mostrar "a receber" nelas seria contar dinheiro que não existe.
+const VALE_COMISSAO = (v) => v.status !== 'cancelado' && v.status !== 'negociando';
+
+function comissaoLinha(v) {
+  if (!VALE_COMISSAO(v)) return '';
+  if (v.comissao_recebida_em) {
+    return `<span>💰 Comissão: <b>recebida ${dataBR(v.comissao_recebida_em)}</b></span>`;
+  }
+  // A coluna pode ainda não existir (janela entre o deploy e a migration).
+  // Nesse caso o campo vem `undefined`, e dizer "a receber" em todas seria
+  // alarme falso no dia do deploy.
+  if (v.comissao_recebida_em === undefined) return '';
+  return '<span style="color:var(--severity-warn)">💰 Comissão: <b>a receber</b></span>';
+}
+
+function comissaoBotao(v) {
+  if (!VALE_COMISSAO(v) || v.comissao_recebida_em === undefined) return '';
+  return v.comissao_recebida_em
+    ? `<button class="leve" onclick="marcarComissao('${v.id}', false)" title="Desfazer: volta para a receber">💰 Recebida</button>`
+    : `<button onclick="marcarComissao('${v.id}', true)">💰 Recebi</button>`;
+}
+
+async function marcarComissao(id, recebida) {
+  try {
+    // A data é de hoje, no fuso daqui — `new Date().toISOString()` daria o dia
+    // seguinte depois das 21h, que é justamente quando ele lança.
+    const hoje = new Date();
+    const d = recebida
+      ? `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+      : null;
+    const r = await fetch('/api/vendas?id=' + id, {
+      method: 'PATCH', headers: headers(),
+      body: JSON.stringify({ comissao_recebida_em: d }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'HTTP ' + r.status);
+    toast(recebida ? 'Comissão marcada como recebida.' : 'Voltou para a receber.');
+    carregar();
+  } catch (e) { mostrarErro('Não consegui marcar: ' + e.message); }
 }
 
 // ── Modal ──────────────────────────────────────────────────────

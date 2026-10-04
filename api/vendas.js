@@ -46,6 +46,10 @@ const CAMPOS = [
   // Venda em andamento (16/set): sinal recebido trava o carro enquanto a
   // negociação não fecha. `status='negociando'` tira do faturamento.
   'valor_sinal', 'sinal_em',
+  // Financeiro (03/out): a venda fecha, mas a comissão às vezes entra dias
+  // depois. Nulo = ainda não entrou. É data, não booleano, porque "quando
+  // entrou" responde pergunta que "entrou?" não responde.
+  'comissao_recebida_em',
   'status', 'doc_status', 'observacoes', 'anexos',
 ];
 
@@ -67,7 +71,7 @@ function limpar(body) {
 // colunas: o PostgREST devolve 400 e a venda NÃO salva — no meio do negócio,
 // sem explicação na tela. Foi exatamente isso em 08/set com `operador`.
 // Pode ser removido depois que a migration tiver rodado.
-const COLUNAS_NOVAS = ['valor_sinal', 'sinal_em'];
+const COLUNAS_NOVAS = ['valor_sinal', 'sinal_em', 'comissao_recebida_em'];
 
 async function gravar(sb, path, opts, payload) {
   const r = await sb(path, { ...opts, body: JSON.stringify(payload) });
@@ -78,7 +82,8 @@ async function gravar(sb, path, opts, payload) {
                       /column|schema cache|PGRST204|42703/i.test(txt);
   if (!faltaColuna) throw new Error(txt);
 
-  console.warn('vendas: colunas de sinal ainda não existem no banco — regravando sem elas.');
+  console.warn('vendas: coluna nova ainda não existe no banco — regravando sem ela. '
+    + 'Rodar a migration correspondente em supabase/.');
   const semNovas = { ...payload };
   COLUNAS_NOVAS.forEach(c => delete semNovas[c]);
   return sb(path, { ...opts, body: JSON.stringify(semNovas) });
