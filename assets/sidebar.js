@@ -301,13 +301,9 @@
   // chega, o seletor pode ter de aparecer (ou sumir) — sem isto ele só
   // apareceria no segundo carregamento.
   document.addEventListener('cnr-marca', function () {
-    var rodape = document.querySelector('.cnr-sb-footer');
-    if (!rodape) return;
-    var atual = document.querySelector('.cnr-sb-vercomo');
-    var html = verComoHTML();
-    if (atual) atual.remove();
-    if (!html) return;
-    rodape.insertAdjacentHTML('afterbegin', html);
+    var vaga = document.getElementById('cnr-sb-vercomo-slot');
+    if (!vaga) return;
+    vaga.innerHTML = verComoHTML();
     ligarVerComo();
   });
 
@@ -342,11 +338,14 @@
       return '<a class="' + cls + '" href="' + p.href + '"><span class="cnr-sb-emoji">' + p.emoji + '</span>' + p.label + '</a>';
     }).join('');
 
+    // "Ver como" logo abaixo da marca, não no rodapé: o Yuri troca de
+    // visão com frequência e no rodapé ele precisava rolar a barra inteira
+    // para achar (04/out).
     return '<div class="cnr-sb-logo">' + logoHTML() + '</div>'
+      + '<div id="cnr-sb-vercomo-slot">' + verComoHTML() + '</div>'
       + '<a href="/home.html" id="cnr-lembrete" style="display:none"></a>'
       + '<nav class="cnr-sb-nav">' + links + '</nav>'
       + '<div class="cnr-sb-footer">'
-      + verComoHTML()
       + '<button class="cnr-sb-dados" id="cnr-sb-dados-btn">📋&nbsp; Meus dados</button>'
       + '</div>';
 
