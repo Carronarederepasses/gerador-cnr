@@ -965,12 +965,15 @@ async function conferirTodos() {
   // esperando resposta que nunca vinha, e o Yuri achou que travou (05/out).
   //
   // Em pedaços, cada ida leva ~10s e o progresso aparece no próprio botão.
-  let conferidos = 0, mortos = 0;
+  // `pular` avança pelos que ficaram VIVOS: eles continuam na lista e
+  // continuam sendo os mais antigos, então sem isso cada volta reconferia
+  // os mesmos (05/out — a limpeza andava de 5 em 5 e parava no meio).
+  let conferidos = 0, mortos = 0, pular = 0;
   for (let volta = 0; volta < 40; volta++) {
     btn.textContent = conferidos ? '🧹 ' + conferidos + ' conferidos…' : '🧹 conferindo…';
     let r;
     try {
-      r = await pedirPedaco(25);
+      r = await pedirPedaco(25, pular);
     } catch (e) {
       pronto('⚠️ ' + e.message
         + (conferidos ? ' (conferi ' + conferidos + ' antes de parar)' : ''));
@@ -979,6 +982,7 @@ async function conferirTodos() {
     }
     conferidos += r.conferidos;
     mortos     += r.mortos;
+    pular      += r.conferidos - r.mortos;   // os vivos seguem na lista
     if (!r.conferidos || !r.restam) break;   // acabou
   }
 
@@ -990,7 +994,7 @@ async function conferirTodos() {
 
 // Um pedaço de cada vez. Erro vira exceção com a frase pronta: quem chama
 // só repassa para a tela.
-function pedirPedaco(quantos) {
+function pedirPedaco(quantos, pular) {
   return new Promise((ok, erro) => {
     let respondeu = false;
     const handler = (e) => {
@@ -1008,7 +1012,7 @@ function pedirPedaco(quantos) {
       erro(new Error('A extensão não respondeu. Ela precisa estar instalada e '
         + 'ligada neste navegador.'));
     }, 90000);
-    window.postMessage({ cnr_type: 'CNR_CONFERIR_TODOS', quantos }, '*');
+    window.postMessage({ cnr_type: 'CNR_CONFERIR_TODOS', quantos, pular }, '*');
   });
 }
 
