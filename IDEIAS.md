@@ -84,6 +84,55 @@ o que ainda não foi feito.
   §6 do CLAUDE.md: estrutura nasce de fricção, não de hipótese.
 
 
+---
+
+- **Prestadores de serviço dentro do Gerador** (04/out) — **visão de
+  longo prazo, para o mercado aberto, não para um cliente específico.**
+  Lava-jato, funilaria, oficina, loja de rodas e pneus entram como
+  **tipos de conta**, ligados ao lojista pelo carro. Começa no ramo de
+  carro; outros ramos ficam para muito depois (fora do carro seria outro
+  produto: o que diferencia o Gerador — OLX, FIPE, placa, Match — é de
+  carro).
+
+  **O fluxo que o Yuri imaginou:** o lojista manda o carro para o
+  lava-jato → o lava-jato marca "pronto" e lança o valor → o lojista é
+  avisado e o valor já cai no custo do carro. Mesmo desenho para funilaria,
+  oficina e os demais. Agenda de horários vem depois do básico.
+
+  **Planos (decisão do Yuri):**
+  | Plano | Quem | O que tem |
+  |---|---|---|
+  | Completo | lojista e repassador | anúncio, captação, catálogo, Match, vendas, clientes, preparação |
+  | Prestador | lava-jato, funilaria, oficina, pneus | **telas novas, mais simples** — carros que estão com ele, "pronto", valor, histórico |
+  | Consulta de placa | qualquer um | à parte, por uso ou pacote — cada consulta custa ao Yuri |
+
+  O prestador paga **menos**. **Em aberto:** grátis no começo (ele só
+  tem motivo para pagar quando já recebe carro pelo sistema) ou barato
+  desde o início?
+
+  **Antes de desenhar tela — pesquisar.** O Yuri quer saber o que cada
+  prestador realmente usa. Perguntas para levar a 2–3 de cada tipo:
+  - como recebe o pedido hoje (WhatsApp, ligação, o carro aparece)?
+  - como avisa que ficou pronto?
+  - onde anota o que cobrou, e como cobra a loja (na hora, no fim do mês)?
+  - usa agenda? papel, WhatsApp, algum sistema?
+  - o que mais dá dor de cabeça com as lojas (atraso para buscar, valor
+    combinado que muda, cobrança que esquece)?
+  - abriria um link no celular e apertaria "pronto"? pagaria por isso?
+  As respostas dizem quais telas existem — não o contrário.
+
+  **O que a base já tem:** cada linha com `conta_id`, `contas.tipo` muda
+  as telas, `veiculos.preparacao` com etapa, valor e situação.
+  **O que falta construir:** carro visível entre contas (o prestador vê
+  SÓ o serviço dele — nunca custo, margem ou outros serviços);
+  preparação sair do jsonb e virar tabela, quando o prestador precisar
+  ver "todos os meus carros"; avisos; agenda; cobrança.
+
+  **Travas:** cobrança depende do CNPJ (parado até depois das eleições);
+  Vercel no teto de 12 funções e Supabase grátis — com uso real, plano
+  pago entra na conta.
+
+
 ## Já viraram trabalho
 
 <!-- O Claude move para cá quando a ideia sai do papel, com a data e onde

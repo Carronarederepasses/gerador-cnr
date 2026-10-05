@@ -530,14 +530,22 @@ busca, consulta de placa, FIPE avulsa, importador de planilha, modelo de
 anúncio, artes, story e a Rede.
 
 **Quem usa:** o Yuri (todo dia) e a mãe dele, na abordagem, desde 25/set.
-**Bruno (BHM Autos)** tem conta criada no banco principal e ainda não
-entrou — o link vai por Safari, não por WhatsApp.
-**Fabio Nogueira** recebeu convite em 29/set e nunca abriu.
+**Bruno (BHM Autos)** tem conta no banco principal, com a marca dele, como
+**lojista** — e ainda não entrou. **Fabio Nogueira** recebeu convite em
+29/set e nunca abriu. **Ninguém de fora jamais abriu uma conta nova aqui.**
 
 **Arquitetura, em uma linha:** um site, um banco, e cada loja é uma
 **conta** — `conta_id` em cada linha (fase 0, 23/set), funil único em
 `api/_db.js`, sessão por telefone (fase 1, 27/set) e marca por conta
 (27/set). **Loja nova não precisa de SQL nem de projeto novo.**
+
+**Só o lojista vê:** preparação do carro, varejo × repasse (`valor_varejo`
+e `destino_venda`) e o filtro "Catálogo". `valor` sempre foi o preço de
+**repasse** — anúncio, Rede, Match e story leem dele.
+
+**"Ver como"** no topo da barra lateral alterna a visão entre repassador e
+lojista. É só visualização, no aparelho, e **só para a loja dona da
+instalação**.
 
 **O que ainda roda separado:** o projeto `cnr-piloto` no Supabase, vazio,
 no ar só até o Bruno confirmar que entrou pelo endereço novo. Apagar
@@ -551,10 +559,12 @@ Supabase grátis, FIPE 1.000 consultas/dia com token.
 
 | | |
 |---|---|
-| Link do Bruno | mandar pelo **Safari**; depois disso, apagar o `cnr-piloto` |
+| Link do Bruno | mandar pelo **Safari**; mensagem pronta na conversa de 04/out. Depois que ele entrar, apagar o `cnr-piloto` |
+| Teto na chave do OpenRouter | está **sem teto** e o Bruno passou a usar ela na migração. US$ 4,99 gastos desde agosto — risco pequeno, mas o teto não deveria faltar. Painel do OpenRouter → Keys |
 | Extensão da mãe | recarregar no notebook dela — cidade limpa e logs só valem depois |
 | 2FA | códigos de recuperação fora do celular |
 | CNPJ | **parado por decisão dele** até depois das eleições. Trava consulta veicular camada 2, RENAVE, integrador da OLX e qualquer cobrança |
-| Fila do `IDEIAS.md` | convidar liberado para as outras lojas; e *"o sistema se adapta à loja"*, que ele pediu para amadurecer |
+| `CONTEXTO.md` | desatualizado — não tem a Rede como está, a migração do Bruno nem esta separação. Atualizar antes de consultar os "sócios" |
+| Fila do `IDEIAS.md` | prestadores de serviço (**pesquisa antes de tela**, decisão dele); convidar liberado para as outras lojas; *"o sistema se adapta à loja"*, a amadurecer |
 
 ---

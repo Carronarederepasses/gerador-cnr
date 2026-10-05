@@ -11,6 +11,143 @@
 
 ---
 
+## 4 de outubro de 2026
+
+### O CLAUDE.md estava custando a semana do Yuri
+
+Ele abriu com a pergunta certa: *"por que estamos consumindo tanto dessa
+vez?"* — 28% do limite semanal no começo da semana.
+
+Medido, a causa era uma só:
+
+```
+CLAUDE.md          415.503 bytes   7.664 linhas
+  regras               48.944 bytes  (12%)
+  diário dia a dia    359.033 bytes  (88%)   — 31 checkpoints de sessão
+```
+
+O arquivo é lido inteiro na abertura de cada sessão e vai junto em **toda**
+mensagem. Uns 100 mil tokens por dia antes de ler uma linha de código. E
+crescia sozinho, porque eu acrescentava o checkpoint no fim toda vez.
+
+**Repartido:** `CLAUDE.md` (53 KB — regras + estado de hoje) e
+`HISTORICO.md` (371 KB — este arquivo, não lido por padrão). De ~100 mil
+para ~13 mil tokens por sessão.
+
+O diário foi movido byte a byte: o script se recusava a gravar se o texto
+não reaparecesse inteiro no destino, e conferiu de novo lendo do disco.
+
+> **A parte que impede isto de voltar:** a seção 12 agora é **reescrita**, não
+> acrescentada. Era o acréscimo que fazia crescer. Está escrito lá, com o
+> motivo, e a instrução do topo manda **não** abrir o histórico por hábito.
+
+Ele respondeu *"não entendi muita coisa, mas obrigado"* — e isso vale
+registrar: a explicação foi técnica demais para o problema dele, que era
+simplesmente não conseguir trabalhar.
+
+### "Ver como" — alternar repassador × lojista
+
+Pedido dele: *"sempre vamos mexer em algo e eu vou querer ver como está"*.
+Até então eu trocava `contas.tipo` no banco à mão e precisava lembrar de
+voltar.
+
+É troca de **visualização**, não de conta: mora no `localStorage` do
+aparelho, o banco não muda, e a conta da mãe dele não é afetada.
+`tipoReal` fica guardado para a barra dizer a verdade ("Minha conta
+(repassador)").
+
+**Só a loja dona da instalação vê o seletor**, e a regra vem do servidor
+(`casa`, a mesma do convite). Se viesse do navegador, uma chave esquecida
+no armazenamento mudaria o que uma loja **cliente** vê — e ela não teria
+como saber. 11 checagens, incluindo esse caso.
+
+Nasceu no rodapé e subiu para o topo no mesmo dia, a pedido dele: *"ficou
+lá no final, mais fácil de achar no topo"*.
+
+### Varejo × repasse: três correções dele, olhando no celular
+
+1. **"Retirar o campo compradores do carro de varejo."** O Match oferece a
+   **outras lojas**, em preço de atacado — mandar para elas um carro do
+   cliente final é entregar a margem a quem compraria no varejo. Foi o
+   maior ganho do dia: tirou um bloco inteiro, e o card de varejo ficou
+   101px menor.
+2. **"Decidido, os botões podem sumir."** Saíram do corpo do card.
+3. **"Pode ter um botão em cascata."** Virou botão no rodapé, reusando o
+   menu do Status. Sem marcar ele convida (`Destino ▾`); marcado, ele **é**
+   a resposta (`🤝 Repasse ▾`).
+
+Medido nos quatro estados: de 1016px e 23 botões para 915–974px e 20–21.
+
+### Preparação: pátio não é serviço
+
+*"Quando o carro for marcado pátio da loja, significa que ele está pronto
+pra venda, então não tem nada que acrescentar valores e o que fazer."*
+
+`patio` saiu das etapas; acabados os serviços, a linha diz **"✅ Disponível
+para venda"** sozinha. `PREP_ANTIGAS` guarda o nome para registro antigo
+não aparecer como `patio` cru.
+
+**E uma linha construída e descartada:** "Preparação não lançada" para
+carro sem serviço. Ele viu o print e cortou — discreta demais para resolver
+o que a justificava, e mais uma entre dez coisas no card. O comentário
+ficou no código dizendo que foi tentado e por quê. **Não refazer sem motivo
+novo.**
+
+> Vale o método: ele disse *"acho que vai poluir de novo"*, eu montei assim
+> mesmo **sem subir**, mandei o print, e ele decidiu com a coisa na frente.
+> Custou poucos minutos e evitou uma discussão abstrata.
+
+### Lojas de aplicativo: o ícone por loja se perderia
+
+Pergunta dele sobre publicar na App Store e na Play Store. **App publicado
+tem um ícone só**, definido no envio. Por loja, não existe — o iPhone troca
+de ícone apenas entre os que já vieram no pacote, o que exigiria mandar
+versão nova a cada cliente.
+
+**O que ele já tem faz isso:** adicionar à tela de início pega o ícone
+**da conta** (`contas.icone` → `apple-touch-icon`). Ou seja, nesse ponto a
+loja de aplicativos seria um passo atrás — e junto iriam a atualização
+instantânea e a anuidade.
+
+Recomendado: não agora; faz sentido quando houver venda para quem não o
+conhece, e aí provavelmente os dois caminhos.
+
+### Achado que é consequência de uma mudança minha
+
+Ele ia tirar a menção à foto na mensagem do Bruno, para não gastar crédito.
+Duas coisas que precisavam ser ditas:
+
+- **colar o anúncio também usa IA** — os dois caminhos da aba Parceiros
+  passam pela mesma chave paga, então omitir não evita o custo;
+- **ao mover o Bruno para o site principal ontem, ele passou a usar a chave
+  do Yuri.** No projeto piloto havia uma chave separada com teto de US$ 5,
+  feita justamente para isso em 22/set. **A proteção deixou de valer quando
+  eu fiz a migração, e eu não avisei na hora.**
+
+Medido: `US$ 4,99` gastos desde agosto, **sem teto** na chave. O risco real
+é pequeno; a falta de teto é que não deveria existir. O mesmo vale para a
+consulta de placa, paga por consulta.
+
+### Mensagem para o Bruno
+
+Escrita para ele encaminhar com o link. O Safari vem **antes** de explicar o
+que o sistema faz — em 24/set o link abriu dentro do WhatsApp e ele caiu
+numa tela sem saída. E pede **um carro só**: ele não mexeu por falta de
+tempo, e um carro são cinco minutos.
+
+Sem prometer que os dados dele são invisíveis para o Yuri, que seria falso.
+
+### Decisões dele, para não reabrir
+
+- **Prestadores de serviço: não mexer agora.** A ideia está escrita no
+  `IDEIAS.md`, com a regra dele próprio — *pesquisar antes de desenhar
+  tela*, com as perguntas para levar a dois ou três de cada tipo.
+- **Primeira hora de uma loja nova: dispensado** por ora. Eu havia
+  recomendado, por ninguém de fora nunca ter aberto uma conta vazia.
+
+*Registrado em 4 de outubro de 2026, noite.*
+
+---
 ## 12. Checkpoint — caixa-preta do projeto
 
 > **Regra permanente (estabelecida em 16/ago/2026):** Esta seção é o registro contínuo do estado do projeto. Deve ser atualizada:
