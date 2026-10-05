@@ -1332,7 +1332,7 @@ function toggleResponder(id) {
   if (a) iniciarAutoThread(id, a.listing_id);
   // Adianta a preparação da aba da OLX: quando Yuri terminar de escrever,
   // o chat já estará montado e o envio não espera o carregamento.
-  if (a) prepararConversaOLX(id, a.listing_id);
+  if (a) prepararConversaOLX(id, a.listing_id, a.url);
   document.getElementById(`reply-text-${id}`)?.focus();
 }
 
@@ -1422,7 +1422,7 @@ async function carregarThread(id, listing_id, silencioso) {
 // que já existe ou cria uma em background. Yuri não gerencia aba nenhuma.
 // Falha aqui não impede nada — só significa que o envio vai esperar o
 // carregamento em vez de encontrar tudo pronto.
-function prepararConversaOLX(id, listing_id) {
+function prepararConversaOLX(id, listing_id, urlAnuncio) {
   const st = document.getElementById(`reply-status-${id}`);
   const mostrar = (txt, classe) => {
     if (!st) return;
@@ -1446,7 +1446,7 @@ function prepararConversaOLX(id, listing_id) {
   }
   window.addEventListener('message', handler);
   mostrar('abrindo conversa na OLX…');
-  window.postMessage({ cnr_type: 'CNR_ABRIR_CONVERSA', listing_id }, '*');
+  window.postMessage({ cnr_type: 'CNR_ABRIR_CONVERSA', listing_id, url: urlAnuncio || null }, '*');
 
   // Extensão ausente ou órfã: some o aviso em vez de deixá-lo preso na tela
   setTimeout(() => {
@@ -1564,6 +1564,10 @@ function enviarResposta(id) {
     cnr_type:   'CNR_ENVIAR_RESPOSTA',
     listing_id: a.listing_id,
     texto,
+    // O endereço do anúncio é o caminho B: quando o atalho do chat não
+    // abre a conversa (contato novo), a extensão entra pelo anúncio e
+    // clica no Chat de lá, que é como a conversa nasce (05/out).
+    url:        a.url || null,
   }, '*');
 }
 
