@@ -213,6 +213,13 @@
     <button class="filtro-btn" data-status="respondeu">Responderam<span class="cnt" id="cnt-respondeu"></span></button>
     <button class="filtro-btn" data-status="autorizado">Autorizados<span class="cnt" id="cnt-autorizado"></span></button>
     <button class="filtro-btn" data-status="morto">Ignorados<span class="cnt" id="cnt-morto"></span></button>
+    <!-- Limpeza: tira da fila os anúncios que o vendedor já excluiu. Fica
+         aqui, ao lado dos filtros, porque é sobre o que a lista mostra.
+         Roda pela extensão: a OLX recusa (403) pergunta que não venha de
+         um navegador de verdade. -->
+    <button class="filtro-btn" id="btn-conferir" onclick="conferirTodos()"
+      title="Confere na OLX quais anúncios saíram do ar e tira da fila"
+      style="margin-left:auto">🧹 Limpar excluídos</button>
   </div>
 
   <!-- Segunda linha: ORDEM e CIDADE. Separada da de status de propósito —
@@ -925,6 +932,61 @@ async function carregar() {
 function abrirOLX(url) {
   const aba = window.open(url, 'cnr-olx');
   if (aba) aba.focus();   // já estava aberta? traz para a frente em vez de duplicar
+}
+
+// Limpeza sob demanda: confere TODOS os anúncios da fila e tira os que o
+// vendedor já excluiu. Pedido do Yuri em 05/out, depois de 4 em 5 ABORDAR
+// falharem em anúncio que não existia mais.
+//
+// Quem pergunta à OLX é a EXTENSÃO, não esta página nem o servidor: a OLX
+// responde 403 para quem não é um navegador de verdade, e forjar
+// identidade foi o que saiu do projeto em 02/set.
+//
+// Demora: são ~190 anúncios com uma pausa entre cada. Conta uns 5 minutos,
+// e por isso a tela avisa em vez de parecer travada.
+async function conferirTodos() {
+  const btn = document.getElementById('btn-conferir');
+  if (!btn || btn.disabled) return;
+  if (!confirm('Conferir na OLX quais anúncios saíram do ar?\n\n'
+    + 'Leva alguns minutos rodando em segundo plano. Os que a OLX confirmar '
+    + 'que foram excluídos saem da fila, com o motivo gravado.')) return;
+
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = '🧹 conferindo…';
+  mostrarToast('Conferindo na OLX… pode levar alguns minutos. Pode seguir usando.', 8000);
+
+  const pronto = (msg, ms) => {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+    mostrarToast(msg, ms || 8000);
+  };
+
+  let respondeu = false;
+  const handler = (e) => {
+    if (e.source !== window || e.data?.cnr_type !== 'CNR_CONFERIDOS') return;
+    respondeu = true;
+    window.removeEventListener('message', handler);
+    if (!e.data.ok) {
+      pronto('⚠️ Não consegui conferir: ' + (e.data.err || 'erro desconhecido'));
+      return;
+    }
+    const { conferidos, mortos } = e.data;
+    pronto(mortos
+      ? `✅ ${conferidos} conferidos · ${mortos} saíram do ar e foram tirados da fila.`
+      : `✅ ${conferidos} conferidos · nenhum saiu do ar.`);
+    if (mortos) carregar();
+  };
+  window.addEventListener('message', handler);
+  window.postMessage({ cnr_type: 'CNR_CONFERIR_TODOS' }, '*');
+
+  // Extensão ausente: avisar em vez de deixar o botão girando para sempre.
+  setTimeout(() => {
+    if (respondeu) return;
+    window.removeEventListener('message', handler);
+    pronto('⚠️ A extensão não respondeu. Ela precisa estar instalada e ligada '
+      + 'neste navegador — é ela que pergunta à OLX.');
+  }, 15 * 60 * 1000);
 }
 
 // Anúncio que a OLX diz não existir mais sai da fila sozinho, com o motivo
