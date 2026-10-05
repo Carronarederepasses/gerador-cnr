@@ -953,40 +953,63 @@ async function conferirTodos() {
 
   btn.disabled = true;
   const textoOriginal = btn.textContent;
-  btn.textContent = '🧹 conferindo…';
-  mostrarToast('Conferindo na OLX… pode levar alguns minutos. Pode seguir usando.', 8000);
-
   const pronto = (msg, ms) => {
     btn.disabled = false;
     btn.textContent = textoOriginal;
-    mostrarToast(msg, ms || 8000);
+    mostrarToast(msg, ms || 9000);
   };
 
-  let respondeu = false;
-  const handler = (e) => {
-    if (e.source !== window || e.data?.cnr_type !== 'CNR_CONFERIDOS') return;
-    respondeu = true;
-    window.removeEventListener('message', handler);
-    if (!e.data.ok) {
-      pronto('⚠️ Não consegui conferir: ' + (e.data.err || 'erro desconhecido'));
+  // EM PEDAÇOS, de 25 em 25. O Chrome encerra a extensão quando ela fica
+  // muito tempo numa tarefa só — a primeira versão pedia os ~190 de uma
+  // vez, levava mais de 5 minutos e era cortada no meio: a tela ficava
+  // esperando resposta que nunca vinha, e o Yuri achou que travou (05/out).
+  //
+  // Em pedaços, cada ida leva ~10s e o progresso aparece no próprio botão.
+  let conferidos = 0, mortos = 0;
+  for (let volta = 0; volta < 40; volta++) {
+    btn.textContent = conferidos ? '🧹 ' + conferidos + ' conferidos…' : '🧹 conferindo…';
+    let r;
+    try {
+      r = await pedirPedaco(25);
+    } catch (e) {
+      pronto('⚠️ ' + e.message
+        + (conferidos ? ' (conferi ' + conferidos + ' antes de parar)' : ''));
+      if (mortos) carregar();
       return;
     }
-    const { conferidos, mortos } = e.data;
-    pronto(mortos
-      ? `✅ ${conferidos} conferidos · ${mortos} saíram do ar e foram tirados da fila.`
-      : `✅ ${conferidos} conferidos · nenhum saiu do ar.`);
-    if (mortos) carregar();
-  };
-  window.addEventListener('message', handler);
-  window.postMessage({ cnr_type: 'CNR_CONFERIR_TODOS' }, '*');
+    conferidos += r.conferidos;
+    mortos     += r.mortos;
+    if (!r.conferidos || !r.restam) break;   // acabou
+  }
 
-  // Extensão ausente: avisar em vez de deixar o botão girando para sempre.
-  setTimeout(() => {
-    if (respondeu) return;
-    window.removeEventListener('message', handler);
-    pronto('⚠️ A extensão não respondeu. Ela precisa estar instalada e ligada '
-      + 'neste navegador — é ela que pergunta à OLX.');
-  }, 15 * 60 * 1000);
+  pronto(mortos
+    ? '✅ ' + conferidos + ' conferidos · ' + mortos + ' saíram do ar e foram tirados da fila.'
+    : '✅ ' + conferidos + ' conferidos · nenhum saiu do ar.');
+  if (mortos) carregar();
+}
+
+// Um pedaço de cada vez. Erro vira exceção com a frase pronta: quem chama
+// só repassa para a tela.
+function pedirPedaco(quantos) {
+  return new Promise((ok, erro) => {
+    let respondeu = false;
+    const handler = (e) => {
+      if (e.source !== window || e.data?.cnr_type !== 'CNR_CONFERIDOS') return;
+      respondeu = true;
+      window.removeEventListener('message', handler);
+      clearTimeout(limite);
+      if (!e.data.ok) return erro(new Error(e.data.err || 'erro desconhecido'));
+      ok({ conferidos: e.data.conferidos, mortos: e.data.mortos, restam: e.data.restam });
+    };
+    window.addEventListener('message', handler);
+    const limite = setTimeout(() => {
+      if (respondeu) return;
+      window.removeEventListener('message', handler);
+      erro(new Error('A extensão não respondeu. Ela precisa estar instalada e '
+        + 'ligada neste navegador.'));
+    }, 90000);
+    window.postMessage({ cnr_type: 'CNR_CONFERIR_TODOS', quantos }, '*');
+  });
 }
 
 // Anúncio que a OLX diz não existir mais sai da fila sozinho, com o motivo
