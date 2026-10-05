@@ -1510,11 +1510,36 @@ function enviarResposta(id) {
   btn.textContent = 'ENVIANDO…';
   if (statusEl) statusEl.style.display = 'none';
 
-  // Timeout de segurança: se ACK não chegar em 12s, desbloquear com erro
+  // Quanto a extensão pode legitimamente demorar, somado do sw.js:
+  //   abrir/navegar a aba  esperarCarregar   teto 20s
+  //   o React montar       esperarCampoPronto    15s (15 × 1s)
+  //   confirmar o envio    campo limpar         2,4s
+  // Pior caso ≈ 37s. A página desistia em 12s e dizia "sem resposta da
+  // extensão" — culpando quem estava trabalhando, e mandando o Yuri
+  // reiniciar o Chrome à toa (05/out). Pior: o botão voltava, ele mandava
+  // de novo, e o vendedor podia receber duas vezes.
+  const PACIENCIA = 40000;
+  const AVISO_DEMORA = 12000;
+  let encerrado = false;
+
+  // Aos 12s não desiste: conta o que está acontecendo. O botão segue
+  // travado, que é o que impede o envio em dobro.
+  const aviso = setTimeout(() => {
+    if (encerrado || !statusEl) return;
+    statusEl.textContent = 'A OLX está demorando a abrir o chat. Aguarde — '
+      + 'não mande de novo.';
+    statusEl.className   = 'reply-status';
+    statusEl.style.display = '';
+  }, AVISO_DEMORA);
+
   const timeout = setTimeout(() => {
-    window.removeEventListener('message', handler);
+    if (encerrado) return;
+    encerrado = true;
+    // O ouvinte NÃO é removido: se a resposta chegar atrasada, a tela
+    // ainda corrige. Antes ela era descartada e ele ficava sem saber se
+    // tinha ido.
     _finalizarEnvio(id, false, 'timeout', ta, btn, statusEl);
-  }, 12000);
+  }, PACIENCIA);
 
   // Listener único para o ACK desta conversa específica
   function handler(e) {
@@ -1522,7 +1547,14 @@ function enviarResposta(id) {
     if (e.data?.cnr_type !== 'CNR_RESPOSTA_ACK') return;
     if (e.data?.listing_id !== a.listing_id) return;
     clearTimeout(timeout);
+    clearTimeout(aviso);
     window.removeEventListener('message', handler);
+    if (encerrado && e.data.ok) {
+      // Chegou depois de a tela já ter dito que falhou. Dizer a verdade
+      // vale mais do que manter o erro: ele estava prestes a reenviar.
+      mostrarToast('✅ A resposta foi enviada — chegou com atraso.', 7000);
+    }
+    encerrado = true;
     _finalizarEnvio(id, e.data.ok, e.data.err, ta, btn, statusEl);
   }
   window.addEventListener('message', handler);
@@ -1606,7 +1638,12 @@ function _traduzirErroResposta(err) {
   if (err.startsWith('falha_ao_abrir_aba:')) return 'Não foi possível abrir a aba da OLX. Verifique se o navegador bloqueou.';
   if (err === 'campo_nao_encontrado')    return 'Campo de mensagem não encontrado. Envie manualmente pela aba OLX.';
   if (err === 'dados_invalidos')         return 'Mensagem vazia ou dados inválidos.';
-  if (err === 'timeout')                 return 'Sem resposta da extensão. Recarregue a página e tente novamente.';
+  // NÃO culpar a extensão: na maioria das vezes ela está trabalhando e a
+  // OLX é que demorou. E o aviso principal é não reenviar — a mensagem
+  // pode ter ido depois.
+  if (err === 'timeout')                 return 'A OLX não respondeu a tempo. '
+    + 'NÃO mande de novo: se a mensagem foi, ela aparece na conversa em instantes. '
+    + 'Confira na aba da OLX antes de reenviar.';
   if (err === 'sem_resultado')           return 'Sem retorno do script. Verifique a aba OLX.';
   if (err.startsWith('script_error:'))  return 'Erro ao executar no chat OLX. Envie manualmente.';
   if (err.startsWith('preencher_falhou:')) return 'Não foi possível preencher o campo. Envie manualmente.';
