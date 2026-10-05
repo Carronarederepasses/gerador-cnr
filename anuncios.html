@@ -927,6 +927,26 @@ function abrirOLX(url) {
   if (aba) aba.focus();   // já estava aberta? traz para a frente em vez de duplicar
 }
 
+// Anúncio que a OLX diz não existir mais sai da fila sozinho, com o motivo
+// escrito. Sem isso ele volta amanhã, ele clica de novo e perde os mesmos
+// 40 segundos — foi o que aconteceu em 05/out, 4 vezes em 5 tentativas.
+//
+// O motivo fica gravado: o painel de desempenho da captação conta os
+// motivos de morte, e "saiu do ar" é diferente de "não quis".
+async function marcarForaDoAr(id) {
+  try {
+    await patchAnuncio(id, { status: 'morto', motivo_morte: 'saiu do ar' });
+    const a = TODOS.find((x) => x.id === id);
+    if (a) { a.status = 'morto'; a.motivo_morte = 'saiu do ar'; }
+    atualizarMetricas();
+    renderGrid();
+  } catch (e) {
+    // Não insistir: o aviso na tela já disse o que houve, e marcar é
+    // conveniência, não o essencial.
+    console.warn('[CNR] não consegui marcar como fora do ar:', e.message);
+  }
+}
+
 async function avancar(id, novoStatus) {
   const btn = document.querySelector(`#card-${id} button`);
   if (btn) btn.disabled = true;
@@ -1576,6 +1596,13 @@ function _finalizarEnvio(id, ok, err, ta, btn, statusEl) {
   enviandoResposta.delete(id);
   btn.disabled = false;
 
+  // Anúncio excluído pelo vendedor: tirar da fila em vez de deixá-lo lá
+  // para ele tentar de novo amanhã. A OLX confirmou com "anúncio não
+  // encontrado" — não é palpite por o radar não ver há semanas.
+  if (err === 'anuncio_fora_do_ar') {
+    marcarForaDoAr(id);
+  }
+
   if (ok) {
     btn.textContent = '✅ Enviada';
     if (statusEl) {
@@ -1642,6 +1669,8 @@ function _traduzirErroResposta(err) {
   if (err.startsWith('falha_ao_abrir_aba:')) return 'Não foi possível abrir a aba da OLX. Verifique se o navegador bloqueou.';
   if (err === 'campo_nao_encontrado')    return 'Campo de mensagem não encontrado. Envie manualmente pela aba OLX.';
   if (err === 'dados_invalidos')         return 'Mensagem vazia ou dados inválidos.';
+  if (err === 'anuncio_fora_do_ar')      return 'Este anúncio saiu do ar — a OLX responde '
+    + '"anúncio não encontrado". Marquei como morto para ele sair da tua fila.';
   // NÃO culpar a extensão: na maioria das vezes ela está trabalhando e a
   // OLX é que demorou. E o aviso principal é não reenviar — a mensagem
   // pode ter ido depois.
