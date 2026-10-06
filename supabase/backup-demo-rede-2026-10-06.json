@@ -1,0 +1,298 @@
+{
+  "o_que": "Ensaio da Rede de 27/set/2026 contra a loja falsa DEMO Serra Motors",
+  "salvo_em": "2026-10-06T13:22:08.093Z",
+  "por_que": "Removido em 06/out a pedido do Yuri (\"pode limpar esses demos da rede\"), antes do primeiro teste com uma loja de verdade (Fabio Nogueira). Ele escolheu apagar tambem a transmissao \"Compram acima de 100 mil\", para a Rede comecar em branco.",
+  "como_desfazer": "Reinserir na ORDEM INVERSA de `ordem_para_apagar` — contas e usuarios primeiro.",
+  "ordem_para_apagar": [
+    "oferta_destinos",
+    "ofertas",
+    "lista_membros",
+    "listas",
+    "contatos",
+    "solicitacoes",
+    "sessoes",
+    "conta_membros",
+    "usuarios",
+    "contas"
+  ],
+  "linhas": {
+    "oferta_destinos": [
+      {
+        "oferta_id": "0d931018-6e68-46ac-8133-f18e94c9aade",
+        "conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "criado_em": "2026-09-27T19:34:09.670383+00:00",
+        "visto_em": null
+      },
+      {
+        "oferta_id": "ce4841bb-3275-448d-a9de-1c150acf4aee",
+        "conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "criado_em": "2026-09-27T19:34:15.823973+00:00",
+        "visto_em": null
+      },
+      {
+        "oferta_id": "ea6ed0c7-5576-4224-9eb8-e97c3bd2d49b",
+        "conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "criado_em": "2026-09-27T19:34:16.688152+00:00",
+        "visto_em": null
+      },
+      {
+        "oferta_id": "5790f6e8-0a19-46e9-a054-5216784cea24",
+        "conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "criado_em": "2026-09-27T20:18:20.321768+00:00",
+        "visto_em": null
+      }
+    ],
+    "ofertas": [
+      {
+        "id": "5790f6e8-0a19-46e9-a054-5216784cea24",
+        "conta_id": "00000000-0000-4000-8000-000000000001",
+        "veiculo_id": "a35470bf-4e39-464f-a0f4-1eb712a2d243",
+        "criado_em": "2026-09-27T20:18:20.00627+00:00",
+        "vitrine_em": null,
+        "estado": "aberta",
+        "encerrada_em": null,
+        "marca": "VW - VolksWagen",
+        "modelo": "Polo",
+        "ano": 2018,
+        "km": 130000,
+        "preco": 70990,
+        "cidade": "Garopaba-SC",
+        "uf": null,
+        "dados": {
+          "cor": "Preta",
+          "fipe": 76721,
+          "fotos": [
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568254977-0hxuf5.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568259474-ndwvmc.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568263755-s4m31u.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568268523-x6f70w.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568272726-vrihgh.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568349107-lsvqea.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568353308-dzomvb.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568356829-nnbgux.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568360518-eantmr.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568363653-w4mrbc.jpg"
+          ],
+          "cambio": "",
+          "versao": "Polo Highline 200 TSI 1.0 Flex 12V Aut.",
+          "combustivel": "Flex",
+          "observacoes": "Material completo disponível (fotos e vídeos); Paga e retira"
+        },
+        "lista_id": null,
+        "lista_nome": null,
+        "mensagem": "Entrou hoje, aceito troca. Só à vista."
+      },
+      {
+        "id": "ea6ed0c7-5576-4224-9eb8-e97c3bd2d49b",
+        "conta_id": "00000000-0000-4000-8000-000000000001",
+        "veiculo_id": "9514d20e-7951-45cd-a9dc-5002d9353121",
+        "criado_em": "2026-09-27T19:34:16.401368+00:00",
+        "vitrine_em": null,
+        "estado": "aberta",
+        "encerrada_em": null,
+        "marca": "Nissan",
+        "modelo": "MARCH",
+        "ano": 2014,
+        "km": 191606,
+        "preco": 30990,
+        "cidade": "Garopaba-SC",
+        "uf": null,
+        "dados": {
+          "cor": "Cinza",
+          "fipe": 36183,
+          "fotos": [
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788567969466-aon5js.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788567973804-co82oo.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788567978091-mv61sd.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788567982018-umsjly.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788568081930-f9l79v.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788568085811-o29zgr.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788568089460-ff0903.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788568092884-muyn0x.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788568114624-iyzxey.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/9514d20e-7951-45cd-a9dc-5002d9353121/1788568117756-h44sox.jpg"
+          ],
+          "cambio": "",
+          "versao": "MARCH S 1.0 16V Flex Fuel 5p",
+          "combustivel": "Flex",
+          "observacoes": ""
+        },
+        "lista_id": null,
+        "lista_nome": null,
+        "mensagem": null
+      },
+      {
+        "id": "ce4841bb-3275-448d-a9de-1c150acf4aee",
+        "conta_id": "00000000-0000-4000-8000-000000000001",
+        "veiculo_id": "a35470bf-4e39-464f-a0f4-1eb712a2d243",
+        "criado_em": "2026-09-27T19:34:15.570406+00:00",
+        "vitrine_em": null,
+        "estado": "aberta",
+        "encerrada_em": null,
+        "marca": "VW - VolksWagen",
+        "modelo": "Polo",
+        "ano": 2018,
+        "km": 130000,
+        "preco": 70990,
+        "cidade": "Garopaba-SC",
+        "uf": null,
+        "dados": {
+          "cor": "Preta",
+          "fipe": 76721,
+          "fotos": [
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568254977-0hxuf5.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568259474-ndwvmc.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568263755-s4m31u.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568268523-x6f70w.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568272726-vrihgh.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568349107-lsvqea.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568353308-dzomvb.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568356829-nnbgux.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568360518-eantmr.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/a35470bf-4e39-464f-a0f4-1eb712a2d243/1788568363653-w4mrbc.jpg"
+          ],
+          "cambio": "",
+          "versao": "Polo Highline 200 TSI 1.0 Flex 12V Aut.",
+          "combustivel": "Flex",
+          "observacoes": "Material completo disponível (fotos e vídeos); Paga e retira"
+        },
+        "lista_id": null,
+        "lista_nome": null,
+        "mensagem": null
+      },
+      {
+        "id": "0d931018-6e68-46ac-8133-f18e94c9aade",
+        "conta_id": "00000000-0000-4000-8000-000000000001",
+        "veiculo_id": "79521e44-b957-4b58-97ec-18bf952039df",
+        "criado_em": "2026-09-27T19:34:09.541466+00:00",
+        "vitrine_em": null,
+        "estado": "aberta",
+        "encerrada_em": null,
+        "marca": "Toyota",
+        "modelo": "Corolla",
+        "ano": 2023,
+        "km": 46916,
+        "preco": 115990,
+        "cidade": "Garopaba-SC",
+        "uf": null,
+        "dados": {
+          "cor": "Branca",
+          "fipe": 125829,
+          "fotos": [
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048427348-6gf0xi.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048431355-nlioqj.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048435513-wtc22g.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048440275-0og5lf.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048444619-opj53s.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048706973-cxq85m.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048711441-8z2hzy.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048716488-rejj6r.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048720115-qikekg.jpg",
+            "https://doabpazbzkgujyeeosqp.supabase.co/storage/v1/object/public/veiculos/79521e44-b957-4b58-97ec-18bf952039df/1789048723742-vapo9v.jpg"
+          ],
+          "cambio": "",
+          "versao": "Corolla XEi 2.0 Flex 16V Aut.",
+          "combustivel": "Flex",
+          "observacoes": "Material completo disponível (fotos e vídeos); Paga e retira"
+        },
+        "lista_id": null,
+        "lista_nome": null,
+        "mensagem": null
+      }
+    ],
+    "lista_membros": [
+      {
+        "lista_id": "a1f90296-a4f7-41b9-8997-948d1ba7d14c",
+        "conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "criado_em": "2026-09-27T19:23:46.470909+00:00"
+      }
+    ],
+    "listas": [
+      {
+        "id": "a1f90296-a4f7-41b9-8997-948d1ba7d14c",
+        "conta_id": "00000000-0000-4000-8000-000000000001",
+        "nome": "Compram acima de 100 mil",
+        "criada_em": "2026-09-27T19:23:44.569808+00:00",
+        "arquivada_em": null
+      }
+    ],
+    "contatos": [
+      {
+        "id": "66f8a915-a6e7-49a7-91b4-e1c976d9adb0",
+        "conta_id": "00000000-0000-4000-8000-000000000001",
+        "contato_conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "estado": "ativo",
+        "criado_em": "2026-09-27T19:16:04.269675+00:00",
+        "encerrado_em": null
+      }
+    ],
+    "solicitacoes": [
+      {
+        "id": "8565dd4b-3b12-40d8-ade9-15e6b64854cb",
+        "de_conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "para_conta_id": "00000000-0000-4000-8000-000000000001",
+        "estado": "aceita",
+        "criado_em": "2026-09-27T19:14:43.964367+00:00",
+        "respondido_em": "2026-09-27T19:16:03.825+00:00"
+      }
+    ],
+    "sessoes": [
+      {
+        "id": "6342b426-51be-4310-a064-58fb4b2a633b",
+        "usuario_id": "00000000-0000-4000-8000-0000000000a1",
+        "hash": "(removido do backup — segredo nao vai para o repositorio)",
+        "criado_em": "2026-09-27T19:14:58.547291+00:00",
+        "ultimo_uso": "2026-09-27T20:15:22.535+00:00",
+        "expira_em": "2026-09-27T21:15:13.946+00:00",
+        "encerrada_em": null,
+        "aparelho": "DEMO REDE",
+        "ip": null
+      },
+      {
+        "id": "897def59-0b55-4730-8726-3e2b4d754416",
+        "usuario_id": "30a227bd-6a4c-489f-a791-cc6d5a323738",
+        "hash": "(removido do backup — segredo nao vai para o repositorio)",
+        "criado_em": "2026-09-27T19:14:42.307288+00:00",
+        "ultimo_uso": "2026-09-27T19:14:42.307288+00:00",
+        "expira_em": "2026-09-27T21:14:57.536+00:00",
+        "encerrada_em": null,
+        "aparelho": "DEMO REDE",
+        "ip": null
+      }
+    ],
+    "conta_membros": [
+      {
+        "conta_id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "usuario_id": "30a227bd-6a4c-489f-a791-cc6d5a323738",
+        "papel": "gerente",
+        "criado_em": "2026-09-27T19:14:41.7873+00:00",
+        "pode_ofertar": false
+      }
+    ],
+    "usuarios": [
+      {
+        "id": "30a227bd-6a4c-489f-a791-cc6d5a323738",
+        "nome": "DEMO Marcos",
+        "telefone": null,
+        "criado_em": "2026-09-27T19:14:41.532929+00:00"
+      }
+    ],
+    "contas": [
+      {
+        "id": "8a22c516-f053-4e44-9a47-a58012f76f37",
+        "nome": "DEMO Serra Motors",
+        "criada_em": "2026-09-27T19:14:41.075662+00:00",
+        "ativa": true,
+        "subtitulo": "Seminovos",
+        "instagram": "serramotors",
+        "email": null,
+        "logo": null,
+        "icone": null,
+        "esconder": null,
+        "modelo_anuncio": null,
+        "tipo": null
+      }
+    ]
+  },
+  "nota_seguranca": "O hash do token das sessoes foi removido deste arquivo. As sessoes foram apagadas do banco, logo nada aqui autentica ninguem. Para desfazer a limpeza, as sessoes nao precisam voltar: quem precisar entra de novo."
+}
