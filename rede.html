@@ -112,7 +112,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .pan-topo h2{font-size:1rem;font-weight:700;line-height:1.2}
 .pan-topo .sub{font-size:.75rem;color:var(--text-mid)}
 .voltar{display:none;align-items:center;background:none;border:none;color:var(--text);
-  font-size:1.2rem;cursor:pointer;padding:.2rem .4rem 0 0}
+  font-size:1.2rem;cursor:pointer;padding:.2rem .4rem 0 0;white-space:nowrap}
+/* "‹ Contatos" é texto, não só o sinal: no tamanho de ícone ficaria
+   apertado e sem a folga de toque que um botão de celular precisa. */
+.voltar.tem-volta{font-size:.9rem;font-weight:700;padding:.35rem .5rem .35rem 0}
+/* No notebook o `‹` fica escondido (há as duas colunas), MENOS quando há
+   para onde voltar: aí a conversa ocupou o lugar de Contatos e sem botão o
+   único caminho era tocar em Contatos outra vez. */
+@media (min-width:761px){ .voltar.tem-volta{display:inline-flex} }
+
+/* ── Entrar deslizando ───────────────────────────────────────────
+   A conversa ocupa o mesmo painel que a lista de contatos ocupava, então
+   sem movimento a troca se lê como "o conteúdo mudou", não como "abriu
+   outra tela" — foi o que o Yuri descreveu em 06/out. Curto de propósito:
+   180ms é o suficiente para o olho ver a direção e não o bastante para
+   atrasar quem já sabe para onde vai. */
+@keyframes painel-entra{from{transform:translateX(5%);opacity:.4}to{transform:none;opacity:1}}
+.painel.entrando{animation:painel-entra .18s ease-out}
+@media (prefers-reduced-motion:reduce){ .painel.entrando{animation:none} }
 
 /* `min-height:0` num filho de flex não é detalhe: sem ele o padrão é
    `auto`, o `.thread` cresce com o conteúdo em vez de rolar, e empurra o
@@ -334,7 +351,7 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1);opacity:.5}
   <!-- ── Direita: a transmissão aberta ─────────────────────── -->
   <main class="painel" id="painel">
     <div class="pan-topo">
-      <button class="voltar" onclick="verLista()">‹</button>
+      <button class="voltar" id="btn-voltar" onclick="voltar()">‹</button>
       <div class="avatar" id="pan-icone">📣</div>
       <div style="min-width:0">
         <h2 id="pan-nome">Rede</h2>
@@ -400,6 +417,76 @@ let thread = [];              // mensagens da conversa aberta
 
 function verLista()    { $('tela').dataset.onde = 'lista'; }
 function verConversa() { $('tela').dataset.onde = 'conversa'; }
+
+/* ══ DE ONDE EU VIM — o voltar do WhatsApp (06/out) ══════════════════
+ *
+ * [YURI: "quando clico no contato dele, não abre uma página nova de
+ * conversa, sabe, igual ao WhatsApp"]
+ *
+ * A troca de tela já existia; o que faltava era o CAMINHO DE VOLTA. O `‹`
+ * chamava `verLista()` sempre, então uma conversa aberta de dentro de
+ * Contatos voltava para a lista principal — e a pessoa perdia o lugar onde
+ * estava. Sem volta para onde se veio, a conversa não é uma página dentro
+ * de Contatos: é um conteúdo que trocou no mesmo lugar. É isso que ele
+ * sentiu, e a descrição dele estava exata.
+ *
+ * Uma gaveta de um andar, não uma pilha: no WhatsApp também não se
+ * empilham cinco telas. Contatos → conversa → volta para Contatos. De
+ * qualquer outro lugar, volta para a lista.
+ *
+ * E o `‹` fica visível TAMBÉM no notebook quando há para onde voltar: ali
+ * a conversa ocupa o lugar de Contatos do mesmo jeito, e sem o botão o
+ * único caminho de volta era tocar em Contatos de novo.
+ */
+let VEIO_DE = null;     // null = vim da lista; 'agenda' = vim de Contatos
+let EMPILHOU = false;   // há um passo meu no histórico do navegador?
+
+/* O voltar do APARELHO conta como voltar.
+ *
+ * No iPhone se arrasta da borda, no Android há o botão do sistema, e no
+ * notebook existe a seta do navegador. Se qualquer um desses jogasse a
+ * pessoa fora da Rede no meio de uma conversa, não seria uma página — e é
+ * a página que ele pediu.
+ *
+ * Então abrir a conversa a partir de Contatos empilha UM passo, e o gesto
+ * do aparelho desfaz esse passo em vez de sair da tela. Um só: na lista
+ * principal, voltar tem de sair da Rede, como sempre fez. Empilhar a cada
+ * toque transformaria o gesto de sair numa sequência de dez toques — o
+ * defeito clássico de quem descobre o `pushState`.
+ */
+function empilharConversa() {
+  if (EMPILHOU) return;
+  try { history.pushState({ cnr: 'conversa' }, ''); EMPILHOU = true; } catch (e) { /* sem histórico: o ‹ resolve */ }
+}
+
+window.addEventListener('popstate', () => {
+  // Chegou aqui porque o passo empilhado foi desfeito.
+  EMPILHOU = false;
+  if (VEIO_DE === 'agenda') { VEIO_DE = null; abrirAgenda(); }
+});
+
+function voltar() {
+  // Com passo empilhado, quem devolve é o `popstate` — assim o botão da
+  // tela e o gesto do aparelho seguem o MESMO caminho. Dois caminhos para
+  // a mesma volta é como um deles fica diferente do outro com o tempo.
+  if (VEIO_DE === 'agenda' && EMPILHOU) { history.back(); return; }
+  if (VEIO_DE === 'agenda') { VEIO_DE = null; abrirAgenda(); return; }
+  VEIO_DE = null;
+  aberto = null;
+  desenharColuna();
+  verLista();
+}
+
+// O botão diz PARA ONDE volta, não só que volta. "‹ Contatos" é a
+// diferença entre um botão que a pessoa entende e um que ela testa.
+function arrumarVoltar() {
+  const b = document.getElementById('btn-voltar');
+  if (!b) return;
+  b.textContent = VEIO_DE === 'agenda' ? '‹ Contatos' : '‹';
+  // No celular o CSS já o mostra sempre. No notebook ele só aparece quando
+  // existe um lugar de onde se veio.
+  b.classList.toggle('tem-volta', VEIO_DE === 'agenda');
+}
 
 // ── Coluna da esquerda ──────────────────────────────────────
 function desenharColuna() {
@@ -754,13 +841,22 @@ function desenharPainel() {
   $('thread').scrollTop = $('thread').scrollHeight;
 }
 
-function abrirLista(id) { const l = dados.listas.find((x) => x.id === id); aberto = { tipo: 'lista', id, nome: l.nome }; desenharColuna(); desenharPainel(); verConversa(); }
-function abrirTodos()   { aberto = { tipo: 'todos', id: null, nome: 'Todos os contatos' }; desenharColuna(); desenharPainel(); verConversa(); }
-function abrirRecebidos() { aberto = { tipo: 'recebidos', id: null, nome: 'Chegou para mim' }; desenharColuna(); desenharPainel(); verConversa(); }
+function abrirLista(id) { VEIO_DE = null; const l = dados.listas.find((x) => x.id === id); aberto = { tipo: 'lista', id, nome: l.nome }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
+function abrirTodos()   { VEIO_DE = null; aberto = { tipo: 'todos', id: null, nome: 'Todos os contatos' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
+function abrirRecebidos() { VEIO_DE = null; aberto = { tipo: 'recebidos', id: null, nome: 'Chegou para mim' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
 // O feed da rede: estoque que as lojas publicaram para todo mundo.
-function abrirVitrine() { aberto = { tipo: 'vitrine', id: null, nome: 'Estoque da rede' }; desenharColuna(); desenharPainel(); verConversa(); }
+function abrirVitrine() { VEIO_DE = null; aberto = { tipo: 'vitrine', id: null, nome: 'Estoque da rede' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
 
 // ── Conversa 1 a 1 ──────────────────────────────────────────
+// Abrir a conversa de dentro de Contatos: guarda de onde se veio, para o
+// `‹` devolver ali. É o único lugar que faz isso — por tudo o mais, o
+// voltar vai para a lista, como sempre foi.
+function conversarDaAgenda(contaId) {
+  VEIO_DE = 'agenda';
+  empilharConversa();
+  return abrirConversa(contaId);
+}
+
 async function abrirConversa(contaId) {
   try {
     const d = await rede('conversa', { q: `&conta_id=${contaId}` });
@@ -771,6 +867,14 @@ async function abrirConversa(contaId) {
     const c = await rede('conversas');
     dados.conversas = c.conversas;
     desenharColuna(); desenharPainel(); verConversa();
+    arrumarVoltar();
+    // Entra deslizando, para a troca ser vista como "abriu outra tela" e
+    // não como "o conteúdo mudou". No celular isso é a diferença entre
+    // entender onde se está e procurar o que aconteceu — e é a razão de o
+    // Yuri dizer que "não abre uma página nova". Quem pediu menos
+    // movimento no sistema não recebe nenhum (`prefers-reduced-motion`).
+    const p = $('painel');
+    if (p) { p.classList.remove('entrando'); void p.offsetWidth; p.classList.add('entrando'); }
     $('texto').focus();
   } catch (e) { alert(e.message); }
 }
@@ -1177,9 +1281,12 @@ function guardarAgenda() {
 }
 
 function abrirAgenda() {
+  // Contatos é o ponto de partida, nunca um destino de volta: aqui o `‹`
+  // volta para a lista, como em qualquer outra tela.
+  VEIO_DE = null;
   aberto = { tipo: 'agenda', id: null, nome: 'Contatos' };
   lerAgendaGuardada();
-  desenharColuna(); desenharPainel(); verConversa();
+  desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar();
   // Já tem agenda guardada deste aparelho: compara de novo ao abrir, para
   // quem criou conta depois do último olhar aparecer como "já está".
   if (AGENDA.length && !AGENDA_TEM.length) compararAgenda();
@@ -1340,7 +1447,7 @@ function desenharAgenda() {
         <div class="t2"><span class="ag-pin na">●</span> ${esc(c.loja.nome)} está na rede</div>
       </div>
       <div class="pedido-bts">
-        <button onclick="abrirConversa('${c.loja.conta_id}')">Conversar</button>
+        <button onclick="conversarDaAgenda('${c.loja.conta_id}')">Conversar</button>
       </div>
     </div>`;
 
