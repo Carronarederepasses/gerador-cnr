@@ -845,11 +845,16 @@ async function agenda(req, res) {
   const sessao = require('./_sessao');
   const achadas = await sessao.contasPorTelefones(telefones);
 
-  // Eu mesma saio da resposta: a tela mostraria a própria loja como
-  // "contato", e tocar nela abriria uma conversa consigo mesma.
-  // Bloqueadas também saem — para mim elas não estão aqui.
+  // Bloqueadas saem da resposta: para mim elas não estão aqui.
   const bloqueadas = await quemEstaBloqueado(eu.conta_id);
-  const lista = achadas.filter((c) => c.conta_id !== eu.conta_id && !bloqueadas.has(c.conta_id));
+
+  // O MEU número volta marcado, em vez de sumir. Se sumisse, a tela o
+  // trataria como "ainda não usa o Gerador" — e colar o próprio número é
+  // a primeira coisa que qualquer pessoa faz para testar. A tela esconde
+  // essa linha; o que ela não pode é mentir sobre ela.
+  const lista = achadas
+    .filter((c) => !bloqueadas.has(c.conta_id))
+    .map((c) => (c.conta_id === eu.conta_id ? { ...c, eu: true } : c));
 
   return res.status(200).json({
     ok: true,

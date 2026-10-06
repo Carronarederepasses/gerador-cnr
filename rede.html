@@ -1246,8 +1246,14 @@ function desenharAgenda() {
 
   const vistos = new Set();
   const naRede = [], deFora = [];
+  let euMesmo = 0;
   AGENDA.filter(casa).forEach((c) => {
     const loja = temConta.get(fim(c.telefone));
+    // O meu próprio número não é contato: não entra em "no Gerador" (não
+    // se conversa consigo mesmo) nem em "convidar" (seria eu convidando
+    // eu). Sai da lista e aparece como uma nota, para a pessoa saber que
+    // o número foi reconhecido e não ignorado.
+    if (loja && loja.eu) { euMesmo++; return; }
     if (loja) {
       // Duas linhas da agenda podem ser a mesma loja (fixo e celular).
       // Na lista ela aparece uma vez.
@@ -1300,6 +1306,7 @@ function desenharAgenda() {
          ${AGENDA.length ? '<button class="leve" onclick="compararAgenda()">Atualizar</button>' : ''}
        </div>
        ${trabalhando ? `<div class="ag-trab">${trabalhando}</div>` : ''}
+       ${euMesmo ? '<div class="ag-trab">Um dos números é o teu — esse não aparece na lista.</div>' : ''}
      </div>`
     + (!AGENDA.length
       ? `<div class="vazio">${TEM_AGENDA
