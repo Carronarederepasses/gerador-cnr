@@ -34,6 +34,13 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TABELAS = ['contatos', 'solicitacoes', 'ofertas', 'oferta_destinos',
                  'interesses', 'reservas', 'contas', 'listas', 'lista_membros',
                  'conversas', 'mensagens_rede', 'grupos', 'grupo_membros',
+                 // `bloqueios` entrou em 06/out. Esqueci dele na primeira
+                 // versão e o teste pegou: o `temBloqueio` tratava a recusa
+                 // desta lista como "migration pendente" e respondia
+                 // "ninguém bloqueado". A tela diria "Bloqueada." e a loja
+                 // continuaria falando — a pior forma de falhar, porque
+                 // ninguém descobre até alguém se queixar.
+                 'bloqueios',
                  'push_assinaturas'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -116,13 +123,37 @@ async function destinatarios(contaId, listaId, grupoId) {
 
   const contatos = await rsb(`contatos?conta_id=eq.${contaId}&estado=eq.ativo&select=contato_conta_id`);
   const ativos = new Set(contatos.map((x) => x.contato_conta_id));
-  if (!listaId) return { contas: [...ativos], lista: null };
+
+  // Bloqueado não recebe carro, nos dois sentidos (06/out). Sem este
+  // filtro, bloquear calaria a conversa e o carro continuaria chegando —
+  // meio bloqueio, que é o mesmo que nenhum.
+  const bloqueadas = await quemEstaBloqueado(contaId);
+  const passa = (c) => !bloqueadas.has(c);
+
+  if (!listaId) return { contas: [...ativos].filter(passa), lista: null };
 
   const l = await rsb(`listas?id=eq.${listaId}&conta_id=eq.${contaId}&arquivada_em=is.null&select=id,nome&limit=1`);
   if (!l.length) return { erro: 'Lista não encontrada.' };
 
   const membros = await rsb(`lista_membros?lista_id=eq.${listaId}&select=conta_id`);
-  return { contas: membros.map((m) => m.conta_id).filter((c) => ativos.has(c)), lista: l[0] };
+  return { contas: membros.map((m) => m.conta_id).filter((c) => ativos.has(c) && passa(c)), lista: l[0] };
+}
+
+// Todas as lojas bloqueadas nos dois sentidos, de uma vez. Em consulta só,
+// porque chamar `temBloqueio` para cada destinatário de uma transmissão
+// seria uma ida ao banco por loja.
+async function quemEstaBloqueado(contaId) {
+  try {
+    const r = await rsb(
+      `bloqueios?select=conta_id,bloqueada_conta_id` +
+      `&or=(conta_id.eq.${contaId},bloqueada_conta_id.eq.${contaId})`
+    );
+    return new Set(r.map((b) => (b.conta_id === contaId ? b.bloqueada_conta_id : b.conta_id)));
+  } catch (e) {
+    // Migration pendente: ninguém bloqueado, e a Rede continua de pé.
+    console.error('[rede] bloqueios indisponível (migration pendente?):', e.message);
+    return new Set();
+  }
 }
 
 // ── Mandar um carro para a lista ──────────────────────────────────
@@ -784,6 +815,109 @@ async function solicitar(req, res) {
   return res.status(telefone ? 200 : 201).json({ ok: true, enviado: true });
 }
 
+/* ══ A AGENDA — quem da minha agenda já está aqui ════════════════════
+ *
+ * O telefone manda os números que a pessoa autorizou; a resposta diz quais
+ * têm conta. Quem não tem **não volta e não fica**: nada é gravado, nem o
+ * número, nem a pergunta, nem quem perguntou (o porquê está escrito em
+ * `_sessao.js`, em `contasPorTelefones`).
+ *
+ * A separação em dois grupos — "já estão" e "convidar" — é feita na TELA,
+ * com o que ela já tem: ela sabe os nomes da agenda, que nunca sobem para
+ * cá. O servidor só devolve os que casaram. É isso que faz a agenda de 800
+ * contatos não virar 800 linhas em lugar nenhum.
+ *
+ * `usuarios` não está na lista branca deste arquivo, então quem consulta é
+ * o `_sessao.js` — o mesmo caminho de `solicitar`.
+ */
+async function agenda(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeVerRede) {
+    return res.status(403).json({ error: 'Seu acesso não inclui a rede.' });
+  }
+
+  const { telefones } = req.body || {};
+  if (!Array.isArray(telefones)) {
+    return res.status(400).json({ error: 'telefones deve ser uma lista.' });
+  }
+
+  const sessao = require('./_sessao');
+  const achadas = await sessao.contasPorTelefones(telefones);
+
+  // Eu mesma saio da resposta: a tela mostraria a própria loja como
+  // "contato", e tocar nela abriria uma conversa consigo mesma.
+  // Bloqueadas também saem — para mim elas não estão aqui.
+  const bloqueadas = await quemEstaBloqueado(eu.conta_id);
+  const lista = achadas.filter((c) => c.conta_id !== eu.conta_id && !bloqueadas.has(c.conta_id));
+
+  return res.status(200).json({
+    ok: true,
+    // `telefone` volta para a tela saber a QUAL contato da agenda cada
+    // loja corresponde — é a única forma de ela casar "João da Oficina"
+    // com a loja certa sem o nome dele ter subido.
+    contatos: lista,
+    limite: sessao.AGENDA_POR_PEDIDO,
+  });
+}
+
+/* ══ BLOQUEAR E DESBLOQUEAR ══════════════════════════════════════════
+ *
+ * A válvula da regra nova: se qualquer um com o meu número me chama, tem
+ * de haver como calar quem incomoda. Não avisa a outra loja — bloqueio que
+ * avisa é discussão, não bloqueio.
+ */
+async function bloquear(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { conta_id, bloquear: ligar } = req.body || {};
+  if (!UUID.test(String(conta_id || ''))) return res.status(400).json({ error: 'conta_id inválido.' });
+  if (conta_id === eu.conta_id) return res.status(400).json({ error: 'Essa loja é sua.' });
+
+  try {
+    if (ligar === false) {
+      await rsb(`bloqueios?conta_id=eq.${eu.conta_id}&bloqueada_conta_id=eq.${conta_id}`, { method: 'DELETE' });
+      return res.status(200).json({ ok: true, bloqueada: false });
+    }
+    // `resolution=merge-duplicates`: bloquear duas vezes é toque repetido,
+    // não erro — a chave primária recusaria o segundo.
+    await rsb('bloqueios', {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates',
+      body: JSON.stringify({ conta_id: eu.conta_id, bloqueada_conta_id: conta_id }),
+    });
+    return res.status(200).json({ ok: true, bloqueada: true });
+  } catch (e) {
+    // A tabela pode não existir ainda (migration manual). Aqui NÃO dá para
+    // responder "deu certo": a pessoa pensaria que bloqueou e continuaria
+    // recebendo mensagem. Então o erro aparece, com o motivo.
+    console.error('[rede] bloquear falhou:', e.message);
+    return res.status(503).json({
+      error: 'O bloqueio ainda não está disponível neste banco.', codigo: 'sem_tabela',
+    });
+  }
+}
+
+async function bloqueadas(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  let linhas = [];
+  try {
+    linhas = await rsb(`bloqueios?conta_id=eq.${eu.conta_id}&select=bloqueada_conta_id,criado_em&order=criado_em.desc`);
+  } catch (e) {
+    console.error('[rede] bloqueios indisponível:', e.message);
+    return res.status(200).json({ ok: true, lojas: [], aviso: 'sem_tabela' });
+  }
+  const nomes = await nomesDe(linhas.map((b) => b.bloqueada_conta_id));
+  return res.status(200).json({
+    ok: true,
+    lojas: linhas.map((b) => ({
+      conta_id: b.bloqueada_conta_id, nome: nomes[b.bloqueada_conta_id] || '—', desde: b.criado_em,
+    })),
+  });
+}
+
 // ── Aceitar ou recusar ────────────────────────────────────────────
 // Regra: só o dono da lista responde, e a resposta é sobre a lista dele.
 async function responder(req, res) {
@@ -990,29 +1124,71 @@ async function membrosDaLista(req, res) {
 // A segunda existe porque o carro chega ANTES de a pessoa virar contato:
 // quem recebeu uma transmissão precisa poder responder, que é
 // exatamente como funciona lá.
+/* ── BLOQUEIO ───────────────────────────────────────────────────────
+ *
+ * Olha nos DOIS sentidos: eu bloqueei ela, ou ela me bloqueou. Um
+ * bloqueio que só valesse de um lado deixaria o bloqueado continuar
+ * falando, que é exatamente o que ele não pode fazer.
+ *
+ * A tabela pode ainda não existir — o deploy é automático e a migration é
+ * manual. Nesse caso a resposta é "ninguém bloqueado" em vez de derrubar a
+ * Rede inteira. Mesma rede de proteção de 08/set e 03/out.
+ */
+async function temBloqueio(a, b) {
+  try {
+    const r = await rsb(
+      `bloqueios?select=conta_id&limit=1` +
+      `&or=(and(conta_id.eq.${a},bloqueada_conta_id.eq.${b}),` +
+      `and(conta_id.eq.${b},bloqueada_conta_id.eq.${a}))`
+    );
+    return r.length > 0;
+  } catch (e) {
+    console.error('[rede] bloqueios indisponível (migration pendente?):', e.message);
+    return false;
+  }
+}
+
+/* ── QUEM PODE FALAR COM QUEM (reescrito em 06/out) ─────────────────
+ *
+ * A REGRA MUDOU, e a razão fica escrita porque ela contraria o §3.2.
+ *
+ * Antes: só falava quem era contato, ou quem já tinha trocado um carro.
+ * Ou seja, para conversar era preciso pedir para entrar numa lista e ser
+ * aceito. Decisão do Yuri em 06/out: a Rede tem que funcionar como o
+ * WhatsApp que o mercado dele já usa — **quem tem o meu número me chama
+ * direto**, sem pedir licença, e eu bloqueio quem incomodar.
+ *
+ * ── COMO "TER O NÚMERO" É VERIFICADO, JÁ QUE NÃO DÁ PARA VERIFICAR ──
+ *
+ * O servidor não tem como provar que a outra loja tem o meu número na
+ * agenda — e o WhatsApp também não prova nada disso. O que segura a regra
+ * aqui é outra coisa: para abrir conversa é preciso o `conta_id`, que é um
+ * número de 32 dígitos aleatórios. Ele não se adivinha. As duas formas de
+ * saber o meu são: perguntar na agenda com o meu telefone, ou já estar
+ * numa lista comigo.
+ *
+ * Então, na prática, **descobrir é a permissão** — e descobrir exige o
+ * número. É o mesmo desenho de um link secreto.
+ *
+ * O preço disso, dito com clareza: se o `conta_id` de alguém circular por
+ * fora, quem tiver o número pode chamar essa loja sem nunca ter tido o
+ * telefone dela. A saída é a mesma do WhatsApp, e é o que o Yuri escolheu
+ * junto com a regra: **bloquear**.
+ */
 async function podeFalarCom(minhaConta, outra) {
   if (minhaConta === outra) return false;
 
-  const contatos = await rsb(
-    `contatos?estado=eq.ativo&select=conta_id,contato_conta_id` +
-    `&or=(and(conta_id.eq.${minhaConta},contato_conta_id.eq.${outra}),` +
-    `and(conta_id.eq.${outra},contato_conta_id.eq.${minhaConta}))`
-  );
-  if (contatos.length) return true;
+  // O bloqueio vem PRIMEIRO, e vence tudo o que vier depois — inclusive
+  // ser contato antigo e já ter trocado carro. Se ficasse por último, um
+  // contato bloqueado continuaria conversando pelo caminho de cima.
+  if (await temBloqueio(minhaConta, outra)) return false;
 
-  // Mandei carro para ela?
-  const minhas = await rsb(`ofertas?conta_id=eq.${minhaConta}&select=id&limit=200`);
-  if (minhas.length) {
-    const d = await rsb(`oferta_destinos?conta_id=eq.${outra}&oferta_id=in.(${minhas.map((o) => o.id).join(',')})&select=oferta_id&limit=1`);
-    if (d.length) return true;
-  }
-  // Ela mandou carro para mim?
-  const dela = await rsb(`ofertas?conta_id=eq.${outra}&select=id&limit=200`);
-  if (dela.length) {
-    const d = await rsb(`oferta_destinos?conta_id=eq.${minhaConta}&oferta_id=in.(${dela.map((o) => o.id).join(',')})&select=oferta_id&limit=1`);
-    if (d.length) return true;
-  }
-  return false;
+  // A loja tem que existir e estar ativa. Sem isto, um `conta_id` velho
+  // abriria conversa com uma loja que saiu do sistema.
+  const c = await rsb(`contas?id=eq.${outra}&select=id,ativa&limit=1`);
+  if (!c.length || c[0].ativa === false) return false;
+
+  return true;
 }
 
 // Acha ou cria a conversa do par. O par é guardado em ordem para que
@@ -1464,6 +1640,7 @@ module.exports = {
   ofertar, feed, vitrine, quero, filaDaOferta, minhasOfertas, reservar, desfazerReserva,
   assinarAviso, novidades,
   listas, solicitar, responder, sairOuRemover,
+  agenda, bloquear, bloqueadas,
   verListasTransmissao, mexerNaLista, membrosDaLista,
   conversas, abrirConversa, mandarMensagem,
   grupos, abrirGrupo, mexerNoGrupo, mandarNoGrupo,

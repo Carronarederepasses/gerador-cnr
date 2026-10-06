@@ -80,6 +80,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .pedido-bts{display:flex;gap:.35rem;flex:none}
 .pedido-bts button{font-size:.8rem;padding:.3rem .6rem;min-width:2rem}
 .pedido-bts .ok{font-weight:700}
+/* ── Contatos da agenda ──────────────────────────────────────────── */
+.ag-topo{display:flex;flex-direction:column;gap:.5rem;padding:.2rem 0 .8rem}
+.ag-topo input[type=search]{width:100%}
+.ag-bts{display:flex;gap:.5rem;flex-wrap:wrap}
+.ag-trab{font-size:.78rem;color:var(--text-mid)}
+/* Mesma linha do item da coluna, mas aqui dentro do painel: sem borda
+   clicável, porque a ação é o botão da direita e não a linha toda. */
+.ag-item{display:flex;gap:.7rem;align-items:center;padding:.6rem 0;
+  border-bottom:1px solid var(--line)}
+.ag-item .txt{min-width:0;flex:1}
+.ag-item .t1{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-item .t2{font-size:.78rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;margin-top:.1rem}
+/* O pino diz o estado por FORMA e por cor: num tema preto e branco, cor
+   sozinha não é diferença suficiente. Cheio = está na rede, vazio = não. */
+.ag-pin{font-size:.7rem;vertical-align:.05rem}
+.ag-pin.na{color:var(--accent)}
+.ag-pin.fora{color:var(--text-faint);opacity:.5}
 .grupo{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);
   padding:.9rem .9rem .35rem;font-weight:700}
 
@@ -414,6 +432,13 @@ function desenharColuna() {
       aberto?.tipo === 'conversa' && aberto.id === c.conta_id,
       `abrirConversa('${c.conta_id}')`,
       c.nao_lidas ? String(c.nao_lidas) : '')).join('') : '') +
+    // A agenda primeiro, acima dos contatos já feitos: é por aqui que se
+    // acha gente nova, e é a primeira coisa que alguém faz ao chegar.
+    `<div class="grupo">Agenda</div>` +
+    linha('📇', 'Contatos',
+      AGENDA.length ? `${AGENDA.length} do aparelho · ${AGENDA_TEM.length} na rede`
+                    : 'ver quem da tua agenda já está aqui',
+      '', aberto?.tipo === 'agenda', 'abrirAgenda()') +
     `<div class="grupo">Contatos · ${dados.contatos.length}</div>` +
     (dados.contatos.length
       // Tocar num contato abre a conversa com ele — como no WhatsApp,
@@ -576,10 +601,14 @@ function acaoDoCarro(o, comFila) {
 function desenharPainel() {
   if (!aberto) return;
   $('pan-nome').textContent = aberto.nome;
-  $('pan-icone').textContent = { recebidos: '📥', todos: '👥', conversa: '💬', vitrine: '🏪' }[aberto.tipo] || '📣';
+  $('pan-icone').textContent = { recebidos: '📥', todos: '👥', conversa: '💬', vitrine: '🏪', agenda: '📇' }[aberto.tipo] || '📣';
   // Em "Chegou para mim" não se manda nada — é só o que os outros
   // mandaram. No feed se manda: é lá que a loja publica o estoque.
-  $('compor').hidden = aberto.tipo === 'recebidos';
+  // Na agenda também não: ali não se escreve, se procura gente.
+  $('compor').hidden = aberto.tipo === 'recebidos' || aberto.tipo === 'agenda';
+
+  if (aberto.tipo === 'agenda') { desenharAgenda(); return; }
+
   // Carro é conteúdo de transmissão, de grupo e do feed. Só na conversa
   // 1 a 1 o botão atrapalharia: lá se escreve.
   $('btn-carro').hidden = aberto.tipo === 'conversa';
@@ -615,7 +644,12 @@ function desenharPainel() {
   }
 
   if (aberto.tipo === 'conversa') {
-    $('pan-sub').textContent = 'conversa direta';
+    // Bloquear fica AQUI, dentro da conversa — é onde o incômodo acontece,
+    // e é onde a pessoa vai procurar. Um menu de configurações a três
+    // toques de distância não serve para quem quer que aquilo pare agora.
+    $('pan-sub').innerHTML = 'conversa direta'
+      + ` · <a href="#" onclick="bloquearLoja('${aberto.id}',${JSON.stringify(aberto.nome || '')});return false"`
+      + ' style="color:var(--text-faint)">bloquear</a>';
     $('thread').innerHTML = thread.length
       ? thread.map((m) => `
         <div class="balao msg-so ${m.minha ? '' : 'recebido'}">
@@ -973,6 +1007,9 @@ async function carregar() {
     // ficaram invisíveis. Esta é a porta que faltava para eles.
     if (!MEU_TELEFONE) { pedirMeuNumero(); return; }
 
+    // A agenda guardada neste aparelho, para a coluna já mostrar a conta
+    // certa em "Contatos" sem esperar a pessoa abrir a tela.
+    lerAgendaGuardada();
     desenharColuna();
     // Chegou pelo atalho do Painel (/rede.html#convidar): abre a janela
     // direto. Sem isto o botao de la so trocava de tela e deixava a
@@ -1026,6 +1063,313 @@ async function entrarAqui() {
   }
 }
 
+/* ══ CONTATOS DA AGENDA ═════════════════════════════════════════════
+ *
+ * "Olha a agenda do celular, me diz quem já tem o app, e deixa eu falar
+ * com essa pessoa" — o pedido do Yuri em 06/out, com o WhatsApp como
+ * referência de experiência, não de implementação.
+ *
+ * ── O QUE É HONESTO DIZER SOBRE ESTA VERSÃO ───────────────────────
+ *
+ * No navegador NÃO existe varredura automática da agenda. O seletor de
+ * contatos (`navigator.contacts.select`) existe só no Chrome do Android, e
+ * mesmo lá é o SISTEMA que mostra a lista e a pessoa marca quem quer — a
+ * página nunca recebe os 800 contatos por conta própria. No iPhone e no
+ * computador não existe nem isso.
+ *
+ * Então aqui:
+ *   • Android — a pessoa marca vários de uma vez no seletor do sistema;
+ *   • iPhone e computador — digita ou cola números, um por linha.
+ *
+ * O resto é idêntico ao que o app nativo vai fazer: normaliza, pergunta
+ * quais têm conta, separa em "já estão" e "convidar". No dia em que o app
+ * sair, troca-se SÓ a leitura da agenda — a comparação, a separação, o
+ * convite e a conversa continuam estes.
+ *
+ * ── ONDE A AGENDA FICA ────────────────────────────────────────────
+ *
+ * No aparelho, e só nele (`localStorage`). Os nomes NUNCA sobem para o
+ * servidor: o que sobe são números, para a comparação, e o servidor não
+ * guarda nada — nem os que casaram, nem os 793 que não casaram. É o item
+ * 6 do pedido dele, e o desenho todo depende disto: não existe tabela de
+ * agenda no banco para encher.
+ */
+const AGENDA_CHAVE = 'cnr_agenda';   // só neste aparelho
+let AGENDA = [];      // [{ nome, telefone }] — como a pessoa escolheu
+let AGENDA_TEM = [];  // os que têm conta: [{ telefone, conta_id, nome }]
+let AGENDA_BUSCA = '';
+let AGENDA_ESTADO = '';   // '', 'lendo', 'comparando'
+
+const TEM_AGENDA = !!(navigator.contacts && navigator.contacts.select);
+// O compartilhar do próprio aparelho — este o Safari do iPhone TEM. É o
+// que faz o convite sair pelo WhatsApp da pessoa sem o Gerador encostar na
+// conta de WhatsApp dela.
+const TEM_COMPARTILHAR = !!(navigator.share);
+
+function lerAgendaGuardada() {
+  try {
+    const bruto = localStorage.getItem(AGENDA_CHAVE);
+    AGENDA = bruto ? JSON.parse(bruto) : [];
+  } catch (e) { AGENDA = []; }    // aba privada, dado limpo: segue vazia
+  if (!Array.isArray(AGENDA)) AGENDA = [];
+}
+function guardarAgenda() {
+  try { localStorage.setItem(AGENDA_CHAVE, JSON.stringify(AGENDA)); } catch (e) { /* sem espaço: segue na memória */ }
+}
+
+function abrirAgenda() {
+  aberto = { tipo: 'agenda', id: null, nome: 'Contatos' };
+  lerAgendaGuardada();
+  desenharColuna(); desenharPainel(); verConversa();
+  // Já tem agenda guardada deste aparelho: compara de novo ao abrir, para
+  // quem criou conta depois do último olhar aparecer como "já está".
+  if (AGENDA.length && !AGENDA_TEM.length) compararAgenda();
+}
+
+// ── Ler a agenda ────────────────────────────────────────────────
+// No Android, pelo seletor do sistema: a permissão é pedida pelo próprio
+// aparelho, e nada chega aqui sem a pessoa marcar. Negar não quebra nada —
+// o resto do Gerador segue igual e este caminho fica indisponível, que é o
+// item 1 do pedido.
+async function lerDaAgenda() {
+  if (!TEM_AGENDA) return colarNumeros();
+  AGENDA_ESTADO = 'lendo'; desenharAgenda();
+  try {
+    const escolhidos = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+    const novos = [];
+    (escolhidos || []).forEach((c) => {
+      const nome = (c.name && c.name[0]) || '';
+      // Contato com mais de um número entra uma vez por número: é comum ter
+      // o fixo da loja e o celular do dono, e só um deles ser o do app.
+      (c.tel || []).forEach((t) => { if (t) novos.push({ nome, telefone: String(t) }); });
+    });
+    juntarNaAgenda(novos);
+  } catch (e) {
+    // Cancelou, ou o aparelho recusou. Não é erro: é uma escolha.
+  }
+  AGENDA_ESTADO = ''; desenharAgenda();
+  if (AGENDA.length) compararAgenda();
+}
+
+// iPhone e computador: cola os números, um por linha. Aceita "Nome, número"
+// para a lista sair com nome, que é o que torna a tela legível.
+function colarNumeros() {
+  $('dlg-corpo').innerHTML = `<h3>Contatos</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);line-height:1.55;margin-bottom:.8rem">
+      Este aparelho não deixa o site ler a agenda — só o aplicativo faz
+      isso. Por enquanto, cole os números aqui, um por linha. Pode ser
+      <em>Nome, número</em>.</p>
+    <textarea id="ag-colar" rows="7" placeholder="João da Oficina, 48 99999-0000
+Marcos Veículos, +55 48 98888-7777
+48 97777-6666"></textarea>
+    <div class="op" style="justify-content:flex-end;gap:.5rem">
+      <button class="leve" onclick="dlg.close()">Cancelar</button>
+      <button onclick="aceitarColados()">Procurar</button></div>`;
+  $('dlg').showModal(); $('ag-colar').focus();
+}
+
+function aceitarColados() {
+  const texto = ($('ag-colar') && $('ag-colar').value) || '';
+  const novos = [];
+  texto.split(/[\n;]+/).forEach((linha) => {
+    const t = linha.trim();
+    if (!t) return;
+    // "Nome, número" ou só o número. O nome é o que vem antes da última
+    // vírgula; o resto, o telefone.
+    const corte = t.lastIndexOf(',');
+    const nome = corte > 0 ? t.slice(0, corte).trim() : '';
+    const tel = corte > 0 ? t.slice(corte + 1).trim() : t;
+    if (/\d/.test(tel)) novos.push({ nome, telefone: tel });
+  });
+  $('dlg').close();
+  if (!novos.length) return;
+  juntarNaAgenda(novos);
+  compararAgenda();
+}
+
+// Junta sem repetir. O mesmo número salvo em dois contatos, e o mesmo
+// contato escolhido duas vezes, são a regra numa agenda de verdade.
+function juntarNaAgenda(novos) {
+  const chave = (c) => so(c.telefone);
+  const tenho = new Set(AGENDA.map(chave));
+  novos.forEach((c) => {
+    const k = chave(c);
+    if (!k || tenho.has(k)) return;
+    tenho.add(k);
+    AGENDA.push({ nome: c.nome || '', telefone: c.telefone });
+  });
+  guardarAgenda();
+  desenharAgenda();
+}
+
+// Só os dígitos, para comparar o que a pessoa digitou com o que voltou do
+// servidor. A normalização DE VERDADE é a do servidor (`_sessao.js`), uma
+// só para o login e para a agenda; esta aqui é só para casar a resposta
+// com a linha certa da tela.
+const so = (t) => String(t || '').replace(/\D/g, '');
+
+// ── Comparar: quem destes tem conta ─────────────────────────────
+// Sobem NÚMEROS, nunca nomes. E nada volta gravado em lugar nenhum.
+async function compararAgenda() {
+  if (!AGENDA.length) return;
+  AGENDA_ESTADO = 'comparando'; desenharAgenda();
+  try {
+    const r = await rede('agenda', { body: { telefones: AGENDA.map((c) => c.telefone) } });
+    AGENDA_TEM = r.contatos || [];
+  } catch (e) {
+    AGENDA_TEM = [];
+    alert('Não consegui conferir agora: ' + e.message);
+  }
+  AGENDA_ESTADO = ''; desenharAgenda();
+}
+
+function esquecerAgenda() {
+  if (!confirm('Esquecer os contatos guardados neste aparelho?\n\nNada é apagado da tua agenda — só a cópia que o Gerador tinha para comparar.')) return;
+  AGENDA = []; AGENDA_TEM = []; AGENDA_BUSCA = '';
+  try { localStorage.removeItem(AGENDA_CHAVE); } catch (e) { /* nada a fazer */ }
+  desenharAgenda();
+}
+
+// ── A tela ──────────────────────────────────────────────────────
+function desenharAgenda() {
+  if (!aberto || aberto.tipo !== 'agenda') return;
+  // O número que casou vem do servidor já normalizado; o da tela, não. Os
+  // últimos 8 dígitos casam os dois sem depender de DDD nem de código de
+  // país — é o que resolve "com DDD, sem DDD, com +55".
+  const fim = (t) => so(t).slice(-8);
+  const temConta = new Map(AGENDA_TEM.map((c) => [fim(c.telefone), c]));
+
+  const busca = AGENDA_BUSCA.trim().toLowerCase();
+  const casa = (c) => !busca
+    || (c.nome || '').toLowerCase().includes(busca)
+    || so(c.telefone).includes(so(busca));
+
+  const vistos = new Set();
+  const naRede = [], deFora = [];
+  AGENDA.filter(casa).forEach((c) => {
+    const loja = temConta.get(fim(c.telefone));
+    if (loja) {
+      // Duas linhas da agenda podem ser a mesma loja (fixo e celular).
+      // Na lista ela aparece uma vez.
+      if (vistos.has(loja.conta_id)) return;
+      vistos.add(loja.conta_id);
+      naRede.push({ ...c, loja });
+    } else {
+      deFora.push(c);
+    }
+  });
+
+  $('pan-sub').innerHTML = AGENDA.length
+    ? `${AGENDA.length} contato(s) neste aparelho · ${naRede.length} na rede`
+      + ` · <a href="#" onclick="esquecerAgenda();return false" style="color:var(--text-faint)">esquecer</a>`
+    : 'nenhum contato ainda';
+
+  const trabalhando = AGENDA_ESTADO === 'comparando' ? 'Conferindo…'
+    : AGENDA_ESTADO === 'lendo' ? 'Abrindo a agenda…' : '';
+
+  const linhaLoja = (c) => `
+    <div class="ag-item">
+      <div class="avatar">🏪</div>
+      <div class="txt">
+        <div class="t1">${esc(c.nome || c.loja.nome)}</div>
+        <div class="t2"><span class="ag-pin na">●</span> ${esc(c.loja.nome)} está na rede</div>
+      </div>
+      <div class="pedido-bts">
+        <button onclick="abrirConversa('${c.loja.conta_id}')">Conversar</button>
+      </div>
+    </div>`;
+
+  const linhaFora = (c) => `
+    <div class="ag-item">
+      <div class="avatar">👤</div>
+      <div class="txt">
+        <div class="t1">${esc(c.nome || c.telefone)}</div>
+        <div class="t2"><span class="ag-pin fora">●</span> ainda não usa o Gerador</div>
+      </div>
+      <div class="pedido-bts">
+        <button class="leve" onclick="convidar(${JSON.stringify(c.nome || '').replace(/"/g, '&quot;')})">Convidar</button>
+      </div>
+    </div>`;
+
+  $('thread').innerHTML =
+    `<div class="ag-topo">
+       <input type="search" id="ag-busca" placeholder="🔎 Buscar contato"
+              value="${esc(AGENDA_BUSCA)}" oninput="AGENDA_BUSCA=this.value;desenharAgenda()">
+       <div class="ag-bts">
+         <button onclick="lerDaAgenda()">${TEM_AGENDA ? '📇 Escolher da agenda' : '📋 Colar números'}</button>
+         ${AGENDA.length ? '<button class="leve" onclick="compararAgenda()">Atualizar</button>' : ''}
+       </div>
+       ${trabalhando ? `<div class="ag-trab">${trabalhando}</div>` : ''}
+     </div>`
+    + (!AGENDA.length
+      ? `<div class="vazio">${TEM_AGENDA
+          ? 'Escolha contatos da agenda e eu digo quais já estão na rede.'
+          : 'Este aparelho não deixa o site ler a agenda — só o aplicativo faz isso.<br>'
+            + 'Cole os números e eu digo quais já estão na rede.'}</div>`
+      : (naRede.length
+          ? `<div class="grupo">No Gerador · ${naRede.length}</div>` + naRede.map(linhaLoja).join('')
+          : '')
+        + (deFora.length
+          ? `<div class="grupo">Convidar · ${deFora.length}</div>` + deFora.map(linhaFora).join('')
+          : '')
+        + (!naRede.length && !deFora.length ? '<div class="vazio">Nenhum contato com esse nome.</div>' : ''));
+}
+
+/* ── Bloquear ────────────────────────────────────────────────────
+ *
+ * A válvula da regra nova: se quem tem o meu número me chama direto, tem
+ * de haver como calar quem incomoda. Não avisa a outra loja — bloqueio que
+ * avisa é discussão, não bloqueio.
+ */
+async function bloquearLoja(contaId, nome) {
+  if (!confirm(`Bloquear ${nome || 'esta loja'}?\n\n`
+    + 'Ela deixa de te mandar mensagem e carro. O que já foi dito continua escrito. '
+    + 'Ela não é avisada.')) return;
+  try {
+    await rede('bloquear', { body: { conta_id: contaId, bloquear: true } });
+    aberto = null;
+    AGENDA_TEM = [];            // ela sai da lista da agenda na próxima conferida
+    await carregar();
+    if (AGENDA.length) compararAgenda();
+    verLista();
+    alert('Bloqueada.');
+  } catch (e) { alert(e.message); }
+}
+
+/* ── O convite ───────────────────────────────────────────────────
+ *
+ * Abre o compartilhar do próprio aparelho: a pessoa escolhe WhatsApp, SMS,
+ * e-mail, o que ela usa. O Gerador não encosta na conta de WhatsApp dela.
+ *
+ * ── POR QUE O LINK NÃO LEVA CÓDIGO DE QUEM CONVIDOU ──────────────
+ *
+ * O pedido original pedia um link que identificasse o convite. Não vou
+ * pôr: o que identificaria a loja no link é o `conta_id`, e é justamente
+ * ele que permite abrir conversa com ela (a regra nova de 06/out). Num
+ * convite que vai ser encaminhado em grupo de WhatsApp, isso é a chave da
+ * porta circulando.
+ *
+ * E não precisa: quando a pessoa convidada criar conta com o número dela,
+ * ela aparece sozinha como "está na rede" na agenda de quem convidou —
+ * porque o número já está lá. A atribuição acontece pela agenda, sem
+ * token, sem registro e sem nada a vazar.
+ */
+async function convidar(nome) {
+  const texto = (nome ? `${nome}, ` : '')
+    + 'estou usando o Gerador da Carro na Rede para repasse de carros. '
+    + 'Entra lá também: ' + location.origin;
+  if (TEM_COMPARTILHAR) {
+    try { await navigator.share({ text: texto }); return; }
+    catch (e) { /* cancelou, ou o aparelho não abriu: cai na cópia */ }
+  }
+  try {
+    await navigator.clipboard.writeText(texto);
+    alert('Convite copiado. Cole no WhatsApp de quem tu queres chamar.');
+  } catch (e) {
+    alert(texto);   // último recurso: ao menos dá para copiar com a mão
+  }
+}
+
 /* ══ A PORTA DA REDE — pelo número, como na agenda ══════════════════
  *
  * Decisão do Yuri, 06/out: uma loja acha a outra "através da agenda,
@@ -1040,9 +1384,11 @@ async function entrarAqui() {
  *
  * Onde a agenda existe, ela entra como atalho. Onde não existe (iPhone,
  * notebook), a pessoa digita ou cola — mesmo resultado.
+ *
+ * `TEM_AGENDA` é declarado no bloco de Contatos, acima — um só, porque
+ * duas verificações do mesmo recurso viram duas respostas diferentes no
+ * dia em que uma delas mudar.
  */
-const TEM_AGENDA = !!(navigator.contacts && navigator.contacts.select);
-
 function entrarNumaLista() {
   $('dlg-corpo').innerHTML = `<h3>Entrar na lista de uma loja</h3>
     <p style="font-size:.85rem;color:var(--text-mid);line-height:1.55;margin-bottom:.8rem">

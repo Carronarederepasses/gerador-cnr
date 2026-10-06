@@ -63,9 +63,34 @@ const hash = (v) => crypto.createHash('sha256').update(PIMENTA + ':' + v).digest
  * "(48) 99999-0000" → "5548999990000"
  * Guardar de um jeito só evita o caso em que a pessoa cadastra com DDD e
  * entra sem, e o sistema diz que ela não existe.
+ *
+ * ── O "+" MANDA (06/out) ──────────────────────────────────────────
+ *
+ * Esta função é a ÚNICA normalização do sistema: o login usa, e a busca
+ * na agenda usa. Duas seriam a origem garantida do bug em que a pessoa
+ * aparece na agenda e não consegue entrar, ou o contrário.
+ *
+ * Até 06/out ela tratava todo número de 10 ou 11 dígitos como brasileiro
+ * sem código de país. Num número estrangeiro isso inventava um telefone:
+ * "+1 415 555 1234" tem 11 dígitos e virava "5514155551234" — um celular
+ * de São Paulo que não existe. Não dava problema porque só havia números
+ * brasileiros no banco; a agenda de um celular, não: ela tem o que a
+ * pessoa guardou a vida inteira.
+ *
+ * Então quem escreveu "+" (ou "00", que é o mesmo pedido) já disse o
+ * código do país, e esse número passa como está. Sem "+", continua a
+ * regra de antes — é como o Yuri e a mãe dele têm o número gravado.
  */
 function normalizar(telefone) {
-  let d = String(telefone || '').replace(/\D/g, '');
+  const bruto = String(telefone || '').trim();
+  // "+55 48…" e "0055 48…" dizem a mesma coisa: já vem com país.
+  const jaInternacional = /^\+/.test(bruto) || /^00\d/.test(bruto);
+  let d = bruto.replace(/\D/g, '');
+  if (jaInternacional) {
+    if (/^00/.test(d)) d = d.slice(2);
+    // A faixa da ITU (E.164): no mínimo 8 dígitos com país, no máximo 15.
+    return d.length >= 8 && d.length <= 15 ? d : '';
+  }
   if (d.length === 10 || d.length === 11) d = '55' + d;   // sem código do país
   return d.length >= 12 && d.length <= 13 ? d : '';
 }
@@ -442,6 +467,93 @@ async function meuTelefone(usuarioId, telefone) {
   return { ok: true, telefone: tel };
 }
 
+/* ══ A AGENDA: QUAIS DESTES NÚMEROS TÊM CONTA ═══════════════════════
+ *
+ * O coração da tela de Contatos, e a função mais delicada do arquivo —
+ * porque o que entra aqui é a agenda de alguém.
+ *
+ * ── O QUE ELA NÃO FAZ, E É O PONTO ────────────────────────────────
+ *
+ * Não grava nada. Nem os números, nem quem perguntou, nem quantos. Quem
+ * tem conta volta na resposta; quem não tem **não deixa rastro nenhum** —
+ * nenhuma linha, nenhum registro. Uma agenda de 800 contatos com 7 lojas
+ * dentro deixa o banco exatamente como estava.
+ *
+ * Era o item 6 do pedido do Yuri ("não quero que a agenda inteira seja
+ * armazenada"), e é o desenho inteiro: não existe tabela de agenda para
+ * encher. Se um dia alguém quiser "lembrar" a agenda para ficar mais
+ * rápido, é aqui que a decisão tem que ser refeita de propósito.
+ *
+ * ── POR QUE NÃO EMBARALHADO ───────────────────────────────────────
+ *
+ * A saída óbvia seria o telefone mandar o número embaralhado em vez do
+ * número. Não protege: celular brasileiro tem poucas combinações
+ * possíveis, e testar todas para descobrir qual era é questão de segundos
+ * numa máquina comum. Quem leva isso a sério de verdade (o Signal)
+ * precisou de um cofre de hardware. Então o desenho honesto é o do
+ * WhatsApp — número pela linha protegida, compara, **esquece** — e não
+ * uma cerimônia que parece proteção e não é.
+ *
+ * ── O QUE AINDA FICA EM ABERTO ────────────────────────────────────
+ *
+ * Quem tem sessão pode perguntar por muitos números, e mandando números
+ * inventados em sequência descobriria quem está na rede. Hoje isso é
+ * pequeno: só loja com conta aberta por convite alcança esta função, e
+ * são três. **Quando o cadastro abrir para qualquer um**, isto precisa de
+ * um freio por hora, como o `codigos` já tem para o SMS. Fica escrito
+ * aqui porque é o tipo de coisa que ninguém lembra depois.
+ */
+
+// Teto por pedido. A agenda vai em pedaços, e o pedaço existe por dois
+// motivos: a URL do PostgREST tem limite de tamanho, e um pedido gigante
+// é o que estoura o tempo da função na Vercel.
+const AGENDA_POR_PEDIDO = 400;
+const AGENDA_POR_CONSULTA = 120;
+
+async function contasPorTelefones(lista) {
+  // Normaliza, joga fora o que não é telefone, e tira repetido — contato
+  // duplicado e o mesmo número salvo em dois contatos são a regra numa
+  // agenda de verdade, não a exceção.
+  const nums = [...new Set(
+    (Array.isArray(lista) ? lista : []).map(normalizar).filter(Boolean)
+  )].slice(0, AGENDA_POR_PEDIDO);
+  if (!nums.length) return [];
+
+  // Em pedaços: `in.(...)` com 400 números faria uma URL que o banco
+  // recusa por tamanho, e o erro apareceria como "nenhum contato tem
+  // conta" — uma mentira silenciosa, que é a pior forma de falhar.
+  const usuarios = [];
+  for (let i = 0; i < nums.length; i += AGENDA_POR_CONSULTA) {
+    const pedaco = nums.slice(i, i + AGENDA_POR_CONSULTA);
+    usuarios.push(...await sb(
+      `usuarios?telefone=in.(${pedaco.join(',')})&select=id,telefone`
+    ));
+  }
+  if (!usuarios.length) return [];
+
+  const membros = await sb(
+    `conta_membros?usuario_id=in.(${usuarios.map((u) => u.id).join(',')})&select=usuario_id,conta_id,papel`
+  );
+  if (!membros.length) return [];
+
+  const contas = await sb(
+    `contas?id=in.(${[...new Set(membros.map((m) => m.conta_id))].join(',')})&select=id,nome,ativa`
+  );
+  const porId = Object.fromEntries(contas.map((c) => [c.id, c]));
+
+  return usuarios.map((u) => {
+    // Prefere o dono, como em `contaPeloTelefone`: é o único papel que
+    // representa a loja sem ambiguidade.
+    const meus = membros.filter((m) => m.usuario_id === u.id);
+    const m = meus.find((x) => x.papel === 'dono') || meus[0];
+    const c = m && porId[m.conta_id];
+    // Loja desativada não é contato: a pessoa saiu. Devolver a conta aqui
+    // abriria uma conversa que nunca seria respondida.
+    if (!c || c.ativa === false) return null;
+    return { telefone: u.telefone, conta_id: c.id, nome: c.nome };
+  }).filter(Boolean);
+}
+
 /** O número que está gravado, para a tela mostrar o que ela vai editar. */
 async function meuTelefoneAtual(usuarioId) {
   if (!usuarioId) return null;
@@ -468,6 +580,8 @@ module.exports = {
   contaDaSessao,
   encerrarSessao,
   contaPeloTelefone,
+  contasPorTelefones,
+  AGENDA_POR_PEDIDO,
   meuTelefone,
   meuTelefoneAtual,
   normalizar,

@@ -731,6 +731,13 @@ module.exports = async (req, res) => {
     if (acao === 'solicitar' && req.method === 'POST') return rede.solicitar(req, res);
     if (acao === 'responder' && req.method === 'POST') return rede.responder(req, res);
     if (acao === 'sair'      && req.method === 'POST') return rede.sairOuRemover(req, res);
+    // A agenda do aparelho (06/out): manda números, recebe quem tem conta.
+    // POST porque a lista de números NÃO vai na URL — endereço fica em
+    // registro de servidor, de proxy e de histórico, e isto é agenda de
+    // alguém. Mesma razão pela qual não se põe CPF em query.
+    if (acao === 'agenda'    && req.method === 'POST') return rede.agenda(req, res);
+    if (acao === 'bloquear'  && req.method === 'POST') return rede.bloquear(req, res);
+    if (acao === 'bloqueadas' && req.method === 'GET') return rede.bloqueadas(req, res);
     // Listas de transmissão (padrão WhatsApp): recortes nomeados dos contatos.
     if (acao === 'transmissao' && req.method === 'GET')  return rede.verListasTransmissao(req, res);
     if (acao === 'transmissao' && req.method === 'POST') return rede.mexerNaLista(req, res);
