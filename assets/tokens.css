@@ -66,6 +66,27 @@
   --accent:        #f5f5f5;  /* no preto, a tinta é branca */
   --accent-soft:   #1f1f1f;
 
+  /* ── Contorno que se vê, e texto sobre a tinta (06/out) ──────────
+     `--line` (#262626) tem 1.31:1 contra o papel: serve para separar
+     seções, e NÃO serve para desenhar a volta de um objeto — um balão de
+     conversa com esse contorno simplesmente não aparece. Foi assim que a
+     conversa 1 a 1 ficou ilegível: o texto estava em 16:1, mas os balões
+     estavam em 1.08 e 1.20 contra o papel e 1.11 um contra o outro, então
+     dava para ler as palavras e não para ver quem disse o quê. [YURI,
+     06/out: "as cores não dá pra ver a conversa"]
+
+     `--line-strong` tem 3.45:1 — o mínimo para um objeto de interface ter
+     borda perceptível. Use quando a borda é o CONTORNO de algo; `--line`
+     continua sendo a linha que divide.
+
+     `--on-accent-mid` é o cinza secundário DENTRO de um bloco de tinta
+     branca (hora, legenda). Ali `--text-mid` e `--text-faint` não servem:
+     foram feitos para o preto e sobre branco somem. É a armadilha que o
+     comentário no topo deste arquivo já avisava — "nunca #fff fixo sobre
+     --accent" — vista pelo outro lado. */
+  --line-strong:   #666666;
+  --on-accent-mid: #5a5a5a;
+
   --severity-ok:   #63b98d;
   --severity-warn: #d6a75a;
   --severity-crit: #e0846a;
@@ -202,5 +223,6 @@ html.marca-propria body::before{
   --surface:#0a0a0a; --surface-raise:#151515; --text:#f5f5f5;
   --text-mid:#a3a3a3; --text-faint:#7c7c7c; --line:#262626;
   --accent:#f5f5f5; --accent-soft:#1f1f1f;
+  --line-strong:#666666; --on-accent-mid:#5a5a5a;
   --severity-ok:#63b98d; --severity-warn:#d6a75a; --severity-crit:#e0846a;
 }

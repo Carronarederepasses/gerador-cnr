@@ -199,6 +199,44 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .balao.msg-so .msg{margin-top:0}
 .balao.msg-so .rodape{border-top:none;padding-top:.25rem;margin-top:.2rem}
 
+/* ── O QUE EU DISSE × O QUE ELE DISSE (06/out) ───────────────────
+   [YURI: "achei o Nogueira no chat, mas as cores não dá pra ver a
+   conversa"] — e ele estava certo, com números: o texto estava em 16:1,
+   ótimo, mas o balão tinha 1.20:1 contra o papel, o dele 1.08, e um
+   contra o outro 1.11. Lia-se as palavras e não se via quem falou. Num
+   chat isso não é detalhe de acabamento: é a informação principal.
+
+   Em papel preto, preenchimento cinza NÃO separa — medi quatro tons e o
+   melhor deu 2.06:1, e aí o texto branco já começa a sofrer. O que
+   funciona é a assimetria que este arquivo de cores já usa nos botões
+   cheios: **o meu balão é tinta** (branco com texto preto, 18:1 contra o
+   papel), **o dele é papel com contorno visível** (3.45:1). Um não se
+   confunde com o outro nem de relance, e nenhuma cor entrou — a paleta
+   continua preta e branca, com matiz reservado a gravidade.
+
+   Vale só no balão de CONVERSA (`.msg-so`). O cartão de carro fica como
+   está: inverter um cartão com foto, preço, selos e botões é outra
+   mudança, e não é a que ele pediu. */
+.balao.msg-so{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.balao.msg-so::after{border-left-color:var(--accent)}
+.balao.msg-so::before{border-left-color:var(--accent)}
+/* Dentro da tinta, o cinza do tema escuro desaparece: hora e legenda
+   precisam do cinza feito para o branco. */
+.balao.msg-so .rodape, .balao.msg-so .hora, .balao.msg-so .meta,
+.balao.msg-so .origem{color:var(--on-accent-mid)}
+.balao.msg-so .visto, .balao.msg-so .visto.lido{color:var(--surface)}
+
+.balao.msg-so.recebido{background:var(--surface-raise);color:var(--text);
+  border-color:var(--line-strong)}
+.balao.msg-so.recebido::before{border-right-color:var(--line-strong);border-left-color:transparent}
+.balao.msg-so.recebido::after{border-right-color:var(--surface-raise);border-left-color:transparent}
+.balao.msg-so.recebido .rodape, .balao.msg-so.recebido .hora{color:var(--text-mid)}
+
+/* A hora dentro do cartão de carro estava em 3.95:1 e 4.37:1 — abaixo do
+   mínimo de leitura confortável. `--text-mid` resolve e não muda mais
+   nada do cartão. */
+.balao .hora{color:var(--text-mid)}
+
 /* ── Cartão de carro ─────────────────────────────────────────
    A foto vem primeiro porque é assim que se olha carro: a pessoa
    reconhece o modelo antes de ler o nome dele. `aspect-ratio` fixo para
@@ -254,8 +292,29 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .dlg h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:.8rem}
 .dlg .op{display:flex;align-items:center;justify-content:space-between;gap:.6rem;
   padding:.6rem 0;border-top:1px solid var(--line);font-size:.9rem}
-.dlg input[type=text]{width:100%;font-family:inherit;font-size:.95rem;padding:.6rem .7rem;
-  border:1px solid var(--line);border-radius:var(--r, 8px);background:var(--surface);color:var(--text)}
+/* ── TODO campo de texto, não só `type=text` (06/out) ──────────────
+   Era `.dlg input[type=text]` e só. Os campos que entraram hoje são
+   `type=tel` (número) e `type=search` (buscar contato), e esses ficavam
+   SEM estilo nenhum: fundo e cor a gosto do navegador, dentro de uma tela
+   preta. Num tema de cor única, campo sem cor declarada é campo que
+   desaparece — e quem está de celular na rua não vai adivinhar que há um
+   campo ali.
+
+   Selecionado por tipo, não por classe, e fora do `.dlg`: os campos agora
+   aparecem também na barra do painel e na tela de cadastro, e na próxima
+   vez que eu puser um campo em qualquer lugar ele já nasce vestido. É
+   assim que este defeito não volta. */
+input[type=text], input[type=tel], input[type=search], input[type=email],
+input[type=number], input[type=url]{
+  width:100%;font-family:inherit;font-size:.95rem;padding:.6rem .7rem;
+  border:1px solid var(--line);border-radius:var(--r, 8px);
+  background:var(--surface);color:var(--text)}
+input:focus{outline:none;border-color:var(--accent)}
+/* O texto de dica também: sem isto ele herda um cinza do navegador que,
+   no preto, ou grita ou desaparece. */
+input::placeholder, textarea::placeholder{color:var(--text-faint);opacity:1}
+/* O X do campo de busca vem escuro sobre escuro no WebKit. */
+input[type=search]::-webkit-search-cancel-button{filter:invert(1);opacity:.5}
 </style>
 </head>
 <body>
