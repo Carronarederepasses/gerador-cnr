@@ -159,6 +159,25 @@ module.exports = async (req, res) => {
   if (!anoMatch) return res.status(400).json({ error: 'ano inválido' });
   const anoLimpo = anoMatch[0];
 
+  /* ── PRAZO DA BUSCA INTEIRA (06/out) ────────────────────────────
+   *
+   * O `vercel.json` dá 300 segundos a esta função, e a busca não tinha
+   * prazo nenhum. Quando a marca não casa de primeira, o caminho de baixo
+   * varre ~35 marcas, e depois anos e preços de cada candidato — dezenas
+   * de chamadas de rede. Em 06/out o Yuri ficou **3 minutos** olhando
+   * "Buscando FIPE..." sem erro e sem resultado, porque nada interrompia.
+   *
+   * 25 segundos é o limite: passou disso, a busca para onde está e
+   * responde com o que já tem. Melhor um "não identifiquei, use a busca
+   * manual" em 25s do que a resposta certa em três minutos — que ninguém
+   * espera, e que na prática virou uma tela travada.
+   *
+   * Não é o prazo da função: é o prazo da PACIÊNCIA de quem está olhando.
+   */
+  const COMECOU = Date.now();
+  const PRAZO_BUSCA = 25000;
+  const estourou = () => Date.now() - COMECOU > PRAZO_BUSCA;
+
   try {
     const vLower = BRAND_ALIASES.reduce((s, [re, rep]) => s.replace(re, rep), veiculo.toLowerCase());
 
@@ -212,6 +231,17 @@ module.exports = async (req, res) => {
       const listas = await emParalelo(marcasTentativas, 12, buscaModelos);
       for (const lista of listas) candidatos = candidatos.concat(lista);
       candidatos.sort((a, b) => b.score - a.score);
+    }
+
+    // Esta varredura é a parte caríssima. Se ela sozinha estourou o prazo,
+    // continuar para anos e preços só adia a resposta — e quem está olhando
+    // já esperou demais.
+    if (estourou() && candidatos.length === 0) {
+      console.log(`fipe-search: prazo de ${PRAZO_BUSCA}ms estourado sem candidato — "${veiculo}" ${anoLimpo}`);
+      return res.status(200).json({
+        found: false, motivo: 'demorou',
+        error: 'A busca da FIPE demorou demais. Use a busca manual.',
+      });
     }
 
     if (candidatos.length === 0) {
@@ -329,6 +359,11 @@ module.exports = async (req, res) => {
     // trabalham em memória.
     const anosDe = new Map();
     await emParalelo(topCands, 6, async (c) => {
+      // Estourado o prazo, os candidatos que faltam não são buscados. Os
+      // que já vieram seguem valendo — a lista está ordenada por nota, e os
+      // primeiros são os mais prováveis. Responder com os 12 melhores em
+      // 25s é melhor que com os 30 em três minutos.
+      if (estourou()) return;
       const chave = `${c.marca.codigo}/${c.modelo.codigo}`;
       anosDe.set(chave, await fipeGet(`/marcas/${c.marca.codigo}/modelos/${c.modelo.codigo}/anos`));
     });
@@ -379,7 +414,11 @@ module.exports = async (req, res) => {
       // anúncio que dizia R$ 298 mil. Lá a resposta foi AVISAR da divergência;
       // aqui ela é escolher certo. O aviso continua, como rede de segurança.
       const alvo = Number(fipeTexto);
-      if (Number.isFinite(alvo) && alvo > 0 && comAno.length > 1) {
+      // Desempatar por preço é um luxo: custa uma chamada por candidato e
+      // só serve para escolher ENTRE carros que já casaram. Estourado o
+      // prazo, pula-se o desempate e vale a nota — que é como a busca
+      // sempre funcionou antes de o desempate existir.
+      if (Number.isFinite(alvo) && alvo > 0 && comAno.length > 1 && !estourou()) {
         const emReais = (s) => {
           const n = parseFloat(String(s || '').replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
           return Number.isFinite(n) && n > 0 ? n : null;

@@ -888,14 +888,24 @@ async function religarFipe(id) {
   const ano  = v.ano_int || v.ano || '';
   if (!nome || !ano) { alert('Precisa do nome do carro e do ano para religar.'); return; }
 
+  // Prazo de 30s. Sem ele, uma busca que não casa a marca varre marca por
+  // marca e o `vercel.json` deixa a função rodar 300 segundos — e aqui não
+  // existe nem a frase "buscando" para a pessoa saber que algo acontece.
+  // Foi o que o Yuri pegou na aba Parceiros em 06/out, e é o mesmo defeito.
+  const corta = new AbortController();
+  const desiste = setTimeout(() => corta.abort(), 30000);
   try {
     const r = await fetch('/api/fipe-search', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', signal: corta.signal,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ veiculo: nome, ano: String(ano), combustivel: v.combustivel || '' }),
     });
+    clearTimeout(desiste);
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.found || !d.ref) {
-      alert('Não achei esse carro na FIPE' + (d.reason ? `: ${d.reason}` : '.')
+      alert((d.motivo === 'demorou'
+        ? 'A busca da FIPE demorou demais.'
+        : 'Não achei esse carro na FIPE' + (d.reason ? `: ${d.reason}` : '.'))
         + '\n\nO valor atual fica como está.');
       return;
     }
@@ -916,7 +926,12 @@ async function religarFipe(id) {
     if (!p.ok) throw new Error((await p.json().catch(() => ({}))).error || 'HTTP ' + p.status);
     carregar();
   } catch (e) {
-    alert('Não consegui religar: ' + e.message);
+    clearTimeout(desiste);
+    // Cortada pelo prazo não é "não consegui": é "demorou". A pessoa precisa
+    // saber se vale tentar de novo ou se o caminho é a busca manual.
+    alert(e && (e.name === 'AbortError' || /abort/i.test(e.message || ''))
+      ? 'A busca da FIPE demorou demais.\n\nO valor atual fica como está — tente de novo ou use a busca manual.'
+      : 'Não consegui religar: ' + e.message);
   }
 }
 

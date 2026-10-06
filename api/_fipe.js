@@ -82,6 +82,35 @@ function cabecalhos() {
  * Busca um caminho da FIPE, com cache. Devolve o JSON já convertido.
  * Lança quando não há como responder — inclusive sem cópia guardada.
  */
+/* ── PRAZO PARA CADA CHAMADA (06/out) ──────────────────────────────
+ *
+ * Até hoje o `fetch` daqui não tinha prazo. Uma conexão que abre e não
+ * responde fica pendurada **para sempre** — e a busca completa da FIPE faz
+ * dezenas dessas chamadas, em lotes. Uma pendurada trava o lote inteiro.
+ *
+ * Foi assim que o Yuri ficou 3 minutos olhando "Buscando FIPE..." em
+ * 06/out, sem erro e sem resultado: o `vercel.json` permite 300 segundos de
+ * função, então ninguém interrompia nada.
+ *
+ * 6 segundos é folgado para esta fonte (medida em 621ms com a lista de
+ * marcas no mesmo dia). Estourar é tratado como erro de rede, que já sabe
+ * cair na cópia guardada.
+ *
+ * ── E POR QUE SÓ DUAS TENTATIVAS QUANDO É PRAZO ───────────────────
+ *
+ * Com as três tentativas de sempre, uma fonte muda custava 8+8+8 mais as
+ * esperas = **26 segundos numa chamada só** — mais que o prazo inteiro da
+ * busca, que é de 25. Prazo que não cabe dentro do outro não serve de
+ * nada, e foi o teste contra um servidor que aceita a conexão e nunca
+ * responde que mostrou isso.
+ *
+ * E faz sentido: prazo estourado não é soluço de rede, é a fonte parada.
+ * Insistir três vezes contra uma porta fechada é o mesmo erro do 429,
+ * resolvido logo acima. Duas tentativas, ~13s no pior caso, cabe.
+ */
+const PRAZO_CHAMADA = 6000;
+const TENTATIVAS_NO_PRAZO = 2;
+
 async function fipeGet(path, retries = 3) {
   const guardado = CACHE.get(path);
   if (guardado && guardado.expira > Date.now()) return guardado.valor;
@@ -89,7 +118,13 @@ async function fipeGet(path, retries = 3) {
   let ultimoErro;
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(`${FIPE_BASE}${path}`, { headers: cabecalhos() });
+      const res = await fetch(`${FIPE_BASE}${path}`, {
+        headers: cabecalhos(),
+        // `AbortSignal.timeout` existe no Node 18+, que é o da Vercel. O
+        // `||` é para ambiente antigo não derrubar a chamada inteira por
+        // causa do prazo — sem prazo é pior, mas é o que havia antes.
+        signal: AbortSignal.timeout ? AbortSignal.timeout(PRAZO_CHAMADA) : undefined,
+      });
 
       if (res.ok) {
         const dados = await res.json();
@@ -113,7 +148,11 @@ async function fipeGet(path, retries = 3) {
       break;
     } catch (e) {
       ultimoErro = e;
-      if (i === retries - 1) break;
+      // Prazo estourado: a fonte está parada, não soluçando. Para na
+      // segunda, para a soma caber no prazo da busca inteira.
+      const foiPrazo = e && (e.name === 'TimeoutError' || e.name === 'AbortError');
+      const limite = foiPrazo ? Math.min(retries, TENTATIVAS_NO_PRAZO) : retries;
+      if (i >= limite - 1) break;
       await new Promise(r => setTimeout(r, 600 * (i + 1)));
     }
   }

@@ -385,24 +385,81 @@ const _soNumero = (t) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+/* ── O QUE FALTOU PARA A FIPE (06/out) ──────────────────────────────
+ *
+ * A FIPE é uma tabela por **ano-modelo**: sem ano não existe valor a
+ * buscar, e sem o nome do carro não existe o que procurar. Não é um
+ * detalhe a contornar — é a resposta.
+ *
+ * Esta função existe para a tela DIZER qual campo falta, em vez de ficar
+ * escrevendo "Buscando FIPE..." sobre uma busca que nunca vai acontecer.
+ * Foi assim que o Yuri esperou três minutos em 06/out, e foi ele quem
+ * achou a causa: *"no texto não constava o ano"*.
+ *
+ * O ano vem primeiro na frase porque é o que falta na maioria das vezes:
+ * anúncio de loja quase sempre traz o modelo e quase sempre esquece o ano.
+ */
+function semAnoOuVeiculo(data) {
+  const temAno = Boolean(data && data.ano);
+  const temVeiculo = Boolean(data && data.veiculo);
+  if (!temAno && !temVeiculo) {
+    return 'o texto não trouxe o carro nem o ano, então não dá para buscar a FIPE. '
+      + 'Preencha abaixo. 👇';
+  }
+  // Texto puro: `setParcSt` e `setParseSt` escrevem com `textContent`, então
+  // marcação aqui sairia como letra na tela.
+  if (!temAno) {
+    return 'o texto não trouxe o ANO, e a FIPE é por ano do modelo. '
+      + 'Escolha abaixo. 👇';
+  }
+  return 'o texto não trouxe o nome do carro, então não dá para buscar a FIPE. '
+    + 'Escolha abaixo. 👇';
+}
+
 async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel) {
   const avisoP = parcial ? ' ⚠️ Do link vieram só veículo e ano — preencha KM, cor, preço e região.' : '';
   // A FIPE que veio escrita no anúncio, antes de qualquer sobrescrita. É a
   // referência para saber se a busca casou o carro certo — ver abaixo.
   const fipeDoTexto = _soNumero(document.getElementById('colet-fipe')?.value);
   try {
+    /* ── A TELA TEM DE FALAR (06/out) ────────────────────────────
+     * [YURI: "tá buscando fipe faz uns 3min e nada"] A tela escrevia
+     * "Buscando FIPE..." e esperava sem prazo. O `vercel.json` dá 300
+     * segundos à função, então, quando a busca não casava a marca de
+     * primeira e saía varrendo marca por marca, dava exatamente isso:
+     * minutos de uma frase parada, sem erro e sem resultado.
+     *
+     * É o mesmo defeito de 05/out na captação da OLX, e a mesma conclusão:
+     * não dá para evitar que demore — dá para **falhar falando**. Aos 10s
+     * a frase muda e diz que está demorando; aos 30 desiste e abre a busca
+     * manual, que resolve na mão em dois toques.
+     *
+     * O prazo da tela (30s) é maior que o do servidor (25s) de propósito:
+     * assim a resposta dele, inclusive o "não identifiquei", chega primeiro
+     * e a mensagem certa aparece em vez da genérica.
+     */
     setParseSt('Buscando FIPE...', '');
+    const avisoDemora = setTimeout(
+      () => setParseSt('Buscando FIPE — está demorando…', ''), 10000);
+    const corta = new AbortController();
+    const desiste = setTimeout(() => corta.abort(), 30000);
     const resp = await fetch('/api/fipe-search', {
       method: 'POST',
+      signal: corta.signal,
       headers: { 'Content-Type': 'application/json' },
       // O valor que o anúncio declara vai junto: a busca usa ele para
       // desempatar entre versões do mesmo carro, cujos nomes não distinguem
       // ("1.0M Comfort Plus" x "1.0M Vision") mas cujos preços sim.
       body: JSON.stringify({ veiculo: veiculoTexto, ano: anoTexto, combustivel, fipeTexto: fipeDoTexto }),
     });
+    // Respondeu: os dois relógios param aqui, senão o aviso de demora
+    // aparece depois do resultado e o corte derruba o que já deu certo.
+    clearTimeout(avisoDemora); clearTimeout(desiste);
     const data = await resp.json();
     if (!resp.ok || !data.found) {
-      setParseSt('✓ Campos preenchidos — FIPE não identificada. Use a busca manual abaixo. 👇' + avisoP, 'ok');
+      setParseSt('✓ Campos preenchidos — '
+        + (data && data.motivo === 'demorou' ? 'a busca da FIPE demorou demais' : 'FIPE não identificada')
+        + '. Use a busca manual abaixo. 👇' + avisoP, 'ok');
       abrirCascataColet();
       return;
     }
@@ -471,7 +528,14 @@ async function buscarFIPEColetados(veiculoTexto, anoTexto, parcial, combustivel)
     // Busca preços no Mercado Livre para contexto de mercado
     buscarMercadoML(`${veiculoTexto} ${anoTexto}`, 'cml-st');
   } catch(e) {
-    setParseSt('✓ Campos preenchidos — FIPE indisponível. Use a busca manual abaixo. 👇' + avisoP, 'ok');
+    clearTimeout(avisoDemora); clearTimeout(desiste);
+    // Cortada pelo prazo é diferente de indisponível: a primeira é nossa
+    // demora, a segunda é a fonte fora do ar. Dizer a mesma frase para as
+    // duas faz a pessoa tentar de novo esperando outro resultado.
+    const cortou = e && (e.name === 'AbortError' || /abort/i.test(e.message || ''));
+    setParseSt('✓ Campos preenchidos — '
+      + (cortou ? 'a busca da FIPE demorou demais' : 'FIPE indisponível')
+      + '. Use a busca manual abaixo. 👇' + avisoP, 'ok');
     abrirCascataColet();
     console.error('buscarFIPEColetados:', e);
   }
@@ -750,12 +814,25 @@ async function processarParceiro() {
     }
     mapOpcionais(data.opcionais);
 
-    setParcSt('✓ Campos preenchidos. Buscando FIPE...', 'ok');
-
-    // Dispara busca FIPE igual ao fluxo "Texto / Link"
+    /* ── "BUSCANDO FIPE..." QUE NUNCA BUSCAVA (06/out) ────────────
+     * A frase era escrita ANTES da decisão de buscar. Sem ano no texto, o
+     * `if` abaixo não entra — e a frase ficava ali, parada, para sempre.
+     *
+     * O Yuri esperou três minutos e foi ele quem achou a causa: *"no texto
+     * não constava o ano"*. Ele não esperou uma busca lenta; esperou uma
+     * busca que **nunca começou**.
+     *
+     * A FIPE não existe sem ano: a tabela é por ano-modelo. Então a falta
+     * do ano não é um detalhe a contornar — é a resposta, e tem de ser
+     * dita na hora, apontando o campo que falta.
+     */
     if (data.veiculo && data.ano) {
+      setParcSt('✓ Campos preenchidos. Buscando FIPE...', 'ok');
       _coletFipeManual = false; // novo processamento → permite busca automática
       await buscarFIPEColetados(data.veiculo, data.ano, false, data.combustivel);
+    } else {
+      setParcSt('✓ Campos preenchidos — ' + semAnoOuVeiculo(data), 'ok');
+      abrirCascataColet();
     }
 
     toast('Dados extraídos com sucesso!');
@@ -941,9 +1018,15 @@ async function processarIA() {
     // Os dois comentários que estavam aqui se contradiziam — um dizia "se não
     // veio no texto", o outro "sempre busca, ignora o texto" — e o que valia
     // era o segundo. Foi por isso que a X6 saiu com a FIPE de outro carro.
+    // Mesmo defeito do outro caminho, mesma correção: a frase acima já
+    // prometeu "buscando FIPE", e sem ano a busca não acontece.
     if (data.veiculo && data.ano) {
       _coletFipeManual = false; // novo processamento → permite busca automática
       buscarFIPEColetados(data.veiculo, data.ano, linkParcial, data.combustivel);
+    } else {
+      setParseSt('✓ Preenchido: ' + (preenchidos || 'nenhum campo detectado')
+        + ' — ' + semAnoOuVeiculo(data), 'ok');
+      abrirCascataColet();
     }
     mostrarMatchPopup(data.veiculo ? data.veiculo.split(' ')[0] : null, data.valor);
 
