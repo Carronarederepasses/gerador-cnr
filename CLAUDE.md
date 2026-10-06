@@ -522,7 +522,7 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 > autorização; e a atualização nunca altera código do produto por conta
 > própria.
 
-### Estado em 4 de outubro de 2026
+### Estado em 5 de outubro de 2026
 
 **Em produção** (`gerador-cnr.vercel.app`, deploy automático no push):
 captação e parceiros, catálogo, vendas, clientes, negociações, agenda,
@@ -547,6 +547,38 @@ e `destino_venda`) e o filtro "Catálogo". `valor` sempre foi o preço de
 lojista. É só visualização, no aparelho, e **só para a loja dona da
 instalação**.
 
+**Anúncio:** carro blindado leva `*(SEM BLINDAGEM)*` na FIPE, e a blindagem
+sai como `Blindado <marca> · Vidros <marca>` — são fabricantes diferentes
+(VRZ blinda, AGP faz o vidro). Vale nas duas abas; as linhas são gêmeas.
+
+### A captação pela OLX, depois de 05/out
+
+O caminho tem três peças e todas foram mexidas no mesmo dia:
+
+- **abrir a conversa** — o `?list-id=` só serve para conversa que já
+  existe. Sem campo de escrever, a extensão entra pela **página do
+  anúncio** e clica no botão Chat (achado pelo texto), seguindo o chat
+  mesmo que ele abra em outra aba
+- **a aba** — uma só, *procurada* e não lembrada: o service worker morre a
+  cada ~30s parado e esquecia qual era
+- **os tempos** — a página espera 40s pela extensão, avisa aos 12s sem
+  desistir, e continua ouvindo depois de desistir; o `olx-chat.js` espera
+  24s pelo campo
+
+**Anúncio fora do ar:** a OLX responde **HTTP 410**. Duas vias, as duas no
+navegador dele (a OLX recusa 403 quem não é navegador):
+- a varredura confere **10 dos mais antigos por hora**;
+- o botão **🧹 Limpar excluídos** confere tudo, em pedaços de 25.
+
+Dúvida — 403, 500, queda de rede — **não mata anúncio**. Só `410` e `404`,
+e só os que estão como `novo`.
+
+> **Primeira limpeza (05/out): 85 de 213 anúncios já não existiam.**
+> Metade do que o radar trouxe era fantasma quando ele ia abordar.
+
+> **Logs `[CNR diag]` temporários** no `sw.js`. Remover quando o caminho
+> estiver de pé por alguns dias.
+
 **O que ainda roda separado:** o projeto `cnr-piloto` no Supabase, vazio,
 no ar só até o Bruno confirmar que entrou pelo endereço novo. Apagar
 depois disso libera o espaço que trava a terceira loja.
@@ -555,16 +587,22 @@ depois disso libera o espaço que trava a terceira loja.
 atingido — modo novo entra como query param ou arquivo `_`), 2 projetos no
 Supabase grátis, FIPE 1.000 consultas/dia com token.
 
+> **GitHub Pages do `gerador-cnr` foi desligado em 05/out** (Unpublish +
+> Branch → None). Ele publicava o repositório privado inteiro — incluindo o
+> `HISTORICO.md` — num endereço aberto. A extensão nunca teve Pages. **Ao
+> publicar qualquer coisa, conferir o que ficou aberto.**
+
 ### Pendências
 
 | | |
 |---|---|
 | Link do Bruno | mandar pelo **Safari**; mensagem pronta na conversa de 04/out. Depois que ele entrar, apagar o `cnr-piloto` |
-| Teto na chave do OpenRouter | está **sem teto** e o Bruno passou a usar ela na migração. US$ 4,99 gastos desde agosto — risco pequeno, mas o teto não deveria faltar. Painel do OpenRouter → Keys |
-| Extensão da mãe | recarregar no notebook dela — cidade limpa e logs só valem depois |
+| Teto na chave do OpenRouter | está **sem teto** e o Bruno passou a usar ela na migração. US$ 4,99 gastos desde agosto. Painel do OpenRouter → Keys |
+| Extensão da mãe | recarregar no notebook dela — todo o conserto da captação de 05/out só vale depois |
+| Terminar a limpeza | 88 ainda como `novo`; rodar o 🧹 de novo até zerar |
 | 2FA | códigos de recuperação fora do celular |
 | CNPJ | **parado por decisão dele** até depois das eleições. Trava consulta veicular camada 2, RENAVE, integrador da OLX e qualquer cobrança |
-| `CONTEXTO.md` | desatualizado — não tem a Rede como está, a migração do Bruno nem esta separação. Atualizar antes de consultar os "sócios" |
+| `CONTEXTO.md` | desatualizado — não tem a Rede como está, a migração do Bruno nem a separação do CLAUDE.md |
 | Fila do `IDEIAS.md` | prestadores de serviço (**pesquisa antes de tela**, decisão dele); convidar liberado para as outras lojas; *"o sistema se adapta à loja"*, a amadurecer |
 
 ---

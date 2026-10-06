@@ -11,6 +11,211 @@
 
 ---
 
+## 5 de outubro de 2026 — o dia em que o problema era o dado
+
+Ele estava captando no notebook e levou "Sem resposta da extensão.
+Recarregue a página". Nove consertos depois, a causa principal era outra
+coisa: **os anúncios não existiam mais**.
+
+### O que eu fiz de errado, antes do resto
+
+Mandei ele reiniciar o Chrome. Depois conferir `chrome://extensions`.
+Extensão ligada, sem erro, service worker ativo — **a extensão nunca esteve
+quebrada**, e eu gastei o tempo dele com isso porque li a mensagem de erro
+como se ela fosse verdade. A mensagem dizia "sem resposta da extensão"
+porque **eu** a tinha escrito assim.
+
+Depois disso errei **três hipóteses seguidas** sobre o mecanismo, cada uma
+com um conserto. Todas plausíveis, todas no lugar errado. Quem achou foi
+ele, olhando cinco cliques: *"acho que são anúncios excluídos"*.
+
+> A lição, e ela é maior que este dia: eu estava consertando **o
+> mecanismo**, e o problema era **o dado**. Cinco tentativas, uma deu certo
+> — e a pergunta certa não era "o que quebrou no código", era "o que havia
+> de diferente nas quatro".
+
+### Quatro números apertados demais, no mesmo caminho
+
+Os consertos de mecanismo não foram desperdício: eram defeitos reais. E
+todos da mesma família — **tempo de espera escolhido sem olhar quanto o
+outro lado demora**, com os dois números morando em arquivos diferentes que
+ninguém comparava.
+
+| onde | esperava | o outro lado leva |
+|---|---|---|
+| página → extensão (ENVIAR) | 12 s | até 37 s |
+| olx-chat.js → campo do chat | 6,4 s | 8 a 24 s |
+| página → ACK do ABORDAR | 600 ms | ok, mas eu quase quebrei |
+
+Pior que o tempo curto: ao desistir, a página **parava de ouvir**. Se a
+mensagem fosse enviada depois, a tela nunca saberia — e o botão voltava a
+funcionar. Ele mandaria de novo, e **o vendedor receberia duas vezes**.
+
+Agora espera 40 s, avisa aos 12 s sem desistir (*"a OLX está demorando.
+Aguarde — não mande de novo"*), continua ouvindo, e se a resposta chegar
+atrasada corrige a tela.
+
+O teste que ficou lê **os dois lados** dos arquivos reais e falha se a
+conta virar de novo.
+
+### A aba que a extensão esquecia
+
+*"Tínhamos falado de não ficar abrindo aba em todo clique de abordar."*
+Estava certo, e a causa é estrutural:
+
+```js
+let abaHubId = null;   // variável do service worker
+```
+
+O Chrome mata o service worker depois de ~30 s parado. Ao renascer, a
+variável volta a `null` — a extensão **esquece qual era a aba** e abre
+outra. A decisão de reaproveitar uma aba é de 02/set e **nunca sobreviveu a
+isso**. Agora ela *procura* a aba em vez de lembrar.
+
+### O `?list-id=` deixou de criar conversa
+
+Prova no print dele: barra de endereço em `chat.olx.com.br` **sem o
+parâmetro**, painel da direita vazio. A OLX passou a descartá-lo.
+
+Isso explicava o padrão: funcionou com a Karine e o Vilson porque a
+conversa **já existia**; falhou nos seguintes porque ela precisaria nascer.
+
+Caminho B: abrir a **página do anúncio** e clicar no botão Chat de lá —
+achado pelo TEXTO, não por classe (as classes da OLX são de build e mudam a
+cada deploy; é a mesma razão da leitura do km em 04/set). E seguir o chat
+para onde ele for, porque o clique pode abrir **outra aba**.
+
+### A ideia dele, e a medida que a sustentou
+
+> *"O radar vê quais anúncios entraram a cada x tempo; podemos conferir, no
+> mesmo período, se os que já entraram continuam ativos."*
+
+Medido antes de construir: **71 dos 169 "novo" (42%)** não eram vistos pelo
+radar há mais de 7 dias; os mais velhos, 40. O `last_seen_at` é atualizado a
+cada varredura, então isso significa centenas de passagens sem encontrá-los.
+
+Testados quatro na OLX: os quatro respondem **HTTP 410** — "removido de
+propósito", não é 404 de página errada. E `HEAD` basta: nem baixa a página.
+
+**10 por varredura, os mais velhos primeiro.** O número é dele, depois de eu
+pôr a conta na mesa: cada consulta entra na pegada declarada à OLX (~96
+páginas/dia). Dez por hora → ~336/dia, e limpa a fila em ~17 h; depois cai
+sozinho. Conferir todos a cada hora seriam ~4.000/dia, quarenta vezes a
+pegada — e o documento que o irmão dele vai levar deixaria de ser verdade.
+
+Travas que o teste tranca: **dúvida não mata anúncio** (403, 500 ou queda de
+rede não marcam nada); só `410` e `404`; só os que estão na fila, porque
+anúncio já abordado tem conversa em andamento; e o motivo fica gravado como
+*"saiu do ar"*, que o painel de desempenho conta separado de "não quis".
+
+### Erro meu de classificação
+
+`[CNR] abordar: caminho pelo anúncio falhou: No tab with id` aparecendo em
+vermelho no `chrome://extensions`. Não era defeito: a aba tinha sido
+fechada por ele no meio. Registrar rotina como ERRO enche de vermelho
+justamente a tela que ele abre quando desconfia de problema.
+
+### 5 de outubro, noite — a limpeza, o GitHub aberto, e a blindagem
+
+#### A limpeza do Radar, e o que ela custou para ficar de pé
+
+O Yuri pediu a limpeza completa na hora, não em 17 horas de 10 em 10.
+Tentei fazer da minha máquina: **a OLX respondeu 403 nas 187**. Ela só
+aceita pergunta de um navegador de verdade, e forjar identidade é o que
+saiu do projeto em 02/set. Então a limpeza passou a rodar no navegador
+dele, por um botão — **🧹 Limpar excluídos** na barra de filtros.
+
+Duas falhas minhas, uma atrás da outra, e as duas ele viu antes de mim:
+
+1. **"Acho que travou."** Estava travado: o banco mostrou 10 marcados (os
+   da rotina automática) e nada nos 20 minutos seguintes. Eu pedia os ~190
+   de uma vez, com 1,5s entre cada — mais de 5 minutos num bloco só, e o
+   Chrome encerra o service worker em tarefa longa. Refeito **em pedaços
+   de 25**, com o progresso no próprio botão.
+2. **Parou no meio de novo**, com 82 marcados e 89 ainda por conferir.
+   Cada pedaço pegava os 25 **mais antigos** — e os que estão vivos
+   continuam sendo os mais antigos, então cada volta reconferia quase os
+   mesmos. `pular` resolveu: simulado com 100 anúncios e 30 mortos, termina
+   em 4 voltas em vez de 40 sem terminar.
+
+**Resultado:** 85 anúncios marcados como "saiu do ar", de 213. **Metade do
+que o radar trouxe já era fantasma** quando ele ia abordar.
+
+> Sai da lista, **não do banco**, e por duas razões medidas: o painel de
+> desempenho conta os motivos de morte (e "saiu do ar" é diferente de "não
+> quis"), e apagado o anúncio voltaria como NOVO na varredura seguinte, de
+> hora em hora, para sempre.
+
+#### O GitHub estava publicando o projeto inteiro
+
+Chegou um e-mail de erro do GitHub: *"pages build and deployment failed"*.
+O e-mail era inofensivo — o Gerador roda na Vercel. Mas fui ver o que a
+publicação servia, e ela estava **de pé**:
+
+```
+.env                404   nunca foi versionado
+HISTORICO.md        200   377 KB, legível por qualquer um
+CLAUDE.md, IDEIAS.md, CONTEXTO.md, PROJETO-APP.md, todas as telas   200
+```
+
+O repositório é privado desde 03/set **justamente** porque o código
+descreve como a extensão lê a OLX. O GitHub Pages furava isso: vendas com
+valores, nomes de parceiros e clientes, a estratégia de venda do sistema e
+toda a análise de conformidade, abertos na internet.
+
+Ele desligou: `Settings → Pages → Unpublish site`, e depois **Branch →
+None**, que é o que impede voltar no próximo push. Conferido daqui: 404 em
+tudo. **A extensão nunca teve Pages ligado** — o repositório que mais
+importava estava limpo.
+
+> Parte disto é minha: foi hoje de manhã que eu juntei todo o histórico num
+> arquivo só. O conteúdo já estava exposto dentro do `CLAUDE.md`, mas eu
+> transformei num download único e **não verifiquei o que estava público**.
+> A regra que fica: ao publicar qualquer coisa, conferir o que está aberto,
+> não só o que está fechado.
+
+#### Blindagem: duas regras do Yuri
+
+1. **"Só quando o carro for blindado, escrever na frente da FIPE: SEM
+   BLINDAGEM."** A FIPE é do carro sem blindagem, que custa dezenas de
+   milhares à parte — sem o aviso, quem lê compara o preço com um número
+   que não descreve o carro.
+2. **"A ordem é sempre marca da blindagem e dos vidros."** São fabricantes
+   diferentes. O gerador punha a marca do vidro entre parênteses, sem dizer
+   a que se referia.
+
+```
+antes:  🛡️ Blindado — VRZ, IIIA (AGP B33)
+agora:  🛡️ Blindado VRZ, IIIA · Vidros AGP B33
+        *FIPE: R$ 649.000,00* *(SEM BLINDAGEM)*
+```
+
+**E a IA não preenchia a marca do vidro** porque no modo Parceiros os três
+campos de blindagem tinham `null` como descrição — ela não recebia
+instrução nenhuma. Agora o pedido explica que são dois fabricantes (VRZ
+blinda, **AGP** faz o vidro) e traz o exemplo real dele. Testado contra a
+IA de verdade, não no editor: `marca: "VRZ"`, `vidro: "AGP B33"`.
+
+O campo "Tipo de vidro" virou **"Marca dos vidros"** — o rótulo antigo
+pedia outra coisa, e ele ia continuar preenchendo errado.
+
+#### A pergunta dele, que vale guardar
+
+> *"Por que um negócio que funciona para de funcionar do nada?"*
+
+As quatro causas apareceram todas hoje: **o outro lado mudou** (a OLX
+trocou o endereço do chat); **o dado mudou, não o programa** (os anúncios
+não existiam mais); **nunca funcionou direito e ninguém tinha pegado** (a
+espera de 12s sempre foi curta — só não tinha dado azar); e **a plataforma
+embaixo muda sozinha** (o Chrome encerra extensão parada, e a aba era
+esquecida desde 02/set).
+
+A conclusão que orienta o projeto: não dá para evitar — dá para **falhar
+falando**. Metade do tempo de hoje foi perdida porque a tela dizia "sem
+resposta da extensão" enquanto a extensão trabalhava.
+
+*Registrado em 5 de outubro de 2026, noite.*
+
 ## 4 de outubro de 2026
 
 ### O CLAUDE.md estava custando a semana do Yuri
