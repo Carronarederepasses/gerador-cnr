@@ -149,6 +149,23 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
 .atalhos{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:.5rem}
 .atalho{background:var(--surface-raise);border:1px solid var(--line);border-radius: var(--r-md, 12px);padding:.7rem .6rem;text-decoration:none;color:var(--text);display:flex;flex-direction:column;align-items:center;text-align:center;gap:.3rem;transition:border-color .15s}
 .atalho .desc{display:none}
+/* ── Por onde começar (06/out) ────────────────────────────────────
+   Três passos numerados, e aqui o número significa de verdade: é uma
+   ordem — sem carro não há o que mandar para a rede. Numerar o que não é
+   sequência seria enfeite. */
+.comecar{display:flex;flex-direction:column;gap:.8rem}
+.comecar-txt{font-size:.88rem;line-height:1.6;color:var(--text-mid);margin:0}
+.comecar-passos{display:flex;flex-direction:column;gap:.5rem}
+.comecar-passo{display:flex;align-items:flex-start;gap:.8rem;text-decoration:none;color:var(--text);
+  background:var(--surface-raise);border:1px solid var(--line);border-radius:var(--r-md, 12px);
+  padding:.8rem .9rem;transition:border-color .15s}
+.comecar-passo:hover{border-color:var(--accent)}
+.comecar-passo .n{flex:none;width:1.7rem;height:1.7rem;border-radius:50%;
+  background:var(--accent);color:var(--surface);display:grid;place-items:center;
+  font-size:.8rem;font-weight:700}
+.comecar-passo .t{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.comecar-passo .t strong{font-size:.92rem}
+.comecar-passo .t span{font-size:.78rem;color:var(--text-mid);line-height:1.45}
 .convite-linha{display:flex;align-items:center;justify-content:space-between;gap:.9rem;flex-wrap:wrap;
   background:var(--surface-raise);border:1px solid var(--line);border-radius:var(--r-md, 12px);padding:.85rem 1rem}
 .convite-tit{font-weight:700;font-size:.92rem}
@@ -405,7 +422,46 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
        Saíram: Reservados (repetia "Carros travados"), Compradores
        ativos e Negociações ativas — as duas telas já estão a um toque,
        e negociações tem seção própria logo abaixo. -->
-  <div class="kpis">
+  <!-- ── PRIMEIROS PASSOS — a loja que ainda não tem nada (06/out) ──
+       Nasce escondido e só aparece quando o catálogo E as vendas vierem
+       vazios. Toma o lugar dos números e dos dois relatórios, que para uma
+       loja vazia são três travessões e duas tabelas em branco.
+
+       Por que isto existe: o Nogueira entrou em 06/out e disse "tem muita
+       informação na tela inicial". Fui olhar com os olhos dele — conta
+       nova, zero carro — e a tela mostrava um painel de controle de uma
+       loja que não começou. Não era informação demais: era informação que
+       não informa. E não é problema dele, é de toda loja que entrar, o que
+       faz disto produto e não teste.
+
+       É a primeira parcela do "o sistema se adapta à loja" que estava na
+       fila de ideias. -->
+  <div class="secao" id="secao-comecar" style="display:none">
+    <div class="secao-titulo">Por onde começar</div>
+    <div class="comecar">
+      <p class="comecar-txt">Esta loja ainda não tem carro nem venda registrada.
+         Os números e os relatórios aparecem aqui sozinhos conforme ela encher.</p>
+      <div class="comecar-passos">
+        <a class="comecar-passo" href="/captacao.html">
+          <span class="n">1</span>
+          <span class="t"><strong>Cadastrar um carro</strong>
+            <span>Cole o anúncio ou a mensagem e o resto se preenche</span></span>
+        </a>
+        <a class="comecar-passo" href="/compradores.html">
+          <span class="n">2</span>
+          <span class="t"><strong>Cadastrar quem compra</strong>
+            <span>Para o sistema avisar quando chegar o carro do perfil dele</span></span>
+        </a>
+        <a class="comecar-passo" href="/rede.html">
+          <span class="n">3</span>
+          <span class="t"><strong>Achar as outras lojas</strong>
+            <span>Pela tua agenda, como no WhatsApp</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis">
     <div class="kpi">
       <div class="lbl">Disponíveis</div>
       <div class="val" id="kpi-disp">—</div>
@@ -457,7 +513,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   </div>
 
   <!-- Negociações ativas -->
-  <div class="secao">
+  <div class="secao" id="secao-negociacoes">
     <div class="secao-titulo">
       Negociações ativas
       <a class="secao-titulo-link" href="/negociacoes.html">ver todas →</a>
@@ -468,7 +524,7 @@ header{display:flex;align-items:center;justify-content:space-between;flex-wrap:w
   
 
   <!-- Relatório mensal -->
-  <div class="secao">
+  <div class="secao" id="secao-relatorio">
     <div class="secao-titulo">
       <span class="rel-nav">
         <button class="rel-nav-btn" onclick="mudarMes(-1)" title="Mês anterior">◀</button>
@@ -618,6 +674,11 @@ async function carregarCatalogo() {
     const lista = await buscar('/api/catalogo');
     _catalogoLista = lista;
 
+    // Conta o catálogo INTEIRO, não só os disponíveis: uma loja cujo único
+    // carro já foi vendido não é uma loja vazia.
+    _temCarro = lista.length;
+    decidirSeEVazia();
+
     const disp  = lista.filter(v => v.status === 'disponivel');
     const res   = lista.filter(v => v.status === 'reservado');
     const vend  = lista.filter(v => v.status === 'vendido');
@@ -659,6 +720,9 @@ async function carregarCatalogo() {
       secao.style.display = '';
       listaEl.innerHTML = '<div class="vazio">Não consegui ler o catálogo agora.</div>';
     }
+    // `null`, não zero: falha de rede não é loja vazia. Na dúvida, mostra.
+    _temCarro = null;
+    decidirSeEVazia();
   }
 }
 
@@ -746,6 +810,13 @@ async function carregarVendas() {
   try {
     const todasVendas = await buscar('/api/vendas');
     renderAReceber(todasVendas);
+
+    // Conta TODAS, inclusive o histórico importado e as não concluídas:
+    // quem subiu 114 vendas de planilha não é loja nova, mesmo que nenhuma
+    // seja deste mês.
+    _temVenda = todasVendas.length;
+    decidirSeEVazia();
+
     const vendas = todasVendas.filter(v => v.canal_origem !== 'historico').filter(concluida);
 
     const agora = new Date();
@@ -769,6 +840,8 @@ async function carregarVendas() {
     // Sem inventar zero: número que não foi lido não é número baixo.
     document.getElementById('kpi-vend').textContent = '—';
     document.getElementById('kpi-taxa').textContent = '—';
+    _temVenda = null;
+    decidirSeEVazia();
   }
 }
 
@@ -1284,6 +1357,44 @@ function agParaCelular(id) {
   // Sem o revoke o blob fica preso na memória da aba até fechar. O atraso é
   // para o navegador terminar de ler antes de a URL sumir.
   setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/* ══ A TELA SE ADAPTA À LOJA (06/out) ════════════════════════════════
+ *
+ * Loja sem carro e sem venda não vê números nem relatórios: vê o que fazer
+ * primeiro. Conforme ela enche, a tela enche com ela.
+ *
+ * ── POR QUE ESPERAR AS DUAS RESPOSTAS ──────────────────────────────
+ *
+ * Catálogo e vendas chegam em viagens separadas. Decidir na primeira que
+ * voltar faria a tela piscar — esconde os números porque o catálogo está
+ * vazio, e meio segundo depois chegam 114 vendas e eles voltam. Então cada
+ * uma só ANOTA o que viu, e quem decide é `decidirSeEVazia`, quando as
+ * duas tiverem anotado.
+ *
+ * ── E QUANDO A VIAGEM FALHA ────────────────────────────────────────
+ *
+ * Erro de rede anota `null`, não zero. Zero por falha de carregamento
+ * diria "esta loja não tem nada" para quem tem 114 vendas — e a tela
+ * inteira mudaria de forma por causa de um sinal fraco. Com `null`, nada é
+ * escondido: na dúvida, mostra. É o estado em que o Gerador sempre esteve.
+ */
+let _temCarro = undefined;    // undefined = ainda não respondeu; null = falhou
+let _temVenda = undefined;
+
+function decidirSeEVazia() {
+  if (_temCarro === undefined || _temVenda === undefined) return;
+
+  // Só esconde quando as duas respostas chegaram E as duas são zero.
+  // Qualquer falha (null) cai para "mostra tudo".
+  const vazia = _temCarro === 0 && _temVenda === 0;
+
+  ['kpis', 'secao-negociacoes', 'secao-relatorio'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = vazia ? 'none' : '';
+  });
+  const comecar = document.getElementById('secao-comecar');
+  if (comecar) comecar.style.display = vazia ? '' : 'none';
 }
 
 agCarregar();
