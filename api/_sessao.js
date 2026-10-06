@@ -373,6 +373,82 @@ async function contaDaSessao(contaId) {
   return linhas.length ? linhas[0] : null;
 }
 
+/* ══ O NÚMERO COMO ENDEREÇO (a agenda, 06/out) ══════════════════════
+ *
+ * Decisão do Yuri: na Rede, uma loja acha a outra "através da agenda,
+ * igual ao WhatsApp". O que faz o modelo do WhatsApp funcionar não é ler
+ * a agenda — é o NÚMERO ser o endereço. Daí a regra que cai de graça, e
+ * que é a razão de ele ter escolhido assim: **só acha quem já tem o teu
+ * número.** Ninguém descobre estranho, não existe diretório de lojas.
+ *
+ * Por que estas duas funções moram AQUI e não em `_rede.js`: a lista
+ * branca do `_rede.js` não tem `usuarios`, de propósito — é a tabela que
+ * guarda o que abre a porta. Em vez de alargar a rede, a rede pergunta.
+ * E a resposta é só um `conta_id`: nome, sessão e telefone da pessoa não
+ * atravessam de volta.
+ */
+
+/**
+ * Qual loja atende neste número. Devolve `conta_id` ou null.
+ *
+ * Prefere o DONO quando a pessoa é membro de mais de uma loja: é o único
+ * papel que representa a loja sem ambiguidade — a mesma razão escrita em
+ * `sessaoDoDono`.
+ */
+async function contaPeloTelefone(telefone) {
+  const tel = normalizar(telefone);
+  if (!tel) return null;
+  const us = await sb(`usuarios?telefone=eq.${tel}&select=id&limit=1`);
+  if (!us.length) return null;
+  const m = await sb(`conta_membros?usuario_id=eq.${us[0].id}&select=conta_id,papel`);
+  if (!m.length) return null;
+  return (m.find((x) => x.papel === 'dono') || m[0]).conta_id;
+}
+
+/**
+ * A pessoa grava o PRÓPRIO número — é o que a torna achável.
+ *
+ * Ninguém cadastra o número de ninguém: nem eu, nem o Yuri pela tela de
+ * convite de outra loja. Número de telefone é dado de quem atende nele, e
+ * no WhatsApp o teu número é teu. Consequência aceita: a rede começa
+ * devagar, porque cada um tem que pôr o seu.
+ *
+ * `telefone` vazio APAGA — é como alguém sai de ser achável, e sair tem
+ * que ser tão fácil quanto entrar (a "saída livre" do §3.2).
+ */
+async function meuTelefone(usuarioId, telefone) {
+  if (!usuarioId) return { ok: false, erro: 'sem_sessao' };
+
+  if (!String(telefone || '').trim()) {
+    await sb(`usuarios?id=eq.${usuarioId}`, {
+      method: 'PATCH', body: JSON.stringify({ telefone: null }),
+    });
+    return { ok: true, telefone: null };
+  }
+
+  const tel = normalizar(telefone);
+  if (!tel) return { ok: false, erro: 'telefone_invalido' };
+
+  // Único no banco (índice parcial da fase 1). Conferido antes para o erro
+  // chegar em português, e não como um 409 cru do Postgres.
+  const jaTem = await sb(`usuarios?telefone=eq.${tel}&select=id&limit=1`);
+  if (jaTem.length && jaTem[0].id !== usuarioId) {
+    return { ok: false, erro: 'telefone_em_uso' };
+  }
+
+  await sb(`usuarios?id=eq.${usuarioId}`, {
+    method: 'PATCH', body: JSON.stringify({ telefone: tel }),
+  });
+  return { ok: true, telefone: tel };
+}
+
+/** O número que está gravado, para a tela mostrar o que ela vai editar. */
+async function meuTelefoneAtual(usuarioId) {
+  if (!usuarioId) return null;
+  const r = await sb(`usuarios?id=eq.${usuarioId}&select=telefone&limit=1`);
+  return r.length ? r[0].telefone : null;
+}
+
 async function encerrarSessao(req) {
   const token = req.headers['x-cnr-sessao'];
   if (!token) return false;
@@ -391,6 +467,9 @@ module.exports = {
   sessaoDoPedido,
   contaDaSessao,
   encerrarSessao,
+  contaPeloTelefone,
+  meuTelefone,
+  meuTelefoneAtual,
   normalizar,
   VIDA_CODIGO_MIN,
 };

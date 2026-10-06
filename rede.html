@@ -74,6 +74,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .item .t2{font-size:.78rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;margin-top:.1rem}
 .item .hora{font-size:.68rem;color:var(--text-faint);flex:none;align-self:flex-start}
+/* Pedido para entrar: a linha tem decisão dentro, então não é clicável
+   como as outras — o toque tem que cair no ✓ ou no ✕, nunca no meio. */
+.item.pedido{cursor:default}
+.pedido-bts{display:flex;gap:.35rem;flex:none}
+.pedido-bts button{font-size:.8rem;padding:.3rem .6rem;min-width:2rem}
+.pedido-bts .ok{font-weight:700}
 .grupo{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);
   padding:.9rem .9rem .35rem;font-weight:700}
 
@@ -306,7 +312,13 @@ async function rede(acao, opcoes = {}) {
 let PODE_CONVIDAR = false;   // só a loja dona da instalação convida
 let aberto = null;            // { tipo: 'lista'|'todos'|'recebidos'|'conversa', id, nome }
 let carroEscolhido = null;
-let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: [], grupos: [], vitrine: [] };
+let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: [], grupos: [], vitrine: [],
+              // Pedidos para entrar na MINHA lista, e as listas em que EU
+              // estou. O servidor sempre mandou os dois em `listas`; até
+              // 06/out a tela lia só `membros` e jogava o resto fora — era
+              // o que deixava a Rede sem porta.
+              pedidos: [], em_que_estou: [] };
+let MEU_TELEFONE = null;      // null = ninguém me acha na agenda
 let thread = [];              // mensagens da conversa aberta
 
 function verLista()    { $('tela').dataset.onde = 'lista'; }
@@ -357,7 +369,27 @@ function desenharColuna() {
     ? `${dados.vitrine[0].marca} ${dados.vitrine[0].modelo} · ${dados.vitrine[0].loja}`
     : 'ninguém publicou ainda';
 
-  $('col').innerHTML =
+  // ── Pedidos para entrar, PRIMEIRO de tudo ───────────────────────
+  // Em cima do feed de propósito: é a única coisa na tela que espera
+  // resposta minha, e do outro lado tem alguém parado esperando. Carro
+  // pode ficar para depois; gente, não.
+  const pedidos = dados.pedidos.length
+    ? `<div class="grupo">Pedidos para entrar · ${dados.pedidos.length}</div>` +
+      dados.pedidos.map((p) => `
+        <div class="item pedido">
+          <div class="avatar">✋</div>
+          <div class="txt">
+            <div class="t1">${esc(p.nome)}</div>
+            <div class="t2">quer receber os teus carros${p.em ? ' · ' + quando(p.em) : ''}</div>
+          </div>
+          <div class="pedido-bts">
+            <button class="ok"   onclick="responderPedido('${p.id}', true)"  title="Aceitar">✓</button>
+            <button class="leve" onclick="responderPedido('${p.id}', false)" title="Recusar">✕</button>
+          </div>
+        </div>`).join('')
+    : '';
+
+  $('col').innerHTML = pedidos +
     `<div class="grupo">Feed da rede</div>` +
     linha('🏪', 'Estoque da rede', feedSub,
       dados.vitrine.length ? quando(dados.vitrine[0].criado_em) : '',
@@ -388,7 +420,30 @@ function desenharColuna() {
       // onde a agenda e o chat são a mesma porta.
       ? dados.contatos.map((c) => linha('🏪', c.nome, 'tocar para conversar', '', false,
           `abrirConversa('${c.conta_id}')`)).join('')
-      : '<div class="vazio" style="padding:1rem">Ninguém na sua rede ainda.</div>');
+      // O vazio agora leva para a porta em vez de só constatar o vazio.
+      : '<div class="vazio" style="padding:1rem">Ninguém na sua rede ainda.<br><br>'
+        + '<button class="leve" onclick="entrarNumaLista()">🤝 Entrar na lista de uma loja</button></div>') +
+
+    // ── Listas em que EU estou ──────────────────────────────────────
+    // O servidor manda desde 27/set e nada mostrava. Aqui a pessoa vê de
+    // quem ela recebe carro — e é também onde ela sai, sem pedir licença
+    // a ninguém (a "saída livre" do §3.2). Nunca mostra quem MAIS está na
+    // lista: isso é do dono dela.
+    (dados.em_que_estou.length
+      ? `<div class="grupo">Recebo carro de · ${dados.em_que_estou.length}</div>` +
+        dados.em_que_estou.map((l) => `
+          <div class="item">
+            <div class="avatar">📬</div>
+            <div class="txt">
+              <div class="t1">${esc(l.nome)}</div>
+              <div class="t2">desde ${l.desde ? quando(l.desde) : '—'}</div>
+            </div>
+            <div class="pedido-bts">
+              <button class="leve" onclick="sairDaLista('${l.dono_conta_id}','${esc(l.nome).replace(/'/g, '')}')"
+                      title="Sair desta lista">sair</button>
+            </div>
+          </div>`).join('')
+      : '');
 }
 
 // ── Painel da direita ───────────────────────────────────────
@@ -850,7 +905,9 @@ async function carregar() {
   const [t, l, f, m, c, g, v] = await Promise.all([
     rede('transmissao'), rede('listas'), rede('feed'), rede('minhas'), rede('conversas'), rede('grupos'), rede('vitrine'),
   ]);
-  dados = { listas: t.listas, contatos: l.membros, recebidas: f.ofertas, minhas: m.ofertas, conversas: c.conversas, grupos: g.grupos, vitrine: v.ofertas };
+  dados = { listas: t.listas, contatos: l.membros, recebidas: f.ofertas, minhas: m.ofertas,
+            conversas: c.conversas, grupos: g.grupos, vitrine: v.ofertas,
+            pedidos: l.pedidos || [], em_que_estou: l.em_que_estou || [] };
   desenharColuna();
   if (aberto) desenharPainel();
 }
@@ -869,6 +926,13 @@ async function carregar() {
   // ela. Quem decide o que a tela mostra continua sendo a resposta do
   // `quem`, logo abaixo.
   const jaCarregando = carregar().catch(() => null);
+  // O meu número sai na mesma leva, não numa viagem própria: a tela já
+  // paga duas idas aqui e a terceira apareceria como atraso no desenho da
+  // coluna, que é onde o aviso de "ninguém te acha" mora.
+  const jaTelefone = fetch('/api/utils?type=meu-telefone', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => { if (d) MEU_TELEFONE = d.telefone || null; })
+    .catch(() => null);
   try {
     const d = await (await fetch('/api/utils?type=quem', { cache: 'no-store' })).json();
     PODE_CONVIDAR = d.podeConvidar !== false;
@@ -891,6 +955,25 @@ async function carregar() {
     // tiver falhado, refaz — assim o erro aparece com a mensagem certa em
     // vez de a tela ficar vazia sem explicação.
     if ((await jaCarregando) === null) await carregar();
+    await jaTelefone;
+
+    // ── O número é o CADASTRO, não uma configuração (06/out) ──────
+    // Decisão do Yuri: o app vai para a App Store e a Play Store, e lá o
+    // cadastro é por telefone, como no WhatsApp. Então quem não tem número
+    // não entra na Rede — em vez de um aviso que dá para ignorar para
+    // sempre, que foi como eu tinha feito primeiro.
+    //
+    // Trava SÓ a Rede, de propósito: catálogo, vendas e anúncio são a loja
+    // falando consigo mesma e não precisam de identidade de ninguém. A
+    // Rede é o contrário — é onde uma loja chama a outra, e sem número
+    // ninguém é chamável.
+    //
+    // O caminho do convite cria conta SEM telefone (`_sessao.js`: `const
+    // tel = telefone ? ... : null`). Foi por isso que o Bruno e o Nogueira
+    // ficaram invisíveis. Esta é a porta que faltava para eles.
+    if (!MEU_TELEFONE) { pedirMeuNumero(); return; }
+
+    desenharColuna();
     // Chegou pelo atalho do Painel (/rede.html#convidar): abre a janela
     // direto. Sem isto o botao de la so trocava de tela e deixava a
     // pessoa procurando o ✚.
@@ -910,6 +993,15 @@ $('btn-nova').addEventListener('click', () => {
       '<button onclick="novaTransmissao()">Criar</button></div>' +
     '<div class="op"><span>👥 <strong>Grupo</strong><br><span style="font-size:.78rem;color:var(--text-mid)">todos conversam — e a lista de participantes fica oculta</span></span>' +
       '<button onclick="novoGrupo()">Criar</button></div>' +
+    // A porta da rede. Fica aqui, junto de transmissão e grupo, porque é
+    // a terceira coisa que alguém cria na Rede — e a primeira de quem
+    // chegou agora e não tem ninguém.
+    '<div class="op"><span>🤝 <strong>Entrar numa lista</strong><br><span style="font-size:.78rem;color:var(--text-mid)">pelo número da loja, como no WhatsApp</span></span>' +
+      '<button onclick="entrarNumaLista()">Pedir</button></div>' +
+    '<div class="op"><span>📱 <strong>Meu número</strong><br><span style="font-size:.78rem;color:var(--text-mid)">' +
+      (MEU_TELEFONE ? esc(MEU_TELEFONE) : 'ninguém te acha sem ele') + '</span></span>' +
+      '<button class="' + (MEU_TELEFONE ? 'leve' : '') + '" onclick="meuNumero()">' +
+      (MEU_TELEFONE ? 'Trocar' : 'Pôr') + '</button></div>' +
     (PODE_CONVIDAR ? '<div class="op"><span>🏪 <strong>Convidar loja</strong><br><span style="font-size:.78rem;color:var(--text-mid)">cria a loja dela e gera um link de entrada</span></span>' +
       '<button onclick="convidarLoja()">Convidar</button></div>' : '') +
     '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
@@ -932,6 +1024,177 @@ async function entrarAqui() {
     alert('Não consegui entrar: ' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = 'Entrar neste aparelho'; }
   }
+}
+
+/* ══ A PORTA DA REDE — pelo número, como na agenda ══════════════════
+ *
+ * Decisão do Yuri, 06/out: uma loja acha a outra "através da agenda,
+ * igual ao WhatsApp". O navegador NÃO lê a agenda como o WhatsApp lê — a
+ * API que faz isso (`navigator.contacts`) existe só no Chrome do Android,
+ * e mesmo lá a pessoa escolhe um contato de cada vez, nunca a lista toda.
+ *
+ * Mas o que faz o modelo do WhatsApp funcionar não é ler a agenda: é o
+ * NÚMERO ser o endereço. Então é isso que está feito aqui — e a regra que
+ * ele queria cai de graça: **só acha quem já tem o teu número.** Não
+ * existe diretório de lojas, ninguém descobre estranho.
+ *
+ * Onde a agenda existe, ela entra como atalho. Onde não existe (iPhone,
+ * notebook), a pessoa digita ou cola — mesmo resultado.
+ */
+const TEM_AGENDA = !!(navigator.contacts && navigator.contacts.select);
+
+function entrarNumaLista() {
+  $('dlg-corpo').innerHTML = `<h3>Entrar na lista de uma loja</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);line-height:1.55;margin-bottom:.8rem">
+      Pelo número, como no WhatsApp. Quem está na rede com esse número
+      recebe o teu pedido — e decide.</p>
+    <input type="tel" id="pedir-tel" placeholder="48 99999-0000" inputmode="tel" autocomplete="tel">
+    ${TEM_AGENDA ? `<div class="op" style="justify-content:flex-start">
+      <button class="leve" onclick="daAgenda()">📇 Escolher da agenda</button></div>` : ''}
+    <div class="op" style="justify-content:flex-end;gap:.5rem">
+      <button class="leve" onclick="dlg.close()">Cancelar</button>
+      <button onclick="pedirEntrada()">Pedir para entrar</button></div>`;
+  $('dlg').showModal(); $('pedir-tel').focus();
+}
+
+// O seletor do próprio sistema: nada da agenda chega aqui sem a pessoa
+// tocar no contato. A página nunca vê a lista, só o que foi escolhido.
+async function daAgenda() {
+  try {
+    const [c] = await navigator.contacts.select(['tel'], { multiple: false });
+    const tel = c && c.tel && c.tel[0];
+    if (tel) $('pedir-tel').value = tel;
+  } catch (e) { /* cancelou, ou o aparelho não deixou: segue digitando */ }
+}
+
+async function pedirEntrada() {
+  const telefone = $('pedir-tel').value.trim();
+  if (!telefone) return $('pedir-tel').focus();
+  try {
+    await rede('solicitar', { body: { telefone } });
+    $('dlg').close();
+    // A MESMA frase, exista o número ou não. Se a tela dissesse "esse
+    // número não está na rede", ela viraria um detector: mil números,
+    // mil respostas, a rede inteira descoberta. O login já decidiu isso
+    // em 27/set e aqui vale igual, senão basta trocar de tela.
+    alert('Pedido enviado.\n\nSe esse número estiver na rede, a loja vai ver o teu pedido e responder.');
+    await carregar();
+  } catch (e) { alert(e.message); }
+}
+
+async function responderPedido(id, aceitar) {
+  if (!aceitar && !confirm('Recusar este pedido?')) return;
+  try {
+    await rede('responder', { body: { solicitacao_id: id, aceitar } });
+    await carregar();
+  } catch (e) { alert(e.message); }
+}
+
+async function sairDaLista(donoContaId, nome) {
+  if (!confirm(`Sair da lista de ${nome}?\n\nVocê deixa de receber os carros dela. Dá para pedir de novo depois.`)) return;
+  try {
+    await rede('sair', { body: { dono_conta_id: donoContaId } });
+    await carregar();
+  } catch (e) { alert(e.message); }
+}
+
+/* ── O cadastro: o número, uma vez, antes da Rede abrir ────────────
+ *
+ * Não é um alerta que se fecha: é a tela, no lugar da Rede, até o número
+ * estar gravado. O app nas lojas vai pedir isso no cadastro, e aqui é o
+ * mesmo passo adiantado — quem já tem número nunca vê isto.
+ *
+ * O que está escrito aqui é verdade pela metade de propósito: o número
+ * ainda NÃO é confirmado por SMS (o envio está desligado). Então a tela
+ * não promete confirmação; ela diz o que o número faz, que é te tornar
+ * achável. No app isso vira código por SMS, como no WhatsApp.
+ */
+function pedirMeuNumero() {
+  $('col').innerHTML = '<div class="aviso">'
+    + '<strong>Qual é o teu número?</strong><br>'
+    + 'Na rede, uma loja acha a outra pelo número — como no WhatsApp. '
+    + 'Quem já tem o teu na agenda pode te chamar; quem não tem, não te encontra.'
+    + '<div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.9rem">'
+    + '<input type="tel" id="cad-tel" placeholder="48 99999-0000" inputmode="tel" autocomplete="tel">'
+    + '<button id="cad-bt" onclick="salvarCadastro()">Continuar</button>'
+    + '<span style="color:var(--text-faint);font-size:.75rem;text-align:center">'
+    + 'Só as lojas que já têm o teu número conseguem te chamar.</span>'
+    + '</div></div>';
+  verLista();
+  const campo = document.getElementById('cad-tel');
+  if (campo) {
+    campo.focus();
+    // Enter manda, como em qualquer campo de telefone. Sem isto, no celular
+    // o teclado mostra "ir" e o toque não faz nada.
+    campo.addEventListener('keydown', (e) => { if (e.key === 'Enter') salvarCadastro(); });
+  }
+}
+
+async function salvarCadastro() {
+  const campo = document.getElementById('cad-tel');
+  const bt = document.getElementById('cad-bt');
+  const tel = (campo && campo.value.trim()) || '';
+  if (!tel) return campo && campo.focus();
+  if (bt) { bt.disabled = true; bt.textContent = 'Salvando…'; }
+  try {
+    await gravarNumero(tel);
+    // Só agora a Rede abre, e com tudo que já foi carregado.
+    desenharColuna();
+    abrirRecebidos(); verLista();
+  } catch (e) {
+    alert(e.message);
+    if (bt) { bt.disabled = false; bt.textContent = 'Continuar'; }
+  }
+}
+
+// ── Meu número ──────────────────────────────────────────────
+// Trocar ou apagar, depois de cadastrado. Cada um mexe no SEU: ninguém
+// cadastra o número de ninguém, nem pela tela de convite — no WhatsApp o
+// teu número é teu.
+function meuNumero() {
+  $('dlg-corpo').innerHTML = `<h3>Meu número</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);line-height:1.55;margin-bottom:.8rem">
+      É assim que as outras lojas te acham: quem já tem o teu número na
+      agenda pode pedir para entrar na tua lista. Quem não tem, não te
+      encontra.</p>
+    <input type="tel" id="meu-tel" placeholder="48 99999-0000" inputmode="tel"
+           autocomplete="tel" value="${esc(MEU_TELEFONE || '')}">
+    <div class="op" style="justify-content:space-between;gap:.5rem">
+      ${MEU_TELEFONE ? '<button class="leve" onclick="apagarMeuNumero()">Apagar</button>' : '<span></span>'}
+      <span><button class="leve" onclick="dlg.close()">Cancelar</button>
+      <button onclick="salvarMeuNumero()">Salvar</button></span></div>`;
+  $('dlg').showModal(); $('meu-tel').focus();
+}
+
+async function gravarNumero(telefone) {
+  const r = await fetch('/api/utils?type=meu-telefone', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telefone }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  MEU_TELEFONE = d.telefone;
+  // `close()` num diálogo fechado não faz nada — serve para esta função
+  // atender tanto a janela de trocar número quanto a tela de cadastro.
+  $('dlg').close();
+  // Apagou o número: volta para o cadastro, em vez de ficar numa Rede que
+  // não abriria se a pessoa recarregasse a página. Duas telas dizendo
+  // coisas diferentes sobre a mesma regra é como nasce o bug que ninguém
+  // reproduz.
+  if (!MEU_TELEFONE) return pedirMeuNumero();
+  desenharColuna();
+}
+
+async function salvarMeuNumero() {
+  const tel = $('meu-tel').value.trim();
+  if (!tel) return $('meu-tel').focus();
+  try { await gravarNumero(tel); } catch (e) { alert(e.message); }
+}
+
+async function apagarMeuNumero() {
+  if (!confirm('Apagar o teu número?\n\nNinguém mais vai conseguir te achar para pedir para entrar na tua lista.')) return;
+  try { await gravarNumero(''); } catch (e) { alert(e.message); }
 }
 
 // ── Convidar uma loja ───────────────────────────────────────

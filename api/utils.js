@@ -243,6 +243,42 @@ module.exports = async (req, res) => {
       return res.status(405).json({ error: 'Use GET ou POST.' });
     }
 
+    // ── Meu número — o que me torna achável na Rede (06/out) ──────
+    // Na Rede uma loja acha a outra pelo número, como na agenda do
+    // WhatsApp. Quem grava é a PESSOA, sobre si mesma: o número vem da
+    // sessão, nunca do corpo do pedido, então ninguém cadastra o número
+    // de ninguém — nem o Yuri pela tela de convite.
+    //
+    // Vazio apaga, e apagar é como se sai de ser achável.
+    if (type === 'meu-telefone') {
+      const sessao = require('./_sessao');
+      const eu = req.cnrSessao;
+      if (!eu || !eu.usuario_id) {
+        return res.status(401).json({
+          error: 'Entre com o seu telefone neste aparelho primeiro.', codigo: 'sem_sessao',
+        });
+      }
+
+      if (req.method === 'GET') {
+        return res.status(200).json({ ok: true, telefone: await sessao.meuTelefoneAtual(eu.usuario_id) });
+      }
+
+      if (req.method === 'POST') {
+        const r = await sessao.meuTelefone(eu.usuario_id, (req.body || {}).telefone);
+        if (!r.ok) {
+          return res.status(400).json({
+            error: r.erro === 'telefone_em_uso'
+              ? 'Esse número já está em outra loja.'
+              : 'Número inválido. Use DDD + número, como 48 99999-0000.',
+            codigo: r.erro,
+          });
+        }
+        return res.status(200).json({ ok: true, telefone: r.telefone });
+      }
+
+      return res.status(405).json({ error: 'Use GET ou POST.' });
+    }
+
     // Abrir a própria sessão neste aparelho, usando a chave mestra.
     // Existe porque o SMS está desligado e, sem isto, a Rede não abre no
     // notebook de quem entrou pelo telefone só no celular — foi o que

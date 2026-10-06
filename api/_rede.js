@@ -726,23 +726,62 @@ async function solicitar(req, res) {
     return res.status(403).json({ error: 'Seu acesso não inclui entrar em listas.' });
   }
 
-  const { para_conta_id } = req.body || {};
-  if (!UUID.test(String(para_conta_id || ''))) return res.status(400).json({ error: 'para_conta_id inválido.' });
-  if (para_conta_id === eu.conta_id) return res.status(400).json({ error: 'Essa lista é sua.' });
+  // ── Pelo NÚMERO, como na agenda do WhatsApp (06/out) ────────────
+  // `telefone` é o caminho da tela; `para_conta_id` continua valendo para
+  // quem já é contato e pede para entrar numa lista conhecida.
+  //
+  // A resolução passa por `_sessao.js` porque `usuarios` não está na lista
+  // branca deste arquivo — e não vai entrar.
+  const { para_conta_id, telefone } = req.body || {};
+  let destino = para_conta_id;
 
-  const ja = await rsb(`contatos?conta_id=eq.${para_conta_id}&contato_conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=id&limit=1`);
-  if (ja.length) return res.status(409).json({ error: 'Você já está nessa lista.', codigo: 'ja_membro' });
+  if (telefone) {
+    const sessao = require('./_sessao');
+    destino = await sessao.contaPeloTelefone(telefone);
+
+    // ── A RESPOSTA É IGUAL, EXISTA O NÚMERO OU NÃO ────────────────
+    // Sem isto a tela vira um detector de quem está cadastrado: digita
+    // mil números, lê mil respostas, descobre a rede inteira. É a mesma
+    // decisão que `_sessao.js` já tomou para o login — "responde SEMPRE
+    // igual, exista ou não o telefone" —, e ela só vale se valer aqui
+    // também, porque senão basta trocar de tela para contornar.
+    //
+    // Pedir para si mesmo também cai aqui: dizer "esse número é teu"
+    // confirmaria o cadastro de quem pergunta de fora com o número de
+    // outro. Quem fez isso por engano não perde nada — nenhum pedido
+    // nasce, e o próprio número ele já conhece.
+    if (!destino || destino === eu.conta_id) {
+      return res.status(200).json({ ok: true, enviado: true });
+    }
+  } else {
+    if (!UUID.test(String(destino || ''))) return res.status(400).json({ error: 'para_conta_id inválido.' });
+    if (destino === eu.conta_id) return res.status(400).json({ error: 'Essa lista é sua.' });
+  }
+
+  const ja = await rsb(`contatos?conta_id=eq.${destino}&contato_conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=id&limit=1`);
+  if (ja.length) {
+    // Pelo número, "já sou membro" também não pode ser dito: quem não é
+    // da rede aprenderia, do mesmo jeito, que aquele número existe.
+    if (telefone) return res.status(200).json({ ok: true, enviado: true });
+    return res.status(409).json({ error: 'Você já está nessa lista.', codigo: 'ja_membro' });
+  }
 
   // Pedido repetido é toque repetido, não erro: o índice parcial no banco
   // já garante um pendente por par.
-  const pend = await rsb(`solicitacoes?de_conta_id=eq.${eu.conta_id}&para_conta_id=eq.${para_conta_id}&estado=eq.pendente&select=id&limit=1`);
-  if (pend.length) return res.status(200).json({ ok: true, ja_pedido: true });
+  const pend = await rsb(`solicitacoes?de_conta_id=eq.${eu.conta_id}&para_conta_id=eq.${destino}&estado=eq.pendente&select=id&limit=1`);
+  if (pend.length) return res.status(200).json({ ok: true, ja_pedido: true, enviado: true });
 
   await rsb('solicitacoes', {
     method: 'POST',
-    body: JSON.stringify({ de_conta_id: eu.conta_id, para_conta_id }),
+    body: JSON.stringify({ de_conta_id: eu.conta_id, para_conta_id: destino }),
   });
-  return res.status(201).json({ ok: true });
+
+  // Pelo número, o CÓDIGO HTTP também tem que ser igual. Escrever a mesma
+  // frase e devolver 201 quando o número existe e 200 quando não existe
+  // deixa o vazamento de pé: a aba de rede do navegador mostra o número,
+  // e um script leria mil números por minuto. Foi o teste de 06/out que
+  // pegou isto — o corpo estava idêntico e o status, não.
+  return res.status(telefone ? 200 : 201).json({ ok: true, enviado: true });
 }
 
 // ── Aceitar ou recusar ────────────────────────────────────────────
