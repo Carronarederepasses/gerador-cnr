@@ -11,6 +11,286 @@
 
 ---
 
+## 6 de outubro de 2026 — o dia em que a Rede ganhou porta
+
+> **O marco:** às 9h a Rede tinha **um** contato, criado por script contra
+> uma loja inventada. Às 15h tinha **duas lojas de verdade conversando** —
+> achadas pelo número, como no WhatsApp. Nada desse caminho existia de manhã.
+
+### Como o dia começou: "o Nogueira começou a mexer no app"
+
+O Fabio Nogueira recebeu convite em 29/set e nunca abriu. Hoje abriu. Fui
+ver o que ele fez e o banco disse: sessão usada às 12h02, **zero carro,
+zero anúncio, zero venda**. Ele estava olhando.
+
+O primeiro reflexo foi achar que era adoção espontânea. Era teste de amigo
+— o Yuri mandou o link. **Ninguém de fora ainda abriu conta sozinho**, e a
+frase continua valendo.
+
+Conferi o que ele encontraria, e a notícia boa é que nada vaza: a marca
+d'água não entra sem logo próprio (o código já decide "melhor vazio que a
+marca da Carro na Rede no anúncio de outro"), não há telefone chumbado em
+lugar nenhum, e os 213 anúncios e 114 vendas do Yuri estão na conta dele.
+
+### O buraco: a Rede não tinha porta
+
+Procurando o que ele poderia testar, achei o defeito do dia.
+
+```
+solicitar  (pedir pra entrar)   existe no servidor, roteado, funcionando
+responder  (aceitar o pedido)   idem
+nenhuma tela chama os dois
+`rede.html` lia só `l.membros` e jogava fora `pedidos` e `em_que_estou`
+```
+
+E o banco contava a mesma história: **1 contato, 1 solicitação, 1 lista, 4
+ofertas — tudo de 27/set, tudo contra a `DEMO Serra Motors`**, uma loja
+inventada por um script. A Rede nunca tinha tido duas lojas de verdade
+dentro dela, e não podia ter: não havia como alguém entrar.
+
+### Como uma loja acha a outra: a agenda
+
+Perguntei entre três caminhos — código, vitrine, lista de lojas. A resposta
+dele foi outra:
+
+> *"Através da agenda, igual ao Whatsapp."*
+
+E depois, quando eu entreguei um campo para digitar **um** número:
+
+> *"Acho que ainda tu não entendeu. A ideia é realmente a funcionalidade do
+> Whatsapp, ele identificar na agenda de telefone quem são os contatos que
+> tem o app, e já poder iniciar conversa no pv."*
+
+Ele estava certo e eu tinha entendido pela metade. O que eu fiz atende quem
+já sabe o número; não atende quem quer **descobrir**.
+
+E veio uma segunda correção, que mudou a peça principal:
+
+> *"Como a ideia é jogar o app nas appstore, por isso que falei pra fazer o
+> cadastro com o telefone, pra ficar similar ao whatsapp."*
+
+Eu estava desenhando para o navegador de hoje. O número não é um campo
+escondido num menu: **é o cadastro**. E dentro de um app nativo a limitação
+que me ocupou desaparece.
+
+### O que dá e o que não dá no navegador
+
+| Peça | Hoje |
+|---|---|
+| Varrer a agenda inteira sozinho | **não existe** — só no app nativo |
+| Escolher contatos da agenda | ✅ Android (seletor do sistema, vários de uma vez) |
+| | ❌ iPhone — cola os números |
+| Dizer quais já têm conta | ✅ idêntico ao que o app vai fazer |
+| Separar "já estão" × "convidar" | ✅ |
+| Convidar pelo compartilhar do aparelho | ✅ **inclusive no iPhone** |
+| Falar no pv com quem já tem conta | ✅ |
+
+No dia em que o app sair, troca-se **só a leitura da agenda**.
+
+### A regra que mudou, e que contraria o §3.2
+
+Antes: ninguém falava comigo sem pedir para entrar na minha lista e eu
+aceitar. Dei três opções e ele escolheu **"direto, com bloquear"** — o
+WhatsApp, com a válvula que o WhatsApp tem.
+
+Como "ter o número" é verificado, já que não dá para verificar: para abrir
+conversa precisa do `conta_id`, 32 dígitos aleatórios que não se adivinham.
+As duas formas de sabê-lo são perguntar na agenda com o telefone, ou já
+estar numa lista. **Descobrir é a permissão** — e descobrir exige o número.
+
+O preço, escrito no código: se um `conta_id` circular por fora, quem o
+tiver alcança a loja. A saída é bloquear, e foi por isso que ela entrou
+junto com a regra.
+
+### Privacidade: o que eu recusei fazer
+
+O pedido dele pedia "menor coleta possível". A saída que todo mundo tenta é
+mandar os números **embaralhados**. Eu não fiz, e o motivo está no código:
+celular brasileiro tem poucas combinações possíveis, e testar todas para
+descobrir qual era leva segundos numa máquina comum. Quem leva isso a sério
+de verdade (o Signal) precisou de um cofre de hardware.
+
+Então ficou o desenho honesto, que é o do WhatsApp: **número pela linha
+protegida, compara, esquece.** Não existe tabela de agenda no banco para
+encher. Uma agenda de 800 contatos com 7 lojas dentro deixa o banco
+exatamente como estava.
+
+E o link do convite **não leva código de quem convidou**, contra o item 4
+do pedido dele: o que identificaria a loja é o `conta_id`, e um convite
+encaminhado em grupo de WhatsApp seria a chave da porta circulando. Não
+precisa — quando a pessoa criar conta com o número dela, ela aparece sozinha
+na agenda de quem convidou.
+
+### Três defeitos que os testes pegaram, e que teriam passado invisíveis
+
+1. **O código HTTP denunciava quem está na rede.** A frase de resposta ao
+   pedido era igual existindo ou não o número — mas o status era `201`
+   contra `200`. Quem abre a aba de rede do navegador lê a diferença, e um
+   script leria mil números por minuto.
+2. **`bloqueios` não estava na lista branca de tabelas do `_rede.js`.** O
+   `temBloqueio` lia a recusa como "migration pendente" e respondia
+   "ninguém bloqueado". A tela diria **"Bloqueada."** e a loja continuaria
+   falando. Foi uma trava que nós mesmos construímos que me pegou.
+3. **O próprio número aparecia como "ainda não usa o Gerador".** Colar o
+   próprio número é a primeira coisa que qualquer pessoa faz para testar.
+
+### A limpeza do DEMO
+
+Ele pediu, e o inventário mostrou três coisas que não eram do DEMO e que eu
+não decidi sozinho: as 4 ofertas eram **dele** (o DEMO era só o
+destinatário), uma das sessões "DEMO REDE" era **dele**, e a lista também.
+Perguntei; ele mandou apagar as três.
+
+**17 linhas**, na ordem de quem aponta para quem, sem `CASCADE`, cada
+`DELETE` pedindo ao banco que **diga** o que saiu. Conferido lendo depois: 3
+contas, nada com DEMO, e intactos os 3 veículos, 114 vendas, 213 anúncios e
+18 compradores. Backup em arquivo, com a ordem de reinserção — e **os hashes
+dos tokens removidos dele** antes de commitar, que é a lição de ontem.
+
+### O que o teste de amigo rendeu, que é o mais valioso do dia
+
+> *"Uma coisa que ele falou logo de cara: que tem muita informação na tela
+> inicial."*
+
+Tirei Arte, Busca e Consulta dos atalhos (11 → 8), que foi o que ele pediu.
+Mas fui olhar a tela com os olhos de quem chega — conta nova, zero carro — e
+vi outra coisa: **três caixas com travessão e dois relatórios de um negócio
+que não começou.** Não era informação demais: era informação que não
+informa.
+
+E não é problema do Nogueira. É de toda loja que entrar. O que faz disto
+produto, não teste.
+
+Então a tela inicial passou a olhar a loja antes de se desenhar. Sem carro e
+sem venda, os números e os relatórios saem e entra **por onde começar**, em
+três passos. Duas decisões que o teste cobre, porque são onde isto daria
+errado: **espera as duas respostas** (senão a tela pisca — esconde os
+números porque o catálogo está vazio e meio segundo depois chegam 114
+vendas), e **falha de rede anota `null`, não zero** (senão um sinal fraco no
+pátio esconde o painel de quem tem 114 vendas).
+
+### A conversa que não se lia
+
+> *"Achei o Nogueira no chat, mas as cores não dá pra ver a conversa."*
+
+Ele estava certo, e os números dizem onde:
+
+```
+texto dentro do balão      16,75:1   ótimo
+meu balão contra o papel    1,20:1   invisível
+o balão dele                1,08:1   invisível
+um contra o outro           1,11:1   invisível
+o contorno (--line)         1,31:1   invisível
+```
+
+Lia-se as palavras e não se via **quem falou** — e num chat isso é a
+informação. Medi quatro tons de cinza para o preenchimento e o melhor deu
+2,06:1, e ali o texto branco já começa a sofrer: **em papel preto,
+preenchimento cinza não separa.**
+
+O que funciona é a assimetria que o `tokens.css` já usa nos botões cheios:
+**o meu balão é tinta** (branco, texto preto, 18:1) e **o dele é papel com
+contorno visível** (3,45:1). Nenhuma cor entrou.
+
+Dois tokens novos, com o porquê escrito: `--line-strong` (contorno **de**
+algo, contra `--line`, que é linha que **divide**) e `--on-accent-mid` (o
+cinza secundário dentro de um bloco de tinta — ali `--text-mid` e
+`--text-faint` somem).
+
+E um defeito meu do mesmo dia: o CSS vestia só `input[type=text]`. Os campos
+que eu criei hoje são `tel` e `search`, e ficaram **sem cor declarada**
+dentro de uma tela preta.
+
+### "Não abre uma página nova de conversa, igual ao WhatsApp"
+
+A troca de tela existia; faltava o **caminho de volta**. O `‹` chamava
+`verLista()` sempre, então uma conversa aberta de dentro de Contatos voltava
+para a lista principal e a pessoa perdia o lugar. Sem volta para onde se
+veio, a conversa não é uma página **dentro** de Contatos: é conteúdo que
+trocou no mesmo painel. A descrição dele estava exata.
+
+Agora o `‹` diz **"‹ Contatos"** e devolve ali; o **gesto do aparelho**
+conta como voltar; e empilha **um** passo só — empilhar a cada toque
+transformaria sair da Rede em dez toques, o defeito clássico de quem
+descobre o `pushState`. O botão da tela e o gesto seguem o mesmo caminho,
+porque dois caminhos para a mesma volta é como um fica diferente do outro.
+
+### O campo cortado: dois defeitos no mesmo lugar
+
+> *"O campo para digitar conversa tá cortado."* … *"ainda tá cortado."*
+
+**O primeiro** era soma de alturas: `sidebar.css` põe `padding-top: 3.6rem`
+no body no celular, o `rede.html` pedia `.tela { height: 100dvh }`, e o body
+tem `overflow: hidden`. 3,6rem mais a tela inteira não cabem na tela: os
+últimos ~58px ficavam abaixo do visível, e lá embaixo mora o campo. A lista,
+elástica, absorvia e parecia bem; o campo, que tem altura própria, caía
+fora. Consertado sem chumbar o número: quem mede a tela é o `body`, e a
+faixa entra dentro da medida porque tudo é `border-box`.
+
+**O segundo**, que me fez voltar, é o teclado: nem `100vh` nem `100dvh`
+encolhem quando ele abre. A página segue do mesmo tamanho e o teclado passa
+**por cima** do fim dela.
+
+E aqui um erro meu de suposição: eu consertei para iPhone. Ele avisou —
+**"meu celular é android"** —, e no Android existe a saída direta:
+`interactive-widget=resizes-content` faz o teclado **encolher a página**. A
+medida pelo `visualViewport` ficou como segunda via.
+
+> Pela segunda vez no dia eu desenhei para o aparelho errado. A regra que
+> fica: **perguntar em que aparelho antes de consertar o que é de aparelho.**
+
+### "Tá ruim de selecionar"
+
+Na tela de Contatos, **só o botãozinho do canto direito** abria a conversa —
+tocar no nome da loja não fazia nada. No WhatsApp a linha é a porta. Agora a
+linha toda abre, de borda a borda, com 3rem de altura mínima e resposta
+visível ao toque: alvo pequeno no meio de espaço vazio é o que faz parecer
+que a tela não respondeu.
+
+### O aviso que já existia e ninguém ligava
+
+> *"Precisa colocar notificação de msg tb."*
+
+Ele **já existia desde 27/set** — chega com o nome de quem falou e o texto,
+e mensagem até **ganha** de carro na fila. O que faltava era alguém ligar:
+
+```
+assinaturas de aviso no sistema inteiro:  1
+   o aparelho do Yuri  ·  27/set 21:19
+```
+
+O Yuri mandou a mensagem, então o aviso era **para o Nogueira** — que não
+tinha assinado. Não havia para onde mandar.
+
+A culpa é da tela: quem liga é um 🔔 **sem rótulo** no canto, e o estado se
+perdia ao recarregar — clareava ao assinar e voltava apagado na visita
+seguinte, dizendo "desligado" sobre um aparelho ligado.
+
+Três consertos: o sino mostra o estado **de verdade** (permissão **e**
+assinatura deste aparelho, pela forma 🔔/🔕 e não só pela cor); a pergunta
+aparece **na hora em que faz sentido** — acabei de mandar mensagem, quero
+saber da resposta; e pergunta **uma vez**, porque recusa é resposta, não
+convite para insistir. Nada mudou no servidor: ele sempre avisou.
+
+### O que o dia ensinou
+
+**Funcionalidade construída e não alcançável é funcionalidade que não
+existe.** Isso apareceu três vezes hoje, nos três níveis:
+
+- `solicitar` e `responder` prontos no servidor e **nenhuma tela chamando**;
+- `pedidos` chegando na resposta e **a tela jogando fora**;
+- o aviso de mensagem completo e **um sino sem rótulo** como única porta.
+
+Em nenhum dos três havia o que escrever de lógica. Faltava o caminho.
+
+E a outra, que vem do teste de amigo: **quem construiu não vê o excesso.**
+Para nós cada atalho tem um motivo e nenhum parece sobrar. Precisou de
+alguém abrir a tela pela primeira vez para a frase aparecer, e ela veio em
+cinco palavras.
+
+*Registrado em 6 de outubro de 2026.*
+
+---
 ## 5 de outubro de 2026 — o dia em que o problema era o dado
 
 Ele estava captando no notebook e levou "Sem resposta da extensão.

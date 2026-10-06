@@ -522,17 +522,18 @@ Skills instaladas em `.claude/skills/` (projeto) + bundled globais. Total: 22 in
 > autorização; e a atualização nunca altera código do produto por conta
 > própria.
 
-### Estado em 5 de outubro de 2026
+### Estado em 6 de outubro de 2026
 
 **Em produção** (`gerador-cnr.vercel.app`, deploy automático no push):
 captação e parceiros, catálogo, vendas, clientes, negociações, agenda,
 busca, consulta de placa, FIPE avulsa, importador de planilha, modelo de
 anúncio, artes, story e a Rede.
 
-**Quem usa:** o Yuri (todo dia) e a mãe dele, na abordagem, desde 25/set.
-**Bruno (BHM Autos)** tem conta no banco principal, com a marca dele, como
-**lojista** — e ainda não entrou. **Fabio Nogueira** recebeu convite em
-29/set e nunca abriu. **Ninguém de fora jamais abriu uma conta nova aqui.**
+**Quem usa:** o Yuri (todo dia, **celular Android** e notebook Windows) e a
+mãe dele, na abordagem, desde 25/set. **Fabio Nogueira** entrou em 06/out,
+pôs o número e conversou — é o **primeiro de fora a usar**. **Bruno (BHM
+Autos)** tem conta com a marca dele, como lojista, e ainda não entrou.
+**Ninguém de fora jamais abriu uma conta sozinho**: os dois foram convite.
 
 **Arquitetura, em uma linha:** um site, um banco, e cada loja é uma
 **conta** — `conta_id` em cada linha (fase 0, 23/set), funil único em
@@ -547,62 +548,156 @@ e `destino_venda`) e o filtro "Catálogo". `valor` sempre foi o preço de
 lojista. É só visualização, no aparelho, e **só para a loja dona da
 instalação**.
 
+**A tela inicial se adapta à loja** (06/out): sem carro e sem venda, os
+números e os dois relatórios saem e entra "por onde começar", em três
+passos. Espera as DUAS respostas antes de decidir (senão pisca), e falha de
+rede anota `null` e não zero — senão sinal fraco esconde o painel de quem
+tem 114 vendas. 8 atalhos, não 11: Arte, Busca e Consulta saíram para a
+barra lateral.
+
 **Anúncio:** carro blindado leva `*(SEM BLINDAGEM)*` na FIPE, e a blindagem
 sai como `Blindado <marca> · Vidros <marca>` — são fabricantes diferentes
 (VRZ blinda, AGP faz o vidro). Vale nas duas abas; as linhas são gêmeas.
 
-### A captação pela OLX, depois de 05/out
+### A Rede, depois de 06/out
 
-O caminho tem três peças e todas foram mexidas no mesmo dia:
+**O número é o cadastro.** Sem número gravado a Rede não abre — pede uma
+vez, no lugar da tela. Trava SÓ a Rede: catálogo, vendas e anúncio são a
+loja falando consigo mesma. Cada um grava o SEU número (vem da sessão,
+nunca do corpo do pedido): ninguém cadastra o número de ninguém. Decisão
+dele, olhando o lançamento nas lojas de aplicativo, onde o cadastro por
+telefone é o padrão.
 
-- **abrir a conversa** — o `?list-id=` só serve para conversa que já
-  existe. Sem campo de escrever, a extensão entra pela **página do
-  anúncio** e clica no botão Chat (achado pelo texto), seguindo o chat
-  mesmo que ele abra em outra aba
+> **Ainda NÃO confirmado por SMS** — o envio está desligado e o código sai
+> no log do servidor. No app isso tem que virar código por SMS, senão
+> qualquer um declara o número de outro. Custa (Twilio) e encosta no CNPJ.
+
+**Uma loja acha a outra pela agenda**, como no WhatsApp. `rede=agenda`
+recebe números e devolve quem tem conta. **Nada é gravado** — nem os
+números, nem a pergunta, nem quem perguntou; não existe tabela de agenda. Os
+nomes nunca saem do aparelho (`localStorage`, com "esquecer").
+
+> **Não embaralhei os números, de propósito.** Celular brasileiro tem poucas
+> combinações e testar todas leva segundos: embaralhar parece proteção e não
+> é. O desenho é o do WhatsApp — compara e esquece.
+>
+> **Em aberto:** quem tem sessão pode perguntar por muitos números. Hoje são
+> três lojas, todas por convite. **Quando o cadastro abrir para qualquer
+> um, a comparação precisa de freio por hora**, como o `codigos` tem.
+
+**`normalizar` é UMA só** (login e agenda) e respeita o `+`: até 06/out
+tratava todo número de 10–11 dígitos como brasileiro, e `+1 415 555 1234`
+virava um celular de SP inventado. Não dava problema porque só havia números
+brasileiros no banco — a agenda de um celular, não.
+
+**Quem fala com quem, regra nova que CONTRARIA o §3.2:** quem tem o meu
+número me chama direto, sem pedir licença, e eu **bloqueio** quem incomodar.
+Escolha dele entre três opções, com a válvula dentro.
+
+> O servidor não prova que a outra loja tem o meu número — o WhatsApp também
+> não. O que segura é o `conta_id`: 32 dígitos que não se adivinham, e as
+> duas formas de sabê-lo são perguntar na agenda com o telefone ou já estar
+> numa lista. **Descobrir é a permissão.** Preço: se um `conta_id` circular
+> por fora, quem o tiver alcança a loja — e a saída é bloquear.
+
+**O convite NÃO leva código de quem convidou**, contra o pedido original: o
+que identificaria a loja é o `conta_id`, e um convite encaminhado em grupo
+de WhatsApp seria a chave da porta circulando. A atribuição acontece pela
+agenda — quem criar conta com o número aparece sozinho em quem já o tem.
+
+**A porta da lista** existia no servidor desde 27/set e **nenhuma tela
+chamava**: `solicitar`, `responder`, e `pedidos`/`em_que_estou` que a
+resposta mandava e o `rede.html` jogava fora. Agora tem Pedidos no topo da
+coluna, com ✓ e ✕, e "Recebo carro de", com sair.
+
+**Aviso de mensagem:** já existia desde 27/set (nome de quem falou + texto,
+e mensagem ganha de carro na fila). Faltava ligar — havia UMA assinatura no
+sistema inteiro. O sino agora mostra o estado de verdade (permissão **e**
+assinatura deste aparelho, 🔔/🔕) e a pergunta aparece depois de **mandar**
+mensagem, uma vez.
+
+**A conversa:** o meu balão é tinta (branco, texto preto, 18:1 contra o
+papel), o dele é papel com contorno `--line-strong` (3,45:1). Em papel
+preto, preenchimento cinza não separa — medido. `--on-accent-mid` é o cinza
+secundário dentro da tinta.
+
+**Contatos → conversa → `‹ Contatos`**: o gesto de voltar do aparelho conta
+como voltar, e empilha **um** passo só.
+
+### A captação pela OLX
+
+- **abrir a conversa** — o `?list-id=` só serve para conversa existente.
+  Sem campo de escrever, a extensão entra pela **página do anúncio** e clica
+  no botão Chat (achado pelo texto)
 - **a aba** — uma só, *procurada* e não lembrada: o service worker morre a
-  cada ~30s parado e esquecia qual era
-- **os tempos** — a página espera 40s pela extensão, avisa aos 12s sem
-  desistir, e continua ouvindo depois de desistir; o `olx-chat.js` espera
-  24s pelo campo
+  cada ~30s parado
+- **os tempos** — a página espera 40s, avisa aos 12s sem desistir; o
+  `olx-chat.js` espera 24s pelo campo
 
-**Anúncio fora do ar:** a OLX responde **HTTP 410**. Duas vias, as duas no
-navegador dele (a OLX recusa 403 quem não é navegador):
-- a varredura confere **10 dos mais antigos por hora**;
-- o botão **🧹 Limpar excluídos** confere tudo, em pedaços de 25.
-
-Dúvida — 403, 500, queda de rede — **não mata anúncio**. Só `410` e `404`,
-e só os que estão como `novo`.
-
-> **Primeira limpeza (05/out): 85 de 213 anúncios já não existiam.**
-> Metade do que o radar trouxe era fantasma quando ele ia abordar.
+**Anúncio fora do ar:** HTTP 410. Varredura confere 10 dos mais antigos por
+hora; o botão **🧹 Limpar excluídos** confere tudo em pedaços de 25. Dúvida
+(403, 500, queda) **não mata anúncio**. Tudo no navegador dele — a OLX
+recusa 403 quem não é navegador.
 
 > **Logs `[CNR diag]` temporários** no `sw.js`. Remover quando o caminho
 > estiver de pé por alguns dias.
 
-**O que ainda roda separado:** o projeto `cnr-piloto` no Supabase, vazio,
-no ar só até o Bruno confirmar que entrou pelo endereço novo. Apagar
-depois disso libera o espaço que trava a terceira loja.
+### Armadilhas de tela que custaram tempo em 06/out
 
-**Limites que moldam decisões:** 12 funções serverless na Vercel (teto
-atingido — modo novo entra como query param ou arquivo `_`), 2 projetos no
-Supabase grátis, FIPE 1.000 consultas/dia com token.
+**Altura:** `sidebar.css` põe `padding-top: 3.6rem` no body no celular.
+Página de altura fixa com `overflow:hidden` tem que medir no `body` e deixar
+o filho pedir `100%` — somar `100dvh` ao padding joga o rodapé para fora da
+tela, e o rodapé é onde ficam os botões.
 
-> **GitHub Pages do `gerador-cnr` foi desligado em 05/out** (Unpublish +
-> Branch → None). Ele publicava o repositório privado inteiro — incluindo o
-> `HISTORICO.md` — num endereço aberto. A extensão nunca teve Pages. **Ao
-> publicar qualquer coisa, conferir o que ficou aberto.**
+**Teclado:** nem `100vh` nem `100dvh` encolhem quando ele abre.
+`interactive-widget=resizes-content` resolve no Android;
+`visualViewport` é a segunda via.
+
+**Campo sem tipo vestido:** o CSS vestia só `input[type=text]`, e `tel` e
+`search` ficaram sem cor dentro de uma tela preta. Selecionar por tipo, não
+por classe.
+
+**Alvo de toque:** linha de lista precisa abrir inteira, não por um botão no
+canto. Alvo pequeno em espaço vazio parece tela que não respondeu.
+
+> **Perguntar em que aparelho antes de consertar o que é de aparelho.** Em
+> 06/out eu desenhei duas vezes para iPhone sem saber que o celular dele é
+> Android.
+
+### Limites que moldam decisões
+
+12 funções serverless na Vercel (teto atingido — modo novo entra como query
+param ou arquivo `_`), 2 projetos no Supabase grátis, FIPE 1.000
+consultas/dia com token.
+
+> **GitHub Pages desligado em 05/out** (Unpublish + Branch → None). Ele
+> publicava o repositório privado inteiro. **Ao publicar qualquer coisa,
+> conferir o que ficou aberto** — e segredo não entra em arquivo que vai
+> para o repositório (os hashes de token saíram do backup do DEMO por isso).
+
+### Estado medido ao fim de 06/out
+
+```
+contas 3 (Carro na Rede, Fabio Nogueira, BHM Autos) · DEMO apagada
+usuários com número: 2 de 4 (Yuri, Nogueira) — sem número não se é achado
+Rede: 1 conversa · 2 mensagens (as duas do Yuri, NÃO LIDAS) · 1 assinatura
+      de aviso (só a dele) · 0 contatos · 0 listas · 0 ofertas · 0 bloqueios
+anúncios 213 · morto 107 · novo 88 · enviado 9 · respondeu 7 · autorizado 2
+vendas 114 · veículos 3
+```
 
 ### Pendências
 
 | | |
 |---|---|
-| Link do Bruno | mandar pelo **Safari**; mensagem pronta na conversa de 04/out. Depois que ele entrar, apagar o `cnr-piloto` |
-| Teto na chave do OpenRouter | está **sem teto** e o Bruno passou a usar ela na migração. US$ 4,99 gastos desde agosto. Painel do OpenRouter → Keys |
-| Extensão da mãe | recarregar no notebook dela — todo o conserto da captação de 05/out só vale depois |
-| Terminar a limpeza | 88 ainda como `novo`; rodar o 🧹 de novo até zerar |
+| O Nogueira tem 2 mensagens não lidas | e nenhum aviso ligado — avisar por WhatsApp e pedir que ligue o 🔔 |
+| Terminar a limpeza do radar | 88 ainda como `novo`; rodar o 🧹 até zerar |
+| Link do Bruno | mandar; depois que ele entrar, apagar o `cnr-piloto` |
+| Teto na chave do OpenRouter | está **sem teto**. US$ 4,99 gastos desde agosto |
+| Extensão da mãe | recarregar no notebook dela — os consertos de 05/out só valem depois |
 | 2FA | códigos de recuperação fora do celular |
-| CNPJ | **parado por decisão dele** até depois das eleições. Trava consulta veicular camada 2, RENAVE, integrador da OLX e qualquer cobrança |
+| CNPJ | **parado por decisão dele** até depois das eleições. Trava consulta veicular camada 2, RENAVE, integrador da OLX, SMS e qualquer cobrança |
 | `CONTEXTO.md` | desatualizado — não tem a Rede como está, a migração do Bruno nem a separação do CLAUDE.md |
-| Fila do `IDEIAS.md` | prestadores de serviço (**pesquisa antes de tela**, decisão dele); convidar liberado para as outras lojas; *"o sistema se adapta à loja"*, a amadurecer |
+| Fila do `IDEIAS.md` | prestadores de serviço (**pesquisa antes de tela**); convidar liberado; "o sistema se adapta à loja" — **primeira parcela entregue em 06/out** na tela inicial |
 
 ---
