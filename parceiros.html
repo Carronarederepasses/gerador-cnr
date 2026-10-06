@@ -255,7 +255,7 @@
     <div class="fsec-title" style="border:none;padding:0;margin-bottom:.8rem">Detalhes da Blindagem</div>
     <div class="field"><label>Marca da blindagem</label><input type="text" id="blind-marca" placeholder="ex: Hevox, Inbrap, Blindex..."></div>
     <div class="field"><label>Nível de proteção</label><input type="text" id="blind-nivel" placeholder="ex: IIIA, Nível III-A..."></div>
-    <div class="field"><label>Tipo de vidro</label><input type="text" id="blind-vidro" placeholder="ex: vidros originais blindados..."></div>
+    <div class="field"><label>Marca dos vidros</label><input type="text" id="blind-vidro" placeholder="ex: AGP B33, Protectglass..."></div>
   </div>
 
   <!-- AVALIAÇÃO / GASTOS / OBSERVAÇÃO LIVRE -->
@@ -1005,10 +1005,15 @@ function montarTextoColetados() {
       const bM = document.getElementById('blind-marca').value.trim();
       const bN = document.getElementById('blind-nivel').value.trim();
       const bV = document.getElementById('blind-vidro').value.trim();
+      // A ordem é sempre: marca da blindagem, depois a dos vidros — são
+      // fabricantes diferentes e o comprador lê os dois (regra do Yuri,
+      // 05/out). A palavra "Vidros" entra explícita: sem ela, "AGP" dentro
+      // de parênteses não dizia a que se referia.
       let bl = '🛡️ Blindado';
-      if (bM) bl += ` — ${bM}`;
+      if (bM) bl += ` ${bM}`;
       if (bN) bl += `, ${bN}`;
-      if (bV) bl += ` (${bV})`;
+      // Se ele já escreveu "vidros ..." no campo, não repetir a palavra.
+      if (bV) bl += ` · ${/^vidro/i.test(bV) ? bV : 'Vidros ' + bV}`;
       op.push(bl);
     }
     bloco.opcionais = op.join('\n');
@@ -1024,7 +1029,14 @@ function montarTextoColetados() {
   if (gastos) bloco.gastos = `*GASTOS:*
 ${gastos}`;
   if (valor)   bloco.valor = `*VALOR: ${fmtR(valor)}*`;
-  if (fipeVal) bloco.fipe  = `*FIPE: ${fmtR(fipeVal)}*`;
+  // Carro blindado: a FIPE é do carro SEM a blindagem, que custa dezenas de
+  // milhares à parte. Sem o aviso, quem lê compara o preço com um número
+  // que não descreve o carro anunciado (regra do Yuri, 05/out).
+  // Só em carro blindado — nos outros a ressalva não significa nada.
+  if (fipeVal) {
+    bloco.fipe = `*FIPE: ${fmtR(fipeVal)}*`
+      + (onIds.includes('blindado') ? ' *(SEM BLINDAGEM)*' : '');
+  }
 
   // Instagram do site (assets/marca.js): no piloto e o do lojista, nao o da
   // Carro na Rede. Site sem Instagram configurado termina no preco.

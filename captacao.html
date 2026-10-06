@@ -250,7 +250,7 @@
     <div class="fsec-title" style="border:none;padding:0;margin-bottom:.8rem">Detalhes da Blindagem</div>
     <div class="field"><label>Marca da blindagem</label><input type="text" id="blind-marca" placeholder="ex: Hevox, Inbrap, Blindex..."></div>
     <div class="field"><label>Nível de proteção</label><input type="text" id="blind-nivel" placeholder="ex: IIIA, Nível III-A..."></div>
-    <div class="field"><label>Tipo de vidro</label><input type="text" id="blind-vidro" placeholder="ex: vidros originais blindados..."></div>
+    <div class="field"><label>Marca dos vidros</label><input type="text" id="blind-vidro" placeholder="ex: AGP B33, Protectglass..."></div>
   </div>
 
   <!-- AVALIAÇÃO / GASTOS / OBSERVAÇÃO LIVRE -->
@@ -779,10 +779,13 @@ function montarTextoAnuncio() {
       const bM = document.getElementById('blind-marca').value.trim();
       const bN = document.getElementById('blind-nivel').value.trim();
       const bV = document.getElementById('blind-vidro').value.trim();
+      // A ordem é sempre: marca da blindagem, depois a dos vidros — são
+      // fabricantes diferentes e o comprador lê os dois (regra do Yuri,
+      // 05/out). Gêmea da linha em parceiros.html.
       let bl = '🛡️ Blindado';
-      if (bM) bl += ` — ${bM}`;
+      if (bM) bl += ` ${bM}`;
       if (bN) bl += `, ${bN}`;
-      if (bV) bl += ` (${bV})`;
+      if (bV) bl += ` · ${/^vidro/i.test(bV) ? bV : 'Vidros ' + bV}`;
       op.push(bl);
     }
     bloco.opcionais = op.join('\n');
@@ -809,7 +812,13 @@ function montarTextoAnuncio() {
   if (gastos)    bloco.gastos    = `*GASTOS:*\n${gastos}`;
 
   if (valor)     bloco.valor = `*VALOR: ${fmtR(valor)}*`;
-  if (fipeDigit) bloco.fipe  = `*FIPE: ${fmtR(fipeDigit)}*`;
+  // Carro blindado: a FIPE é do carro SEM a blindagem, que custa dezenas de
+  // milhares à parte. Só em carro blindado — nos outros a ressalva não
+  // significa nada. Gêmea da linha em parceiros.html.
+  if (fipeDigit) {
+    bloco.fipe = `*FIPE: ${fmtR(fipeDigit)}*`
+      + (onIds.includes('blindado') ? ' *(SEM BLINDAGEM)*' : '');
+  }
   // Instagram do site (assets/marca.js): no piloto é o do lojista, não o da
   // Carro na Rede. Site sem Instagram configurado termina no preço.
   if (window.cnrMarca.linkInstagram) bloco.instagram = window.cnrMarca.linkInstagram;
