@@ -2,7 +2,15 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- `interactive-widget=resizes-content`: no Android, o teclado passa a
+     ENCOLHER a página em vez de passar por cima dela. Sem isto, o padrão do
+     Chrome encolhe só a "área visível" e deixa o layout do mesmo tamanho —
+     então o fim da página, que é o campo de escrever, fica atrás do
+     teclado. Era a segunda metade do campo cortado de 06/out; a primeira
+     era a soma com a faixa do topo.
+     Navegador que não conhece a chave ignora a vírgula para a frente, e aí
+     vale a medida pelo `visualViewport`, no fim deste arquivo. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <meta name="robots" content="noindex,nofollow">
 <title>Rede — Carro na Rede</title>
 <link rel="manifest" href="/api/utils?type=manifesto">
@@ -51,9 +59,18 @@
    A `.tela` então pede 100% do que sobrou. Se a faixa mudar de altura
    amanhã, isto continua certo — e um número repetido em dois arquivos é
    como um deles fica para trás. */
+/* ── E O TECLADO, QUE É A OUTRA METADE (06/out) ────────────────────
+   Consertada a soma com a faixa do topo, o campo CONTINUAVA cortado — e a
+   razão é outra: no iPhone, quando o teclado abre, o `dvh` NÃO encolhe. A
+   página continua do mesmo tamanho e o teclado passa por cima do fim dela.
+   O fim da página é o campo de escrever.
+
+   `--teclado` é quanto do fundo está coberto, medido pelo navegador
+   (`visualViewport`) e escrito pelo JS no fim deste arquivo. Vale 0 quando
+   não há teclado, então no notebook nada muda. */
 html{height:100%}
 body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
-  overflow:hidden;height:100vh;height:100dvh}
+  overflow:hidden;height:100vh;height:calc(100dvh - var(--teclado, 0px))}
 
 /* Duas colunas no notebook, uma de cada vez no celular — igual ao WhatsApp. */
 .tela{display:grid;grid-template-columns:20rem 1fr;height:100%}
@@ -106,8 +123,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .ag-trab{font-size:.78rem;color:var(--text-mid)}
 /* Mesma linha do item da coluna, mas aqui dentro do painel: sem borda
    clicável, porque a ação é o botão da direita e não a linha toda. */
-.ag-item{display:flex;gap:.7rem;align-items:center;padding:.6rem 0;
+/* `min-height:3rem` é o alvo de toque: menos que isso e o dedo erra. O
+   padding lateral negativo faz a linha clicável ir de borda a borda, como
+   a lista de contatos de qualquer aplicativo — alvo pequeno no meio de
+   espaço vazio é o que faz parecer que a tela não respondeu. */
+.ag-item{display:flex;gap:.7rem;align-items:center;padding:.6rem 0;min-height:3rem;
   border-bottom:1px solid var(--line)}
+.ag-item.clicavel{cursor:pointer;padding-left:.5rem;padding-right:.5rem;
+  margin-left:-.5rem;margin-right:-.5rem;border-radius:var(--r, 8px)}
+.ag-item.clicavel:active{background:var(--surface-raise)}
+@media (hover:hover){ .ag-item.clicavel:hover{background:var(--surface-raise)} }
 .ag-item .txt{min-width:0;flex:1}
 .ag-item .t1{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ag-item .t2{font-size:.78rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;
@@ -1484,15 +1509,20 @@ function desenharAgenda() {
   const trabalhando = AGENDA_ESTADO === 'comparando' ? 'Conferindo…'
     : AGENDA_ESTADO === 'lendo' ? 'Abrindo a agenda…' : '';
 
+  // A LINHA TODA abre a conversa, não só o botão.
+  // [YURI, 06/out: "tá ruim de selecionar"] — e estava: o alvo era um botão
+  // de 2cm² no canto direito, e tocar no nome da loja não fazia nada. No
+  // WhatsApp a linha é a porta. O botão fica, porque diz o que vai
+  // acontecer a quem nunca tocou aqui.
   const linhaLoja = (c) => `
-    <div class="ag-item">
+    <div class="ag-item clicavel" onclick="conversarDaAgenda('${c.loja.conta_id}')">
       <div class="avatar">🏪</div>
       <div class="txt">
         <div class="t1">${esc(c.nome || c.loja.nome)}</div>
         <div class="t2"><span class="ag-pin na">●</span> ${esc(c.loja.nome)} está na rede</div>
       </div>
       <div class="pedido-bts">
-        <button onclick="conversarDaAgenda('${c.loja.conta_id}')">Conversar</button>
+        <button onclick="conversarDaAgenda('${c.loja.conta_id}');event.stopPropagation()">Conversar</button>
       </div>
     </div>`;
 
@@ -1970,6 +2000,47 @@ $('btn-avisar').addEventListener('click', pedirAviso);
 // O sino nasce dizendo a verdade, em vez de nascer apagado e só clarear
 // depois de alguém assinar nesta visita.
 arrumarSino();
+
+/* ══ O TECLADO QUE COBRIA O CAMPO (06/out) ═══════════════════════════
+ *
+ * [YURI: "o campo para digitar ainda tá cortado"] — depois de eu consertar
+ * a soma com a faixa do topo. Eram DOIS defeitos no mesmo lugar, e o
+ * segundo é do iPhone: quando o teclado abre, nem `100vh` nem `100dvh`
+ * encolhem. A página segue do mesmo tamanho e o teclado passa POR CIMA do
+ * fim dela — e o fim da página é o campo de escrever. Com `overflow:hidden`
+ * no body, não há nem como rolar para enxergar.
+ *
+ * Quem sabe o tamanho de verdade é o `visualViewport`: a parte da página
+ * que a pessoa está REALMENTE vendo. A diferença entre ele e a janela é o
+ * que o teclado comeu.
+ *
+ * `offsetTop` entra na conta porque o iOS, além de cobrir, às vezes
+ * EMPURRA a página para cima ao focar um campo; sem isso a medida sai
+ * curta justamente no caso em que ela mais importa.
+ *
+ * Sem `visualViewport` (navegador antigo), `--teclado` fica em 0 e tudo
+ * volta a ser o que era — nada piora.
+ */
+(function (vv) {
+  if (!vv) return;
+  const medir = () => {
+    // Quanto do fundo da janela está fora da área visível.
+    const coberto = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    // Ruído de 1 ou 2 pixels durante a rolagem não vale um recálculo de
+    // layout a cada quadro.
+    document.documentElement.style.setProperty('--teclado', (coberto > 8 ? coberto : 0) + 'px');
+  };
+  vv.addEventListener('resize', medir);
+  vv.addEventListener('scroll', medir);
+  medir();
+
+  // Ao focar o campo, o iOS pode ter empurrado a página inteira para cima.
+  // Devolver ao topo é o que faz a faixa do topo e a conversa voltarem para
+  // o lugar — e a medida acima cuida do resto.
+  $('texto').addEventListener('focus', () => {
+    setTimeout(() => { window.scrollTo(0, 0); medir(); $('thread').scrollTop = $('thread').scrollHeight; }, 60);
+  });
+}(window.visualViewport));
 
 $('btn-carro').addEventListener('click', escolherCarro);
 $('btn-enviar').addEventListener('click', enviar);
