@@ -32,12 +32,31 @@
    27/set — quatro carros na tela, dois visíveis, e nada de rolar.
    `100dvh` é a altura que existe de fato; `100vh` fica antes, como
    reserva para navegador que não conheça a unidade nova. */
-html,body{height:100%}
+/* ── O CAMPO DE DIGITAR CORTADO (06/out) ──────────────────────────
+   [YURI: "o campo para digitar conversa tá cortado"] — e estava, por soma
+   de alturas:
+
+     body       padding-top: 3.6rem   (a faixa do topo, de sidebar.css,
+                                        só no celular)
+     .tela      height: 100dvh        (a tela INTEIRA)
+     body       overflow: hidden      (e não dá para rolar até o resto)
+
+   3,6rem + a tela inteira não cabem na tela: os últimos ~58px ficavam
+   abaixo do que o celular mostra, e o que vive lá embaixo é exatamente o
+   campo de escrever. A lista, que é elástica, absorvia a diferença e
+   parecia bem — o campo, que tem altura própria, caía fora.
+
+   O conserto não chumba o 3.6rem aqui: quem mede a tela é o `body`, em
+   `dvh`, e a faixa entra DENTRO dessa medida porque tudo é `border-box`.
+   A `.tela` então pede 100% do que sobrou. Se a faixa mudar de altura
+   amanhã, isto continua certo — e um número repetido em dois arquivos é
+   como um deles fica para trás. */
+html{height:100%}
 body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);
-  overflow:hidden}
+  overflow:hidden;height:100vh;height:100dvh}
 
 /* Duas colunas no notebook, uma de cada vez no celular — igual ao WhatsApp. */
-.tela{display:grid;grid-template-columns:20rem 1fr;height:100vh;height:100dvh}
+.tela{display:grid;grid-template-columns:20rem 1fr;height:100%}
 @media (max-width:760px){
   .tela{grid-template-columns:1fr}
   /* `.tela .coluna` e não `.coluna`: a regra base que dá `display:flex` à
@@ -859,14 +878,26 @@ function conversarDaAgenda(contaId) {
 
 async function abrirConversa(contaId) {
   try {
+    /* ── POR QUE ABRIA LENTO (06/out) ────────────────────────────
+       [YURI: "tá lento pra abrir o chat"] Eram DUAS viagens, uma depois
+       da outra: primeiro a conversa, e só quando ela voltava eu pedia a
+       lista de conversas. A tela esperava as duas para desenhar, e na
+       Vercel a primeira ainda paga a função fria (medido em 27/set: 770ms
+       fria contra ~200ms quente). Somava.
+
+       As duas saem JUNTAS agora, e a tela desenha com a PRIMEIRA. A
+       segunda só serve para a bolinha de não-lida sumir da coluna — isso
+       pode chegar meio segundo depois sem ninguém notar, e não é motivo
+       para a conversa ficar esperando.
+
+       É o mesmo conserto que o arranque desta tela já tinha recebido, e
+       eu não o apliquei aqui. */
+    const jaConversas = rede('conversas').catch(() => null);
+
     const d = await rede('conversa', { q: `&conta_id=${contaId}` });
     thread = d.mensagens;
     aberto = { tipo: 'conversa', id: contaId, nome: d.nome };
-    // Abrir marcou as dela como lidas no servidor; recarregar a coluna é
-    // o que faz a bolinha sumir aqui também.
-    const c = await rede('conversas');
-    dados.conversas = c.conversas;
-    desenharColuna(); desenharPainel(); verConversa();
+    desenharPainel(); verConversa();
     arrumarVoltar();
     // Entra deslizando, para a troca ser vista como "abriu outra tela" e
     // não como "o conteúdo mudou". No celular isso é a diferença entre
@@ -876,6 +907,15 @@ async function abrirConversa(contaId) {
     const p = $('painel');
     if (p) { p.classList.remove('entrando'); void p.offsetWidth; p.classList.add('entrando'); }
     $('texto').focus();
+
+    // A coluna se arruma quando a outra viagem chegar. Redesenha só se a
+    // pessoa ainda estiver nesta conversa: se ela já tocou em outra coisa,
+    // redesenhar aqui apagaria a tela que ela acabou de abrir.
+    jaConversas.then((c) => {
+      if (!c || !aberto || aberto.tipo !== 'conversa' || aberto.id !== contaId) return;
+      dados.conversas = c.conversas;
+      desenharColuna();
+    });
   } catch (e) { alert(e.message); }
 }
 
@@ -964,6 +1004,11 @@ async function enviarMensagem() {
     $('texto').value = '';
     $('texto').style.height = 'auto';
     await abrirConversa(aberto.id);
+    // Falou com alguém: é a hora de perguntar sobre o aviso, e não ao
+    // abrir a tela. Quem acabou de mandar mensagem tem um motivo concreto
+    // para querer saber da resposta — antes disso a pergunta é só um
+    // pedido de permissão sem contexto, que todo mundo recusa.
+    convidarParaAviso();
   } catch (e) { alert(e.message); }
   finally { $('btn-enviar').disabled = false; }
 }
@@ -1830,6 +1875,67 @@ const paraBytes = (b64) => {
   return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 };
 
+/* ══ O AVISO, QUE EXISTIA E NINGUÉM LIGAVA (06/out) ══════════════════
+ *
+ * [YURI: "precisa colocar notificação de msg tb"] O aviso de mensagem já
+ * estava construído desde 27/set — e chega com o nome de quem falou e o
+ * texto, e mensagem até GANHA de carro na fila. O que faltava era alguém
+ * ligar: no sistema inteiro havia UMA assinatura, do aparelho dele, de
+ * 27/set. O Nogueira não tinha nenhuma, então a mensagem que o Yuri mandou
+ * não tinha para onde ir.
+ *
+ * O motivo é a tela: quem liga é um 🔔 sem rótulo no canto, e o estado
+ * dele se perdia ao recarregar — ele só clareava depois de assinar, e na
+ * volta seguinte estava apagado outra vez, dizendo "desligado" sobre um
+ * aparelho ligado. Ninguém aperta um botão desses, e quem apertou não
+ * tinha como saber que deu certo.
+ *
+ * Três consertos: o sino mostra o ESTADO de verdade, a pergunta aparece na
+ * HORA em que ela faz sentido (acabei de mandar mensagem, quero saber da
+ * resposta), e pergunta UMA vez — recusa é resposta, não convite para
+ * insistir.
+ */
+const AVISO_JA_PERGUNTEI = 'cnr_aviso_perguntei';
+
+// O estado verdadeiro vem de duas coisas: a permissão do navegador e a
+// assinatura que existe neste aparelho. Uma sem a outra não avisa nada.
+async function estadoDoAviso() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'impossivel';
+  if (typeof Notification === 'undefined') return 'impossivel';
+  if (Notification.permission === 'denied') return 'recusado';
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const ass = reg && await reg.pushManager.getSubscription();
+    if (ass && Notification.permission === 'granted') return 'ligado';
+  } catch (e) { /* sem registro ainda */ }
+  return 'desligado';
+}
+
+async function arrumarSino() {
+  const b = document.getElementById('btn-avisar');
+  if (!b) return;
+  const e = await estadoDoAviso();
+  b.dataset.estado = e;
+  b.classList.toggle('leve', e !== 'ligado');
+  b.textContent = e === 'ligado' ? '🔔' : '🔕';
+  b.title = {
+    ligado: 'Avisos ligados neste aparelho — toque para conferir',
+    desligado: 'Avisos desligados — toque para ser avisado de mensagem e carro',
+    recusado: 'Você recusou os avisos neste navegador',
+    impossivel: 'Este aparelho não recebe aviso',
+  }[e];
+}
+
+// Pergunta no momento certo, e uma vez só.
+async function convidarParaAviso() {
+  if ((await estadoDoAviso()) !== 'desligado') return;
+  try { if (localStorage.getItem(AVISO_JA_PERGUNTEI)) return; } catch (e) { /* segue e pergunta */ }
+  try { localStorage.setItem(AVISO_JA_PERGUNTEI, '1'); } catch (e) { /* sem espaço: pode repetir */ }
+  if (!confirm('Quer ser avisado no celular quando responderem?\n\n'
+    + 'Sem isso, a resposta só aparece quando você abrir o Gerador.')) return;
+  pedirAviso();
+}
+
 async function pedirAviso() {
   // Cada motivo tem a sua frase: "não deu" sem dizer por quê faz a
   // pessoa tentar de novo esperando outro resultado.
@@ -1848,7 +1954,7 @@ async function pedirAviso() {
     });
     const j = ass.toJSON();
     const r = await rede('assinar', { body: { endpoint: j.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth } });
-    $('btn-avisar').classList.remove('leve');
+    await arrumarSino();
     // O aparelho pode estar assinado e o envio desligado no servidor. Dizer
     // "pronto" nesse caso seria prometer um aviso que nunca sai.
     if (r && r.ligado === false) {
@@ -1861,6 +1967,9 @@ async function pedirAviso() {
   }
 }
 $('btn-avisar').addEventListener('click', pedirAviso);
+// O sino nasce dizendo a verdade, em vez de nascer apagado e só clarear
+// depois de alguém assinar nesta visita.
+arrumarSino();
 
 $('btn-carro').addEventListener('click', escolherCarro);
 $('btn-enviar').addEventListener('click', enviar);
