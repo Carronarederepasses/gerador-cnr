@@ -1283,6 +1283,90 @@ async function abrirConversa(req, res) {
 }
 
 // ── Mandar mensagem ───────────────────────────────────────────────
+/* ══ TRANSMITIR UMA MENSAGEM (06/out) ════════════════════════════════
+ *
+ * [YURI: "quero a mesma funcionalidade do whatsapp"]
+ *
+ * Até hoje a transmissão da Rede mandava um CARRO: virava uma `oferta`
+ * com destinos, fila e "✋ Quero". É outra coisa, e continua existindo.
+ *
+ * Esta aqui é a lista de transmissão do WhatsApp: **um envio vira N
+ * conversas privadas**. Cada loja recebe no particular dela e responde no
+ * particular — ninguém vê quem mais recebeu, e não existe grupo.
+ *
+ * É a dor que deu origem ao projeto: o WhatsApp limita a lista, e o
+ * mercado dele reclama disso. Aqui não há teto de destinatários — o que
+ * há é o custo real de cada anexo ser baixado por cada destinatário, que
+ * está explicado em `anexoVer` e medido em `espaco`.
+ *
+ * ── O ARQUIVO É UM SÓ ─────────────────────────────────────────────
+ *
+ * As N mensagens apontam para o MESMO caminho. Copiar por destinatário
+ * seria 50 cópias de 250 KB por foto — 1 GB em 80 fotos. A autorização
+ * por "mensagem que eu posso ver" é o que torna isso possível.
+ */
+async function transmitirMensagem(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  if (!eu.podeOfertar) {
+    return res.status(403).json({ error: 'Seu acesso não inclui mandar para a lista.' });
+  }
+
+  const { lista_id, texto, anexos } = req.body || {};
+  const limpo = String(texto || '').trim().slice(0, 2000);
+  const anexo = limparAnexos(anexos, eu.conta_id);
+  if (!limpo && !anexo.length) return res.status(400).json({ error: 'Escreva alguma coisa.' });
+
+  // Mesmos destinatários da transmissão de carro: contatos ativos, menos
+  // quem está bloqueado nos dois sentidos. Uma peça só para as duas.
+  const d = await destinatarios(eu.conta_id, lista_id || null, null);
+  if (d.erro) return res.status(404).json({ error: d.erro });
+  if (!d.contas.length) {
+    return res.status(400).json({
+      error: 'Você ainda não tem contatos — ninguém receberia esta mensagem.',
+      codigo: 'sem_contatos',
+    });
+  }
+
+  const agora = new Date().toISOString();
+  let entregues = 0;
+  const falhas = [];
+  for (const destino of d.contas) {
+    try {
+      const c = await acharConversa(eu.conta_id, destino, true);
+      await rsb('mensagens_rede', {
+        method: 'POST',
+        body: JSON.stringify({
+          conversa_id: c.id, de_conta_id: eu.conta_id, de_usuario_id: eu.usuario_id,
+          texto: limpo, ...(anexo.length ? { anexos: anexo } : {}),
+        }),
+      });
+      await rsb(`conversas?id=eq.${c.id}`, {
+        method: 'PATCH', body: JSON.stringify({ ultima_em: agora }),
+      });
+      entregues++;
+    } catch (e) {
+      // Uma loja que falha não derruba as outras — e a tela precisa saber
+      // QUANTAS chegaram, em vez de "deu erro" sobre um envio que foi
+      // entregue a 48 de 50.
+      console.error('[rede] transmissão falhou para', destino, e.message);
+      falhas.push(destino);
+    }
+  }
+
+  // O aviso no celular depois de gravar tudo, e um por loja. Falha de
+  // aviso nunca derruba o envio.
+  const { avisarConta } = require('./_aviso');
+  for (const destino of d.contas) {
+    if (!falhas.includes(destino)) await avisarConta(rsb, destino, null);
+  }
+
+  return res.status(201).json({
+    ok: true, entregues, falhou: falhas.length,
+    lista: d.lista ? d.lista.nome : 'Todos os contatos',
+  });
+}
+
 /* ══ ANEXO NA CONVERSA (06/out) ══════════════════════════════════════
  *
  * [YURI: "quero o chat do gerador, igual ao whatsapp, com campo de anexo
@@ -1350,8 +1434,11 @@ async function anexoSubir(req, res) {
   const eu = quem(req);
   if (!eu) return semSessao(res);
 
-  const { conta_id, tipo, bytes } = req.body || {};
-  if (!UUID.test(String(conta_id || ''))) return res.status(400).json({ error: 'conta_id inválido.' });
+  // Sem `conta_id`: o arquivo não nasce mais preso a uma conversa (ver a
+  // explicação em `anexoVer`). Subir é um ato meu, na MINHA pasta; quem
+  // pode ver decide-se depois, pela mensagem que o referencia. É também o
+  // que permite a transmissão: um arquivo, N mensagens.
+  const { tipo, bytes } = req.body || {};
   const ext = ANEXO_TIPOS[String(tipo || '')];
   if (!ext) return res.status(400).json({ error: 'Esse tipo de arquivo não entra na conversa.' });
   const n = Number(bytes || 0);
@@ -1362,17 +1449,15 @@ async function anexoSubir(req, res) {
       codigo: 'grande_demais',
     });
   }
-  if (!(await podeFalarCom(eu.conta_id, conta_id))) {
-    return res.status(404).json({ error: 'Conversa não encontrada.' });
-  }
-
-  const c = await acharConversa(eu.conta_id, conta_id, true);
   // `require` explícito: o `crypto` GLOBAL do Node é o da web, que tem
   // `getRandomValues` e NÃO tem `randomBytes`. Depende da versão, então
   // funciona na minha máquina e pode estourar na Vercel — o pior tipo de
   // erro, porque só aparece com gente usando.
   const { randomBytes } = require('crypto');
-  const caminho = `${eu.conta_id}/${c.id}/${Date.now()}-${randomBytes(4).toString('hex')}.${ext}`;
+  // Agrupado por mês: é o que torna possível olhar "o que entrou em
+  // outubro" e, um dia, mexer num período inteiro sem varrer o balde.
+  const mes = new Date().toISOString().slice(0, 7);
+  const caminho = `${eu.conta_id}/${mes}/${Date.now()}-${randomBytes(4).toString('hex')}.${ext}`;
   const r = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${BALDE_ANEXO}/${caminho}`, {
     method: 'POST',
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
@@ -1410,22 +1495,51 @@ async function anexoVer(req, res) {
   if (!eu) return semSessao(res);
 
   const caminho = String(req.query.caminho || '');
-  const partes = caminho.split('/');
-  if (partes.length < 3 || caminho.includes('..')) {
+  if (!caminho || caminho.includes('..') || caminho.split('/').length < 3) {
     return res.status(400).json({ error: 'caminho inválido.' });
   }
-  const [, conversaId] = partes;
-  if (!UUID.test(conversaId)) return res.status(400).json({ error: 'caminho inválido.' });
 
-  // A autorização: eu sou um dos dois lados DESTA conversa?
-  const c = await rsb(`conversas?id=eq.${conversaId}&select=conta_a,conta_b&limit=1`);
-  if (!c.length || (c[0].conta_a !== eu.conta_id && c[0].conta_b !== eu.conta_id)) {
-    return res.status(404).json({ error: 'Arquivo não encontrado.' });
-  }
+  /* ── A AUTORIZAÇÃO NÃO MORA NO CAMINHO (reescrito em 06/out) ────
+   *
+   * A primeira versão amarrava o arquivo a UMA conversa: o caminho era
+   * `<conta>/<conversa>/<arquivo>` e só os dois lados dela liam. Funciona
+   * em 1 a 1, e **quebra na transmissão** — que é o produto.
+   *
+   * [YURI: "quero a mesma funcionalidade do whatsapp"] Na transmissão do
+   * WhatsApp um envio vira N conversas privadas: a mesma foto aparece para
+   * 50 lojas, cada uma no particular dela. Com o caminho amarrado a uma
+   * conversa, 49 receberiam "arquivo não encontrado".
+   *
+   * A saída errada seria copiar o arquivo por destinatário: 50 cópias de
+   * 250 KB são 12,5 MB por foto, e 1 GB acaba em 80 fotos.
+   *
+   * Então a regra passa a ser a única que é sempre verdadeira:
+   *
+   *   **eu leio o anexo de uma mensagem que eu posso ver.**
+   *
+   * Uma cópia do arquivo, N mensagens apontando para ela. Vale para 1 a 1,
+   * para transmissão e para encaminhamento, sem caso especial — e o
+   * caminho volta a ser só um nome, não uma credencial.
+   */
+  const minhas = await rsb(
+    `conversas?select=id&or=(conta_a.eq.${eu.conta_id},conta_b.eq.${eu.conta_id})&limit=500`
+  );
+  if (!minhas.length) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
+  // `cs` (contains) no jsonb: existe nos anexos desta mensagem um item com
+  // este caminho? A comparação é no banco, por igualdade exata — nada de
+  // casar pedaço de texto, que é como se aceita um caminho parecido.
+  const alvo = encodeURIComponent(JSON.stringify([{ caminho }]));
+  const achou = await rsb(
+    `mensagens_rede?select=id&conversa_id=in.(${minhas.map((c) => c.id).join(',')})` +
+    `&anexos=cs.${alvo}&limit=1`
+  );
+  if (!achou.length) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+
   // Bloqueio vale aqui também: calar a conversa e deixar os arquivos
-  // alcançáveis seria meio bloqueio.
-  const outra = c[0].conta_a === eu.conta_id ? c[0].conta_b : c[0].conta_a;
-  if (await temBloqueio(eu.conta_id, outra)) {
+  // alcançáveis seria meio bloqueio. Quem mandou está no começo do caminho.
+  const deQuem = caminho.split('/')[0];
+  if (UUID.test(deQuem) && deQuem !== eu.conta_id && await temBloqueio(eu.conta_id, deQuem)) {
     return res.status(404).json({ error: 'Arquivo não encontrado.' });
   }
 
@@ -1499,21 +1613,15 @@ async function mandarMensagem(req, res) {
 
   const c = await acharConversa(eu.conta_id, conta_id, true);
 
-  // O caminho de cada anexo carrega a conversa a que ele pertence, e é por
-  // ele que a leitura é autorizada depois. Um anexo apontando para OUTRA
-  // conversa aqui seria a brecha: eu mandaria uma mensagem com o caminho de
-  // um arquivo alheio e passaria a poder lê-lo.
-  const meus = lista.filter((a) => a.caminho.startsWith(`${eu.conta_id}/${c.id}/`));
-  if (meus.length !== lista.length) {
-    return res.status(400).json({ error: 'Anexo não pertence a esta conversa.' });
-  }
-
+  // `limparAnexos` já exigiu que todo caminho comece pela MINHA conta —
+  // é o que impede alguém referenciar na própria mensagem um arquivo
+  // guardado por outra loja e, com isso, passar a poder lê-lo.
   await rsb('mensagens_rede', {
     method: 'POST',
     body: JSON.stringify({
       conversa_id: c.id, de_conta_id: eu.conta_id, de_usuario_id: eu.usuario_id,
       texto: limpo, oferta_id: UUID.test(String(oferta_id || '')) ? oferta_id : null,
-      ...(meus.length ? { anexos: meus } : {}),
+      ...(lista.length ? { anexos: lista } : {}),
     }),
   });
   // `ultima_em` é o que ordena a coluna da esquerda: sem isto, a conversa
@@ -1857,7 +1965,7 @@ module.exports = {
   assinarAviso, novidades,
   listas, solicitar, responder, sairOuRemover,
   agenda, bloquear, bloqueadas,
-  anexoSubir, anexoVer, espaco,
+  anexoSubir, anexoVer, espaco, transmitirMensagem,
   verListasTransmissao, mexerNaLista, membrosDaLista,
   conversas, abrirConversa, mandarMensagem,
   grupos, abrirGrupo, mexerNoGrupo, mandarNoGrupo,

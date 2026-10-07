@@ -743,6 +743,9 @@ module.exports = async (req, res) => {
     if (acao === 'anexo'   && req.method === 'POST') return rede.anexoSubir(req, res);
     if (acao === 'anexo'   && req.method === 'GET')  return rede.anexoVer(req, res);
     if (acao === 'espaco'  && req.method === 'GET')  return rede.espaco(req, res);
+    // A lista de transmissao do WhatsApp: um envio vira N conversas
+    // privadas. Diferente de 'ofertar', que manda um CARRO.
+    if (acao === 'transmitir' && req.method === 'POST') return rede.transmitirMensagem(req, res);
     // Listas de transmissão (padrão WhatsApp): recortes nomeados dos contatos.
     if (acao === 'transmissao' && req.method === 'GET')  return rede.verListasTransmissao(req, res);
     if (acao === 'transmissao' && req.method === 'POST') return rede.mexerNaLista(req, res);
