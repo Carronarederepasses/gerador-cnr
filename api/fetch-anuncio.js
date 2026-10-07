@@ -738,6 +738,11 @@ module.exports = async (req, res) => {
     if (acao === 'agenda'    && req.method === 'POST') return rede.agenda(req, res);
     if (acao === 'bloquear'  && req.method === 'POST') return rede.bloquear(req, res);
     if (acao === 'bloqueadas' && req.method === 'GET') return rede.bloqueadas(req, res);
+    // Anexo na conversa (06/out): o arquivo vai DIRETO do aparelho para o
+    // Supabase por URL assinada — nunca passa por esta funcao.
+    if (acao === 'anexo'   && req.method === 'POST') return rede.anexoSubir(req, res);
+    if (acao === 'anexo'   && req.method === 'GET')  return rede.anexoVer(req, res);
+    if (acao === 'espaco'  && req.method === 'GET')  return rede.espaco(req, res);
     // Listas de transmissão (padrão WhatsApp): recortes nomeados dos contatos.
     if (acao === 'transmissao' && req.method === 'GET')  return rede.verListasTransmissao(req, res);
     if (acao === 'transmissao' && req.method === 'POST') return rede.mexerNaLista(req, res);

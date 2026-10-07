@@ -1283,14 +1283,214 @@ async function abrirConversa(req, res) {
 }
 
 // ── Mandar mensagem ───────────────────────────────────────────────
+/* ══ ANEXO NA CONVERSA (06/out) ══════════════════════════════════════
+ *
+ * [YURI: "quero o chat do gerador, igual ao whatsapp, com campo de anexo
+ * de arquivos e tal, tu sabe que temos muita troca de arquivo"]
+ *
+ * ── O DESENHO, E POR QUE ESTE E NAO OUTRO ─────────────────────────
+ *
+ * O arquivo vai DIRETO do aparelho para o Supabase, por uma URL assinada
+ * que esta função emite. Ele não passa pela função: uma foto de 3 MB
+ * atravessando a Vercel custa tempo e memória de função, e o teto de
+ * payload derruba o envio sem explicar. É o mesmo caminho que
+ * `api/vendas.js` já usa em `prepare-upload` desde que existe.
+ *
+ * O balde é PRIVADO. Numa negociação circulam CRLV, CNH, comprovante,
+ * dado bancário — público significa que uma URL que vaze é legível por
+ * qualquer pessoa, para sempre, sem login. Caminho por UUID não protege:
+ * não ser adivinhável é diferente de ser protegido.
+ *
+ * ── ONDE A AUTORIZAÇÃO MORA ───────────────────────────────────────
+ *
+ * No CAMINHO: `<conta de quem mandou>/<conversa>/<arquivo>`. Para subir,
+ * confiro que os dois podem falar; para ler, confiro que quem pede é um
+ * dos dois lados daquela conversa. O caminho é a única fonte — nada do
+ * corpo do pedido decide quem alcança o quê.
+ */
+const BALDE_ANEXO = 'rede-anexos';
+const ANEXO_MAX_BYTES = 8 * 1024 * 1024;      // igual ao teto do balde
+const ANEXO_POR_MENSAGEM = 10;
+// Só o que a tela sabe mostrar. Lista fechada: aberta com exceções, o
+// primeiro arquivo estranho entra e só se descobre depois.
+const ANEXO_TIPOS = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+  'image/heic': 'heic', 'image/heif': 'heif',
+  'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3',
+  'audio/mp4': 'm4a', 'audio/aac': 'aac',
+  'application/pdf': 'pdf',
+};
+
+/** Fica só com o que a tela pode ter mandado, e no formato esperado. */
+function limparAnexos(bruto, minhaConta) {
+  if (!Array.isArray(bruto)) return [];
+  return bruto.slice(0, ANEXO_POR_MENSAGEM).map((a) => {
+    const caminho = String((a && a.caminho) || '');
+    const tipo = String((a && a.tipo) || '');
+    if (!ANEXO_TIPOS[tipo]) return null;
+    // Caminho tem de começar pela MINHA conta: é o que impede alguém
+    // registrar na própria mensagem um arquivo guardado por outra loja.
+    if (!caminho.startsWith(`${minhaConta}/`)) return null;
+    if (caminho.includes('..')) return null;
+    const bytes = Number((a && a.bytes) || 0);
+    if (!Number.isFinite(bytes) || bytes <= 0 || bytes > ANEXO_MAX_BYTES) return null;
+    return {
+      caminho, tipo, bytes: Math.round(bytes),
+      nome: String((a && a.nome) || '').slice(0, 120),
+      // Largura e altura para a tela reservar o espaço antes de a foto
+      // chegar — sem isso a conversa pula quando cada imagem carrega.
+      w: Number((a && a.w) || 0) || null,
+      h: Number((a && a.h) || 0) || null,
+    };
+  }).filter(Boolean);
+}
+
+/** Passo 1: a tela pede para onde subir. */
+async function anexoSubir(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const { conta_id, tipo, bytes } = req.body || {};
+  if (!UUID.test(String(conta_id || ''))) return res.status(400).json({ error: 'conta_id inválido.' });
+  const ext = ANEXO_TIPOS[String(tipo || '')];
+  if (!ext) return res.status(400).json({ error: 'Esse tipo de arquivo não entra na conversa.' });
+  const n = Number(bytes || 0);
+  if (!Number.isFinite(n) || n <= 0) return res.status(400).json({ error: 'Tamanho inválido.' });
+  if (n > ANEXO_MAX_BYTES) {
+    return res.status(413).json({
+      error: `Arquivo grande demais (máximo ${Math.round(ANEXO_MAX_BYTES / 1048576)} MB).`,
+      codigo: 'grande_demais',
+    });
+  }
+  if (!(await podeFalarCom(eu.conta_id, conta_id))) {
+    return res.status(404).json({ error: 'Conversa não encontrada.' });
+  }
+
+  const c = await acharConversa(eu.conta_id, conta_id, true);
+  // `require` explícito: o `crypto` GLOBAL do Node é o da web, que tem
+  // `getRandomValues` e NÃO tem `randomBytes`. Depende da versão, então
+  // funciona na minha máquina e pode estourar na Vercel — o pior tipo de
+  // erro, porque só aparece com gente usando.
+  const { randomBytes } = require('crypto');
+  const caminho = `${eu.conta_id}/${c.id}/${Date.now()}-${randomBytes(4).toString('hex')}.${ext}`;
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${BALDE_ANEXO}/${caminho}`, {
+    method: 'POST',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!r.ok) {
+    const txt = await r.text();
+    console.error('[rede] anexo: não consegui assinar o upload:', txt.slice(0, 200));
+    // O balde pode não existir ainda (migration manual). Aqui NÃO dá para
+    // fingir que deu certo: a pessoa escolheria a foto e ela sumiria.
+    return res.status(503).json({
+      error: 'O envio de arquivo ainda não está disponível neste banco.', codigo: 'sem_balde',
+    });
+  }
+  const d = await r.json();
+  const url = String(d.url || '');
+  return res.status(200).json({
+    ok: true, caminho,
+    uploadUrl: url.startsWith('http') ? url : `${SUPABASE_URL}/storage/v1${url}`,
+  });
+}
+
+/* Passo 2: a tela pede para VER um anexo.
+ *
+ * Prazo longo de propósito (2h). URL assinada com token novo a cada
+ * abertura **fura o cache do navegador**: a mesma foto baixa de novo toda
+ * vez que a conversa abre, e é a saída de dados (5 GB/mês no plano grátis)
+ * que aperta primeiro, não o espaço guardado. Com prazo de 2h o navegador
+ * reaproveita, e a conversa reaberta não custa nada.
+ */
+const ANEXO_PRAZO_SEG = 7200;
+
+async function anexoVer(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  const caminho = String(req.query.caminho || '');
+  const partes = caminho.split('/');
+  if (partes.length < 3 || caminho.includes('..')) {
+    return res.status(400).json({ error: 'caminho inválido.' });
+  }
+  const [, conversaId] = partes;
+  if (!UUID.test(conversaId)) return res.status(400).json({ error: 'caminho inválido.' });
+
+  // A autorização: eu sou um dos dois lados DESTA conversa?
+  const c = await rsb(`conversas?id=eq.${conversaId}&select=conta_a,conta_b&limit=1`);
+  if (!c.length || (c[0].conta_a !== eu.conta_id && c[0].conta_b !== eu.conta_id)) {
+    return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  }
+  // Bloqueio vale aqui também: calar a conversa e deixar os arquivos
+  // alcançáveis seria meio bloqueio.
+  const outra = c[0].conta_a === eu.conta_id ? c[0].conta_b : c[0].conta_a;
+  if (await temBloqueio(eu.conta_id, outra)) {
+    return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  }
+
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${BALDE_ANEXO}/${caminho}`, {
+    method: 'POST',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expiresIn: ANEXO_PRAZO_SEG }),
+  });
+  if (!r.ok) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  const d = await r.json();
+  const url = String(d.signedURL || d.signedUrl || '');
+  return res.status(200).json({
+    ok: true,
+    url: url.startsWith('http') ? url : `${SUPABASE_URL}/storage/v1${url}`,
+    vence_em: ANEXO_PRAZO_SEG,
+  });
+}
+
+/* Quanto esta loja já guardou.
+ *
+ * Somado dos anexos das mensagens dela, não do balde: é a conta que a
+ * pessoa entende ("o que EU mandei") e não exige varrer o storage.
+ * O plano grátis dá 1 GB para o sistema inteiro — por isso o aviso é em
+ * cima do total, e não de uma cota por loja que ainda não existe.
+ */
+const ESPACO_TOTAL = 1024 * 1024 * 1024;
+
+async function espaco(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+  let linhas = [];
+  try {
+    linhas = await rsb('mensagens_rede?select=de_conta_id,anexos&anexos=neq.[]&limit=5000');
+  } catch (e) {
+    // Coluna ainda não criada: responde "nada guardado" em vez de derrubar.
+    console.error('[rede] espaço indisponível (migration pendente?):', e.message);
+    return res.status(200).json({ ok: true, meus: 0, total: 0, teto: ESPACO_TOTAL, aviso: 'sem_coluna' });
+  }
+  let meus = 0, total = 0;
+  linhas.forEach((m) => {
+    (Array.isArray(m.anexos) ? m.anexos : []).forEach((a) => {
+      const b = Number(a && a.bytes) || 0;
+      total += b;
+      if (m.de_conta_id === eu.conta_id) meus += b;
+    });
+  });
+  return res.status(200).json({
+    ok: true, meus, total, teto: ESPACO_TOTAL,
+    // O aviso é aos 80%, e quem decide o que fazer é o Yuri — nada é
+    // apagado sozinho (decisão dele, 06/out).
+    apertando: total > ESPACO_TOTAL * 0.8,
+  });
+}
+
 async function mandarMensagem(req, res) {
   const eu = quem(req);
   if (!eu) return semSessao(res);
 
-  const { conta_id, texto, oferta_id } = req.body || {};
+  const { conta_id, texto, oferta_id, anexos } = req.body || {};
   if (!UUID.test(String(conta_id || ''))) return res.status(400).json({ error: 'conta_id inválido.' });
   const limpo = String(texto || '').trim().slice(0, 2000);
-  if (!limpo) return res.status(400).json({ error: 'Escreva alguma coisa.' });
+  const lista = limparAnexos(anexos, eu.conta_id);
+  // Mensagem só com foto é mensagem — no WhatsApp a legenda é opcional. Mas
+  // sem texto E sem anexo não há o que mandar.
+  if (!limpo && !lista.length) return res.status(400).json({ error: 'Escreva alguma coisa.' });
   if (!(await podeFalarCom(eu.conta_id, conta_id))) {
     // Mesma resposta de "não existe": dizer "vocês não têm relação"
     // confirmaria que a loja existe.
@@ -1298,11 +1498,22 @@ async function mandarMensagem(req, res) {
   }
 
   const c = await acharConversa(eu.conta_id, conta_id, true);
+
+  // O caminho de cada anexo carrega a conversa a que ele pertence, e é por
+  // ele que a leitura é autorizada depois. Um anexo apontando para OUTRA
+  // conversa aqui seria a brecha: eu mandaria uma mensagem com o caminho de
+  // um arquivo alheio e passaria a poder lê-lo.
+  const meus = lista.filter((a) => a.caminho.startsWith(`${eu.conta_id}/${c.id}/`));
+  if (meus.length !== lista.length) {
+    return res.status(400).json({ error: 'Anexo não pertence a esta conversa.' });
+  }
+
   await rsb('mensagens_rede', {
     method: 'POST',
     body: JSON.stringify({
       conversa_id: c.id, de_conta_id: eu.conta_id, de_usuario_id: eu.usuario_id,
       texto: limpo, oferta_id: UUID.test(String(oferta_id || '')) ? oferta_id : null,
+      ...(meus.length ? { anexos: meus } : {}),
     }),
   });
   // `ultima_em` é o que ordena a coluna da esquerda: sem isto, a conversa
@@ -1646,6 +1857,7 @@ module.exports = {
   assinarAviso, novidades,
   listas, solicitar, responder, sairOuRemover,
   agenda, bloquear, bloqueadas,
+  anexoSubir, anexoVer, espaco,
   verListasTransmissao, mexerNaLista, membrosDaLista,
   conversas, abrirConversa, mandarMensagem,
   grupos, abrirGrupo, mexerNoGrupo, mandarNoGrupo,
