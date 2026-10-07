@@ -682,7 +682,7 @@ function desenharColuna() {
           `abrirConversa('${c.conta_id}')`)).join('')
       // O vazio agora leva para a porta em vez de só constatar o vazio.
       : '<div class="vazio" style="padding:1rem">Ninguém na sua rede ainda.<br><br>'
-        + '<button class="leve" onclick="entrarNumaLista()">🤝 Entrar na lista de uma loja</button></div>') +
+        + '<button class="leve" onclick="abrirAgenda()">📇 Achar pela agenda</button></div>') +
 
     // ── Listas em que EU estou ──────────────────────────────────────
     // O servidor manda desde 27/set e nada mostrava. Aqui a pessoa vê de
@@ -1050,11 +1050,14 @@ function editarGrupo(id) {
     <div class="op"><span>Qualquer loja da rede pode entrar</span>
       <button class="${g.aberto ? '' : 'leve'}" onclick="trocarAbertura('${id}', ${!g.aberto})">
         ${g.aberto ? '✓ aberto' : 'fechado'}</button></div>
-    <p style="font-size:.8rem;color:var(--text-faint);margin:.5rem 0">Acrescentar dos seus contatos:</p>
+    <p style="font-size:.8rem;color:var(--text-faint);margin:.5rem 0">Acrescentar quem você alcança:</p>
     ${dados.contatos.length ? dados.contatos.map((c) => `
-      <div class="op"><span>${esc(c.nome)}</span>
+      <div class="op"><span>${esc(c.nome)}${
+        c.origem === 'conversa' ? '<br><span style="font-size:.74rem;color:var(--text-faint)">de conversa</span>' : ''
+      }</span>
         <button class="leve" onclick="acrescentarNoGrupo('${id}','${c.conta_id}')">incluir</button></div>`).join('')
-      : '<p class="vazio">Você ainda não tem contatos.</p>'}
+      : '<p class="vazio">Ninguém para incluir ainda.<br>'
+        + 'Converse com uma loja ou ache lojas pela sua agenda.</p>'}
     <div class="op" style="justify-content:flex-end"><button onclick="dlg.close()">Pronto</button></div>`;
   $('dlg').showModal();
 }
@@ -1275,11 +1278,17 @@ function editarLista(id) {
   $('dlg-corpo').innerHTML = `<h3>${esc(l.nome)}</h3>
     <p style="font-size:.85rem;color:var(--text-mid);margin-bottom:.6rem">Quem recebe desta transmissão:</p>
     ${dados.contatos.length ? dados.contatos.map((c) => `
-      <div class="op"><span>${esc(c.nome)}</span>
+      <div class="op"><span>${esc(c.nome)}${
+        // "de conversa" não é quem pediu para entrar: é alguém com quem se
+        // fala. Dizer de onde veio evita a pessoa achar que aceitou um
+        // pedido que nunca existiu.
+        c.origem === 'conversa' ? '<br><span style="font-size:.74rem;color:var(--text-faint)">de conversa</span>' : ''
+      }</span>
         <button class="${dentro.has(c.conta_id) ? '' : 'leve'}"
           onclick="trocarMembro('${id}','${c.conta_id}',${!dentro.has(c.conta_id)})">
           ${dentro.has(c.conta_id) ? '✓ recebe' : 'incluir'}</button></div>`).join('')
-      : '<p class="vazio">Você ainda não tem contatos.</p>'}
+      : '<p class="vazio">Ninguém para incluir ainda.<br>'
+        + 'Converse com uma loja ou ache lojas pela sua agenda — aí elas aparecem aqui.</p>'}
     <div class="op" style="justify-content:space-between">
       <button class="leve" onclick="apagarLista('${id}')">Apagar transmissão</button>
       <button onclick="dlg.close()">Pronto</button></div>`;

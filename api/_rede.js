@@ -121,8 +121,29 @@ async function destinatarios(contaId, listaId, grupoId) {
     return { contas: membros.map((m) => m.conta_id).filter((c) => c !== contaId), grupo: g[0] };
   }
 
-  const contatos = await rsb(`contatos?conta_id=eq.${contaId}&estado=eq.ativo&select=contato_conta_id`);
+  /* ── QUEM É "TODOS" (corrigido em 07/out) ─────────────────────────
+   *
+   * Era só `contatos` — quem pediu para entrar na minha lista e foi
+   * aceito. Com a regra de 06/out ("quem tem o meu número me chama
+   * direto"), isso virou absurdo: `contatos: 0` e a transmissão
+   * respondendo "você ainda não tem contatos" para quem está conversando.
+   *
+   * No WhatsApp, "todos" é a agenda: quem eu alcanço. Aqui, quem eu
+   * alcanço é **quem é meu contato OU com quem eu já troquei mensagem** —
+   * e trocar mensagem já exigiu ter o número, que é a permissão.
+   *
+   * A conversa entra com quem está do outro lado dela, nos dois sentidos:
+   * quem me chamou primeiro também é alguém que eu alcanço.
+   */
+  const [contatos, conversas] = await Promise.all([
+    rsb(`contatos?conta_id=eq.${contaId}&estado=eq.ativo&select=contato_conta_id`),
+    rsb(`conversas?or=(conta_a.eq.${contaId},conta_b.eq.${contaId})&select=conta_a,conta_b&limit=500`),
+  ]);
   const ativos = new Set(contatos.map((x) => x.contato_conta_id));
+  conversas.forEach((c) => {
+    const outra = c.conta_a === contaId ? c.conta_b : c.conta_a;
+    if (outra && outra !== contaId) ativos.add(outra);
+  });
 
   // Bloqueado não recebe carro, nos dois sentidos (06/out). Sem este
   // filtro, bloquear calaria a conversa e o carro continuaria chegando —
@@ -135,8 +156,12 @@ async function destinatarios(contaId, listaId, grupoId) {
   const l = await rsb(`listas?id=eq.${listaId}&conta_id=eq.${contaId}&arquivada_em=is.null&select=id,nome&limit=1`);
   if (!l.length) return { erro: 'Lista não encontrada.' };
 
+  // A lista nomeada NÃO é filtrada por `ativos`: quem o dono pôs lá, ele
+  // pôs de propósito, e `membrosDaLista` já conferiu na entrada que ele
+  // podia. Filtrar de novo aqui silenciava destinatários sem dizer nada —
+  // o envio saía "para 12" e chegava em 3.
   const membros = await rsb(`lista_membros?lista_id=eq.${listaId}&select=conta_id`);
-  return { contas: membros.map((m) => m.conta_id).filter((c) => ativos.has(c) && passa(c)), lista: l[0] };
+  return { contas: membros.map((m) => m.conta_id).filter(passa), lista: l[0] };
 }
 
 // Todas as lojas bloqueadas nos dois sentidos, de uma vez. Em consulta só,
@@ -726,21 +751,38 @@ async function listas(req, res) {
   const eu = quem(req);
   if (!eu) return semSessao(res);
 
-  const [meus, pedidos, ondeEstou] = await Promise.all([
+  const [meus, pedidos, ondeEstou, conversas] = await Promise.all([
     rsb(`contatos?conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=contato_conta_id,criado_em&order=criado_em.desc`),
     rsb(`solicitacoes?para_conta_id=eq.${eu.conta_id}&estado=eq.pendente&select=id,de_conta_id,criado_em&order=criado_em.asc`),
     rsb(`contatos?contato_conta_id=eq.${eu.conta_id}&estado=eq.ativo&select=conta_id,criado_em&order=criado_em.desc`),
+    // Quem eu alcanço inclui com quem eu já conversei: trocar mensagem já
+    // exigiu ter o número, que é a permissão (regra de 06/out). Sem isto,
+    // a tela de montar transmissão continuava vazia para quem conversa.
+    rsb(`conversas?or=(conta_a.eq.${eu.conta_id},conta_b.eq.${eu.conta_id})&select=conta_a,conta_b,criada_em&limit=500`),
   ]);
 
+  // Contato formal e conversa viram uma lista só, sem repetir. A origem
+  // fica marcada: a tela precisa saber que "de conversa" não é alguém que
+  // pediu para entrar — é alguém com quem se fala.
+  const alcanco = new Map();
+  meus.forEach((x) => alcanco.set(x.contato_conta_id, { desde: x.criado_em, origem: 'contato' }));
+  conversas.forEach((c) => {
+    const outra = c.conta_a === eu.conta_id ? c.conta_b : c.conta_a;
+    if (!outra || outra === eu.conta_id || alcanco.has(outra)) return;
+    alcanco.set(outra, { desde: c.criada_em || null, origem: 'conversa' });
+  });
+
   const nomes = await nomesDe([...new Set([
-    ...meus.map((x) => x.contato_conta_id),
+    ...alcanco.keys(),
     ...pedidos.map((x) => x.de_conta_id),
     ...ondeEstou.map((x) => x.conta_id),
   ])]);
 
   return res.status(200).json({
-    // A minha lista: eu sou a dona, então vejo quem está nela.
-    membros: meus.map((x) => ({ conta_id: x.contato_conta_id, nome: nomes[x.contato_conta_id] || '—', desde: x.criado_em })),
+    // Quem eu alcanço: contato formal + com quem eu já conversei.
+    membros: [...alcanco.entries()].map(([conta_id, v]) => ({
+      conta_id, nome: nomes[conta_id] || '—', desde: v.desde, origem: v.origem,
+    })),
     pedidos: pedidos.map((x) => ({ id: x.id, conta_id: x.de_conta_id, nome: nomes[x.de_conta_id] || '—', em: x.criado_em })),
     // As listas em que EU estou: só de quem é, nunca quem mais está nela.
     em_que_estou: ondeEstou.map((x) => ({ dono_conta_id: x.conta_id, nome: nomes[x.conta_id] || '—', desde: x.criado_em })),
@@ -1101,8 +1143,22 @@ async function membrosDaLista(req, res) {
   if (!l.length) return res.status(404).json({ error: 'Lista não encontrada.' });
 
   if (dentro) {
-    const c = await rsb(`contatos?conta_id=eq.${eu.conta_id}&contato_conta_id=eq.${conta_id}&estado=eq.ativo&select=id&limit=1`);
-    if (!c.length) return res.status(400).json({ error: 'Essa loja não é seu contato.' });
+    /* ── QUEM PODE ENTRAR NA LISTA (corrigido em 07/out) ─────────
+     * Era: tem de ser `contato` — pedido feito e aceito.
+     *
+     * Isso ficou incoerente com a regra que ele escolheu em 06/out: quem
+     * tem o meu número me chama direto. O resultado medido foi exatamente
+     * o absurdo que isso produz — `contatos: 0`, e a transmissão
+     * respondendo "você ainda não tem contatos" para quem **estava
+     * conversando** com outra loja.
+     *
+     * No WhatsApp a lista de transmissão sai da agenda, não de uma lista
+     * de amizade aprovada. Então a regra passa a ser a mesma da conversa:
+     * **se eu posso falar com essa loja, posso pô-la na minha lista.**
+     */
+    if (!(await podeFalarCom(eu.conta_id, conta_id))) {
+      return res.status(400).json({ error: 'Você não pode mandar para essa loja.' });
+    }
     await rsb('lista_membros?on_conflict=lista_id,conta_id', {
       method: 'POST', prefer: 'resolution=ignore-duplicates',
       body: JSON.stringify({ lista_id, conta_id }),
