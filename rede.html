@@ -165,6 +165,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
   border-radius:0 0 0 var(--r, 8px);background:rgba(0,0,0,.65);color:#fff;
   font-size:.7rem;line-height:1;border:none}
 .anexo-erro{font-size:.75rem;color:var(--severity-crit);width:100%}
+/* A duração aparece na miniatura do áudio: sem ela, dois áudios na fila
+   são dois quadradinhos iguais e não se sabe qual é qual. */
+.anexo-mini .dur{position:absolute;bottom:0;left:0;right:0;text-align:center;
+  font-size:.62rem;font-weight:700;background:rgba(0,0,0,.6);color:#fff;padding:.05rem 0}
+
+/* ── Gravando ─────────────────────────────────────────────────────
+   Toma o lugar do campo de escrever. O ponto pulsa porque é o único
+   sinal de que o microfone está aberto — e isso o usuário precisa ver
+   sem ler. */
+.gravando{display:flex;align-items:center;gap:.6rem}
+.gravando .pulso{width:.65rem;height:.65rem;border-radius:50%;
+  background:var(--severity-crit);flex:none;animation:pulsa 1.1s ease-in-out infinite}
+@keyframes pulsa{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){ .gravando .pulso{animation:none} }
+.gravando .tempo{font-variant-numeric:tabular-nums;font-weight:700;font-size:1rem}
+.gravando .aviso{font-size:.76rem;color:var(--severity-warn);flex:1}
+.gravando button{flex:none}
 
 /* O anexo dentro do balão. `-.2rem` para a foto encostar na borda, como no
    WhatsApp — a moldura do balão é que emoldura, não uma margem. */
@@ -447,7 +464,17 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1);opacity:.5}
       <!-- As fotos escolhidas, antes de mandar. Aparecem aqui para a pessoa
            ver o que vai junto e poder tirar — no WhatsApp também. -->
       <div class="anexos-fila" id="anexos-fila" hidden></div>
-      <div class="escrever">
+      <!-- Enquanto grava, esta barra TOMA O LUGAR do campo de escrever.
+           Não fica ao lado: gravando não se digita, e deixar o campo ali
+           convida a tocar nele e perder o áudio. -->
+      <div class="gravando" id="gravando" hidden>
+        <span class="pulso"></span>
+        <span class="tempo" id="grav-tempo">00:00</span>
+        <span class="aviso" id="grav-aviso"></span>
+        <button class="leve" onclick="pararGravacao(false)">Cancelar</button>
+        <button onclick="pararGravacao(true)">✓ Usar</button>
+      </div>
+      <div class="escrever" id="escrever">
         <button class="leve" id="btn-carro">🚗 Carro</button>
         <!-- Dois campos, não um. `capture` abre a CÂMERA direto; sem ele, a
              galeria. Num campo só, o Android decide por conta e a pessoa
@@ -455,6 +482,7 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1);opacity:.5}
         <input type="file" id="arq-galeria" accept="image/*" multiple hidden>
         <input type="file" id="arq-camera" accept="image/*" capture="environment" hidden>
         <button class="redondo leve" id="btn-clipe" title="Anexar foto">📎</button>
+        <button class="redondo leve" id="btn-mic" title="Gravar áudio">🎤</button>
         <textarea id="texto" rows="1" placeholder="Escreva algo (opcional)…"></textarea>
         <button class="redondo" id="btn-enviar" title="Enviar">➤</button>
       </div>
@@ -1497,6 +1525,11 @@ function tirarAnexo(i) {
 }
 
 function limparAnexos() {
+  // Sair da conversa no meio de uma gravação descarta o áudio e SOLTA o
+  // microfone. Sem isto a bolinha de "gravando" ficaria acesa no aparelho
+  // depois de a pessoa já estar em outra tela — e o app pareceria estar
+  // escutando às escondidas.
+  if (typeof GRAVANDO !== 'undefined' && GRAVANDO) pararGravacao(false);
   ANEXOS.forEach((a) => { if (a.local) URL.revokeObjectURL(a.local); });
   ANEXOS = [];
   desenharFila();
@@ -1511,6 +1544,7 @@ function desenharFila() {
       ${a.local && /^image\//.test(a.tipo || '')
         ? `<img src="${a.local}" alt="">`
         : `<span class="ico">${/^audio\//.test(a.tipo || '') ? '🎤' : '📄'}</span>`}
+      ${a.segundos ? `<span class="dur">${a.segundos}s</span>` : ''}
       <span class="estado">${
         a.estado === 'preparando' ? '…' :
         a.estado === 'subindo' ? '↑' :
@@ -1520,6 +1554,161 @@ function desenharFila() {
     + (ANEXOS.some((a) => a.estado === 'falhou')
       ? `<div class="anexo-erro">${esc(ANEXOS.find((a) => a.estado === 'falhou').erro || 'não consegui subir')}</div>`
       : '');
+}
+
+/* ══ GRAVAR ÁUDIO ═══════════════════════════════════════════════════
+ *
+ * [YURI: "quero o chat do gerador, igual ao whatsapp, com campo de anexo
+ * de arquivos e tal"] — e, no meio dele, muita troca de áudio.
+ *
+ * ── O FORMATO É O PROBLEMA, NÃO A GRAVAÇÃO ───────────────────────
+ *
+ * O `MediaRecorder` existe nos dois, e grava em formatos DIFERENTES:
+ * Android/Chrome em `audio/webm` (Opus) e iPhone/Safari em `audio/mp4`
+ * (AAC). Não há um formato que os dois gravem. Então aqui se **pergunta**
+ * ao navegador o que ele sabe gravar, em ordem de preferência, em vez de
+ * escolher um e torcer.
+ *
+ * O balde aceita os dois (`rede-anexos.sql`), e quem recebe toca pelo
+ * próprio navegador — que sabe ler os dois mesmo não sabendo gravar os
+ * dois.
+ *
+ * ── O "codecs=" TEM DE SAIR ──────────────────────────────────────
+ *
+ * O gravador devolve `audio/webm;codecs=opus`. O servidor e o balde
+ * comparam o tipo por igualdade exata, então o parâmetro faria o envio
+ * ser recusado com "esse tipo de arquivo não entra" — por um pedaço de
+ * texto, não pelo formato.
+ */
+const FORMATOS_AUDIO = [
+  'audio/webm;codecs=opus',   // Android, Chrome, Edge — o mais leve
+  'audio/webm',
+  'audio/mp4',                // iPhone/Safari
+  'audio/ogg;codecs=opus',
+  'audio/mpeg',
+];
+const TETO_AUDIO_SEG = 300;   // 5 minutos: recado, não podcast
+
+let GRAVADOR = null;
+let GRAVANDO = null;   // { pedacos, tipo, comecou, relogio, fluxo }
+
+function formatoDeAudio() {
+  if (typeof MediaRecorder === 'undefined') return null;
+  return FORMATOS_AUDIO.find((f) => {
+    try { return MediaRecorder.isTypeSupported(f); } catch (e) { return false; }
+  }) || null;
+}
+
+// `audio/webm;codecs=opus` → `audio/webm`. Ver o porquê acima.
+const tipoLimpo = (t) => String(t || '').split(';')[0].trim();
+
+function podeGravar() {
+  return Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+    && Boolean(formatoDeAudio());
+}
+
+async function gravarAudio() {
+  if (GRAVANDO) return pararGravacao(true);
+  if (!podeGravar()) {
+    return alert('Este aparelho não grava áudio pelo navegador.\n\n'
+      + 'No iPhone, funciona com o app na tela de início: Safari → Compartilhar → Adicionar à Tela de Início.');
+  }
+  if (ANEXOS.length >= ANEXO_MAX) return alert(`No máximo ${ANEXO_MAX} arquivos por mensagem.`);
+
+  let fluxo;
+  try {
+    fluxo = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    // Cada motivo com a sua frase: "não deu" faz a pessoa tentar de novo
+    // esperando outro resultado.
+    return alert(e && e.name === 'NotAllowedError'
+      ? 'Sem permissão para o microfone.\n\nLibere nas configurações do navegador para este site.'
+      : e && e.name === 'NotFoundError'
+        ? 'Não encontrei microfone neste aparelho.'
+        : 'Não consegui abrir o microfone: ' + (e && e.message));
+  }
+
+  const tipo = formatoDeAudio();
+  GRAVADOR = new MediaRecorder(fluxo, { mimeType: tipo });
+  GRAVANDO = { pedacos: [], tipo, comecou: Date.now(), fluxo };
+  GRAVADOR.ondataavailable = (ev) => { if (ev.data && ev.data.size) GRAVANDO.pedacos.push(ev.data); };
+  GRAVADOR.onstop = fecharGravacao;
+  GRAVADOR.start();
+
+  // O relógio e o teto. Sem teto, um toque esquecido grava até a memória
+  // acabar — e o teto de 8 MB por arquivo chegaria antes, cortando o
+  // áudio sem avisar.
+  GRAVANDO.relogio = setInterval(() => {
+    const seg = Math.floor((Date.now() - GRAVANDO.comecou) / 1000);
+    if (seg >= TETO_AUDIO_SEG) return pararGravacao(true);
+    desenharGravacao(seg);
+  }, 250);
+  desenharGravacao(0);
+}
+
+function pararGravacao(usar) {
+  if (!GRAVANDO) return;
+  GRAVANDO.usar = usar;
+  clearInterval(GRAVANDO.relogio);
+  try { GRAVADOR.stop(); } catch (e) { fecharGravacao(); }
+}
+
+function fecharGravacao() {
+  const g = GRAVANDO;
+  GRAVANDO = null; GRAVADOR = null;
+  if (!g) return;
+  // Soltar o microfone é obrigatório: sem isto a bolinha de "gravando"
+  // fica acesa no aparelho depois de terminar, e a pessoa acha que o app
+  // continua escutando.
+  try { g.fluxo.getTracks().forEach((t) => t.stop()); } catch (e) { /* já solto */ }
+  desenharGravacao(null);
+  if (!g.usar || !g.pedacos.length) return;
+
+  const seg = Math.round((Date.now() - g.comecou) / 1000);
+  // Áudio de menos de 1s é toque sem querer, não recado.
+  if (seg < 1) return;
+  const blob = new Blob(g.pedacos, { type: g.tipo });
+  const tipo = tipoLimpo(g.tipo);
+  const item = {
+    nome: `audio-${seg}s.${tipo.split('/')[1] || 'webm'}`,
+    tipo, bytes: blob.size, estado: 'subindo', segundos: seg,
+  };
+  ANEXOS.push(item);
+  desenharFila();
+  subirBlob(item, blob, tipo);
+}
+
+// Subir o que já é Blob — o áudio não passa pelo compressor (já vem
+// comprimido do gravador) e por isso tem o caminho próprio.
+async function subirBlob(item, blob, tipo) {
+  try {
+    const r = await rede('anexo', { body: { tipo, bytes: blob.size } });
+    const envio = await fetch(r.uploadUrl, {
+      method: 'PUT', headers: { 'Content-Type': tipo }, body: blob,
+    });
+    if (!envio.ok) throw new Error(`HTTP ${envio.status}`);
+    item.caminho = r.caminho;
+    item.estado = 'pronto';
+  } catch (e) {
+    item.estado = 'falhou';
+    item.erro = (e && e.corpo && e.corpo.error) || e.message;
+  }
+  desenharFila();
+}
+
+// A barra de gravação, no lugar do campo de escrever.
+function desenharGravacao(seg) {
+  const barra = $('gravando');
+  if (!barra) return;
+  barra.hidden = seg === null;
+  $('escrever').hidden = seg !== null;
+  if (seg === null) return;
+  const m = String(Math.floor(seg / 60)).padStart(2, '0');
+  const s = String(seg % 60).padStart(2, '0');
+  $('grav-tempo').textContent = `${m}:${s}`;
+  // Aviso quando falta pouco: o corte aos 5 minutos não pode ser surpresa.
+  $('grav-aviso').textContent = seg > TETO_AUDIO_SEG - 30
+    ? `para em ${TETO_AUDIO_SEG - seg}s` : '';
 }
 
 /* ── Ver o anexo de uma mensagem ─────────────────────────────────
@@ -1551,6 +1740,17 @@ async function carregarAnexos() {
     const u = await urlDoAnexo(img.dataset.anexo);
     if (u) img.src = u; else img.replaceWith(Object.assign(document.createElement('div'),
       { className: 'anexo-sumiu', textContent: 'arquivo indisponível' }));
+  }
+  // O áudio também. Eu desenhava o `<audio>` e nunca lhe dava a URL —
+  // áudio recebido simplesmente não tocava, sem erro nenhum na tela.
+  // `preload="none"` continua: a URL entra, mas o arquivo só é baixado
+  // quando alguém aperta o play. Numa transmissão isso é a diferença entre
+  // 50 downloads e os poucos que realmente vão ouvir.
+  const audios = document.querySelectorAll('audio[data-anexo-audio]:not([src])');
+  for (const el of audios) {
+    const u = await urlDoAnexo(el.dataset.anexoAudio);
+    if (u) el.src = u; else el.replaceWith(Object.assign(document.createElement('div'),
+      { className: 'anexo-sumiu', textContent: 'áudio indisponível' }));
   }
 }
 
@@ -2341,6 +2541,11 @@ $('btn-clipe').addEventListener('click', () => {
     + '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
   $('dlg').showModal();
 });
+// O microfone só aparece onde o aparelho sabe gravar. Botão que aparece e
+// depois diz "não dá" é pior que botão que não aparece.
+$('btn-mic').addEventListener('click', gravarAudio);
+if (!podeGravar()) $('btn-mic').remove();
+
 const arqGaleria = $('arq-galeria');
 const arqCamera = $('arq-camera');
 [arqGaleria, arqCamera].forEach((campo) => {
