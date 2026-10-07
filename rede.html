@@ -1393,8 +1393,13 @@ async function carregar() {
   // nasce escondido. Fazer a tela esperar por uma varredura de baldes para
   // desenhar a conversa seria pagar caro por um aviso que quase sempre não
   // aparece.
-  rede('espaco').then((e) => { ESPACO = e; if (e && e.apertando) desenharColuna(); })
-    .catch(() => null);
+  rede('espaco').then((e) => {
+    ESPACO = e;
+    // Só redesenha se a Rede JÁ estiver aberta. Sem este `MEU_TELEFONE`, a
+    // resposta chegando antes do cadastro desenharia a Rede por cima da
+    // tela que pede o número — furando a guarda por uma corrida.
+    if (e && e.apertando && MEU_TELEFONE) desenharColuna();
+  }).catch(() => null);
   try {
     const d = await (await fetch('/api/utils?type=quem', { cache: 'no-store' })).json();
     PODE_CONVIDAR = d.podeConvidar !== false;

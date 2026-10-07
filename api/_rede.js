@@ -196,7 +196,17 @@ async function ofertar(sb, req, res) {
   // mandado para quem se escolheu; o feed é o carro que não saiu na hora
   // e segue disponível, aberto para todo mundo (decisão do Yuri, 28/set:
   // "tipo um autoavaliar, que as pessoas publiquem pra geral").
-  const { veiculo_id, lista_id, grupo_id, mensagem, publico } = req.body || {};
+  /* `para_conta_id`: mandar o carro para UMA loja (07/out).
+   *
+   * Até aqui `ofertar` só sabia lista, grupo e feed — o carro nunca ia
+   * para uma loja só. Faltava justamente para o botão do catálogo
+   * ["um botão no catálogo pra compartilhar direto no nosso chat, os
+   * carros"], onde o mais comum é mandar para quem já está negociando.
+   *
+   * Não é caso especial: vira uma lista de um destinatário, e tudo o que
+   * vem depois — a oferta, a fila, o "✋ Quero", o aviso — segue igual.
+   */
+  const { veiculo_id, lista_id, grupo_id, para_conta_id, mensagem, publico } = req.body || {};
   if (!UUID.test(String(veiculo_id || ''))) {
     return res.status(400).json({ error: 'veiculo_id inválido.' });
   }
@@ -206,8 +216,11 @@ async function ofertar(sb, req, res) {
   if (grupo_id && !UUID.test(String(grupo_id))) {
     return res.status(400).json({ error: 'grupo_id inválido.' });
   }
-  if (lista_id && grupo_id) {
-    return res.status(400).json({ error: 'Escolha a lista OU o grupo, não os dois.' });
+  if (para_conta_id && !UUID.test(String(para_conta_id))) {
+    return res.status(400).json({ error: 'para_conta_id inválido.' });
+  }
+  if ([lista_id, grupo_id, para_conta_id].filter(Boolean).length > 1) {
+    return res.status(400).json({ error: 'Escolha um destino só: a loja, a lista ou o grupo.' });
   }
 
   // O carro é meu? Quem responde é o funil — `sb` já filtra por dono.
@@ -231,7 +244,19 @@ async function ofertar(sb, req, res) {
   // No feed não há destinatário: o carro fica aberto e quem quiser
   // levanta a mão. Por isso a checagem de "ninguém receberia" é pulada —
   // ali ela impediria justamente o que se quer fazer.
-  const alvo = publico ? { contas: [], publico: true } : await destinatarios(eu.conta_id, lista_id, grupo_id);
+  let alvo;
+  if (publico) {
+    alvo = { contas: [], publico: true };
+  } else if (para_conta_id) {
+    // Uma loja só. A permissão é a mesma de conversar: se eu posso falar
+    // com ela, posso mandar um carro — e bloqueio continua valendo,
+    // porque `podeFalarCom` já o consulta primeiro.
+    alvo = (await podeFalarCom(eu.conta_id, para_conta_id))
+      ? { contas: [para_conta_id], lista: null }
+      : { erro: 'Loja não encontrada.' };
+  } else {
+    alvo = await destinatarios(eu.conta_id, lista_id, grupo_id);
+  }
   if (alvo.erro) return res.status(404).json({ error: alvo.erro });
   const destinos = alvo.contas;
   if (!publico && !destinos.length) {
@@ -239,8 +264,8 @@ async function ofertar(sb, req, res) {
       error: grupo_id
         ? 'Você é o único no grupo — ninguém receberia este carro.'
         : lista_id
-          ? 'Essa lista não tem ninguém que ainda seja seu contato.'
-          : 'Você ainda não tem contatos — ninguém receberia este carro.',
+          ? 'Essa lista está sem destinatário.'
+          : 'Você ainda não alcança nenhuma loja — ninguém receberia este carro.',
       codigo: 'lista_vazia',
     });
   }

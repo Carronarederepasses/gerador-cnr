@@ -377,6 +377,24 @@
   .placa-box h3{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:1rem}
   .placa-result{font-size:.86rem;line-height:1.8;color:var(--text-mid)}
   .placa-result b{color:var(--text)}
+  /* ── Mandar pra Rede (07/out) ─────────────────────────────────── */
+  .rede-lbl{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--text-faint);font-weight:700;margin:1rem 0 .4rem}
+  .rede-opcoes{display:flex;gap:.5rem}
+  /* As duas opções lado a lado e do mesmo tamanho: escolha entre iguais
+     se lê de relance, escolha em lista pede leitura. */
+  .rede-op{flex:1;display:flex;flex-direction:column;gap:.15rem;text-align:left;
+    padding:.6rem .7rem;border:1px solid var(--line);border-radius:var(--r, 8px);
+    background:none;color:var(--text);font-size:.86rem;font-weight:700;cursor:pointer}
+  .rede-op span{font-size:.72rem;font-weight:400;color:var(--text-mid);line-height:1.3}
+  .rede-op.ativo{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+  .rede-op.ativo span{color:var(--on-accent-mid)}
+  #rede-texto{width:100%;font-family:inherit;font-size:.9rem;padding:.6rem .7rem;resize:vertical;
+    border:1px solid var(--line);border-radius:var(--r, 8px);
+    background:var(--surface);color:var(--text)}
+  #rede-destino{width:100%;font-family:inherit;font-size:.9rem;padding:.6rem .7rem;
+    border:1px solid var(--line);border-radius:var(--r, 8px);
+    background:var(--surface);color:var(--text)}
   .placa-result .placa-row{display:flex;gap:.5rem;border-bottom:1px solid var(--line);padding:.25rem 0}
   .placa-result .placa-row:last-child{border-bottom:none}
   .placa-result .placa-lbl{color:var(--text-mid);min-width:110px;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em;padding-top:.05rem}
@@ -634,6 +652,16 @@
 </div>
 
 <!-- Modal Consulta Placa -->
+<!-- Mandar pra Rede (07/out). Reusa a caixa da consulta de placa: é o
+     diálogo desta tela, e um terceiro padrão de janela aqui seria só mais
+     um jeito de a mesma coisa parecer diferente. -->
+<div class="placa-modal" id="rede-modal">
+  <div class="placa-box">
+    <h3>Mandar pra Rede</h3>
+    <div id="rede-modal-corpo"></div>
+  </div>
+</div>
+
 <div class="placa-modal" id="placa-modal">
   <div class="placa-box">
     <h3 id="placa-modal-titulo">Consulta de Placa</h3>
@@ -834,6 +862,7 @@ function card(v) {
       ${destinoBotao(v)}
       ${v.status !== 'vendido' ? `
       <button class="wa" id="wa-${v.id}" onclick="pacoteWhatsApp('${v.id}')">📦 Pacote WhatsApp</button>
+      <button onclick="mandarPraRede('${v.id}')">🕸️ Mandar pra Rede</button>
       <button onclick="abrirStory('${v.id}')">${ICO_IG} Story</button>
       <button onclick="copiarAnuncio('${v.id}')">Copiar texto</button>
       <button onclick="negocia('${v.id}')">🤝 Negociar</button>
@@ -2089,6 +2118,163 @@ async function editarPlaca(id) {
 }
 
 // ── Consulta de placa (APiBrasil) ──────────────────────────────
+/* ══ MANDAR PRA REDE, DO CATÁLOGO (07/out) ═══════════════════════════
+ *
+ * [YURI: "um botão no catálogo pra compartilhar direto no nosso chat, os
+ * carros tb, mas com opção de criar o texto sozinho ou copiar do que está
+ * já salvo no catálogo"]
+ *
+ * Até aqui o carro só ia para a Rede DE DENTRO da Rede: abrir a tela,
+ * achar a transmissão, tocar em 🚗 Carro, procurar o carro na lista. Quem
+ * está olhando o carro no catálogo tem de sair dele para mandá-lo.
+ *
+ * Três escolhas, e ele pediu as três:
+ *
+ *   COMO   🚗 carro (cartão com ✋ Quero)  ·  💬 mensagem (texto e foto)
+ *   TEXTO  escrever agora  ·  usar o que está salvo (`anuncio_texto`)
+ *   PARA   uma loja  ·  uma transmissão
+ *
+ * O texto salvo vem do banco — `veiculos.anuncio_texto`, gravado quando o
+ * anúncio foi gerado. Não é remontado aqui: remontar criaria um terceiro
+ * montador de texto, divergindo dos dois que já existem (captação e
+ * parceiros) no dia em que um deles mudasse.
+ */
+let _redeDestinos = null;   // { lojas: [...], listas: [...] } — lido uma vez
+
+async function mandarPraRede(id) {
+  const v = CACHE[id];
+  if (!v) return;
+  $('rede-modal-corpo').innerHTML = '<div class="placa-loading">Carregando…</div>';
+  $('rede-modal').classList.add('show');
+
+  if (!_redeDestinos) {
+    try {
+      const [l, t] = await Promise.all([
+        fetch('/api/fetch-anuncio?rede=listas').then((r) => r.json()),
+        fetch('/api/fetch-anuncio?rede=transmissao').then((r) => r.json()),
+      ]);
+      _redeDestinos = { lojas: l.membros || [], listas: t.listas || [] };
+    } catch (e) {
+      $('rede-modal-corpo').innerHTML = '<div class="placa-result">Não consegui ler a sua rede agora.'
+        + '</div><div class="placa-acoes"><button class="btn ghost" onclick="fecharRedeModal()">Fechar</button></div>';
+      return;
+    }
+  }
+
+  const { lojas, listas } = _redeDestinos;
+  if (!lojas.length && !listas.length) {
+    $('rede-modal-corpo').innerHTML = '<div class="placa-result">Você ainda não alcança nenhuma loja.<br><br>'
+      + 'Abra a <a href="/rede.html" style="color:var(--accent)">Rede</a> e ache lojas pela sua agenda.</div>'
+      + '<div class="placa-acoes"><button class="btn ghost" onclick="fecharRedeModal()">Fechar</button></div>';
+    return;
+  }
+
+  const nome = [v.marca, v.versao || v.modelo].filter(Boolean).join(' ') || 'Veículo';
+  const salvo = (v.anuncio_texto || '').trim();
+
+  $('rede-modal-corpo').innerHTML = `
+    <div class="placa-result" style="margin-bottom:.9rem"><b>${esc(nome)}</b>${
+      v.valor ? ` · ${fmtR(v.valor)}` : ''}</div>
+
+    <div class="rede-lbl">Como vai chegar</div>
+    <div class="rede-opcoes">
+      <button class="rede-op ativo" data-como="carro" onclick="redeComo(this)">🚗 Carro
+        <span>cartão com ✋ Quero e fila</span></button>
+      <button class="rede-op" data-como="mensagem" onclick="redeComo(this)">💬 Mensagem
+        <span>texto e foto, como no WhatsApp</span></button>
+    </div>
+
+    <div class="rede-lbl">Texto${salvo ? '' : ' (não há texto salvo neste carro)'}</div>
+    <textarea id="rede-texto" rows="4" placeholder="Escreva o que vai junto…"></textarea>
+    ${salvo ? '<button class="btn ghost" style="margin-top:.4rem" onclick="usarTextoSalvo()">'
+      + '📋 Usar o texto do catálogo</button>' : ''}
+
+    <div class="rede-lbl">Para quem</div>
+    <select id="rede-destino">
+      ${listas.length ? '<optgroup label="Transmissões">'
+        + listas.map((l) => `<option value="lista:${l.id}">📣 ${esc(l.nome)}</option>`).join('')
+        + '</optgroup>' : ''}
+      ${lojas.length ? '<optgroup label="Lojas">'
+        + lojas.map((c) => `<option value="loja:${c.conta_id}">🏪 ${esc(c.nome)}</option>`).join('')
+        + '</optgroup>' : ''}
+    </select>
+
+    <div class="placa-acoes">
+      <button class="btn ghost" onclick="fecharRedeModal()">Cancelar</button>
+      <button class="btn" id="rede-enviar" onclick="enviarPraRede('${id}')">Mandar</button>
+    </div>`;
+  // Guardado no elemento e não numa variável solta: duas janelas abertas
+  // em sequência não misturam o texto de um carro com o outro.
+  $('rede-modal').dataset.salvo = salvo;
+}
+
+function redeComo(botao) {
+  [...document.querySelectorAll('.rede-op')].forEach((b) => b.classList.remove('ativo'));
+  botao.classList.add('ativo');
+}
+
+function usarTextoSalvo() {
+  $('rede-texto').value = $('rede-modal').dataset.salvo || '';
+  $('rede-texto').focus();
+}
+
+function fecharRedeModal() { $('rede-modal').classList.remove('show'); }
+
+async function enviarPraRede(id) {
+  const como = (document.querySelector('.rede-op.ativo') || {}).dataset?.como || 'carro';
+  const destino = $('rede-destino').value;
+  const texto = $('rede-texto').value.trim();
+  const [tipo, alvo] = destino.split(':');
+  const bt = $('rede-enviar');
+  bt.disabled = true; bt.textContent = 'Mandando…';
+
+  // Mensagem sem texto não tem o que dizer: o carro não vai junto como
+  // cartão, então sobraria uma mensagem vazia.
+  if (como === 'mensagem' && !texto) {
+    bt.disabled = false; bt.textContent = 'Mandar';
+    return alert('Escreva o texto, ou use o do catálogo.');
+  }
+
+  const corpo = como === 'carro'
+    ? {
+        acao: 'ofertar',
+        body: {
+          veiculo_id: id, mensagem: texto,
+          lista_id: tipo === 'lista' ? alvo : null,
+          para_conta_id: tipo === 'loja' ? alvo : null,
+        },
+      }
+    : tipo === 'lista'
+      ? { acao: 'transmitir', body: { lista_id: alvo, texto } }
+      : { acao: 'mensagem', body: { conta_id: alvo, texto } };
+
+  try {
+    const r = await fetch(`/api/fetch-anuncio?rede=${corpo.acao}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo.body),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    /* Diz QUANTAS receberam — "pronto" não deixa saber se chegou em 2 ou
+     * em 40, e numa transmissão é esse o número que importa.
+     *
+     * No próprio botão, e não num toast: esta tela não tem toast de
+     * propósito (está escrito em `baixarStory`), e inventar um mecanismo
+     * novo só para aqui seria mais um jeito de a mesma coisa parecer
+     * diferente. A janela fecha sozinha depois de a pessoa ler. */
+    bt.textContent = typeof d.entregues === 'number'
+      ? `✓ Chegou em ${d.entregues} loja${d.entregues === 1 ? '' : 's'}`
+      : typeof d.enviada_para === 'number'
+        ? `✓ Mandado para ${d.enviada_para} loja${d.enviada_para === 1 ? '' : 's'}`
+        : '✓ Mandado';
+    setTimeout(fecharRedeModal, 1800);
+    return;
+  } catch (e) {
+    alert(e.message);
+    bt.disabled = false; bt.textContent = 'Mandar';
+  }
+}
+
 function fecharPlacaModal() { $('placa-modal').classList.remove('show'); }
 $('placa-modal').addEventListener('click', e => { if (e.target === $('placa-modal')) fecharPlacaModal(); });
 
