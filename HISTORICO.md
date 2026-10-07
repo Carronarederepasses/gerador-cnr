@@ -363,7 +363,146 @@ há nada para procurar. Só uma pessoa olhando uma tela parada.
 alcançava; aqui, uma tela anunciando o que nenhuma função ia executar. Nos
 dois casos **o caminho é que estava quebrado, não a peça.**
 
-*Registrado em 6 de outubro de 2026, noite.*
+### 6 de outubro, madrugada — o chat vira produto
+
+> *"Estou pensando agora no armazenamento do nosso gerador, para trocas de
+> msgs, fotos e áudios, quero o chat do gerador igual ao WhatsApp, com
+> campo de anexo de arquivos e tal, tu sabe que temos muita troca de
+> arquivo."*
+
+E logo depois, o que mudou o enquadramento de tudo:
+
+> *"Quero a mesma funcionalidade do whatsapp."*
+> *"Lembre, estamos criando um app."*
+
+#### O que eu medi antes de abrir a boca
+
+```
+bucket `veiculos`   225 arquivos · 59,2 MB · foto mediana 261 KB
+carros no catálogo  3
+pastas de fotos     24  →  3 de carros que existem, 20 de carros apagados
+preso em órfãs      51,9 MB
+```
+
+**Quase 90% do que está guardado é lixo de carro apagado.** E uma pasta que
+o meu verificador chamou de órfã era a `marca` — **o logo do Bruno**.
+Conferi antes de chamar de lixo; teria mandado apagar a marca dele.
+
+#### As duas peças difíceis já existiam
+
+Isso mudou o tamanho do trabalho: `api/vendas.js` já tinha
+`prepare-upload` com URL assinada (arquivo direto do aparelho para o
+Supabase, sem passar pela função), e `captacao.html` já tinha um
+compressor. O molde de balde privado com leitura assinada era o
+`vendas-docs`.
+
+#### A conta que decide o produto inteiro
+
+Plano grátis: **1 GB de arquivo e 5 GB de saída por mês.**
+
+| | sem comprimir | comprimido |
+|---|---|---|
+| foto de celular | 3–5 MB | **~250 KB** (medido: 4 MB → 244 KB) |
+| 1 GB dá para | ~16 carros | **~200 carros negociados** |
+
+E **a saída aperta antes do espaço**: a mesma foto numa transmissão para 50
+lojas é 50 downloads. Cada KB economizado na compressão vale 50 vezes lá.
+
+Áudio é barato: 1 minuto ≈ 60 KB. Quem enche é o PDF de laudo, que **não se
+comprime** sem destruir.
+
+#### O Grok, e as duas coisas que ele não tinha como saber
+
+Ele perguntou a um segundo modelo e trouxe a resposta. Estava quase toda
+certa — inclusive o ponto mais importante, que *"mesma foto vista por 200
+pessoas = tráfego × 200"*.
+
+Mas os números dele eram do plano **Pro** (US$ 25/mês, 100 GB, 250 GB de
+saída). O Yuri está no **grátis**, e o Pro depende de pagar, que depende do
+**CNPJ**, parado por decisão dele. Então o modelo *"chat free, cobra o
+resto"* está certo como estratégia e **hoje ele não consegue nem cobrar nem
+pagar**. A rede cresce até onde 1 GB aguenta.
+
+#### A frase dele derrubou código que eu tinha acabado de escrever
+
+Eu amarrei o anexo a **uma** conversa: caminho
+`<conta>/<conversa>/<arquivo>`, e só os dois lados liam. Correto em 1 a 1.
+
+**Quebra na transmissão** — que é o produto. Um envio vira 50 conversas
+privadas, e 49 receberiam "arquivo não encontrado". A saída errada seria
+copiar por destinatário: 50 cópias de 250 KB por foto, **1 GB em 80 fotos**.
+
+A regra virou a única que é sempre verdadeira:
+
+> **eu leio o anexo de uma mensagem que eu posso ver.**
+
+Um arquivo, N mensagens apontando para ele. Vale para 1 a 1, transmissão e
+encaminhamento, sem caso especial — e o caminho voltou a ser **só um nome,
+não uma credencial**.
+
+#### A transmissão do WhatsApp
+
+A linha que impedia tudo era uma só, no `rede.html`:
+
+```js
+if (!carroEscolhido) return escolherCarro();   // na transmissão o carro ERA o conteúdo
+```
+
+Agora recado e foto também valem, e viram N conversas privadas. **Sem teto
+de destinatários** — que é a dor que deu origem ao projeto: o mercado dele
+reclama do limite da lista do WhatsApp.
+
+Confirma antes, dizendo para quantas lojas vai (transmissão não tem
+desfazer), e no fim diz **quantas receberam** — 48 de 50 não é a mesma
+coisa que 50. A transmissão de **carro**, com fila e "✋ Quero", continua
+existindo: são dois movimentos diferentes do negócio.
+
+#### O teste que importava
+
+O do vazamento: **a loja que não recebeu a mensagem não lê o arquivo** — e
+a recusa diz "não encontrado", sem nem confirmar que ele existe. Junto com
+ele: caminho com `..` recusado, caminho parecido não casa, bloqueio vale no
+arquivo, e anexo apontando para a pasta de outra loja é **descartado em vez
+de gravado**.
+
+#### Decisões de desenho que valem ser lembradas
+
+- **A foto sobe enquanto a pessoa ainda escreve.** Por isso o ➤ é
+  instantâneo — é o que faz o WhatsApp parecer rápido.
+- **Dois campos de arquivo, não um.** `capture` abre a câmera; sem ele, a
+  galeria. Num campo só o Android decide por conta.
+- **O campo é limpo depois de escolher**, senão escolher a mesma foto duas
+  vezes não dispara nada e parece que o anexo quebrou.
+- **A URL assinada vale 2h e fica guardada.** Token novo a cada abertura
+  **fura o cache** e a mesma foto baixa de novo toda vez — e é a saída que
+  aperta primeiro.
+- **PDF e áudio passam intactos.** Recomprimir PDF destrói; áudio já vem
+  comprimido do gravador.
+- **Comprimir nunca pode piorar:** foto já pequena volta como estava.
+
+#### A incoerência que eu mesmo criei, e que fica anotada
+
+A **conversa** passou a ser aberta hoje — quem tem o teu número te chama. Mas
+a **transmissão** continua lendo `contatos`, que só enche com pedido e
+aceite. Resultado medido ao fim do dia: `contatos: 0`, e a transmissão
+responde *"você ainda não tem contatos"* para alguém que **está
+conversando** com outra loja.
+
+No WhatsApp a lista sai da agenda. Aqui ainda não. **É a próxima peça**, e
+é mais importante que o áudio.
+
+#### "Estamos criando um app"
+
+O lembrete dele fecha o dia e muda o peso de várias coisas: a varredura da
+agenda, que no navegador não existe, no app existe; o número declarado vira
+código por SMS; o aviso deixa de depender de PWA instalado; e o
+armazenamento passa a ter uma conta que **precisa** do CNPJ resolvido.
+
+Nada do que foi construído hoje se perde nessa troca — o que muda é a
+leitura da agenda, e só ela.
+
+*Registrado em 6 de outubro de 2026, madrugada do dia 7.*
+
 
 ## 5 de outubro de 2026 — o dia em que o problema era o dado
 

@@ -535,6 +535,13 @@ pôs o número e conversou — é o **primeiro de fora a usar**. **Bruno (BHM
 Autos)** tem conta com a marca dele, como lojista, e ainda não entrou.
 **Ninguém de fora jamais abriu uma conta sozinho**: os dois foram convite.
 
+> **O destino é um APP, nas lojas de aplicativo** [YURI, 06/out]. Isso
+> muda o peso de várias coisas e já está decidindo desenho: a **varredura
+> da agenda**, que no navegador não existe, no app existe; o **número
+> declarado** vira código por SMS; o **aviso** deixa de depender de PWA
+> instalado. O que está construído não se perde na troca — o que muda é a
+> leitura da agenda, e só ela.
+
 **Arquitetura, em uma linha:** um site, um banco, e cada loja é uma
 **conta** — `conta_id` em cada linha (fase 0, 23/set), funil único em
 `api/_db.js`, sessão por telefone (fase 1, 27/set) e marca por conta
@@ -621,6 +628,48 @@ papel), o dele é papel com contorno `--line-strong` (3,45:1). Em papel
 preto, preenchimento cinza não separa — medido. `--on-accent-mid` é o cinza
 secundário dentro da tinta.
 
+### Chat com anexo e transmissão de recado (06/out)
+
+**Foto, áudio e PDF na conversa**, até 8 MB, no balde **privado**
+`rede-anexos`. O arquivo vai DIRETO do aparelho para o Supabase por URL
+assinada — nunca passa pela função. Leitura também assinada, com prazo de
+**2h**: token novo a cada abertura fura o cache do navegador e a mesma foto
+baixa de novo toda vez.
+
+> **A autorização é "eu leio o anexo de uma mensagem que eu posso ver".**
+> Não é o caminho do arquivo. A primeira versão amarrava o anexo a UMA
+> conversa e quebrava na transmissão — 49 de 50 receberiam "não
+> encontrado". Um arquivo, N mensagens apontando para ele; copiar por
+> destinatário seria 1 GB em 80 fotos.
+
+**Comprimir no aparelho é a decisão mais cara do projeto**
+(`assets/comprimir.js`, 1600px / 0,82): medido, **4 MB → 244 KB**. No
+plano grátis isso é ~16 carros de conversa contra ~200. PDF e áudio passam
+**intactos** — recomprimir PDF destrói, áudio já vem comprimido. E comprimir
+nunca pode piorar: foto já pequena volta como estava.
+
+> Não é duplicata do compressor da captação: aquele devolve **base64**, do
+> caminho antigo em que o arquivo subia dentro do pedido; este devolve
+> **Blob**, do envio direto. Quando a captação migrar, os dois viram um.
+
+**Transmitir recado** (`rede=transmitir`): um envio vira **N conversas
+privadas**, cada loja responde no particular, **sem teto de
+destinatários** — a dor que deu origem ao projeto. Confirma antes dizendo
+para quantas vai, e a resposta diz quantas RECEBERAM. A transmissão de
+**carro** (`ofertar`), com fila e "✋ Quero", continua existindo: são dois
+movimentos diferentes.
+
+> **INCOERÊNCIA ABERTA, e é a próxima peça.** A conversa passou a ser
+> aberta (quem tem o número chama), mas a transmissão ainda lê `contatos`,
+> que só enche com pedido e aceite. Medido em 06/out: `contatos: 0`, e a
+> transmissão responde "você ainda não tem contatos" para quem **está
+> conversando**. No WhatsApp a lista sai da agenda. **É mais importante que
+> o áudio.**
+
+**Falta gravar áudio** pelo microfone: o sistema já aceita e já mostra, falta
+o botão. iPhone e Android gravam em formatos diferentes — teste em aparelho
+de verdade, nos dois.
+
 **Contatos → conversa → `‹ Contatos`**: o gesto de voltar do aparelho conta
 como voltar, e empilha **um** passo só.
 
@@ -677,6 +726,17 @@ canto. Alvo pequeno em espaço vazio parece tela que não respondeu.
 
 ### Limites que moldam decisões
 
+**Armazenamento (medido em 06/out):** plano grátis dá **1 GB de arquivo** e
+**5 GB de saída/mês**. Hoje: 59,2 MB no balde `veiculos`, **e 51,9 MB
+disso são fotos de 20 carros apagados** — vale limpar. A saída aperta antes
+do espaço: uma foto numa transmissão para 50 lojas são 50 downloads. Depois
+de 1 GB, o Pro custa US$ 25/mês — **e depende do CNPJ**.
+
+> Baldes: `veiculos` e `vistorias-fotos` são **públicos** (foto de
+> anúncio, feita para ser vista). `vendas-docs`, `veiculos-docs` e
+> `rede-anexos` são **privados**, com leitura assinada. Anexo de conversa
+> carrega CRLV, CNH e dado bancário — **nunca em balde público**.
+
 12 funções serverless na Vercel (teto atingido — modo novo entra como query
 param ou arquivo `_`), 2 projetos no Supabase grátis, FIPE 1.000
 consultas/dia com token.
@@ -693,6 +753,7 @@ contas 3 (Carro na Rede, Fabio Nogueira, BHM Autos) · DEMO apagada
 usuários com número: 2 de 4 (Yuri, Nogueira) — sem número não se é achado
 Rede: 1 conversa · 2 mensagens (as duas do Yuri, NÃO LIDAS) · 1 assinatura
       de aviso (só a dele) · 0 contatos · 0 listas · 0 ofertas · 0 bloqueios
+      · 0 anexos — o balde `rede-anexos` nasceu em 06/out, ainda vazio
 anúncios 215 · morto 107 · novo 90 · enviado 9 · respondeu 7 · autorizado 2
 vendas 114 · veículos 3
 ```
@@ -709,6 +770,9 @@ vendas 114 · veículos 3
 | 2FA | códigos de recuperação fora do celular |
 | CNPJ | **parado por decisão dele** até depois das eleições. Trava consulta veicular camada 2, RENAVE, integrador da OLX, SMS e qualquer cobrança |
 | `CONTEXTO.md` | desatualizado — não tem a Rede como está, a migração do Bruno nem a separação do CLAUDE.md |
+| Transmissão sem contatos | `contatos: 0` — a transmissão não funciona para ele hoje. É a próxima peça |
+| Gravar áudio | o sistema aceita e mostra; falta o botão de gravar, e os formatos diferem entre iPhone e Android |
+| Limpar as fotos órfãs | 51,9 MB em 20 pastas de carros apagados (a pasta `marca` NÃO é órfã — é o logo do Bruno) |
 | Fila do `IDEIAS.md` | prestadores de serviço (**pesquisa antes de tela**); convidar liberado; "o sistema se adapta à loja" — **primeira parcela entregue em 06/out** na tela inicial |
 
 ---
