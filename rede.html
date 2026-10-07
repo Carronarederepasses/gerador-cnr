@@ -344,7 +344,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
    precisam do cinza feito para o branco. */
 .balao.msg-so .rodape, .balao.msg-so .hora, .balao.msg-so .meta,
 .balao.msg-so .origem{color:var(--on-accent-mid)}
-.balao.msg-so .visto, .balao.msg-so .visto.lido{color:var(--surface)}
+/* O recibo dentro do balão de tinta (o meu, que é branco). A diferença
+   principal é a FORMA — ✓ contra ✓✓ —, porque numa paleta preta e branca
+   cor sozinha não distingue. O peso reforça: enviada em cinza, lida em
+   preto cheio, como o azul do WhatsApp faz sem usar cor. */
+.balao.msg-so .visto{color:var(--on-accent-mid)}
+.balao.msg-so .visto.lido{color:var(--surface)}
 
 .balao.msg-so.recebido{background:var(--surface-raise);color:var(--text);
   border-color:var(--line-strong)}
@@ -907,6 +912,27 @@ function acaoDoCarro(o, comFila) {
   return `<div class="acao"><button class="cheio" onclick="quero('${o.id}')">✋ Quero</button></div>`;
 }
 
+/* ── O ✓✓ (07/out) ───────────────────────────────────────────────
+ *
+ * O banco já marcava `lida_em` desde 27/set — toda vez que a outra loja
+ * abre a conversa. A tela nunca mostrou: o lugar do recibo na bolha era
+ * um `<span>` vazio. Mais uma coisa construída e não alcançável.
+ *
+ * Só nas MINHAS mensagens. O ✓✓ responde "ele viu?", e essa pergunta só
+ * existe para o que eu mandei — pôr recibo no que eu recebi seria dizer
+ * a mim mesmo que eu li.
+ *
+ * Duas marcas, não três: ✓ gravado no servidor, ✓✓ lido. "Entregue" não
+ * existe aqui — a outra loja não tem aparelho conectado a quem avisar, e
+ * inventar um estado que não é medido seria mentir com símbolo.
+ */
+function recibo(m) {
+  if (!m.minha) return '<span></span>';
+  return m.lida_em
+    ? '<span class="visto lido" title="Lida">✓✓</span>'
+    : '<span class="visto" title="Enviada">✓</span>';
+}
+
 function desenharPainel() {
   if (!aberto) return;
   $('pan-nome').textContent = aberto.nome;
@@ -967,7 +993,7 @@ function desenharPainel() {
         <div class="balao msg-so ${m.minha ? '' : 'recebido'}">
           ${anexosHTML(m.anexos)}
           ${m.texto ? `<div class="msg">${rico(m.texto)}</div>` : ''}
-          <div class="rodape"><span>${quando(m.criado_em)}</span><span></span></div>
+          <div class="rodape"><span>${quando(m.criado_em)}</span>${recibo(m)}</div>
         </div>`).join('')
       : '<div class="vazio">Nenhuma mensagem ainda. Escreva a primeira.</div>';
     $('thread').scrollTop = $('thread').scrollHeight;

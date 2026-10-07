@@ -1343,7 +1343,7 @@ async function abrirConversa(req, res) {
   if (!c) return res.status(200).json({ conversa_id: null, nome: nomes[outra] || '—', mensagens: [] });
 
   const msgs = await rsb(
-    `mensagens_rede?conversa_id=eq.${c.id}&select=id,de_conta_id,texto,oferta_id,criado_em,anexos&order=criado_em.asc&limit=300`
+    `mensagens_rede?conversa_id=eq.${c.id}&select=id,de_conta_id,texto,oferta_id,criado_em,anexos,lida_em&order=criado_em.asc&limit=300`
   );
 
   // Marca como lidas as que a outra mandou. Fire-and-forget seria perder
@@ -1361,6 +1361,9 @@ async function abrirConversa(req, res) {
       // Lista vazia quando a coluna ainda nao existe no banco: a tela
       // nao pode receber  e tentar desenhar em cima disso.
       anexos: Array.isArray(m.anexos) ? m.anexos : [],
+      // Quando a OUTRA loja leu. So interessa nas minhas: saber a hora
+      // em que eu li a mensagem dela nao diz nada a ninguem.
+      lida_em: m.lida_em || null,
       criado_em: m.criado_em, minha: m.de_conta_id === eu.conta_id,
     })),
   });
@@ -1973,7 +1976,7 @@ async function abrirGrupo(req, res) {
   if (!sou) return res.status(404).json({ error: 'Grupo não encontrado.' });
 
   const g = (await rsb(`grupos?id=eq.${id}&select=*&limit=1`))[0];
-  const msgs = await rsb(`mensagens_rede?grupo_id=eq.${id}&select=id,de_conta_id,texto,oferta_id,criado_em,anexos&order=criado_em.asc&limit=300`);
+  const msgs = await rsb(`mensagens_rede?grupo_id=eq.${id}&select=id,de_conta_id,texto,oferta_id,criado_em,anexos,lida_em&order=criado_em.asc&limit=300`);
   const nomes = await nomesDe([...new Set(msgs.map((m) => m.de_conta_id))]);
   // `select=grupo_id` e não `conta_id`: só o número interessa, e os ids
   // dos participantes nem chegam a existir aqui dentro. Um dia alguém
