@@ -530,6 +530,16 @@ let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: []
               // o que deixava a Rede sem porta.
               pedidos: [], em_que_estou: [] };
 let MEU_TELEFONE = null;      // null = ninguém me acha na agenda
+let ESPACO = null;            // { meus, anexos, fotos, total, teto, apertando }
+
+// Tamanho que se lê de relance. KB abaixo de 1 MB, senão "0,06 MB" não diz
+// nada a ninguém.
+function mb(bytes) {
+  const n = Number(bytes) || 0;
+  if (n >= 1073741824) return (n / 1073741824).toFixed(2).replace('.', ',') + ' GB';
+  if (n >= 1048576) return Math.round(n / 1048576) + ' MB';
+  return Math.max(1, Math.round(n / 1024)) + ' KB';
+}
 let thread = [];              // mensagens da conversa aberta
 
 function verLista()    { $('tela').dataset.onde = 'lista'; }
@@ -650,6 +660,20 @@ function desenharColuna() {
     ? `${dados.vitrine[0].marca} ${dados.vitrine[0].modelo} · ${dados.vitrine[0].loja}`
     : 'ninguém publicou ainda';
 
+  /* ── O espaço, quando aperta ─────────────────────────────────────
+   * Nasce escondido e só aparece passando de 80%. Medidor que está
+   * sempre na tela vira moldura e ninguém lê; medidor que aparece é
+   * aviso. Nada é apagado sozinho — quem decide é ele (06/out).
+   */
+  const espacoAviso = (ESPACO && ESPACO.apertando) ? `
+    <div class="item" onclick="verEspaco()" style="cursor:pointer">
+      <div class="avatar">⚠️</div>
+      <div class="txt">
+        <div class="t1">O espaço está acabando</div>
+        <div class="t2">${mb(ESPACO.total)} de ${mb(ESPACO.teto)} usados</div>
+      </div>
+    </div>` : '';
+
   // ── Pedidos para entrar, PRIMEIRO de tudo ───────────────────────
   // Em cima do feed de propósito: é a única coisa na tela que espera
   // resposta minha, e do outro lado tem alguém parado esperando. Carro
@@ -670,7 +694,7 @@ function desenharColuna() {
         </div>`).join('')
     : '';
 
-  $('col').innerHTML = pedidos +
+  $('col').innerHTML = espacoAviso + pedidos +
     `<div class="grupo">Feed da rede</div>` +
     linha('🏪', 'Estoque da rede', feedSub,
       dados.vitrine.length ? quando(dados.vitrine[0].criado_em) : '',
@@ -1365,6 +1389,12 @@ async function carregar() {
     .then((r) => (r.ok ? r.json() : null))
     .then((d) => { if (d) MEU_TELEFONE = d.telefone || null; })
     .catch(() => null);
+  // O espaço sai na mesma leva e NÃO é esperado: ele só muda o aviso, que
+  // nasce escondido. Fazer a tela esperar por uma varredura de baldes para
+  // desenhar a conversa seria pagar caro por um aviso que quase sempre não
+  // aparece.
+  rede('espaco').then((e) => { ESPACO = e; if (e && e.apertando) desenharColuna(); })
+    .catch(() => null);
   try {
     const d = await (await fetch('/api/utils?type=quem', { cache: 'no-store' })).json();
     PODE_CONVIDAR = d.podeConvidar !== false;
@@ -1439,6 +1469,10 @@ $('btn-nova').addEventListener('click', () => {
       (MEU_TELEFONE ? 'Trocar' : 'Pôr') + '</button></div>' +
     (PODE_CONVIDAR ? '<div class="op"><span>🏪 <strong>Convidar loja</strong><br><span style="font-size:.78rem;color:var(--text-mid)">cria a loja dela e gera um link de entrada</span></span>' +
       '<button onclick="convidarLoja()">Convidar</button></div>' : '') +
+    // Consultável sempre, mesmo sem apertar: quem quer saber, acha.
+    (ESPACO ? '<div class="op"><span>💾 <strong>Espaço</strong><br><span style="font-size:.78rem;color:var(--text-mid)">'
+      + mb(ESPACO.total) + ' de ' + mb(ESPACO.teto) + '</span></span>'
+      + '<button class="leve" onclick="dlg.close();verEspaco()">Ver</button></div>' : '') +
     '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
   $('dlg').showModal();
 });
@@ -1554,6 +1588,31 @@ function desenharFila() {
     + (ANEXOS.some((a) => a.estado === 'falhou')
       ? `<div class="anexo-erro">${esc(ANEXOS.find((a) => a.estado === 'falhou').erro || 'não consegui subir')}</div>`
       : '');
+}
+
+/* ── O espaço, por extenso ───────────────────────────────────────
+ *
+ * Diz de onde vem cada pedaço, porque "está acabando" sem dizer o quê
+ * não permite decidir nada. As fotos dos carros e os anexos da conversa
+ * dividem o MESMO 1 GB do plano grátis — foi por isso que o medidor
+ * passou a contar os dois, em vez de só os anexos e mostrar "0 de 1 GB"
+ * com 59 MB já ocupados.
+ */
+function verEspaco() {
+  if (!ESPACO) return;
+  const pct = Math.round((ESPACO.total / ESPACO.teto) * 100);
+  $('dlg-corpo').innerHTML = `<h3>Espaço</h3>
+    <p style="font-size:.85rem;color:var(--text-mid);line-height:1.55;margin-bottom:.8rem">
+      <strong>${mb(ESPACO.total)}</strong> de ${mb(ESPACO.teto)} — ${pct}%.</p>
+    <div class="op"><span>🚗 Fotos de carro</span><span>${mb(ESPACO.fotos)}</span></div>
+    <div class="op"><span>💬 Anexos de conversa</span><span>${mb(ESPACO.anexos)}</span></div>
+    <div class="op"><span style="color:var(--text-mid)">dos quais são meus</span>
+      <span style="color:var(--text-mid)">${mb(ESPACO.meus)}</span></div>
+    <p style="font-size:.8rem;color:var(--text-faint);line-height:1.5;margin-top:.8rem">
+      Os dois dividem o mesmo espaço do plano. Nada é apagado sozinho —
+      quando apertar, a gente decide o que sai.</p>
+    <div class="op" style="justify-content:flex-end"><button onclick="dlg.close()">Fechar</button></div>`;
+  $('dlg').showModal();
 }
 
 /* ══ GRAVAR ÁUDIO ═══════════════════════════════════════════════════

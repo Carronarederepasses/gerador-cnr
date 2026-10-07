@@ -1390,6 +1390,10 @@ async function transmitirMensagem(req, res) {
   const agora = new Date().toISOString();
   let entregues = 0;
   const falhas = [];
+  // A mesma trava antiga do banco que pegou a conversa 1 a 1 em 07/out.
+  // Aqui ela falharia em TODOS os destinos e a tela diria "chegou em 0 de
+  // 50" — verdadeiro e inútil. Detectada uma vez, responde dizendo o quê.
+  let travaAntiga = false;
   for (const destino of d.contas) {
     try {
       const c = await acharConversa(eu.conta_id, destino, true);
@@ -1409,8 +1413,19 @@ async function transmitirMensagem(req, res) {
       // QUANTAS chegaram, em vez de "deu erro" sobre um envio que foi
       // entregue a 48 de 50.
       console.error('[rede] transmissão falhou para', destino, e.message);
+      if (/texto_nao_vazio/.test(e.message || '')) travaAntiga = true;
       falhas.push(destino);
     }
+  }
+
+  // Nada chegou, e eu sei por quê: dizer o motivo vale mais que dizer
+  // "0 de 50".
+  if (!entregues && travaAntiga) {
+    return res.status(503).json({
+      error: 'Mensagem só com anexo ainda não é aceita por este banco. '
+           + 'Escreva algo junto, por enquanto.',
+      codigo: 'falta_migration',
+    });
   }
 
   // O aviso no celular depois de gravar tudo, e um por loja. Falha de
@@ -1617,14 +1632,78 @@ async function anexoVer(req, res) {
   });
 }
 
-/* Quanto esta loja já guardou.
+/* Quanto já está guardado — e a conta tem de ser HONESTA.
  *
- * Somado dos anexos das mensagens dela, não do balde: é a conta que a
- * pessoa entende ("o que EU mandei") e não exige varrer o storage.
- * O plano grátis dá 1 GB para o sistema inteiro — por isso o aviso é em
- * cima do total, e não de uma cota por loja que ainda não existe.
+ * O 1 GB do plano grátis é do projeto inteiro: as fotos dos carros e os
+ * anexos da conversa dividem o mesmo bolo. Medir só os anexos e mostrar
+ * "0 de 1 GB" seria uma mentira tranquilizadora — havia 59 MB em fotos de
+ * carro em 06/out, antes de o primeiro anexo existir.
+ *
+ * Os anexos são somados linha a linha (exato, e já está no banco). As
+ * fotos de carro são somadas pelo storage, que é uma varredura — por isso
+ * a resposta é guardada por 10 minutos. Um medidor de espaço não precisa
+ * ser de segundo a segundo; precisa ser verdadeiro.
  */
 const ESPACO_TOTAL = 1024 * 1024 * 1024;
+const BALDES_QUE_CONTAM = ['veiculos', 'vendas-docs', 'vistorias-fotos', 'veiculos-docs'];
+let ESPACO_FOTOS = { bytes: 0, em: 0 };
+const ESPACO_VALIDADE = 10 * 60 * 1000;
+
+/* A varredura, EM PARALELO.
+ *
+ * A primeira versão descia pasta por pasta em fila e levou **41 segundos**
+ * — medido. São ~28 idas ao storage a ~1,4s cada, e uma esperando a outra
+ * sem motivo: elas não dependem umas das outras.
+ *
+ * Pior: a memória de uma função serverless não é compartilhada entre
+ * instâncias, então o cache não ajudava quase nunca — cada instância fria
+ * pagava os 41s de novo. Em paralelo, de 8 em 8, cai para alguns segundos,
+ * que é o que torna o cache um bônus e não uma necessidade.
+ *
+ * 8 e não 28: o storage também recusa quem aperta demais, e derrubar o
+ * medidor para medir mais rápido não é troca que valha.
+ */
+async function bytesDosBaldes() {
+  if (ESPACO_FOTOS.em && Date.now() - ESPACO_FOTOS.em < ESPACO_VALIDADE) return ESPACO_FOTOS.bytes;
+  try {
+    const tam = (x) => (x.metadata && x.metadata.size) || 0;
+    let total = 0;
+    const pastas = [];
+
+    // 1. A raiz de cada balde: os arquivos soltos contam já, as pastas
+    //    entram na fila para descer.
+    const raizes = await Promise.all(BALDES_QUE_CONTAM.map((b) => listarBalde(b, '')));
+    raizes.forEach((itens, i) => itens.forEach((x) => {
+      if (x.id) total += tam(x); else pastas.push([BALDES_QUE_CONTAM[i], x.name]);
+    }));
+
+    // 2. As pastas, de 8 em 8.
+    for (let i = 0; i < pastas.length; i += 8) {
+      const lote = await Promise.all(
+        pastas.slice(i, i + 8).map(([b, p]) => listarBalde(b, p))
+      );
+      lote.forEach((itens) => itens.forEach((x) => { if (x.id) total += tam(x); }));
+    }
+
+    ESPACO_FOTOS = { bytes: total, em: Date.now() };
+  } catch (e) {
+    // Falha aqui não pode derrubar o medidor: devolve o que tiver em mãos,
+    // mesmo velho. Número velho é melhor que tela quebrada.
+    console.error('[rede] não consegui medir os baldes:', e.message);
+  }
+  return ESPACO_FOTOS.bytes;
+}
+
+async function listarBalde(balde, prefixo) {
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${balde}`, {
+    method: 'POST',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: prefixo, limit: 1000 }),
+  });
+  if (!r.ok) return [];
+  const j = await r.json();
+  return Array.isArray(j) ? j : [];
+}
 
 async function espaco(req, res) {
   const eu = quem(req);
@@ -1633,20 +1712,23 @@ async function espaco(req, res) {
   try {
     linhas = await rsb('mensagens_rede?select=de_conta_id,anexos&anexos=neq.[]&limit=5000');
   } catch (e) {
-    // Coluna ainda não criada: responde "nada guardado" em vez de derrubar.
-    console.error('[rede] espaço indisponível (migration pendente?):', e.message);
-    return res.status(200).json({ ok: true, meus: 0, total: 0, teto: ESPACO_TOTAL, aviso: 'sem_coluna' });
+    // Coluna ainda não criada: segue sem os anexos, mas ainda conta as
+    // fotos — o medidor não fica cego por causa de uma migration pendente.
+    console.error('[rede] anexos indisponíveis (migration pendente?):', e.message);
   }
-  let meus = 0, total = 0;
+  let meus = 0, anexos = 0;
   linhas.forEach((m) => {
     (Array.isArray(m.anexos) ? m.anexos : []).forEach((a) => {
       const b = Number(a && a.bytes) || 0;
-      total += b;
+      anexos += b;
       if (m.de_conta_id === eu.conta_id) meus += b;
     });
   });
+  const fotos = await bytesDosBaldes();
+  const total = anexos + fotos;
   return res.status(200).json({
-    ok: true, meus, total, teto: ESPACO_TOTAL,
+    ok: true,
+    meus, anexos, fotos, total, teto: ESPACO_TOTAL,
     // O aviso é aos 80%, e quem decide o que fazer é o Yuri — nada é
     // apagado sozinho (decisão dele, 06/out).
     apertando: total > ESPACO_TOTAL * 0.8,
@@ -1675,14 +1757,37 @@ async function mandarMensagem(req, res) {
   // `limparAnexos` já exigiu que todo caminho comece pela MINHA conta —
   // é o que impede alguém referenciar na própria mensagem um arquivo
   // guardado por outra loja e, com isso, passar a poder lê-lo.
-  await rsb('mensagens_rede', {
-    method: 'POST',
-    body: JSON.stringify({
-      conversa_id: c.id, de_conta_id: eu.conta_id, de_usuario_id: eu.usuario_id,
-      texto: limpo, oferta_id: UUID.test(String(oferta_id || '')) ? oferta_id : null,
-      ...(lista.length ? { anexos: lista } : {}),
-    }),
-  });
+  try {
+    await rsb('mensagens_rede', {
+      method: 'POST',
+      body: JSON.stringify({
+        conversa_id: c.id, de_conta_id: eu.conta_id, de_usuario_id: eu.usuario_id,
+        texto: limpo, oferta_id: UUID.test(String(oferta_id || '')) ? oferta_id : null,
+        ...(lista.length ? { anexos: lista } : {}),
+      }),
+    });
+  } catch (e) {
+    /* ── A TRAVA ANTIGA DO BANCO (07/out) ─────────────────────────
+     * `mensagens_texto_nao_vazio` exigia texto — certa no mundo em que
+     * mensagem era só texto, e errada depois do anexo. O Yuri gravou um
+     * áudio, o arquivo subiu, e a mensagem foi recusada pelo banco: ele
+     * ficou com um áudio guardado e nada na conversa.
+     *
+     * `supabase/rede-anexo-sem-texto.sql` conserta. Enquanto não rodar,
+     * esta mensagem DIZ o que está acontecendo, em vez de devolver um
+     * erro de Postgres que ninguém lê. Falhar calado foi o defeito; o
+     * conserto é falhar falando.
+     */
+    if (/texto_nao_vazio/.test(e.message || '')) {
+      console.error('[rede] trava antiga do banco recusou mensagem só com anexo');
+      return res.status(503).json({
+        error: 'Mensagem só com anexo ainda não é aceita por este banco. '
+             + 'Escreva algo junto, por enquanto.',
+        codigo: 'falta_migration',
+      });
+    }
+    throw e;
+  }
   // `ultima_em` é o que ordena a coluna da esquerda: sem isto, a conversa
   // com mensagem nova não sobe para o topo.
   await rsb(`conversas?id=eq.${c.id}`, {
