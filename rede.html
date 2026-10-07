@@ -31,6 +31,7 @@
 <script src="/assets/sidebar.js" defer></script>
 <!-- Sem `defer`: o clipe pode ser tocado antes do fim do carregamento. -->
 <script src="/assets/comprimir.js"></script>
+<script src="/assets/texto-rico.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 /* `display:` de classe vence o atributo `hidden` — sem isto, o campo de
@@ -269,6 +270,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
    as duas, o espaço dobrava. */
 .balao .preco{font-weight:700;font-size:1.05rem}
 .balao .msg{font-size:.86rem;line-height:1.5;margin-top:.5rem;white-space:pre-wrap}
+/* O texto do WhatsApp. `strong` e `em` já vêm do navegador; `code` e o
+   riscado precisam de ajuste para não destoar da bolha. */
+.balao .msg code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;
+  background:rgba(128,128,128,.18);padding:.05rem .25rem;border-radius:.2rem}
+.balao .msg s{opacity:.7}
 /* A hora miúda no canto de baixo, como no WhatsApp — e nada mais ao lado
    dela. Antes era uma faixa com a hora à esquerda e o botão à direita, o
    que não existe em mensagem nenhuma de lá. */
@@ -532,6 +538,21 @@ let dados = { listas: [], contatos: [], minhas: [], recebidas: [], conversas: []
 let MEU_TELEFONE = null;      // null = ninguém me acha na agenda
 let ESPACO = null;            // { meus, anexos, fotos, total, teto, apertando }
 
+/* ── O texto do WhatsApp nas bolhas (07/out) ─────────────────────
+ * [YURI: "faça as mesmas configurações de texto do whatsapp, * para
+ * deixar em negrito.. e tal"]
+ *
+ * `rico` ESCAPA e formata (o motor está em `assets/texto-rico.js`, que
+ * escapa primeiro de propósito — o texto vem de outra loja). `semMarca`
+ * é para a prévia de uma linha na coluna, onde negrito não cabe e o
+ * asterisco à mostra é sujeira.
+ *
+ * A reserva existe porque `entrar.html` e outras telas não carregam este
+ * arquivo: sem ele, o texto continua aparecendo — escapado, sem formato.
+ */
+const rico = (t) => (window.CNR_TEXTO ? window.CNR_TEXTO.formatar(t) : esc(t));
+const semMarca = (t) => (window.CNR_TEXTO ? window.CNR_TEXTO.semMarcacao(t) : String(t || ''));
+
 // Tamanho que se lê de relance. KB abaixo de 1 MB, senão "0,06 MB" não diz
 // nada a ninguém.
 function mb(bytes) {
@@ -707,14 +728,14 @@ function desenharColuna() {
     `<div class="grupo">Transmissões</div>` + todos + listas +
     (dados.grupos.length ? `<div class="grupo">Grupos</div>` + dados.grupos.map((g) => linha(
       '👥', g.nome,
-      g.ultima ? `${g.ultima.quem}: ${g.ultima.texto}` : `${g.participantes} participantes`,
+      g.ultima ? `${g.ultima.quem}: ${semMarca(g.ultima.texto)}` : `${g.participantes} participantes`,
       g.ultima ? quando(g.ultima.criado_em) : '',
       aberto?.tipo === 'grupo' && aberto.id === g.id,
       `abrirGrupo('${g.id}')`,
       g.nao_lidas ? String(g.nao_lidas) : '')).join('') : '') +
     (dados.conversas.length ? `<div class="grupo">Conversas</div>` + dados.conversas.map((c) => linha(
       '💬', c.nome,
-      c.ultima ? (c.ultima.minha ? 'Você: ' : '') + c.ultima.texto : 'sem mensagens',
+      c.ultima ? (c.ultima.minha ? 'Você: ' : '') + semMarca(c.ultima.texto) : 'sem mensagens',
       c.ultima ? quando(c.ultima.criado_em) : '',
       aberto?.tipo === 'conversa' && aberto.id === c.conta_id,
       `abrirConversa('${c.conta_id}')`,
@@ -842,7 +863,7 @@ function balaoDoCarro(o, comFila) {
       <div class="meta">${esc(o.ano || '—')} · ${numero(o.km)} km${o.cidade ? ' · ' + esc(o.cidade) : ''}</div>
       ${origemDoCarro(o)}
       <div class="linha-preco"><span class="preco">${dinheiro(o.preco)}</span>${fipeDoCarro(o)}</div>
-      ${o.mensagem ? `<div class="msg">${esc(o.mensagem)}</div>` : ''}
+      ${o.mensagem ? `<div class="msg">${rico(o.mensagem)}</div>` : ''}
       ${fila && fila.length ? `<div class="fila">${fila.map((f, i) => `
         <div class="quem"><span>${i + 1}. ${esc(f.nome)}</span>
           ${o.reserva ? '' : `<button class="leve" onclick="reservar('${o.id}','${f.conta_id}')">Reservar</button>`}
@@ -925,7 +946,7 @@ function desenharPainel() {
           + '</div>'
         : `<div class="balao msg-so ${m.minha ? '' : 'recebido'}">
              ${m.minha ? '' : `<div class="meta" style="font-weight:600">${esc(m.quem)}</div>`}
-             <div class="msg">${esc(m.texto)}</div>
+             <div class="msg">${rico(m.texto)}</div>
              <div class="hora">${quando(m.criado_em)}</div>
            </div>`)
       : '<div class="vazio">Nenhuma mensagem ainda.<br><br>Quem só lê fica invisível — só aparece quem fala.</div>';
@@ -944,7 +965,7 @@ function desenharPainel() {
       ? thread.map((m) => `
         <div class="balao msg-so ${m.minha ? '' : 'recebido'}">
           ${anexosHTML(m.anexos)}
-          ${m.texto ? `<div class="msg">${esc(m.texto)}</div>` : ''}
+          ${m.texto ? `<div class="msg">${rico(m.texto)}</div>` : ''}
           <div class="rodape"><span>${quando(m.criado_em)}</span><span></span></div>
         </div>`).join('')
       : '<div class="vazio">Nenhuma mensagem ainda. Escreva a primeira.</div>';
