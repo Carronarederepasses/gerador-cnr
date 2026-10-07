@@ -29,6 +29,8 @@
 <script src="/assets/theme-toggle.js"></script>
 <link rel="stylesheet" href="/assets/sidebar.css">
 <script src="/assets/sidebar.js" defer></script>
+<!-- Sem `defer`: o clipe pode ser tocado antes do fim do carregamento. -->
+<script src="/assets/comprimir.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 /* `display:` de classe vence o atributo `hidden` — sem isto, o campo de
@@ -142,6 +144,40 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text
 .ag-pin{font-size:.7rem;vertical-align:.05rem}
 .ag-pin.na{color:var(--accent)}
 .ag-pin.fora{color:var(--text-faint);opacity:.5}
+
+/* ── Anexo ────────────────────────────────────────────────────────
+   A fila do que vai junto, antes de mandar. */
+.anexos-fila{display:flex;gap:.5rem;flex-wrap:wrap;padding-bottom:.6rem}
+.anexo-mini{position:relative;width:4.2rem;height:4.2rem;border-radius:var(--r, 8px);
+  overflow:hidden;background:var(--surface-raise);border:1px solid var(--line);
+  display:grid;place-items:center;flex:none}
+.anexo-mini img{width:100%;height:100%;object-fit:cover;display:block}
+.anexo-mini .ico{font-size:1.4rem}
+/* Enquanto sobe, a miniatura fica apagada: diz "ainda não foi" sem
+   precisar de texto, e some sozinho quando termina. */
+.anexo-mini.preparando img, .anexo-mini.subindo img{opacity:.45}
+.anexo-mini .estado{position:absolute;inset:0;display:grid;place-items:center;
+  font-weight:700;font-size:1.1rem;color:var(--text);pointer-events:none}
+.anexo-mini.pronto .estado{display:none}
+.anexo-mini.falhou{border-color:var(--severity-crit)}
+.anexo-mini.falhou .estado{color:var(--severity-crit)}
+.anexo-mini .x{position:absolute;top:0;right:0;width:1.4rem;height:1.4rem;padding:0;
+  border-radius:0 0 0 var(--r, 8px);background:rgba(0,0,0,.65);color:#fff;
+  font-size:.7rem;line-height:1;border:none}
+.anexo-erro{font-size:.75rem;color:var(--severity-crit);width:100%}
+
+/* O anexo dentro do balão. `-.2rem` para a foto encostar na borda, como no
+   WhatsApp — a moldura do balão é que emoldura, não uma margem. */
+.anexos{display:flex;flex-direction:column;gap:.35rem;margin:-.2rem -.2rem .4rem}
+.anexos img{width:100%;max-width:18rem;display:block;border-radius:var(--r, 8px);
+  background:var(--surface);object-fit:cover}
+.anexos audio{width:100%;max-width:18rem}
+.anexo-doc{display:inline-block;padding:.45rem .6rem;border:1px solid var(--line-strong);
+  border-radius:var(--r, 8px);font-size:.84rem;text-decoration:none;color:inherit}
+.anexo-sumiu{font-size:.78rem;color:var(--text-mid);font-style:italic;padding:.4rem 0}
+/* Dentro do balão de tinta (o meu), o contorno do documento precisa do
+   cinza que funciona sobre branco. */
+.balao.msg-so:not(.recebido) .anexo-doc{border-color:var(--on-accent-mid)}
 .grupo{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);
   padding:.9rem .9rem .35rem;font-weight:700}
 
@@ -408,8 +444,17 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1);opacity:.5}
     </div>
     <div class="compor" id="compor" hidden>
       <div class="carro-escolhido" id="escolhido" hidden></div>
+      <!-- As fotos escolhidas, antes de mandar. Aparecem aqui para a pessoa
+           ver o que vai junto e poder tirar — no WhatsApp também. -->
+      <div class="anexos-fila" id="anexos-fila" hidden></div>
       <div class="escrever">
         <button class="leve" id="btn-carro">🚗 Carro</button>
+        <!-- Dois campos, não um. `capture` abre a CÂMERA direto; sem ele, a
+             galeria. Num campo só, o Android decide por conta e a pessoa
+             nunca sabe qual vai abrir. -->
+        <input type="file" id="arq-galeria" accept="image/*" multiple hidden>
+        <input type="file" id="arq-camera" accept="image/*" capture="environment" hidden>
+        <button class="redondo leve" id="btn-clipe" title="Anexar foto">📎</button>
         <textarea id="texto" rows="1" placeholder="Escreva algo (opcional)…"></textarea>
         <button class="redondo" id="btn-enviar" title="Enviar">➤</button>
       </div>
@@ -796,6 +841,9 @@ function desenharPainel() {
   // mandaram. No feed se manda: é lá que a loja publica o estoque.
   // Na agenda também não: ali não se escreve, se procura gente.
   $('compor').hidden = aberto.tipo === 'recebidos' || aberto.tipo === 'agenda';
+  // O clipe some no feed: ali o conteúdo é o carro publicado, não arquivo
+  // solto — e uma foto sem carro na vitrine não teria o que dizer.
+  if ($('btn-clipe')) $('btn-clipe').hidden = !anexoPodeAqui();
 
   if (aberto.tipo === 'agenda') { desenharAgenda(); return; }
 
@@ -843,11 +891,14 @@ function desenharPainel() {
     $('thread').innerHTML = thread.length
       ? thread.map((m) => `
         <div class="balao msg-so ${m.minha ? '' : 'recebido'}">
-          <div class="msg">${esc(m.texto)}</div>
+          ${anexosHTML(m.anexos)}
+          ${m.texto ? `<div class="msg">${esc(m.texto)}</div>` : ''}
           <div class="rodape"><span>${quando(m.criado_em)}</span><span></span></div>
         </div>`).join('')
       : '<div class="vazio">Nenhuma mensagem ainda. Escreva a primeira.</div>';
     $('thread').scrollTop = $('thread').scrollHeight;
+    // As fotos entram depois, cada uma com a própria URL assinada.
+    carregarAnexos();
     return;
   }
 
@@ -885,17 +936,18 @@ function desenharPainel() {
   $('thread').scrollTop = $('thread').scrollHeight;
 }
 
-function abrirLista(id) { VEIO_DE = null; const l = dados.listas.find((x) => x.id === id); aberto = { tipo: 'lista', id, nome: l.nome }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
-function abrirTodos()   { VEIO_DE = null; aberto = { tipo: 'todos', id: null, nome: 'Todos os contatos' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
-function abrirRecebidos() { VEIO_DE = null; aberto = { tipo: 'recebidos', id: null, nome: 'Chegou para mim' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
+function abrirLista(id) { VEIO_DE = null; limparAnexos(); const l = dados.listas.find((x) => x.id === id); aberto = { tipo: 'lista', id, nome: l.nome }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
+function abrirTodos()   { VEIO_DE = null; limparAnexos(); aberto = { tipo: 'todos', id: null, nome: 'Todos os contatos' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
+function abrirRecebidos() { VEIO_DE = null; limparAnexos(); aberto = { tipo: 'recebidos', id: null, nome: 'Chegou para mim' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
 // O feed da rede: estoque que as lojas publicaram para todo mundo.
-function abrirVitrine() { VEIO_DE = null; aberto = { tipo: 'vitrine', id: null, nome: 'Estoque da rede' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
+function abrirVitrine() { VEIO_DE = null; limparAnexos(); aberto = { tipo: 'vitrine', id: null, nome: 'Estoque da rede' }; desenharColuna(); desenharPainel(); verConversa(); arrumarVoltar(); }
 
 // ── Conversa 1 a 1 ──────────────────────────────────────────
 // Abrir a conversa de dentro de Contatos: guarda de onde se veio, para o
 // `‹` devolver ali. É o único lugar que faz isso — por tudo o mais, o
 // voltar vai para a lista, como sempre foi.
 function conversarDaAgenda(contaId) {
+  limparAnexos();
   VEIO_DE = 'agenda';
   empilharConversa();
   return abrirConversa(contaId);
@@ -1022,10 +1074,25 @@ async function sairDoGrupo(id) {
 
 async function enviarMensagem() {
   const texto = $('texto').value.trim();
-  if (!texto) return;
+  const prontos = ANEXOS.filter((a) => a.estado === 'pronto');
+  // Mensagem só com foto vale — no WhatsApp a legenda é opcional.
+  if (!texto && !prontos.length) return;
+  // Anexo ainda subindo: esperar é melhor que mandar sem ele, e muito
+  // melhor que mandar duas mensagens.
+  if (ANEXOS.some((a) => a.estado === 'subindo' || a.estado === 'preparando')) {
+    return alert('Espere a foto terminar de subir.');
+  }
   $('btn-enviar').disabled = true;
   try {
-    await rede('mensagem', { body: { conta_id: aberto.id, texto } });
+    await rede('mensagem', {
+      body: {
+        conta_id: aberto.id, texto,
+        anexos: prontos.map((a) => ({
+          caminho: a.caminho, tipo: a.tipo, bytes: a.bytes, nome: a.nome, w: a.w, h: a.h,
+        })),
+      },
+    });
+    limparAnexos();
     $('texto').value = '';
     $('texto').style.height = 'auto';
     await abrirConversa(aberto.id);
@@ -1065,13 +1132,74 @@ function pegarCarro(v) {
 function tirarCarro() { carroEscolhido = null; $('escolhido').hidden = true; }
 
 // ── Enviar ──────────────────────────────────────────────────
+/* Mandar recado (e foto) para a lista: um envio, N conversas privadas.
+ *
+ * Confirma antes, com o número de destinatários. Transmissão não tem
+ * desfazer — e mandar sem querer para 50 lojas é o tipo de erro que custa
+ * reputação, não um clique. */
+async function transmitirRecado() {
+  const texto = $('texto').value.trim();
+  const prontos = ANEXOS.filter((a) => a.estado === 'pronto');
+  if (!texto && !prontos.length) return $('texto').focus();
+  if (ANEXOS.some((a) => a.estado === 'subindo' || a.estado === 'preparando')) {
+    return alert('Espere a foto terminar de subir.');
+  }
+  const lista = aberto.tipo === 'lista' ? dados.listas.find((l) => l.id === aberto.id) : null;
+  const quantos = lista
+    ? lista.membros.filter((m) => m.ativo).length
+    : dados.contatos.length;
+  if (!quantos) {
+    return alert('Não há ninguém para receber: essa transmissão está sem destinatário.');
+  }
+  if (!confirm(`Mandar para ${quantos} loja${quantos > 1 ? 's' : ''}?\n\n`
+    + 'Cada uma recebe na conversa dela e responde no particular — ninguém vê quem mais recebeu.')) return;
+
+  $('btn-enviar').disabled = true;
+  try {
+    const r = await rede('transmitir', {
+      body: {
+        lista_id: aberto.tipo === 'lista' ? aberto.id : null,
+        texto,
+        anexos: prontos.map((a) => ({
+          caminho: a.caminho, tipo: a.tipo, bytes: a.bytes, nome: a.nome, w: a.w, h: a.h,
+        })),
+      },
+    });
+    $('texto').value = ''; $('texto').style.height = 'auto';
+    limparAnexos();
+    await carregar();
+    // Diz QUANTAS chegaram, não "pronto". Numa transmissão o que importa
+    // é quem recebeu, e 48 de 50 não é a mesma coisa que 50.
+    alert(r.falhou
+      ? `Chegou em ${r.entregues} de ${r.entregues + r.falhou}. Tente de novo para as que faltaram.`
+      : `Chegou nas ${r.entregues} lojas.`);
+  } catch (e) { alert(e.message); }
+  finally { $('btn-enviar').disabled = false; }
+}
+
 async function enviar() {
   // Na conversa o conteúdo é o texto. No grupo e na transmissão pode ser
   // os dois — com carro escolhido vai o carro (com o texto junto), sem
   // carro vai só o recado.
   if (aberto && aberto.tipo === 'conversa') return enviarMensagem();
   if (aberto && aberto.tipo === 'grupo' && !carroEscolhido) return falarNoGrupo();
-  if (!carroEscolhido) return escolherCarro();   // na transmissão o carro é o conteúdo
+
+  /* ── A TRANSMISSÃO DO WHATSAPP (06/out) ──────────────────────
+   * [YURI: "quero a mesma funcionalidade do whatsapp"]
+   *
+   * Esta linha era `if (!carroEscolhido) return escolherCarro()` — na
+   * transmissão o carro ERA o conteúdo obrigatório. Agora recado e foto
+   * também valem: um envio vira N conversas privadas, cada loja responde
+   * no particular, e não há teto de destinatários. É a dor que deu origem
+   * ao projeto — o limite da lista de transmissão do WhatsApp.
+   *
+   * Com carro escolhido continua indo o carro, com fila e "✋ Quero": são
+   * dois movimentos diferentes do negócio, e os dois seguem existindo.
+   */
+  if (!carroEscolhido && (aberto.tipo === 'lista' || aberto.tipo === 'todos')) {
+    return transmitirRecado();
+  }
+  if (!carroEscolhido) return escolherCarro();   // no feed o carro é o conteúdo
   $('btn-enviar').disabled = true;
   try {
     await rede('ofertar', { body: {
@@ -1294,6 +1422,151 @@ async function entrarAqui() {
     alert('Não consegui entrar: ' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = 'Entrar neste aparelho'; }
   }
+}
+
+/* ══ ANEXO: ESCOLHER, COMPRIMIR, SUBIR ══════════════════════════════
+ *
+ * [YURI: "quero o chat do gerador, igual ao whatsapp, com campo de anexo
+ * de arquivos e tal, tu sabe que temos muita troca de arquivo"]
+ *
+ * O caminho de uma foto, do toque ao balão:
+ *
+ *   escolhe → comprime AQUI → sobe DIRETO para o Supabase → entra na fila
+ *   → manda a mensagem, que só carrega o caminho do arquivo
+ *
+ * Comprimir antes de subir é o que decide o custo do produto inteiro:
+ * 3–5 MB viram ~250 KB, e numa transmissão para 50 lojas cada KB vale 50
+ * vezes. O porquê está em `assets/comprimir.js`.
+ *
+ * O arquivo sobe ANTES de a mensagem ser mandada, de propósito: assim a
+ * demora do upload acontece enquanto a pessoa ainda está escrevendo, e o
+ * ➤ é instantâneo — que é como o WhatsApp parece rápido.
+ */
+let ANEXOS = [];        // [{ caminho, tipo, bytes, nome, w, h, estado, local }]
+const ANEXO_MAX = 10;
+
+function anexoPodeAqui() {
+  // Só onde existe conversa ou lista: no "Chegou para mim" não se manda.
+  return aberto && (aberto.tipo === 'conversa' || aberto.tipo === 'todos'
+    || aberto.tipo === 'lista' || aberto.tipo === 'grupo');
+}
+
+async function escolherArquivos(files) {
+  const lista = [...(files || [])].slice(0, ANEXO_MAX - ANEXOS.length);
+  for (const file of lista) {
+    const item = { nome: file.name || 'foto.jpg', estado: 'preparando', bytes: file.size };
+    ANEXOS.push(item);
+    desenharFila();
+    try {
+      const { blob, tipo, bytes, w, h } = await window.CNR_COMPRIMIR.comprimir(file);
+      // A prévia sai do arquivo que está no aparelho, não do servidor: ela
+      // aparece na hora e não custa nenhuma viagem.
+      item.local = URL.createObjectURL(blob);
+      Object.assign(item, { tipo, bytes, w, h, estado: 'subindo' });
+      desenharFila();
+
+      const r = await rede('anexo', { body: { tipo, bytes } });
+      const envio = await fetch(r.uploadUrl, {
+        method: 'PUT', headers: { 'Content-Type': tipo }, body: blob,
+      });
+      if (!envio.ok) throw new Error(`HTTP ${envio.status}`);
+      item.caminho = r.caminho;
+      item.estado = 'pronto';
+    } catch (e) {
+      item.estado = 'falhou';
+      item.erro = (e && e.corpo && e.corpo.error) || e.message;
+    }
+    desenharFila();
+  }
+}
+
+function tirarAnexo(i) {
+  const a = ANEXOS[i];
+  if (a && a.local) URL.revokeObjectURL(a.local);
+  ANEXOS.splice(i, 1);
+  desenharFila();
+}
+
+function limparAnexos() {
+  ANEXOS.forEach((a) => { if (a.local) URL.revokeObjectURL(a.local); });
+  ANEXOS = [];
+  desenharFila();
+}
+
+function desenharFila() {
+  const el = $('anexos-fila');
+  if (!el) return;
+  el.hidden = !ANEXOS.length;
+  el.innerHTML = ANEXOS.map((a, i) => `
+    <div class="anexo-mini ${a.estado}">
+      ${a.local && /^image\//.test(a.tipo || '')
+        ? `<img src="${a.local}" alt="">`
+        : `<span class="ico">${/^audio\//.test(a.tipo || '') ? '🎤' : '📄'}</span>`}
+      <span class="estado">${
+        a.estado === 'preparando' ? '…' :
+        a.estado === 'subindo' ? '↑' :
+        a.estado === 'falhou' ? '!' : ''}</span>
+      <button class="x" onclick="tirarAnexo(${i})" title="Tirar">✕</button>
+    </div>`).join('')
+    + (ANEXOS.some((a) => a.estado === 'falhou')
+      ? `<div class="anexo-erro">${esc(ANEXOS.find((a) => a.estado === 'falhou').erro || 'não consegui subir')}</div>`
+      : '');
+}
+
+/* ── Ver o anexo de uma mensagem ─────────────────────────────────
+ *
+ * O caminho não é uma URL: é um nome. A URL vem assinada do servidor,
+ * depois de ele conferir que esta loja pode ver aquela mensagem.
+ *
+ * Guardada em memória porque a assinatura vale 2h — pedir de novo a cada
+ * desenho da conversa seria uma viagem por foto, toda vez que a tela
+ * redesenha, e a conversa redesenha bastante.
+ */
+const URL_ANEXO = new Map();
+
+async function urlDoAnexo(caminho) {
+  if (URL_ANEXO.has(caminho)) return URL_ANEXO.get(caminho);
+  const p = rede('anexo', { q: `&caminho=${encodeURIComponent(caminho)}` })
+    .then((r) => r.url)
+    .catch(() => null);
+  URL_ANEXO.set(caminho, p);
+  return p;
+}
+
+// Depois de a conversa ser desenhada, cada foto busca a própria URL. Sai
+// do desenho de propósito: o balão aparece na hora, com o espaço já
+// reservado pelo tamanho que veio gravado, e a imagem entra quando chega.
+async function carregarAnexos() {
+  const alvos = document.querySelectorAll('img[data-anexo]:not([src])');
+  for (const img of alvos) {
+    const u = await urlDoAnexo(img.dataset.anexo);
+    if (u) img.src = u; else img.replaceWith(Object.assign(document.createElement('div'),
+      { className: 'anexo-sumiu', textContent: 'arquivo indisponível' }));
+  }
+}
+
+// O balão de anexo dentro da mensagem.
+function anexosHTML(anexos) {
+  if (!Array.isArray(anexos) || !anexos.length) return '';
+  return '<div class="anexos">' + anexos.map((a) => {
+    if (/^image\//.test(a.tipo || '')) {
+      // `aspect-ratio` com o tamanho gravado: sem isso a conversa pula
+      // cada vez que uma foto chega.
+      const prop = a.w && a.h ? `style="aspect-ratio:${a.w}/${a.h}"` : '';
+      return `<img data-anexo="${esc(a.caminho)}" ${prop} alt="foto">`;
+    }
+    if (/^audio\//.test(a.tipo || '')) {
+      return `<audio controls preload="none" data-anexo-audio="${esc(a.caminho)}"></audio>`;
+    }
+    return `<a class="anexo-doc" href="#" onclick="abrirDoc('${esc(a.caminho)}');return false">`
+      + `📄 ${esc(a.nome || 'documento')}</a>`;
+  }).join('') + '</div>';
+}
+
+async function abrirDoc(caminho) {
+  const u = await urlDoAnexo(caminho);
+  if (u) window.open(u, '_blank', 'noopener');
+  else alert('Arquivo indisponível.');
 }
 
 /* ══ CONTATOS DA AGENDA ═════════════════════════════════════════════
@@ -2044,6 +2317,31 @@ arrumarSino();
 
 $('btn-carro').addEventListener('click', escolherCarro);
 $('btn-enviar').addEventListener('click', enviar);
+
+// ── O clipe ─────────────────────────────────────────────────
+// Pergunta de onde vem a foto. No celular as duas opções são caminhos
+// diferentes do sistema (galeria × câmera) e a pessoa precisa escolher —
+// num campo só, o Android decide por conta.
+$('btn-clipe').addEventListener('click', () => {
+  if (ANEXOS.length >= ANEXO_MAX) return alert(`No máximo ${ANEXO_MAX} arquivos por mensagem.`);
+  $('dlg-corpo').innerHTML = '<h3>Anexar</h3>'
+    + '<div class="op"><span>🖼️ <strong>Galeria</strong><br><span style="font-size:.78rem;color:var(--text-mid)">fotos que já estão no aparelho</span></span>'
+    + '<button onclick="dlg.close();arqGaleria.click()">Escolher</button></div>'
+    + '<div class="op"><span>📷 <strong>Câmera</strong><br><span style="font-size:.78rem;color:var(--text-mid)">tirar agora</span></span>'
+    + '<button onclick="dlg.close();arqCamera.click()">Abrir</button></div>'
+    + '<div class="op" style="justify-content:flex-end"><button class="leve" onclick="dlg.close()">Fechar</button></div>';
+  $('dlg').showModal();
+});
+const arqGaleria = $('arq-galeria');
+const arqCamera = $('arq-camera');
+[arqGaleria, arqCamera].forEach((campo) => {
+  campo.addEventListener('change', () => {
+    escolherArquivos(campo.files);
+    // Limpa o campo: sem isto, escolher a MESMA foto duas vezes seguidas
+    // não dispara o evento, e parece que o anexo não funcionou.
+    campo.value = '';
+  });
+});
 $('texto').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
 });
