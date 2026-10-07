@@ -623,6 +623,7 @@ function voltar() {
   aberto = null;
   desenharColuna();
   verLista();
+  tocarPulso();   // de volta a lista: o pulso desacelera
 }
 
 // O botão diz PARA ONDE volta, não só que volta. "‹ Contatos" é a
@@ -1049,6 +1050,8 @@ async function abrirConversa(contaId) {
     aberto = { tipo: 'conversa', id: contaId, nome: d.nome };
     desenharPainel(); verConversa();
     arrumarVoltar();
+    // Conversa aberta: o pulso acelera para 5s.
+    tocarPulso();
     // Entra deslizando, para a troca ser vista como "abriu outra tela" e
     // não como "o conteúdo mudou". No celular isso é a diferença entre
     // entender onde se está e procurar o que aconteceu — e é a razão de o
@@ -1473,6 +1476,9 @@ async function carregar() {
       convidarLoja();
     }
     abrirRecebidos(); verLista();
+    // O primeiro pulso guarda o estado de agora sem redesenhar nada — é a
+    // referência contra a qual as próximas batidas vão comparar.
+    baterPulso();
   } catch (e) {
     $('col').innerHTML = `<div class="aviso">Não consegui carregar: ${esc(e.message)}</div>`;
   }
@@ -1615,6 +1621,91 @@ function desenharFila() {
       ? `<div class="anexo-erro">${esc(ANEXOS.find((a) => a.estado === 'falhou').erro || 'não consegui subir')}</div>`
       : '');
 }
+
+/* ══ A TELA SE ATUALIZA SOZINHA (07/out) ═════════════════════════════
+ *
+ * Até hoje nada chegava sem recarregar: o Nogueira respondia e a tela do
+ * Yuri ficava igual. Num chat isso é o principal.
+ *
+ * ── O QUE SEGURA O CUSTO ──────────────────────────────────────────
+ *
+ * Perguntar de 5 em 5 segundos, para sempre, seria 17 mil chamadas por
+ * dia por aparelho — e cada uma custa função na Vercel. Três freios:
+ *
+ *   1. **Só com a tela à vista.** Guardou o celular no bolso, para. É o
+ *      maior ganho de todos, e é de graça: o navegador avisa.
+ *   2. **O pulso é barato.** Três contagens e uma data, nenhuma mensagem
+ *      (`rede=pulso`). O conteúdo só é buscado quando ele muda.
+ *   3. **Devagar quando não há conversa.** 5s lendo uma conversa, 20s na
+ *      lista. Quem está na lista não está esperando resposta.
+ *
+ * ── E O CUIDADO QUE IMPORTA ───────────────────────────────────────
+ *
+ * Nunca mexer na tela de quem está usando: não redesenha com texto
+ * escrito no campo nem com uma janela aberta, e não puxa a rolagem de
+ * quem subiu para ler o que já passou. Atualização que atrapalha é pior
+ * que atualização que falta.
+ */
+const PULSO_CONVERSA = 5000;
+const PULSO_LISTA = 20000;
+let PULSO = { ultima: null, naoLidas: -1, ofertas: -1, pedidos: -1 };
+let pulsoRelogio = null;
+
+function tocarPulso() {
+  clearTimeout(pulsoRelogio);
+  if (document.visibilityState !== 'visible') return;   // bolso: para
+  const espera = (aberto && (aberto.tipo === 'conversa' || aberto.tipo === 'grupo'))
+    ? PULSO_CONVERSA : PULSO_LISTA;
+  pulsoRelogio = setTimeout(baterPulso, espera);
+}
+
+async function baterPulso() {
+  if (document.visibilityState !== 'visible') return;
+  // Sem número não há Rede desenhada para atualizar.
+  if (!MEU_TELEFONE) return;
+  try {
+    const p = await rede('pulso');
+    const mudou = p.ultima !== PULSO.ultima
+      || p.naoLidas !== PULSO.naoLidas
+      || p.ofertas !== PULSO.ofertas
+      || p.pedidos !== PULSO.pedidos;
+    const primeira = PULSO.naoLidas === -1;
+    PULSO = p;
+    if (mudou && !primeira) await trazerNovidade();
+  } catch (e) {
+    // Rede fraca, função fria, 500: o pulso erra em silêncio. Avisar a
+    // cada falha de um relógio que bate sozinho viraria alarme constante.
+  }
+  tocarPulso();
+}
+
+/** Busca o conteúdo novo, sem atrapalhar quem está usando. */
+async function trazerNovidade() {
+  // Janela aberta: a pessoa está decidindo algo. Espera.
+  if ($('dlg').open) return;
+
+  if (aberto && aberto.tipo === 'conversa') {
+    const thread0 = thread.length;
+    const el = $('thread');
+    // "Estou no fim?" medido ANTES de trocar o conteúdo. Quem subiu para
+    // ler o que já passou não pode ser arrastado de volta.
+    const noFim = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    const d = await rede('conversa', { q: `&conta_id=${aberto.id}` });
+    if (d.mensagens.length === thread0) return;   // nada novo nesta conversa
+    thread = d.mensagens;
+    desenharPainel();
+    if (noFim) el.scrollTop = el.scrollHeight;
+  }
+  // A coluna sempre: é lá que aparece a bolinha de não-lida e o pedido
+  // novo, e redesenhá-la não interrompe nada.
+  await carregar();
+}
+
+document.addEventListener('visibilitychange', () => {
+  // Voltou para a tela: pergunta JÁ, em vez de esperar o relógio. É a
+  // diferença entre "tinha mensagem" e "apareceu a mensagem".
+  if (document.visibilityState === 'visible') baterPulso(); else clearTimeout(pulsoRelogio);
+});
 
 /* ── O espaço, por extenso ───────────────────────────────────────
  *

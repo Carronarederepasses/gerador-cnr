@@ -1367,6 +1367,78 @@ async function abrirConversa(req, res) {
 }
 
 // ── Mandar mensagem ───────────────────────────────────────────────
+/* ══ O PULSO — "mudou alguma coisa?" (07/out) ════════════════════════
+ *
+ * Até hoje a Rede não se atualizava sozinha: uma mensagem que chegasse
+ * com a tela aberta só aparecia depois de recarregar. Num chat isso não é
+ * detalhe — é a coisa principal.
+ *
+ * ── POR QUE PERGUNTAR, E NÃO RECEBER ──────────────────────────────
+ *
+ * O caminho bonito seria o Supabase empurrar a novidade (Realtime). Ele
+ * exige o navegador falando direto com o banco, com a chave pública e
+ * políticas de RLS escritas — e as tabelas da Rede estão com RLS ligada e
+ * SEM policy de propósito (quem lê é a API, e a regra de quem vê o quê
+ * está escrita à mão em cada consulta deste arquivo). Abrir isso para ter
+ * atualização automática seria trocar a trava mais importante do sistema
+ * por conveniência.
+ *
+ * Então a tela pergunta. E por perguntar o tempo todo, esta resposta
+ * precisa ser a mais barata do arquivo: **três contagens e uma data**,
+ * sem trazer mensagem nenhuma. A tela compara com o que já tem e só vai
+ * buscar o conteúdo quando algo mudou de verdade.
+ */
+async function pulso(req, res) {
+  const eu = quem(req);
+  if (!eu) return semSessao(res);
+
+  /* As quatro perguntas iam EM FILA e a resposta levava 4,3 segundos —
+   * medido. Para algo que bate de 5 em 5, isso é quase o intervalo
+   * inteiro, e três delas não dependem de nada.
+   *
+   * Agora são duas rodadas: as três independentes juntas, e as não-lidas
+   * depois, porque só elas precisam saber quais são as minhas conversas.
+   */
+  const [minhas, ofertas, pedidos] = await Promise.all([
+    rsb(`conversas?or=(conta_a.eq.${eu.conta_id},conta_b.eq.${eu.conta_id})` +
+        `&select=id,ultima_em&order=ultima_em.desc&limit=200`),
+    // Carro novo que chegou para mim e que eu ainda não olhei.
+    contar(`oferta_destinos?conta_id=eq.${eu.conta_id}&visto_em=is.null`),
+    // Pedidos para entrar na minha lista — a única coisa aqui que espera
+    // resposta minha, e por isso vale um aviso próprio.
+    contar(`solicitacoes?para_conta_id=eq.${eu.conta_id}&estado=eq.pendente`),
+  ]);
+
+  // A data mais recente de qualquer conversa minha: se ela não mudou,
+  // nada chegou e nada foi mandado.
+  const ultima = minhas.length ? minhas[0].ultima_em : null;
+
+  // `count=exact` com `limit=0`: o banco devolve só o número, no
+  // cabeçalho. Nenhuma linha atravessa a rede.
+  const naoLidas = minhas.length
+    ? await contar(
+      `mensagens_rede?conversa_id=in.(${minhas.map((c) => c.id).join(',')})` +
+      `&de_conta_id=neq.${eu.conta_id}&lida_em=is.null`)
+    : 0;
+
+  return res.status(200).json({ ok: true, ultima, naoLidas, ofertas, pedidos });
+}
+
+/** Conta sem trazer linha nenhuma. */
+async function contar(consulta) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${consulta}&select=*&limit=0`, {
+    headers: {
+      apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`,
+      Prefer: 'count=exact', Range: '0-0',
+    },
+  });
+  if (!r.ok) return 0;
+  // `content-range` vem como "0-0/7" — o que interessa é o depois da barra.
+  const faixa = r.headers.get('content-range') || '';
+  const n = Number(faixa.split('/')[1]);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /* ══ TRANSMITIR UMA MENSAGEM (06/out) ════════════════════════════════
  *
  * [YURI: "quero a mesma funcionalidade do whatsapp"]
@@ -2154,7 +2226,7 @@ module.exports = {
   assinarAviso, novidades,
   listas, solicitar, responder, sairOuRemover,
   agenda, bloquear, bloqueadas,
-  anexoSubir, anexoVer, espaco, transmitirMensagem,
+  anexoSubir, anexoVer, espaco, transmitirMensagem, pulso,
   verListasTransmissao, mexerNaLista, membrosDaLista,
   conversas, abrirConversa, mandarMensagem,
   grupos, abrirGrupo, mexerNoGrupo, mandarNoGrupo,
