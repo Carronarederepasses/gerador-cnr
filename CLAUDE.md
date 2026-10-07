@@ -657,6 +657,17 @@ tela, e o rodapé é onde ficam os botões.
 `search` ficaram sem cor dentro de uma tela preta. Selecionar por tipo, não
 por classe.
 
+**Promessa antes da decisão:** a tela escrevia "Buscando FIPE..." e só
+depois decidia se buscava — sem ano no texto, a busca nunca acontecia e a
+frase ficava parada. **Promessa e cumprimento têm de morar no mesmo `if`.**
+A FIPE é por ano-modelo: sem ano não há o que buscar, e isso é a resposta,
+não um detalhe a contornar.
+
+**Prazo que não cabe dentro do outro não serve:** a busca da FIPE tem 25s,
+cada chamada à fonte 6s, e a tela 30s (maior que o servidor, para a
+mensagem boa dele chegar primeiro). `maxDuration: 300` no `vercel.json`
+significa que, sem prazo escrito, uma tela pode esperar cinco minutos.
+
 **Alvo de toque:** linha de lista precisa abrir inteira, não por um botão no
 canto. Alvo pequeno em espaço vazio parece tela que não respondeu.
 
@@ -682,7 +693,7 @@ contas 3 (Carro na Rede, Fabio Nogueira, BHM Autos) · DEMO apagada
 usuários com número: 2 de 4 (Yuri, Nogueira) — sem número não se é achado
 Rede: 1 conversa · 2 mensagens (as duas do Yuri, NÃO LIDAS) · 1 assinatura
       de aviso (só a dele) · 0 contatos · 0 listas · 0 ofertas · 0 bloqueios
-anúncios 213 · morto 107 · novo 88 · enviado 9 · respondeu 7 · autorizado 2
+anúncios 215 · morto 107 · novo 90 · enviado 9 · respondeu 7 · autorizado 2
 vendas 114 · veículos 3
 ```
 
@@ -691,7 +702,7 @@ vendas 114 · veículos 3
 | | |
 |---|---|
 | O Nogueira tem 2 mensagens não lidas | e nenhum aviso ligado — avisar por WhatsApp e pedir que ligue o 🔔 |
-| Terminar a limpeza do radar | 88 ainda como `novo`; rodar o 🧹 até zerar |
+| Terminar a limpeza do radar | 90 ainda como `novo` (o radar trouxe 2 novos); rodar o 🧹 até zerar |
 | Link do Bruno | mandar; depois que ele entrar, apagar o `cnr-piloto` |
 | Teto na chave do OpenRouter | está **sem teto**. US$ 4,99 gastos desde agosto |
 | Extensão da mãe | recarregar no notebook dela — os consertos de 05/out só valem depois |

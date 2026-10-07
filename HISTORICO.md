@@ -288,9 +288,83 @@ Para nós cada atalho tem um motivo e nenhum parece sobrar. Precisou de
 alguém abrir a tela pela primeira vez para a frase aparecer, e ela veio em
 cinco palavras.
 
-*Registrado em 6 de outubro de 2026.*
+### 6 de outubro, noite — a FIPE que nunca buscou
 
----
+> *"Tô tentando criar anúncio na aba parceiro, tá buscando FIPE faz uns 3min
+> e nada."*
+
+Procurei no lugar errado por um bom tempo. Conferi a fonte (no ar, 621ms),
+li a busca inteira, achei que fosse varredura de marca sem prazo. Era
+plausível: o `vercel.json` dá `maxDuration: 300`, então uma busca lenta pode
+mesmo rodar cinco minutos sem ninguém interromper.
+
+**Ele achou a causa:** *"no texto não constava o ano."*
+
+```js
+setParcSt('✓ Campos preenchidos. Buscando FIPE...');   // promete
+
+if (data.veiculo && data.ano) {                        // sem ano, não entra
+  await buscarFIPEColetados(...);
+}
+```
+
+A tela **prometia e só depois decidia**. Sem ano, o `if` não entra, a busca
+nunca começa, e a frase fica parada para sempre. Ele não esperou uma busca
+lenta: esperou uma busca que **nunca aconteceu**. Nos dois caminhos — o
+"Processar" da coleta e o "Processar com IA".
+
+E a FIPE realmente não existe sem ano: a tabela é por **ano-modelo**. A
+falta do ano não é algo a contornar, é a resposta — e tem de ser dita na
+hora, apontando o campo que falta e abrindo a busca manual, que resolve em
+dois toques. A promessa agora só é escrita **dentro** do `if` que vai
+cumpri-la.
+
+Medido depois, contra a fonte de verdade, para não restar dúvida de que a
+busca nunca foi o problema:
+
+```
+Toyota Corolla XEI 2.0  2020   1,7s   R$ 113.958
+Hilux SRV 2.8           2021   6,2s   R$ 199.470
+BMW X3 m50              2025   4,3s   R$ 546.565
+Gol 1.0                 2018   5,6s   não achou — e disse
+```
+
+#### Os três prazos que faltavam
+
+Achados enquanto eu procurava no lugar errado. Não eram a causa de hoje,
+mas eram o que permitia a demora chegar aos 300 segundos:
+
+| | antes | agora |
+|---|---|---|
+| cada chamada à fonte | **sem prazo** — conexão pendurada travava o lote | 6s |
+| a busca inteira | **sem prazo** | 25s, responde com o que tem |
+| a tela | **sem prazo** | avisa aos 10s, desiste aos 30 |
+
+Um detalhe que só apareceu porque o teste roda contra um servidor que
+aceita a conexão e nunca responde: com as três tentativas de sempre, uma
+fonte muda custava **26 segundos numa chamada só** — mais que o prazo
+inteiro da busca. **Prazo que não cabe dentro do outro não serve de nada.**
+Duas tentativas quando o motivo é prazo, ~13s no pior caso, cabe.
+
+O mesmo buraco estava no **Religar FIPE** do catálogo, lá sem nem a frase
+"buscando" para a pessoa saber que algo acontecia. Saiu junto.
+
+#### O que isto ensinou, e é a terceira vez no dia
+
+A causa não estava no código caro, estava na ordem de duas linhas. E eu
+passei o tempo olhando o caro.
+
+**Promessa e cumprimento têm de morar no mesmo `if`.** Uma frase que diz
+"estou fazendo X" escrita antes da decisão de fazer X é uma mentira à
+espera de acontecer — e quando acontece, não há erro, não há registro, não
+há nada para procurar. Só uma pessoa olhando uma tela parada.
+
+É irmã da lição da manhã: lá, funcionalidade construída que nenhuma tela
+alcançava; aqui, uma tela anunciando o que nenhuma função ia executar. Nos
+dois casos **o caminho é que estava quebrado, não a peça.**
+
+*Registrado em 6 de outubro de 2026, noite.*
+
 ## 5 de outubro de 2026 — o dia em que o problema era o dado
 
 Ele estava captando no notebook e levou "Sem resposta da extensão.
